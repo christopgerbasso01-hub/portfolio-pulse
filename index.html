@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Portfolio Pulse">
+  <meta name="theme-color" content="#060b14">
+  <title>Portfolio Pulse</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root {
+      --bg: #060b14;
+      --surface: #0c1524;
+      --surface2: #111d30;
+      --border: #1a2e4a;
+      --border2: #223659;
+      --blue: #3b82f6;
+      --blue-dim: rgba(59,130,246,0.15);
+      --green: #10b981;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --purple: #8b5cf6;
+      --text: #e2e8f0;
+      --text2: #94a3b8;
+      --text3: #64748b;
+      --mono: 'SF Mono', 'Courier New', monospace;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; font-size: 14px; }
+
+    /* ── Layout ── */
+    #app { display: flex; flex-direction: column; height: 100%; }
+
+    /* ── Status Bar Spacer ── */
+    .status-bar { height: var(--safe-top); background: var(--bg); flex-shrink: 0; }
+
+    /* ── Header ── */
+    .header {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left h1 { font-size: 13px; font-weight: 700; color: var(--blue); letter-spacing: 0.08em; text-transform: uppercase; }
+    .header-left .last-updated { font-size: 10px; color: var(--text3); margin-top: 2px; font-family: var(--mono); }
+    .refresh-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      color: var(--blue); font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.2s;
+    }
+    .refresh-btn.spinning { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Scroll Content ── */
+    .content { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+
+    /* ── Tab Bar ── */
+    .tab-bar {
+      flex-shrink: 0;
+      display: flex;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding-bottom: var(--safe-bottom);
+    }
+    .tab-btn {
+      flex: 1; padding: 10px 4px 8px;
+      background: none; border: none; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      color: var(--text3); transition: color 0.2s;
+    }
+    .tab-btn.active { color: var(--blue); }
+    .tab-icon { font-size: 20px; line-height: 1; }
+    .tab-label { font-size: 10px; font-weight: 500; }
+
+    /* ── Tab Pages ── */
+    .tab-page { display: none; padding: 16px; padding-bottom: 8px; }
+    .tab-page.active { display: block; }
+
+    /* ── Banner / Hero Value ── */
+    .hero {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+    .hero-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .hero-value { font-family: var(--mono); font-size: 36px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; }
+    .hero-day { font-size: 13px; font-weight: 500; }
+
+    /* ── KPI Grid ── */
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .kpi-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px;
+    }
+    .kpi-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .kpi-value { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+    .kpi-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+    /* ── Account Summary ── */
+    .section-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 600; }
+    .account-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .account-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .account-left { display: flex; align-items: center; gap: 10px; }
+    .account-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .account-name { font-size: 13px; font-weight: 600; }
+    .account-count { font-size: 11px; color: var(--text3); margin-top: 1px; }
+    .account-right { text-align: right; }
+    .account-value { font-family: var(--mono); font-size: 15px; font-weight: 700; }
+    .account-pnl { font-size: 11px; margin-top: 2px; }
+
+    /* ── Allocation Bar ── */
+    .alloc-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    .alloc-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 10px 0 12px; gap: 1px; }
+    .alloc-bar-seg { height: 100%; transition: width 0.5s ease; }
+    .alloc-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+    .alloc-leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+    .alloc-leg-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Holdings List ── */
+    .search-bar {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px;
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    }
+    .search-bar input {
+      flex: 1; background: none; border: none; outline: none;
+      color: var(--text); font-size: 14px;
+    }
+    .search-bar input::placeholder { color: var(--text3); }
+    .filter-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 10px; scrollbar-width: none; }
+    .filter-chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text2); transition: all 0.15s; white-space: nowrap;
+    }
+    .chip.active { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+
+    .holding-list { display: flex; flex-direction: column; gap: 6px; }
+    .holding-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .holding-ticker-badge {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--surface2); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      color: var(--blue); text-align: center; flex-shrink: 0;
+      word-break: break-all; line-height: 1.1;
+    }
+    .holding-mid { flex: 1; min-width: 0; }
+    .holding-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .holding-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .holding-right { text-align: right; flex-shrink: 0; }
+    .holding-value { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+    .holding-pnl { font-size: 11px; margin-top: 2px; }
+    .holding-price { font-size: 11px; color: var(--text3); margin-top: 1px; font-family: var(--mono); }
+
+    /* ── Account Detail ── */
+    .account-section { margin-bottom: 16px; }
+    .account-header {
+      border-radius: 12px 12px 0 0; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .account-header-name { font-weight: 700; font-size: 14px; }
+    .account-header-value { font-family: var(--mono); font-size: 15px; font-weight: 700; }
+    .account-holdings { border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; }
+    .account-row {
+      display: flex; align-items: center; padding: 10px 14px;
+      border-bottom: 1px solid var(--border); gap: 10px;
+    }
+    .account-row:last-child { border-bottom: none; }
+    .account-row-ticker { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--blue); width: 58px; flex-shrink: 0; }
+    .account-row-mid { flex: 1; min-width: 0; }
+    .account-row-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .account-row-shares { font-size: 10px; color: var(--text3); margin-top: 1px; }
+    .account-row-right { text-align: right; flex-shrink: 0; }
+    .account-row-value { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+    .account-row-pnl { font-size: 10px; margin-top: 1px; }
+
+    /* ── Colours ── */
+    .green { color: var(--green); }
+    .red { color: var(--red); }
+    .amber { color: var(--amber); }
+
+    /* ── Skeleton loader ── */
+    .skel { background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Error banner ── */
+    .error-banner {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;
+      font-size: 12px; color: var(--red); display: none; align-items: center; gap: 8px;
+    }
+    .error-banner.show { display: flex; }
+
+    /* ── FX rate badge ── */
+    .fx-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 3px 8px; font-size: 10px;
+      font-family: var(--mono); color: var(--text3); margin-bottom: 14px;
+    }
+
+    /* ── Number formatting ── */
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .neu { color: var(--text2); }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="status-bar"></div>
+
+  <div class="header">
+    <div class="header-left">
+      <h1>⚡ Portfolio Pulse</h1>
+      <div class="last-updated" id="lastUpdated">Tap refresh to load prices</div>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadPrices()" title="Refresh prices">↻</button>
+  </div>
+
+  <div class="content" id="mainContent">
+    <div id="page-dashboard" class="tab-page active">
+      <div class="error-banner" id="errorBanner">
+        ⚠ Could not fetch live prices. Showing last cached values.
+      </div>
+
+      <!-- Hero Value -->
+      <div class="hero">
+        <div class="hero-label">Total Portfolio (CAD)</div>
+        <div class="hero-value" id="heroValue">—</div>
+        <div class="hero-day" id="heroDay">—</div>
+      </div>
+
+      <!-- FX Rate -->
+      <div class="fx-badge" id="fxBadge">USD/CAD: loading...</div>
+
+      <!-- KPI Grid -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Gain</div>
+          <div class="kpi-value" id="kpiTotalGain">—</div>
+          <div class="kpi-sub" id="kpiTotalPct">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Day Change</div>
+          <div class="kpi-value" id="kpiDayChange">—</div>
+          <div class="kpi-sub" id="kpiDayPct">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Cost Basis</div>
+          <div class="kpi-value" id="kpiCostBasis">—</div>
+          <div class="kpi-sub">Total invested</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Positions</div>
+          <div class="kpi-value" id="kpiPositions">37</div>
+          <div class="kpi-sub">across 4 accounts</div>
+        </div>
+      </div>
+
+      <!-- Account Summary -->
+      <div class="section-title">Accounts</div>
+      <div class="account-list" id="accountSummary">
+        <div class="account-card"><div class="account-left"><div class="account-dot" style="background:#3b82f6"></div><div><div class="account-name">TFSA</div><div class="account-count">16 positions</div></div></div><div class="account-right"><div class="account-value" id="acc-TFSA-val">—</div><div class="account-pnl" id="acc-TFSA-pnl">—</div></div></div>
+        <div class="account-card"><div class="account-left"><div class="account-dot" style="background:#10b981"></div><div><div class="account-name">FHSA</div><div class="account-count">5 positions</div></div></div><div class="account-right"><div class="account-value" id="acc-FHSA-val">—</div><div class="account-pnl" id="acc-FHSA-pnl">—</div></div></div>
+        <div class="account-card"><div class="account-left"><div class="account-dot" style="background:#f59e0b"></div><div><div class="account-name">RRSP</div><div class="account-count">4 positions</div></div></div><div class="account-right"><div class="account-value" id="acc-RRSP-val">—</div><div class="account-pnl" id="acc-RRSP-pnl">—</div></div></div>
+        <div class="account-card"><div class="account-left"><div class="account-dot" style="background:#94a3b8"></div><div><div class="account-name">Non-Reg</div><div class="account-count">12 positions</div></div></div><div class="account-right"><div class="account-value" id="acc-Investment-val">—</div><div class="account-pnl" id="acc-Investment-pnl">—</div></div></div>
+      </div>
+
+      <!-- Allocation Bar -->
+      <div class="alloc-section">
+        <div class="section-title" style="margin-bottom:0">Allocation</div>
+        <div class="alloc-bar" id="allocBar">
+          <div class="alloc-bar-seg" style="width:37.6%;background:#3b82f6"></div>
+          <div class="alloc-bar-seg" style="width:20.3%;background:#10b981"></div>
+          <div class="alloc-bar-seg" style="width:6.5%;background:#f59e0b"></div>
+          <div class="alloc-bar-seg" style="width:35.6%;background:#94a3b8"></div>
+        </div>
+        <div class="alloc-legend">
+          <div class="alloc-leg-item"><div class="alloc-leg-dot" style="background:#3b82f6"></div><span>TFSA <span id="alloc-TFSA">—%</span></span></div>
+          <div class="alloc-leg-item"><div class="alloc-leg-dot" style="background:#10b981"></div><span>FHSA <span id="alloc-FHSA">—%</span></span></div>
+          <div class="alloc-leg-item"><div class="alloc-leg-dot" style="background:#f59e0b"></div><span>RRSP <span id="alloc-RRSP">—%</span></span></div>
+          <div class="alloc-leg-item"><div class="alloc-leg-dot" style="background:#94a3b8"></div><span>Non-Reg <span id="alloc-Investment">—%</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Holdings Tab -->
+    <div id="page-holdings" class="tab-page">
+      <div class="search-bar">
+        <span style="color:var(--text3)">🔍</span>
+        <input type="search" id="searchInput" placeholder="Search ticker or name…" oninput="filterHoldings()">
+      </div>
+      <div class="filter-chips">
+        <div class="chip active" onclick="setFilter('all',this)">All</div>
+        <div class="chip" onclick="setFilter('TFSA',this)">TFSA</div>
+        <div class="chip" onclick="setFilter('FHSA',this)">FHSA</div>
+        <div class="chip" onclick="setFilter('RRSP',this)">RRSP</div>
+        <div class="chip" onclick="setFilter('Investment',this)">Non-Reg</div>
+        <div class="chip" onclick="setFilter('gain',this)">Gains</div>
+        <div class="chip" onclick="setFilter('loss',this)">Losses</div>
+      </div>
+      <div class="holding-list" id="holdingList"></div>
+    </div>
+
+    <!-- Accounts Tab -->
+    <div id="page-accounts" class="tab-page">
+      <div id="accountsDetail"></div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-dashboard" onclick="showTab('dashboard')">
+      <div class="tab-icon">📊</div>
+      <div class="tab-label">Dashboard</div>
+    </button>
+    <button class="tab-btn" id="tab-holdings" onclick="showTab('holdings')">
+      <div class="tab-icon">📋</div>
+      <div class="tab-label">Holdings</div>
+    </button>
+    <button class="tab-btn" id="tab-accounts" onclick="showTab('accounts')">
+      <div class="tab-icon">🏦</div>
+      <div class="tab-label">Accounts</div>
+    </button>
+  </div>
+</div>
+
+<script>
+// ── Holdings Data ──────────────────────────────────────────────────────────────
+// costBasisCAD = total cost in Canadian dollars
+const HOLDINGS = [
+  { t:'SPXL',   n:'S&P 500 3× ETF',        a:'Investment', s:75,  c:13364, fx:'USD' },
+  { t:'FNGU',   n:'FANG+ 3× ETF',           a:'Investment', s:665, c:18138, fx:'USD' },
+  { t:'FNGU',   n:'FANG+ 3× ETF',           a:'TFSA',       s:495, c:13071, fx:'USD' },
+  { t:'SPXL',   n:'S&P 500 3× ETF',         a:'FHSA',       s:53,  c:7096,  fx:'USD' },
+  { t:'NVDA',   n:'NVIDIA',                  a:'TFSA',       s:40,  c:645,   fx:'USD' },
+  { t:'TXF.TO', n:'CI Tech Giants',          a:'FHSA',       s:434, c:11412, fx:'CAD' },
+  { t:'TXF.TO', n:'CI Tech Giants',          a:'TFSA',       s:320, c:7034,  fx:'CAD' },
+  { t:'SPXL',   n:'S&P 500 3× ETF',         a:'TFSA',       s:23,  c:5573,  fx:'USD' },
+  { t:'TSLA',   n:'Tesla',                   a:'TFSA',       s:14,  c:4768,  fx:'USD' },
+  { t:'CM.TO',  n:'CIBC',                    a:'Investment', s:50,  c:6674,  fx:'CAD' },
+  { t:'TXF.TO', n:'CI Tech Giants',          a:'RRSP',       s:284, c:6185,  fx:'CAD' },
+  { t:'UDOW',   n:'Dow 3× ETF',              a:'FHSA',       s:86,  c:5330,  fx:'USD' },
+  { t:'UDOW',   n:'Dow 3× ETF',              a:'TFSA',       s:84,  c:4245,  fx:'USD' },
+  { t:'CM.TO',  n:'CIBC',                    a:'TFSA',       s:45,  c:2957,  fx:'CAD' },
+  { t:'FNGU',   n:'FANG+ 3× ETF',           a:'FHSA',       s:157, c:4159,  fx:'USD' },
+  { t:'ENB.TO', n:'Enbridge',                a:'FHSA',       s:82,  c:4500,  fx:'CAD' },
+  { t:'TXF.TO', n:'CI Tech Giants',          a:'Investment', s:221, c:4956,  fx:'CAD' },
+  { t:'TSM',    n:'Taiwan Semi',             a:'Investment', s:9,   c:3697,  fx:'USD' },
+  { t:'RY.TO',  n:'Royal Bank',              a:'Investment', s:19,  c:3896,  fx:'CAD' },
+  { t:'IBKR',   n:'Interactive Brokers',     a:'Investment', s:40,  c:3195,  fx:'USD' },
+  { t:'AVGO',   n:'Broadcom',                a:'TFSA',       s:8,   c:4376,  fx:'USD' },
+  { t:'COST',   n:'Costco',                  a:'TFSA',       s:3,   c:1238,  fx:'USD' },
+  { t:'TSM',    n:'Taiwan Semi',             a:'RRSP',       s:6,   c:3232,  fx:'USD' },
+  { t:'BMO.TO', n:'Bank of Montreal',        a:'TFSA',       s:15,  c:1767,  fx:'CAD' },
+  { t:'UDOW',   n:'Dow 3× ETF',              a:'RRSP',       s:36,  c:2554,  fx:'USD' },
+  { t:'RDS',    n:'RDS Holdings',            a:'TFSA',       s:22,  c:1395,  fx:'USD' },
+  { t:'LYV',    n:'Live Nation',             a:'Investment', s:11,  c:1308,  fx:'USD' },
+  { t:'NFLX',   n:'Netflix',                 a:'TFSA',       s:20,  c:1448,  fx:'USD' },
+  { t:'FNGU',   n:'FANG+ 3× ETF',           a:'RRSP',       s:56,  c:1492,  fx:'USD' },
+  { t:'GBTC',   n:'Grayscale BTC',           a:'Investment', s:25,  c:2608,  fx:'USD' },
+  { t:'V',      n:'Visa',                    a:'Investment', s:4,   c:1251,  fx:'USD' },
+  { t:'ET',     n:'Energy Transfer',         a:'TFSA',       s:60,  c:1067,  fx:'USD' },
+  { t:'AAPL',   n:'Apple',                   a:'TFSA',       s:4,   c:642,   fx:'USD' },
+  { t:'QCOM',   n:'Qualcomm',                a:'TFSA',       s:5,   c:640,   fx:'USD' },
+  { t:'MSFT',   n:'Microsoft',               a:'TFSA',       s:2,   c:490,   fx:'USD' },
+  { t:'MSTR',   n:'MicroStrategy',           a:'Investment', s:4,   c:1781,  fx:'USD' },
+  { t:'BYDDF',  n:'BYD',                     a:'Investment', s:3,   c:74,    fx:'USD' },
+];
+
+// Unique tickers to fetch
+const UNIQUE_TICKERS = [...new Set(HOLDINGS.map(h => h.t))];
+const FX_SYMBOL = 'USDCAD=X';
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let prices = {};        // { ticker: { price, prevClose, currency } }
+let usdcad = 1.37;      // fallback rate
+let activeTab = 'dashboard';
+let activeFilter = 'all';
+let isLoading = false;
+
+// ── Tabs ───────────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('mainContent').scrollTop = 0;
+  activeTab = name;
+}
+
+// ── Filter chips ───────────────────────────────────────────────────────────────
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderHoldings();
+}
+
+function filterHoldings() { renderHoldings(); }
+
+// ── Price Fetching ─────────────────────────────────────────────────────────────
+async function fetchQuote(symbol) {
+  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  const meta = data?.chart?.result?.[0]?.meta;
+  if (!meta) throw new Error('No meta');
+  return {
+    price: meta.regularMarketPrice ?? meta.chartPreviousClose,
+    prevClose: meta.chartPreviousClose ?? meta.previousClose,
+    currency: meta.currency ?? (symbol.endsWith('.TO') ? 'CAD' : 'USD'),
+  };
+}
+
+async function loadPrices() {
+  if (isLoading) return;
+  isLoading = true;
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  document.getElementById('errorBanner').classList.remove('show');
+
+  const allSymbols = [...UNIQUE_TICKERS, FX_SYMBOL];
+  let anyError = false;
+
+  // Fetch in parallel batches of 6
+  const BATCH = 6;
+  for (let i = 0; i < allSymbols.length; i += BATCH) {
+    const batch = allSymbols.slice(i, i + BATCH);
+    await Promise.all(batch.map(async sym => {
+      try {
+        const q = await fetchQuote(sym);
+        if (sym === FX_SYMBOL) {
+          usdcad = q.price;
+        } else {
+          prices[sym] = q;
+        }
+      } catch (e) {
+        if (sym !== FX_SYMBOL) anyError = true;
+        console.warn('Failed to fetch', sym, e.message);
+      }
+    }));
+    if (i + BATCH < allSymbols.length) {
+      await new Promise(r => setTimeout(r, 200));
+    }
+  }
+
+  // Cache to localStorage
+  try {
+    localStorage.setItem('pp_prices', JSON.stringify({ prices, usdcad, ts: Date.now() }));
+  } catch(_) {}
+
+  if (anyError) document.getElementById('errorBanner').classList.add('show');
+
+  const now = new Date();
+  document.getElementById('lastUpdated').textContent =
+    'Updated ' + now.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit' });
+
+  btn.classList.remove('spinning');
+  isLoading = false;
+  renderAll();
+}
+
+function loadCache() {
+  try {
+    const raw = localStorage.getItem('pp_prices');
+    if (!raw) return false;
+    const cached = JSON.parse(raw);
+    const age = Date.now() - cached.ts;
+    if (age > 8 * 3600 * 1000) return false; // stale after 8h
+    prices = cached.prices || {};
+    usdcad = cached.usdcad || 1.37;
+    const d = new Date(cached.ts);
+    document.getElementById('lastUpdated').textContent =
+      'Cached ' + d.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit' });
+    return Object.keys(prices).length > 0;
+  } catch(_) { return false; }
+}
+
+// ── Calculations ───────────────────────────────────────────────────────────────
+function getHoldingMV(h) {
+  const q = prices[h.t];
+  if (!q) return null;
+  const priceCAD = h.fx === 'CAD' ? q.price : q.price * usdcad;
+  return h.s * priceCAD;
+}
+
+function getHoldingDayChange(h) {
+  const q = prices[h.t];
+  if (!q || !q.prevClose) return null;
+  const priceCAD = h.fx === 'CAD' ? q.price : q.price * usdcad;
+  const prevCAD  = h.fx === 'CAD' ? q.prevClose : q.prevClose * usdcad;
+  return h.s * (priceCAD - prevCAD);
+}
+
+function calcPortfolio() {
+  let totalMV = 0, totalCost = 0, totalDay = 0;
+  const byAccount = { TFSA: {mv:0,cost:0}, FHSA: {mv:0,cost:0}, RRSP: {mv:0,cost:0}, Investment: {mv:0,cost:0} };
+
+  for (const h of HOLDINGS) {
+    const mv = getHoldingMV(h);
+    if (mv !== null) {
+      totalMV += mv;
+      byAccount[h.a].mv += mv;
+    }
+    totalCost += h.c;
+    byAccount[h.a].cost += h.c;
+    const day = getHoldingDayChange(h);
+    if (day !== null) totalDay += day;
+  }
+
+  return { totalMV, totalCost, totalDay, byAccount };
+}
+
+// ── Formatting ─────────────────────────────────────────────────────────────────
+function fmtCAD(n) {
+  if (n == null || isNaN(n)) return '—';
+  return '$' + Math.abs(n).toLocaleString('en-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+function fmtPct(pct) {
+  if (pct == null || isNaN(pct)) return '';
+  return (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+}
+function colorClass(n) { return n > 0 ? 'green' : n < 0 ? 'red' : 'neu'; }
+function signStr(n) { return n >= 0 ? '+' : '-'; }
+
+// ── Render ─────────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderDashboard();
+  renderHoldings();
+  renderAccounts();
+}
+
+function renderDashboard() {
+  const { totalMV, totalCost, totalDay, byAccount } = calcPortfolio();
+  const totalGain = totalMV - totalCost;
+  const gainPct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+  const dayPct = totalMV > 0 ? (totalDay / (totalMV - totalDay)) * 100 : 0;
+
+  // Hero
+  document.getElementById('heroValue').textContent = fmtCAD(totalMV);
+  document.getElementById('heroValue').className = 'hero-value ' + (totalMV > 0 ? '' : '');
+
+  const dayEl = document.getElementById('heroDay');
+  dayEl.textContent = (totalDay >= 0 ? '+' : '') + fmtCAD(totalDay).replace('$','$') + ' today (' + fmtPct(dayPct) + ')';
+  dayEl.className = 'hero-day ' + colorClass(totalDay);
+
+  // FX
+  document.getElementById('fxBadge').textContent = `🇺🇸→🇨🇦  1 USD = ${usdcad.toFixed(4)} CAD`;
+
+  // KPIs
+  const gainEl = document.getElementById('kpiTotalGain');
+  gainEl.textContent = (totalGain >= 0 ? '+' : '') + fmtCAD(totalGain);
+  gainEl.className = 'kpi-value ' + colorClass(totalGain);
+  document.getElementById('kpiTotalPct').textContent = fmtPct(gainPct);
+
+  const dayKpiEl = document.getElementById('kpiDayChange');
+  dayKpiEl.textContent = (totalDay >= 0 ? '+' : '') + fmtCAD(totalDay);
+  dayKpiEl.className = 'kpi-value ' + colorClass(totalDay);
+  document.getElementById('kpiDayPct').textContent = fmtPct(dayPct);
+
+  document.getElementById('kpiCostBasis').textContent = fmtCAD(totalCost);
+
+  // Account summary
+  for (const [acct, data] of Object.entries(byAccount)) {
+    const gain = data.mv - data.cost;
+    const valEl = document.getElementById(`acc-${acct}-val`);
+    const pnlEl = document.getElementById(`acc-${acct}-pnl`);
+    if (valEl) {
+      valEl.textContent = fmtCAD(data.mv);
+      pnlEl.textContent = (gain >= 0 ? '+' : '') + fmtCAD(gain);
+      pnlEl.className = 'account-pnl ' + colorClass(gain);
+    }
+  }
+
+  // Allocation bar
+  const total = Object.values(byAccount).reduce((s, a) => s + a.mv, 0);
+  if (total > 0) {
+    const colors = { TFSA:'#3b82f6', FHSA:'#10b981', RRSP:'#f59e0b', Investment:'#94a3b8' };
+    const bar = document.getElementById('allocBar');
+    bar.innerHTML = '';
+    for (const [acct, data] of Object.entries(byAccount)) {
+      const pct = (data.mv / total) * 100;
+      const seg = document.createElement('div');
+      seg.className = 'alloc-bar-seg';
+      seg.style.width = pct.toFixed(1) + '%';
+      seg.style.background = colors[acct];
+      bar.appendChild(seg);
+      const legEl = document.getElementById('alloc-' + acct);
+      if (legEl) legEl.textContent = pct.toFixed(1) + '%';
+    }
+  }
+}
+
+function renderHoldings() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const list = document.getElementById('holdingList');
+
+  // Filter
+  let filtered = HOLDINGS.filter(h => {
+    if (search && !h.t.toLowerCase().includes(search) && !h.n.toLowerCase().includes(search)) return false;
+    if (activeFilter === 'all') return true;
+    if (['TFSA','FHSA','RRSP','Investment'].includes(activeFilter)) return h.a === activeFilter;
+    if (activeFilter === 'gain') {
+      const mv = getHoldingMV(h);
+      return mv !== null ? mv > h.c : true;
+    }
+    if (activeFilter === 'loss') {
+      const mv = getHoldingMV(h);
+      return mv !== null ? mv < h.c : false;
+    }
+    return true;
+  });
+
+  // Sort by market value descending
+  filtered.sort((a, b) => {
+    const mvA = getHoldingMV(a) ?? 0;
+    const mvB = getHoldingMV(b) ?? 0;
+    return mvB - mvA;
+  });
+
+  const acctColors = { TFSA:'#3b82f6', FHSA:'#10b981', RRSP:'#f59e0b', Investment:'#94a3b8' };
+  const acctLabels = { TFSA:'TFSA', FHSA:'FHSA', RRSP:'RRSP', Investment:'NON-REG' };
+
+  list.innerHTML = filtered.map(h => {
+    const mv = getHoldingMV(h);
+    const gain = mv !== null ? mv - h.c : null;
+    const gainPct = gain !== null && h.c > 0 ? (gain / h.c) * 100 : null;
+    const q = prices[h.t];
+    const priceStr = q ? `${q.currency === 'CAD' ? 'C$' : 'US$'}${q.price.toFixed(2)}` : '—';
+    const mvStr = mv !== null ? fmtCAD(mv) : '—';
+    const gainStr = gain !== null ? (gain >= 0 ? '+' : '') + fmtCAD(gain) + (gainPct !== null ? ` (${fmtPct(gainPct)})` : '') : '—';
+    const color = acctColors[h.a];
+    const label = acctLabels[h.a];
+    return `
+      <div class="holding-card">
+        <div class="holding-ticker-badge">${h.t.replace('.TO','')}</div>
+        <div class="holding-mid">
+          <div class="holding-name">${h.n}</div>
+          <div class="holding-meta">
+            <span style="color:${color};font-size:10px;font-weight:700">${label}</span>
+            <span style="color:var(--text3)"> · ${h.s} shares</span>
+          </div>
+        </div>
+        <div class="holding-right">
+          <div class="holding-value">${mvStr}</div>
+          <div class="holding-pnl ${colorClass(gain)}">${gainStr}</div>
+          <div class="holding-price">${priceStr}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderAccounts() {
+  const container = document.getElementById('accountsDetail');
+  const acctColors = { TFSA:'#3b82f6', FHSA:'#10b981', RRSP:'#f59e0b', Investment:'#94a3b8' };
+  const acctLabels = { TFSA:'TFSA', FHSA:'FHSA', RRSP:'RRSP', Investment:'Non-Reg' };
+
+  let html = '';
+  for (const [acct, color] of Object.entries(acctColors)) {
+    const holdings = HOLDINGS.filter(h => h.a === acct).sort((a,b) => (getHoldingMV(b)??0) - (getHoldingMV(a)??0));
+    const totalMV = holdings.reduce((s, h) => s + (getHoldingMV(h) ?? 0), 0);
+    const totalCost = holdings.reduce((s, h) => s + h.c, 0);
+    const gain = totalMV - totalCost;
+
+    html += `
+      <div class="account-section">
+        <div class="account-header" style="background:${color}22;border:1px solid ${color}44">
+          <div>
+            <div class="account-header-name" style="color:${color}">${acctLabels[acct]}</div>
+            <div style="font-size:11px;color:var(--text3)">${holdings.length} positions</div>
+          </div>
+          <div style="text-align:right">
+            <div class="account-header-value">${fmtCAD(totalMV)}</div>
+            <div class="account-pnl ${colorClass(gain)}" style="font-size:11px;margin-top:2px">${gain>=0?'+':''}${fmtCAD(gain)}</div>
+          </div>
+        </div>
+        <div class="account-holdings">`;
+
+    for (const h of holdings) {
+      const mv = getHoldingMV(h);
+      const gain = mv !== null ? mv - h.c : null;
+      const q = prices[h.t];
+      const priceStr = q ? `${q.currency === 'CAD' ? 'C$' : 'US$'}${q.price.toFixed(2)}` : '—';
+      html += `
+          <div class="account-row">
+            <div class="account-row-ticker">${h.t.replace('.TO','')}</div>
+            <div class="account-row-mid">
+              <div class="account-row-name">${h.n}</div>
+              <div class="account-row-shares">${h.s} shares · ${priceStr}</div>
+            </div>
+            <div class="account-row-right">
+              <div class="account-row-value">${mv !== null ? fmtCAD(mv) : '—'}</div>
+              <div class="account-row-pnl ${colorClass(gain)}">${gain !== null ? (gain>=0?'+':'') + fmtCAD(gain) : '—'}</div>
+            </div>
+          </div>`;
+    }
+
+    html += `</div></div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+(async function init() {
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // Try cache first
+  const hasCached = loadCache();
+  if (hasCached) {
+    renderAll();
+  }
+
+  // Auto-load on first visit or if cache is empty
+  await loadPrices();
+
+  // Auto-refresh every 5 min when page is visible
+  setInterval(() => {
+    if (document.visibilityState === 'visible') loadPrices();
+  }, 5 * 60 * 1000);
+})();
+</script>
+</body>
+</html>

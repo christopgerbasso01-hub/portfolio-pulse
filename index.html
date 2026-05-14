@@ -500,16 +500,18 @@ function loadCache() {
 // ── Calculations ───────────────────────────────────────────────────────────────
 function getHoldingMV(h) {
   const q = prices[h.t];
-  if (!q) return null;
+  if (!q || q.price == null) return null;
   const priceCAD = h.fx === 'CAD' ? q.price : q.price * usdcad;
+  if (isNaN(priceCAD)) return null;
   return h.s * priceCAD;
 }
 
 function getHoldingDayChange(h) {
   const q = prices[h.t];
-  if (!q || !q.prevClose) return null;
+  if (!q || q.price == null || q.prevClose == null) return null;
   const priceCAD = h.fx === 'CAD' ? q.price : q.price * usdcad;
   const prevCAD  = h.fx === 'CAD' ? q.prevClose : q.prevClose * usdcad;
+  if (isNaN(priceCAD) || isNaN(prevCAD)) return null;
   return h.s * (priceCAD - prevCAD);
 }
 
@@ -647,7 +649,7 @@ function renderHoldings() {
     const gain = mv !== null ? mv - h.c : null;
     const gainPct = gain !== null && h.c > 0 ? (gain / h.c) * 100 : null;
     const q = prices[h.t];
-    const priceStr = q ? `${q.currency === 'CAD' ? 'C$' : 'US$'}${q.price.toFixed(2)}` : '—';
+    const priceStr = (q && q.price != null) ? `${q.currency === 'CAD' ? 'C$' : 'US$'}${q.price.toFixed(2)}` : '—';
     const mvStr = mv !== null ? fmtCAD(mv) : '—';
     const gainStr = gain !== null ? (gain >= 0 ? '+' : '') + fmtCAD(gain) + (gainPct !== null ? ` (${fmtPct(gainPct)})` : '') : '—';
     const color = acctColors[h.a];
@@ -701,7 +703,7 @@ function renderAccounts() {
       const mv = getHoldingMV(h);
       const gain = mv !== null ? mv - h.c : null;
       const q = prices[h.t];
-      const priceStr = q ? `${q.currency === 'CAD' ? 'C$' : 'US$'}${q.price.toFixed(2)}` : '—';
+      const priceStr = (q && q.price != null) ? `${q.currency === 'CAD' ? 'C$' : 'US$'}${q.price.toFixed(2)}` : '—';
       html += `
           <div class="account-row">
             <div class="account-row-ticker">${h.t.replace('.TO','')}</div>

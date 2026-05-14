@@ -394,9 +394,7 @@ const HOLDINGS = [
 const UNIQUE_TICKERS = [...new Set(HOLDINGS.map(h => h.t))];
 const FX_SYMBOL = 'USDCAD=X';
 
-// ── YOUR CLOUDFLARE WORKER URL ──────────────────────────────────────────────
-// After deploying the worker, paste your URL here (keep the ?s= at the end)
-// Example: 'https://portfolio-prices.chris.workers.dev/?s='
+// ── CLOUDFLARE WORKER ────────────────────────────────────────────────────────
 const WORKER_URL = 'https://cloudflare-workerjs.christopger-basso01.workers.dev/?s=';
 
 // ── State ──────────────────────────────────────────────────────────────────────
@@ -427,18 +425,7 @@ function setFilter(f, el) {
 function filterHoldings() { renderHoldings(); }
 
 // ── Price Fetching ─────────────────────────────────────────────────────────────
-// Calls the Cloudflare Worker proxy for live Yahoo Finance data
-
-async function fetchBatch(symbols) {
-  const symStr = symbols.join(',');
-  const res = await fetch(WORKER_URL + encodeURIComponent(symStr), {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return data?.quoteResponse?.result ?? [];
-}
+// Calls Cloudflare Worker which proxies Yahoo Finance v8 (no crumb needed)
 
 async function loadPrices() {
   if (isLoading) return;
@@ -447,25 +434,21 @@ async function loadPrices() {
   btn.classList.add('spinning');
   document.getElementById('errorBanner').classList.remove('show');
 
-  // Check if worker URL has been configured
-  if (WORKER_URL.startsWith('PASTE_YOUR')) {
-    document.getElementById('errorBanner').textContent = '⚙ Set your Cloudflare Worker URL in index.html to enable live prices.';
-    document.getElementById('errorBanner').classList.add('show');
-    btn.classList.remove('spinning');
-    isLoading = false;
-    return;
-  }
-
   const allSymbols = [...UNIQUE_TICKERS, FX_SYMBOL];
   let anyError = false;
 
-  // Fetch in batches of 20
+  // Fetch in batches of 20 to keep URL length safe
   const BATCH = 20;
   for (let i = 0; i < allSymbols.length; i += BATCH) {
     const batch = allSymbols.slice(i, i + BATCH);
     try {
-      const results = await fetchBatch(batch);
-      for (const q of results) {
+      const res = await fetch(WORKER_URL + encodeURIComponent(batch.join(',')), {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      for (const q of (data?.quoteResponse?.result ?? [])) {
         if (q.symbol === FX_SYMBOL) {
           usdcad = q.regularMarketPrice ?? usdcad;
         } else {
@@ -482,7 +465,7 @@ async function loadPrices() {
     }
   }
 
-  // Cache prices locally so last values show on next open
+  // Cache locally so last values show instantly on next open
   try {
     localStorage.setItem('pp_prices', JSON.stringify({ prices, usdcad, ts: Date.now() }));
   } catch(_) {}

@@ -422,18 +422,16 @@ function setFilter(f, el) {
 function filterHoldings() { renderHoldings(); }
 
 // ── Price Fetching ─────────────────────────────────────────────────────────────
-async function fetchQuote(symbol) {
-  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
-  const res = await fetch(url);
+// Uses a CORS proxy to reach Yahoo Finance from GitHub Pages
+const PROXY = 'https://corsproxy.io/?';
+
+async function fetchBatch(symbols) {
+  const symList = symbols.join(',');
+  const target = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symList}&fields=regularMarketPrice,regularMarketPreviousClose,currency`;
+  const res = await fetch(PROXY + encodeURIComponent(target));
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
-  const meta = data?.chart?.result?.[0]?.meta;
-  if (!meta) throw new Error('No meta');
-  return {
-    price: meta.regularMarketPrice ?? meta.chartPreviousClose,
-    prevClose: meta.chartPreviousClose ?? meta.previousClose,
-    currency: meta.currency ?? (symbol.endsWith('.TO') ? 'CAD' : 'USD'),
-  };
+  return data?.quoteResponse?.result ?? [];
 }
 
 async function loadPrices() {
@@ -446,25 +444,29 @@ async function loadPrices() {
   const allSymbols = [...UNIQUE_TICKERS, FX_SYMBOL];
   let anyError = false;
 
-  // Fetch in parallel batches of 6
-  const BATCH = 6;
+  // Fetch in batches of 15 (keeps URL length safe)
+  const BATCH = 15;
   for (let i = 0; i < allSymbols.length; i += BATCH) {
     const batch = allSymbols.slice(i, i + BATCH);
-    await Promise.all(batch.map(async sym => {
-      try {
-        const q = await fetchQuote(sym);
-        if (sym === FX_SYMBOL) {
-          usdcad = q.price;
+    try {
+      const results = await fetchBatch(batch);
+      for (const q of results) {
+        if (q.symbol === FX_SYMBOL) {
+          usdcad = q.regularMarketPrice ?? usdcad;
         } else {
-          prices[sym] = q;
+          prices[q.symbol] = {
+            price: q.regularMarketPrice,
+            prevClose: q.regularMarketPreviousClose,
+            currency: q.currency ?? (q.symbol.endsWith('.TO') ? 'CAD' : 'USD'),
+          };
         }
-      } catch (e) {
-        if (sym !== FX_SYMBOL) anyError = true;
-        console.warn('Failed to fetch', sym, e.message);
       }
-    }));
+    } catch (e) {
+      anyError = true;
+      console.warn('Batch fetch failed', e.message);
+    }
     if (i + BATCH < allSymbols.length) {
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 300));
     }
   }
 

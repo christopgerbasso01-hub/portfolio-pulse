@@ -394,6 +394,11 @@ const HOLDINGS = [
 const UNIQUE_TICKERS = [...new Set(HOLDINGS.map(h => h.t))];
 const FX_SYMBOL = 'USDCAD=X';
 
+// ── YOUR CLOUDFLARE WORKER URL ──────────────────────────────────────────────
+// After deploying the worker, paste your URL here (keep the ?s= at the end)
+// Example: 'https://portfolio-prices.chris.workers.dev/?s='
+const WORKER_URL = 'https://cloudflare-workerjs.christopger-basso01.workers.dev/?s=';
+
 // ── State ──────────────────────────────────────────────────────────────────────
 let prices = {};        // { ticker: { price, prevClose, currency } }
 let usdcad = 1.37;      // fallback rate
@@ -422,32 +427,16 @@ function setFilter(f, el) {
 function filterHoldings() { renderHoldings(); }
 
 // ── Price Fetching ─────────────────────────────────────────────────────────────
-// Tries multiple CORS proxies in sequence until one works
-const PROXIES = [
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-];
-
-async function fetchViaProxy(url) {
-  for (const makeProxyUrl of PROXIES) {
-    try {
-      const res = await fetch(makeProxyUrl(url), { signal: AbortSignal.timeout(7000) });
-      if (!res.ok) continue;
-      const text = await res.text();
-      if (!text || text.trim() === '') continue;
-      return JSON.parse(text);
-    } catch (e) {
-      console.warn('Proxy attempt failed:', e.message);
-    }
-  }
-  throw new Error('All proxies failed');
-}
+// Calls the Cloudflare Worker proxy for live Yahoo Finance data
 
 async function fetchBatch(symbols) {
-  const symList = symbols.join(',');
-  const target = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symList}&fields=regularMarketPrice,regularMarketPreviousClose,currency`;
-  const data = await fetchViaProxy(target);
+  const symStr = symbols.join(',');
+  const res = await fetch(WORKER_URL + encodeURIComponent(symStr), {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
   return data?.quoteResponse?.result ?? [];
 }
 
@@ -458,11 +447,20 @@ async function loadPrices() {
   btn.classList.add('spinning');
   document.getElementById('errorBanner').classList.remove('show');
 
+  // Check if worker URL has been configured
+  if (WORKER_URL.startsWith('PASTE_YOUR')) {
+    document.getElementById('errorBanner').textContent = '⚙ Set your Cloudflare Worker URL in index.html to enable live prices.';
+    document.getElementById('errorBanner').classList.add('show');
+    btn.classList.remove('spinning');
+    isLoading = false;
+    return;
+  }
+
   const allSymbols = [...UNIQUE_TICKERS, FX_SYMBOL];
   let anyError = false;
 
-  // Fetch in batches of 15 (keeps URL length safe)
-  const BATCH = 15;
+  // Fetch in batches of 20
+  const BATCH = 20;
   for (let i = 0; i < allSymbols.length; i += BATCH) {
     const batch = allSymbols.slice(i, i + BATCH);
     try {
@@ -472,22 +470,19 @@ async function loadPrices() {
           usdcad = q.regularMarketPrice ?? usdcad;
         } else {
           prices[q.symbol] = {
-            price: q.regularMarketPrice,
+            price:     q.regularMarketPrice,
             prevClose: q.regularMarketPreviousClose,
-            currency: q.currency ?? (q.symbol.endsWith('.TO') ? 'CAD' : 'USD'),
+            currency:  q.currency ?? (q.symbol.endsWith('.TO') ? 'CAD' : 'USD'),
           };
         }
       }
     } catch (e) {
       anyError = true;
-      console.warn('Batch fetch failed', e.message);
-    }
-    if (i + BATCH < allSymbols.length) {
-      await new Promise(r => setTimeout(r, 300));
+      console.warn('Batch failed:', e.message);
     }
   }
 
-  // Cache to localStorage
+  // Cache prices locally so last values show on next open
   try {
     localStorage.setItem('pp_prices', JSON.stringify({ prices, usdcad, ts: Date.now() }));
   } catch(_) {}

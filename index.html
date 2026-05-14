@@ -422,15 +422,32 @@ function setFilter(f, el) {
 function filterHoldings() { renderHoldings(); }
 
 // ── Price Fetching ─────────────────────────────────────────────────────────────
-// Uses a CORS proxy to reach Yahoo Finance from GitHub Pages
-const PROXY = 'https://corsproxy.io/?';
+// Tries multiple CORS proxies in sequence until one works
+const PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
+
+async function fetchViaProxy(url) {
+  for (const makeProxyUrl of PROXIES) {
+    try {
+      const res = await fetch(makeProxyUrl(url), { signal: AbortSignal.timeout(7000) });
+      if (!res.ok) continue;
+      const text = await res.text();
+      if (!text || text.trim() === '') continue;
+      return JSON.parse(text);
+    } catch (e) {
+      console.warn('Proxy attempt failed:', e.message);
+    }
+  }
+  throw new Error('All proxies failed');
+}
 
 async function fetchBatch(symbols) {
   const symList = symbols.join(',');
   const target = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symList}&fields=regularMarketPrice,regularMarketPreviousClose,currency`;
-  const res = await fetch(PROXY + encodeURIComponent(target));
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
+  const data = await fetchViaProxy(target);
   return data?.quoteResponse?.result ?? [];
 }
 

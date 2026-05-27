@@ -152,12 +152,21 @@ def fetch_prices():
     return prices
 
 
+# True CAD contributions per account — the denominator for all ROI calculations.
+# These match the Google Sheet "Financials" contributions column exactly.
+# Update these whenever you add fresh capital to an account.
+CONTRIBUTIONS_CAD = {
+    "TFSA":       44500.0,
+    "Investment": 65000.0,
+    "FHSA":       24000.0,
+    "RRSP":       16132.0,
+}
+
+
 def compute_portfolio(prices):
     usdcad = _safe_float(prices.get("USDCAD=X", {}).get("price")) or 1.37
     accounts = {"TFSA": 0.0, "FHSA": 0.0, "RRSP": 0.0, "Investment": 0.0}
-    acct_cost = {"TFSA": 0.0, "FHSA": 0.0, "RRSP": 0.0, "Investment": 0.0}
     total_value = 0.0
-    total_cost = 0.0
     daily_change = 0.0
 
     for h in HOLDINGS:
@@ -169,9 +178,7 @@ def compute_portfolio(prices):
         if h.get("cash"):
             val = cost if ccy == "CAD" else cost * usdcad
             accounts[acct] += val
-            acct_cost[acct] += val
             total_value += val
-            total_cost += val
             continue
 
         p = prices.get(h["ticker"])
@@ -186,26 +193,27 @@ def compute_portfolio(prices):
         if ccy == "USD":
             val *= usdcad
             prev_val *= usdcad
-            cost_cad = cost * usdcad
-        else:
-            cost_cad = cost
 
         accounts[acct] += val
-        acct_cost[acct] += cost_cad
         total_value += val
-        total_cost += cost_cad
         daily_change += val - prev_val
 
-    base_val = total_value - daily_change if total_value != daily_change else total_value
+    # Cost basis = true CAD contributions (matches Google Sheet)
+    total_cost = sum(CONTRIBUTIONS_CAD.values())   # 149,632
+    acct_cost  = dict(CONTRIBUTIONS_CAD)
+
+    total_gain = total_value - total_cost
+    base_val   = total_value - daily_change if total_value != daily_change else total_value
+
     return {
-        "total_value": round(total_value),
-        "total_cost": round(total_cost),
-        "unrealized_gain": round(total_value - total_cost),
-        "roi_pct": round((total_value - total_cost) / total_cost * 100, 2) if total_cost else 0,
-        "daily_change": round(daily_change),
-        "daily_change_pct": round(daily_change / base_val * 100, 2) if base_val else 0,
-        "accounts": {k: round(v) for k, v in accounts.items()},
-        "account_cost": {k: round(v) for k, v in acct_cost.items()},
+        "total_value":       round(total_value),
+        "total_cost":        round(total_cost),
+        "unrealized_gain":   round(total_gain),
+        "roi_pct":           round(total_gain / total_cost * 100, 2) if total_cost else 0,
+        "daily_change":      round(daily_change),
+        "daily_change_pct":  round(daily_change / base_val * 100, 2) if base_val else 0,
+        "accounts":          {k: round(v) for k, v in accounts.items()},
+        "account_cost":      {k: round(v) for k, v in acct_cost.items()},
     }
 
 

@@ -393,6 +393,11 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     <button class="chart-filter-btn" onclick="setChartFilter('rrsp',this)">RRSP</button>
   </div>
 
+  <div style="margin-bottom:16px">
+    <div class="chart-title" id="mvChartTitle">Portfolio Market Value — All Accounts</div>
+    <div class="chart-container"><canvas id="portfolioValueChart"></canvas></div>
+  </div>
+
   <div style="display:grid;grid-template-columns:3fr 1fr;gap:16px;margin-bottom:16px">
     <div>
       <div class="chart-title" id="roiChartTitle">ROI % — All Accounts</div>
@@ -402,11 +407,6 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
       <div class="chart-title">Allocation by Account</div>
       <div class="chart-container"><canvas id="acctChart"></canvas></div>
     </div>
-  </div>
-
-  <div style="margin-bottom:16px">
-    <div class="chart-title" id="mvChartTitle">Portfolio Market Value — All Accounts</div>
-    <div class="chart-container"><canvas id="portfolioValueChart"></canvas></div>
   </div>
 
   <div class="grid-3">
@@ -874,6 +874,27 @@ const dataRRSP=[{"x":"2024-10","y":-3.27},{"x":"2025-05","y":24.24},{"x":"2025-1
 const mvAllTime=[{"x":"2021-09","y":35259},{"x":"2022-06","y":23723},{"x":"2023-06","y":33177},{"x":"2024-06","y":95132},{"x":"2025-04","y":137576},{"x":"2025-10","y":227970},{"x":"2026-01","y":187262},{"x":"2026-04","y":239375},{"x":"2026-05","y":273825}];
 const cAllTime=[{"x":"2021-09","y":33000},{"x":"2023-10","y":41000},{"x":"2024-06","y":68500},{"x":"2025-02","y":99500},{"x":"2025-10","y":128000},{"x":"2026-04","y":149632},{"x":"2026-05","y":149632}];
 
+// Per-account market value history (approximate, derived from ROI% × estimated contributions at each snapshot)
+const mvTFSA=[{"x":"2021-01","y":16932},{"x":"2021-06","y":21150},{"x":"2021-10","y":26090},{"x":"2022-06","y":24437},{"x":"2023-06","y":36974},{"x":"2024-06","y":57771},{"x":"2025-04","y":57553},{"x":"2025-10","y":90341},{"x":"2026-05","y":98274}];
+const mvInv= [{"x":"2021-08","y":29682},{"x":"2022-06","y":26528},{"x":"2023-06","y":35890},{"x":"2024-06","y":48334},{"x":"2025-04","y":33120},{"x":"2025-10","y":83038},{"x":"2026-05","y":94270}];
+const mvFHSA=[{"x":"2023-07","y":8025}, {"x":"2024-06","y":24939},{"x":"2025-04","y":27581},{"x":"2025-10","y":49740},{"x":"2026-05","y":53510}];
+const mvRRSP=[{"x":"2024-10","y":9673}, {"x":"2025-05","y":17394},{"x":"2025-10","y":31461},{"x":"2026-05","y":27771}];
+
+// Per-account contribution history
+const cTFSA=[{"x":"2021-01","y":15000},{"x":"2021-10","y":20000},{"x":"2022-06","y":26000},{"x":"2023-06","y":31000},{"x":"2024-06","y":38000},{"x":"2025-04","y":42000},{"x":"2025-10","y":44000},{"x":"2026-05","y":44500}];
+const cInv= [{"x":"2021-08","y":30000},{"x":"2022-06","y":40000},{"x":"2023-06","y":50000},{"x":"2024-06","y":55000},{"x":"2025-04","y":60000},{"x":"2025-10","y":65000},{"x":"2026-05","y":65000}];
+const cFHSA=[{"x":"2023-07","y":8000}, {"x":"2024-06","y":16000},{"x":"2025-04","y":22000},{"x":"2025-10","y":24000},{"x":"2026-05","y":24000}];
+const cRRSP=[{"x":"2024-10","y":10000},{"x":"2025-05","y":14000},{"x":"2025-10","y":16132},{"x":"2026-05","y":16132}];
+
+// Market value + contributions lookup by filter key
+const mvByAcct = {
+  all:  { mv: mvAllTime, c: cAllTime,  color: '#3b82f6' },
+  tfsa: { mv: mvTFSA,    c: cTFSA,    color: '#10b981' },
+  inv:  { mv: mvInv,     c: cInv,     color: '#94a3b8' },
+  fhsa: { mv: mvFHSA,    c: cFHSA,    color: '#a78bfa' },
+  rrsp: { mv: mvRRSP,    c: cRRSP,    color: '#fbbf24' },
+};
+
 // Global state
 let currentMarketData = null;
 let refreshTimer = null;
@@ -1203,7 +1224,7 @@ const lineDef = (color, label, data) => ({
   label, data,
   borderColor: color, backgroundColor: color + '20',
   borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
-  tension: 0.3, fill: false, spanGaps: false
+  tension: 0.3, fill: false, spanGaps: true
 });
 
 const chartOpts = (ylabel, format = 'pct') => ({
@@ -1327,12 +1348,13 @@ function setChartFilter(key, btn) {
   currentFilter = key;
   document.querySelectorAll('.chart-filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  const d = roiByAcct[key];
-  const c = acctColors[key];
-  const l = acctLabels[key];
+  const d  = roiByAcct[key];
+  const c  = acctColors[key];
+  const l  = acctLabels[key];
+  const mv = mvByAcct[key];
 
+  // ── ROI chart ──────────────────────────────────────────────
   if (key === 'all') {
-    // Show all five lines on the shared timeline
     roiChart.data.labels = allXLabels;
     roiChart.data.datasets = [
       lineDef('#3b82f6', 'All Accounts', align(dataAllTime, allXLabels)),
@@ -1342,14 +1364,34 @@ function setChartFilter(key, btn) {
       lineDef('#fbbf24', 'RRSP',         align(dataRRSP,    allXLabels)),
     ];
   } else {
-    // Use only this account's own x-labels so the line fills the chart
     const xLabels = d.map(p => p.x);
     roiChart.data.labels = xLabels;
     roiChart.data.datasets = [lineDef(c, l, d.map(p => p.y))];
   }
-
   roiChart.update();
   document.getElementById('roiChartTitle').textContent = `ROI % — ${l}`;
+
+  // ── Market value chart ─────────────────────────────────────
+  const mvLabels = mv.mv.map(p => p.x);
+  // align contributions to the same x-axis, forward-filling steps
+  const cAligned = (() => {
+    const cMap = Object.fromEntries(mv.c.map(p => [p.x, p.y]));
+    let last = null;
+    return mvLabels.map(x => { if (x in cMap) last = cMap[x]; return last; });
+  })();
+
+  portfolioValueChart.data.labels = mvLabels;
+  portfolioValueChart.data.datasets[0] = {
+    ...lineDef(mv.color, 'Market Value', mv.mv.map(p => p.y)),
+    fill: true,
+    backgroundColor: mv.color + '15',
+  };
+  portfolioValueChart.data.datasets[1] = {
+    ...lineDef('#64748b', 'Contributions', cAligned),
+    borderDash: [4, 4],
+  };
+  portfolioValueChart.update();
+  document.getElementById('mvChartTitle').textContent = `Portfolio Market Value — ${l}`;
 }
 
 // ============================================================

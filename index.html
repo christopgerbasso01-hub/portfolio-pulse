@@ -951,12 +951,12 @@ function updateMarketWidget(benchmarks) {
 // HEADER KPI UPDATES
 // ============================================================
 function updateHeaderKPIs(portfolio) {
-  const tv  = portfolio.total_value;
-  const cost = portfolio.total_cost;
-  const pnl  = portfolio.unrealized_gain;
-  const roi  = portfolio.roi_pct;
-  const dc   = portfolio.daily_change;
-  const dcp  = portfolio.daily_change_pct;
+  const tv         = portfolio.total_value;
+  const totalPnl   = portfolio.total_pnl   ?? portfolio.unrealized_gain; // Total P/L
+  const unrealized = portfolio.unrealized_gain;
+  const roi        = portfolio.roi_pct;
+  const dc         = portfolio.daily_change;
+  const dcp        = portfolio.daily_change_pct;
 
   // Live FX conversion impact
   if (portfolio.fx_impact !== undefined) {
@@ -966,8 +966,9 @@ function updateHeaderKPIs(portfolio) {
   }
 
   document.getElementById('kpiTotalValue').textContent = fmt$(tv);
-  document.getElementById('kpiTotalPnl').textContent = fmt$(pnl);
-  document.getElementById('kpiTotalPnl').className = `hkpi-value ${colorClass(pnl)}`;
+  // Header Total P&L = total gain (unrealized + realized + fx)
+  document.getElementById('kpiTotalPnl').textContent = fmt$(totalPnl);
+  document.getElementById('kpiTotalPnl').className = `hkpi-value ${colorClass(totalPnl)}`;
   document.getElementById('kpiRoi').textContent = fmtPct(roi);
   document.getElementById('kpiRoi').className = `hkpi-value ${colorClass(roi)}`;
 
@@ -1032,8 +1033,8 @@ function updateHeaderKPIs(portfolio) {
   document.getElementById('bmPortfolioLabel').textContent = `${fmt$(tv2)} · +${roi?.toFixed(1)}%`;
   document.getElementById('bmPortfolioBar').textContent = fmt$(tv2);
 
-  // Unrealized card (estimate)
-  document.getElementById('cardUnrealized').textContent = fmt$(pnl);
+  // Unrealized card = total P/L minus realized and FX
+  document.getElementById('cardUnrealized').textContent = fmt$(unrealized);
 }
 
 // ============================================================

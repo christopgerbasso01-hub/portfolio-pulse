@@ -71,6 +71,12 @@ USD_COST_BASIS = sum(
     if h.get("ccy") == "USD" and not h.get("cash")
 )
 
+# Static figures that don't change with market prices.
+# Update REALIZED_GAINS_CAD whenever you close a position.
+# Update DIVIDENDS_CAD whenever you receive a dividend payment.
+REALIZED_GAINS_CAD = 22193
+DIVIDENDS_CAD      = 7259
+
 BENCHMARKS = {
     "sp500":        "^GSPC",
     "nasdaq":       "^IXIC",
@@ -214,20 +220,23 @@ def compute_portfolio(prices):
     total_cost = sum(CONTRIBUTIONS_CAD.values())   # 149,632
     acct_cost  = dict(CONTRIBUTIONS_CAD)
 
-    total_gain = total_value - total_cost
-    base_val   = total_value - daily_change if total_value != daily_change else total_value
-    fx_impact  = round(USD_COST_BASIS * (usdcad - USD_BOOK_RATE))
+    total_pnl      = total_value - total_cost                          # Total P/L
+    fx_impact      = round(USD_COST_BASIS * (usdcad - USD_BOOK_RATE))  # Dynamic FX drag/boost
+    unrealized     = round(total_pnl - REALIZED_GAINS_CAD - fx_impact) # Unrealized only
+    base_val       = total_value - daily_change if total_value != daily_change else total_value
 
     return {
         "total_value":       round(total_value),
         "total_cost":        round(total_cost),
-        "unrealized_gain":   round(total_gain),
-        "roi_pct":           round(total_gain / total_cost * 100, 2) if total_cost else 0,
+        "total_pnl":         round(total_pnl),
+        "unrealized_gain":   unrealized,
+        "realized_gain":     REALIZED_GAINS_CAD,
+        "fx_impact":         fx_impact,
+        "roi_pct":           round(total_pnl / total_cost * 100, 2) if total_cost else 0,
         "daily_change":      round(daily_change),
         "daily_change_pct":  round(daily_change / base_val * 100, 2) if base_val else 0,
         "accounts":          {k: round(v) for k, v in accounts.items()},
         "account_cost":      {k: round(v) for k, v in acct_cost.items()},
-        "fx_impact":         fx_impact,
     }
 
 

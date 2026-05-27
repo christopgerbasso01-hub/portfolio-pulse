@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Pulse — May 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#060b14;--surface:#0c1524;--surface2:#111d30;
+  --border:#1a2e4a;--border2:#223659;
+  --blue-bright:#3b82f6;--blue-glow:rgba(59,130,246,0.15);
+  --green:#10b981;--green-dim:#064e3b;
+  --red:#ef4444;--red-dim:#450a0a;
+  --amber:#f59e0b;--amber-dim:#451a03;
+  --purple:#8b5cf6;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;position:relative}
+body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(59,130,246,0.03) 39px,rgba(59,130,246,0.03) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(59,130,246,0.03) 39px,rgba(59,130,246,0.03) 40px);pointer-events:none;z-index:0}
+.container{max-width:1400px;margin:0 auto;padding:24px;position:relative;z-index:1}
+/* Header */
+.header{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.header-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.header-title h1{font-family:var(--mono);font-size:18px;color:var(--blue-bright);letter-spacing:.05em}
+.header-date{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.header-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.hkpi{text-align:center}
+.hkpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.hkpi-value{font-family:var(--mono);font-size:16px;font-weight:700}
+/* Sections */
+.section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.section-header{display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.section-num{font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface2);padding:2px 6px;border-radius:4px}
+.section-title{font-family:var(--mono);font-size:13px;color:var(--text);letter-spacing:.03em}
+/* Cards */
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px}
+.card.green-accent{border-left:3px solid var(--green)}
+.card.red-accent{border-left:3px solid var(--red)}
+.card.blue-accent{border-left:3px solid var(--blue-bright)}
+.card.amber-accent{border-left:3px solid var(--amber)}
+.card-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.card-value{font-family:var(--mono);font-size:20px;font-weight:700}
+.card-sub{font-size:11px;color:var(--text2);margin-top:4px}
+/* Grids */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.acct-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.macro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.strat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.tax-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+/* Chart */
+.chart-container{position:relative;height:280px}
+.chart-title{font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:8px}
+/* Filter buttons */
+.chart-filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.chart-filter-btn{font-family:var(--mono);font-size:11px;padding:6px 12px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);border-radius:6px;cursor:pointer;transition:all .2s}
+.chart-filter-btn:hover,.chart-filter-btn.active{background:var(--blue-glow);border-color:var(--blue-bright);color:var(--blue-bright)}
+/* Colors */
+.green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}.blue{color:var(--blue-bright)}.purple{color:var(--purple)}
+.text2{color:var(--text2)}.text3{color:var(--text3)}
+.mono{font-family:var(--mono)}
+.small{font-size:11px}
+/* Badges */
+.badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700}
+.badge-tfsa{background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.3)}
+.badge-fhsa{background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3)}
+.badge-rrsp{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.badge-inv{background:rgba(148,163,184,.15);color:#94a3b8;border:1px solid rgba(148,163,184,.3)}
+.badge-add{background:rgba(59,130,246,.15);color:#3b82f6}
+.badge-new{background:rgba(16,185,129,.15);color:#10b981}
+.badge-re{background:rgba(245,158,11,.15);color:#f59e0b}
+.badge-spec{background:rgba(139,92,246,.15);color:#8b5cf6}
+.badge-high{background:rgba(239,68,68,.15);color:#ef4444}
+.badge-med{background:rgba(245,158,11,.15);color:#f59e0b}
+.badge-low{background:rgba(16,185,129,.15);color:#10b981}
+/* Account cards */
+.acct-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.acct-card-header{padding:12px 16px;border-bottom:1px solid var(--border)}
+.acct-card-body{padding:12px 16px}
+.acct-card-footer{padding:10px 16px;background:rgba(0,0,0,.2);font-size:11px;color:var(--text3);border-top:1px solid var(--border)}
+/* Holdings table */
+.holdings-table{width:100%;border-collapse:collapse}
+.holdings-table th{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:8px;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap}
+.holdings-table th:hover{color:var(--text)}
+.holdings-table td{padding:8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.holdings-table tr:hover td{background:var(--blue-glow)}
+.table-wrap{overflow-x:auto}
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:6px;font-family:var(--sans);font-size:12px}
+.filter-bar input:focus,.filter-bar select:focus{outline:none;border-color:var(--blue-bright)}
+.clear-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--text2);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px}
+.row-count{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:auto}
+/* Macro cards */
+.macro-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px}
+.macro-card h4{font-size:13px;font-weight:600;margin-bottom:8px}
+.scenario-block{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.scenario-line{font-size:11px;color:var(--text2);margin-bottom:3px}
+/* SWOT */
+.sc-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;font-size:12px}
+.sc-dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.sc-dot.green{background:var(--green)}.sc-dot.red{background:var(--red)}
+.sc-ticker{font-family:var(--mono);font-size:11px;color:var(--blue-bright)}
+/* Strategy */
+.strat-panel{background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.strat-header{padding:10px 16px;font-family:var(--mono);font-size:12px;font-weight:700}
+.strat-header.red{background:rgba(239,68,68,.1);color:var(--red);border-bottom:1px solid rgba(239,68,68,.2)}
+.strat-header.amber{background:rgba(245,158,11,.1);color:var(--amber);border-bottom:1px solid rgba(245,158,11,.2)}
+.strat-header.green{background:rgba(16,185,129,.1);color:var(--green);border-bottom:1px solid rgba(16,185,129,.2)}
+.strat-body{padding:16px}
+.strat-item{display:flex;gap:8px;margin-bottom:10px;font-size:12px;align-items:flex-start}
+.strat-num{font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface);padding:2px 5px;border-radius:3px;flex-shrink:0;margin-top:1px}
+/* Tax */
+.tax-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px}
+.tax-card-header{padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.tax-item{font-size:12px;margin-bottom:8px;display:flex;gap:6px;align-items:flex-start}
+/* Benchmark bars */
+.bm-bar-wrap{margin-bottom:12px}
+.bm-bar-label{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px}
+.bm-bar-bg{background:var(--surface);border-radius:4px;height:24px;overflow:hidden}
+.bm-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-family:var(--mono);font-size:11px;transition:width .5s ease}
+/* News cards */
+.news-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}
+.news-headline{font-size:13px;font-weight:600;margin-bottom:6px}
+.news-body{font-size:12px;color:var(--text2);margin-bottom:8px}
+.news-exposure{font-size:11px;color:var(--text3);font-style:italic;margin-bottom:6px}
+.news-scenarios{font-size:11px}
+/* Picks */
+.pick-ticker{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--blue-bright);margin-bottom:6px}
+.pick-thesis{font-size:12px;color:var(--text2);margin-bottom:10px}
+.entry-box{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:8px;font-family:var(--mono);font-size:11px;color:var(--amber)}
+/* Confidence meter */
+.conf-meter{height:3px;background:var(--border);border-radius:2px;margin-top:4px}
+.conf-fill{height:100%;background:var(--blue-bright);border-radius:2px}
+/* Footer */
+.footer{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;font-size:11px;color:var(--text3);margin-top:24px}
+/* KPI inline */
+.kpi-inline{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px}
+.kpi-inline-item{font-size:12px}
+.kpi-inline-item .label{color:var(--text3);font-size:10px;text-transform:uppercase}
+.kpi-inline-item .val{font-family:var(--mono);font-size:13px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-title">
+    <h1>⚡ PORTFOLIO PULSE — PERSONAL INVESTMENT DASHBOARD</h1>
+    <div class="header-date">As of 2026-05-12 · Powered by Financials.xlsx</div>
+  </div>
+  <div class="header-kpis">
+    <div class="hkpi">
+      <div class="hkpi-label">Total Market Value</div>
+      <div class="hkpi-value blue">$260,309</div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">Total Contributions</div>
+      <div class="hkpi-value">$149,632</div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">Total P&amp;L</div>
+      <div class="hkpi-value green">$110,653</div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">Total ROI</div>
+      <div class="hkpi-value green">+76.10%</div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">Daily Change</div>
+      <div class="hkpi-value red">-$1,842</div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">Cash on Hand</div>
+      <div class="hkpi-value amber">$11,058</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 01 -->
+<div class="section" id="sec01">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <span class="section-title">TOTAL PORTFOLIO OVERVIEW</span>
+  </div>
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="card green-accent">
+      <div class="card-label">Unrealized Gains</div>
+      <div class="card-value green">$90,994</div>
+      <div class="card-sub">Across all accounts</div>
+    </div>
+    <div class="card green-accent">
+      <div class="card-label">Realized Gains</div>
+      <div class="card-value green">$22,204</div>
+      <div class="card-sub">Booked profits</div>
+    </div>
+    <div class="card blue-accent">
+      <div class="card-label">Total Dividends</div>
+      <div class="card-value blue">$7,257</div>
+      <div class="card-sub">Income collected</div>
+    </div>
+    <div class="card red-accent">
+      <div class="card-label">FX Conversion Impact</div>
+      <div class="card-value red">-$2,521</div>
+      <div class="card-sub">USD/CAD translation</div>
+    </div>
+  </div>
+
+  <div class="chart-filters" id="chartFilters">
+    <button class="chart-filter-btn active" onclick="setChartFilter('all',this)">All Accounts</button>
+    <button class="chart-filter-btn" onclick="setChartFilter('tfsa',this)">TFSA</button>
+    <button class="chart-filter-btn" onclick="setChartFilter('inv',this)">Investment</button>
+    <button class="chart-filter-btn" onclick="setChartFilter('fhsa',this)">FHSA</button>
+    <button class="chart-filter-btn" onclick="setChartFilter('rrsp',this)">RRSP</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:3fr 1fr;gap:16px;margin-bottom:16px">
+    <div>
+      <div class="chart-title" id="roiChartTitle">ROI % — All Accounts</div>
+      <div class="chart-container"><canvas id="roiChart"></canvas></div>
+    </div>
+    <div>
+      <div class="chart-title">Allocation by Account</div>
+      <div class="chart-container"><canvas id="acctChart"></canvas></div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px">
+    <div class="chart-title" id="mvChartTitle">Portfolio Market Value — All Accounts</div>
+    <div class="chart-container"><canvas id="portfolioValueChart"></canvas></div>
+  </div>
+
+  <div class="grid-3">
+    <div>
+      <div class="chart-title">Sector Breakdown</div>
+      <div class="chart-container" style="height:200px"><canvas id="sectorChart"></canvas></div>
+    </div>
+    <div>
+      <div class="chart-title">Geographic Exposure</div>
+      <div class="chart-container" style="height:200px"><canvas id="geoChart"></canvas></div>
+    </div>
+    <div>
+      <div class="chart-title">Asset Class Mix</div>
+      <div class="chart-container" style="height:200px"><canvas id="assetChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 02 -->
+<div class="section" id="sec02">
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <span class="section-title">CONTRIBUTION-WEIGHTED BENCHMARK</span>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-label">Methodology</div>
+    <p style="font-size:12px;color:var(--text2);margin-top:6px">For each detected contribution injection (step-changes &gt;$500 in All-Time col 8), the equivalent amount is simulated investing into each index at that date's approximate level. The initial $33,000 balance is anchored at September 2021 levels. Final benchmark value = units × current index. This contribution-weighted approach fairly compares Chris's actual strategy (tactical lump-sum additions) against passive alternatives.</p>
+  </div>
+  <div style="max-width:600px;margin-bottom:20px">
+    <div class="bm-bar-wrap">
+      <div class="bm-bar-label">
+        <span class="green mono" style="font-size:12px">Your Portfolio</span>
+        <span class="mono green" style="font-size:12px">$260,309 · +76.1%</span>
+      </div>
+      <div class="bm-bar-bg"><div class="bm-bar-fill" style="width:100%;background:var(--green);color:#fff">$260,309</div></div>
+    </div>
+    <div class="bm-bar-wrap">
+      <div class="bm-bar-label">
+        <span class="text2" style="font-size:12px">S&amp;P 500 (SPXL underlying)</span>
+        <span class="mono text2" style="font-size:12px">$167,218 · +11.8%</span>
+      </div>
+      <div class="bm-bar-bg"><div class="bm-bar-fill" style="width:64.2%;background:var(--blue-bright)">$167,218</div></div>
+    </div>
+    <div class="bm-bar-wrap">
+      <div class="bm-bar-label">
+        <span class="text2" style="font-size:12px">TSX Composite</span>
+        <span class="mono text2" style="font-size:12px">$171,477 · +14.6%</span>
+      </div>
+      <div class="bm-bar-bg"><div class="bm-bar-fill" style="width:65.9%;background:var(--amber)">$171,477</div></div>
+    </div>
+    <div class="bm-bar-wrap">
+      <div class="bm-bar-label">
+        <span class="text2" style="font-size:12px">NASDAQ-100</span>
+        <span class="mono text2" style="font-size:12px">$172,760 · +15.5%</span>
+      </div>
+      <div class="bm-bar-bg"><div class="bm-bar-fill" style="width:66.4%;background:var(--purple)">$172,760</div></div>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--green)">✓ Portfolio ALPHA over S&amp;P 500: +64.3 percentage points</div>
+  </div>
+  <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px">
+    <div>
+      <div class="chart-title">ROI % Per Account (Independent Start Dates)</div>
+      <div class="chart-container"><canvas id="accountRoiChart"></canvas></div>
+    </div>
+    <div>
+      <div class="chart-title">Cumulative Contributions — All Accounts</div>
+      <div class="chart-container"><canvas id="contribChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 03 -->
+<div class="section" id="sec03">
+  <div class="section-header">
+    <span class="section-num">03</span>
+    <span class="section-title">ACCOUNT-LEVEL BREAKDOWN</span>
+  </div>
+  <div class="acct-grid">
+    <!-- TFSA -->
+    <div class="acct-card">
+      <div class="acct-card-header">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="mono blue" style="font-size:14px;font-weight:700">TFSA</span>
+          <span class="badge badge-tfsa">TAX-FREE</span>
+        </div>
+        <div class="mono" style="font-size:18px;margin-top:4px">$94,076</div>
+        <div class="green small mono">+112.76% ROI · $44,500 in</div>
+      </div>
+      <div class="acct-card-body">
+        <table style="width:100%;border-collapse:collapse">
+          <tr><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">TICKER</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">SHS</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">VALUE</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">RTN</th></tr>
+          <tr><td class="mono blue small">FNGU</td><td class="mono small text2">495</td><td class="mono small">$19,562</td><td class="mono small green">+49.7%</td></tr><tr><td class="mono blue small">NVDA</td><td class="mono small text2">40</td><td class="mono small">$12,101</td><td class="mono small green">+1776.2%</td></tr><tr><td class="mono blue small">TXF.TO</td><td class="mono small text2">320</td><td class="mono small">$8,570</td><td class="mono small green">+37.0%</td></tr><tr><td class="mono blue small">SPXL</td><td class="mono small text2">23</td><td class="mono small">$8,389</td><td class="mono small green">+51.3%</td></tr><tr><td class="mono blue small">TSLA</td><td class="mono small text2">14</td><td class="mono small">$8,315</td><td class="mono small green">+74.4%</td></tr><tr><td class="mono blue small">UDOW</td><td class="mono small text2">84</td><td class="mono small">$7,060</td><td class="mono small green">+69.1%</td></tr><tr><td class="mono blue small">CM.TO</td><td class="mono small text2">45</td><td class="mono small">$6,880</td><td class="mono small green">+142.9%</td></tr>
+        </table>
+      </div>
+      <div class="acct-card-footer">✅ Tax-free · All gains permanently sheltered</div>
+    </div>
+    <!-- Investment -->
+    <div class="acct-card">
+      <div class="acct-card-header">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="mono" style="font-size:14px;font-weight:700;color:var(--text2)">NON-REG</span>
+          <span class="badge badge-inv">TAXABLE</span>
+        </div>
+        <div class="mono" style="font-size:18px;margin-top:4px">$89,014</div>
+        <div class="green small mono">+37.95% ROI · $65,000 in</div>
+      </div>
+      <div class="acct-card-body">
+        <table style="width:100%;border-collapse:collapse">
+          <tr><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">TICKER</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">SHS</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">VALUE</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">RTN</th></tr>
+          <tr><td class="mono blue small">SPXL</td><td class="mono small text2">75</td><td class="mono small">$27,357</td><td class="mono small green">+104.7%</td></tr><tr><td class="mono blue small">FNGU</td><td class="mono small text2">665</td><td class="mono small">$26,280</td><td class="mono small green">+44.9%</td></tr><tr><td class="mono blue small">CM.TO</td><td class="mono small text2">50</td><td class="mono small">$7,644</td><td class="mono small green">+14.5%</td></tr><tr><td class="mono blue small">TXF.TO</td><td class="mono small text2">221</td><td class="mono small">$5,918</td><td class="mono small green">+19.4%</td></tr><tr><td class="mono blue small">TSM</td><td class="mono small text2">9</td><td class="mono small">$4,899</td><td class="mono small green">+32.5%</td></tr><tr><td class="mono blue small">RY.TO</td><td class="mono small text2">19</td><td class="mono small">$4,748</td><td class="mono small green">+21.9%</td></tr><tr><td class="mono blue small">IBKR</td><td class="mono small text2">40</td><td class="mono small">$4,636</td><td class="mono small green">+45.1%</td></tr>
+        </table>
+      </div>
+      <div class="acct-card-footer">⚠️ Gains taxable — 50% inclusion rate applies</div>
+    </div>
+    <!-- FHSA -->
+    <div class="acct-card">
+      <div class="acct-card-header">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="mono green" style="font-size:14px;font-weight:700">FHSA</span>
+          <span class="badge badge-fhsa">HOME FUND</span>
+        </div>
+        <div class="mono" style="font-size:18px;margin-top:4px">$50,577</div>
+        <div class="green small mono">+114.58% ROI · $24,000 in</div>
+      </div>
+      <div class="acct-card-body">
+        <table style="width:100%;border-collapse:collapse">
+          <tr><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">TICKER</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">SHS</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">VALUE</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">RTN</th></tr>
+          <tr><td class="mono blue small">SPXL</td><td class="mono small text2">53</td><td class="mono small">$19,332</td><td class="mono small green">+175.0%</td></tr><tr><td class="mono blue small">TXF.TO</td><td class="mono small text2">434</td><td class="mono small">$11,623</td><td class="mono small green">+1.9%</td></tr><tr><td class="mono blue small">UDOW</td><td class="mono small text2">86</td><td class="mono small">$7,229</td><td class="mono small green">+37.1%</td></tr><tr><td class="mono blue small">FNGU</td><td class="mono small text2">157</td><td class="mono small">$6,204</td><td class="mono small green">+44.1%</td></tr><tr><td class="mono blue small">ENB.TO</td><td class="mono small text2">82</td><td class="mono small">$6,166</td><td class="mono small green">+49.1%</td></tr>
+        </table>
+      </div>
+      <div class="acct-card-footer">✅ Tax-deductible in, tax-free out · Home purchase fund</div>
+    </div>
+    <!-- RRSP -->
+    <div class="acct-card">
+      <div class="acct-card-header">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="mono amber" style="font-size:14px;font-weight:700">RRSP</span>
+          <span class="badge badge-rrsp">DEFERRED</span>
+        </div>
+        <div class="mono" style="font-size:18px;margin-top:4px">$26,642</div>
+        <div class="green small mono">+71.44% ROI · $16,132 in</div>
+      </div>
+      <div class="acct-card-body">
+        <table style="width:100%;border-collapse:collapse">
+          <tr><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">TICKER</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">SHS</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">VALUE</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">RTN</th></tr>
+          <tr><td class="mono blue small">TXF.TO</td><td class="mono small text2">284</td><td class="mono small">$7,606</td><td class="mono small green">+38.9%</td></tr><tr><td class="mono blue small">TSM</td><td class="mono small text2">6</td><td class="mono small">$3,266</td><td class="mono small green">+1.1%</td></tr><tr><td class="mono blue small">UDOW</td><td class="mono small text2">36</td><td class="mono small">$3,026</td><td class="mono small green">+20.0%</td></tr><tr><td class="mono blue small">FNGU</td><td class="mono small text2">56</td><td class="mono small">$2,213</td><td class="mono small green">+42.0%</td></tr>
+        </table>
+      </div>
+      <div class="acct-card-footer">⚠️ $10,531 idle cash — deploy into ZSP.TO or IVV now</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 04 -->
+<div class="section" id="sec04">
+  <div class="section-header">
+    <span class="section-num">04</span>
+    <span class="section-title">FULL HOLDINGS TABLE</span>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="searchInput" placeholder="Search ticker or name..." oninput="filterTable()" style="width:200px">
+    <select id="acctFilter" onchange="filterTable()">
+      <option value="">All Accounts</option>
+      <option value="TFSA">TFSA</option>
+      <option value="FHSA">FHSA</option>
+      <option value="RRSP">RRSP</option>
+      <option value="Investment">NON-REG</option>
+    </select>
+    <select id="sectorFilter" onchange="filterTable()">
+      <option value="">All Sectors</option>
+      <option>Leveraged ETF</option>
+      <option>Technology</option>
+      <option>Financials</option>
+      <option>Energy</option>
+      <option>Consumer Disc.</option>
+      <option>Comm. Services</option>
+      <option>Consumer Staples</option>
+      <option>Crypto</option>
+    </select>
+    <select id="pnlFilter" onchange="filterTable()">
+      <option value="">All P&amp;L</option>
+      <option value="gain">Gains Only</option>
+      <option value="loss">Losses Only</option>
+    </select>
+    <button class="clear-btn" onclick="clearFilters()">CLEAR</button>
+    <span class="row-count" id="rowCount"></span>
+  </div>
+  <div class="table-wrap">
+    <table class="holdings-table" id="holdingsTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">Ticker ↕</th>
+          <th onclick="sortTable(1)">Name ↕</th>
+          <th onclick="sortTable(2)">Account ↕</th>
+          <th onclick="sortTable(3)">Sector ↕</th>
+          <th onclick="sortTable(4)">Shares ↕</th>
+          <th onclick="sortTable(5)">Mkt Value ↕</th>
+          <th onclick="sortTable(6)">Unrealized ↕</th>
+          <th onclick="sortTable(7)">Realized ↕</th>
+          <th onclick="sortTable(8)">Total P/L ↕</th>
+          <th onclick="sortTable(9)">Weight% ↕</th>
+        </tr>
+      </thead>
+      <tbody id="holdingsBody">
+        <tr data-account="Investment" data-sector="Leveraged ETF" data-pnl="gain">
+      <td class="mono blue">SPXL</td>
+      <td class="text2">S&P500 3x ETF</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Leveraged ETF</td>
+      <td class="mono">75</td>
+      <td class="mono">$27,357</td>
+      <td class="mono green">$13,993</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$13,993</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">10.5%</span><div style="width:16px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Leveraged ETF" data-pnl="gain">
+      <td class="mono blue">FNGU</td>
+      <td class="text2">FANG+ 3x ETF</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Leveraged ETF</td>
+      <td class="mono">665</td>
+      <td class="mono">$26,280</td>
+      <td class="mono green">$8,142</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$8,142</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">10.1%</span><div style="width:15px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Leveraged ETF" data-pnl="gain">
+      <td class="mono blue">FNGU</td>
+      <td class="text2">FANG+ 3x ETF</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Leveraged ETF</td>
+      <td class="mono">495</td>
+      <td class="mono">$19,562</td>
+      <td class="mono green">$6,491</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$6,491</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">7.5%</span><div style="width:11px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="FHSA" data-sector="Leveraged ETF" data-pnl="gain">
+      <td class="mono blue">SPXL</td>
+      <td class="text2">S&P500 3x ETF</td>
+      <td><span class="badge badge-fhsa">FHSA</span></td>
+      <td class="text2 small">Leveraged ETF</td>
+      <td class="mono">53</td>
+      <td class="mono">$19,332</td>
+      <td class="mono green">$12,236</td>
+      <td class="mono green">$183</td>
+      <td class="mono green">$12,419</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">7.4%</span><div style="width:11px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">NVDA</td>
+      <td class="text2">NVIDIA</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">40</td>
+      <td class="mono">$12,101</td>
+      <td class="mono green">$11,456</td>
+      <td class="mono green">$6</td>
+      <td class="mono green">$11,467</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">4.7%</span><div style="width:7px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="FHSA" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">TXF.TO</td>
+      <td class="text2">CI Tech Giants CC</td>
+      <td><span class="badge badge-fhsa">FHSA</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">434</td>
+      <td class="mono">$11,623</td>
+      <td class="mono green">$211</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$211</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">4.5%</span><div style="width:7px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">TXF.TO</td>
+      <td class="text2">CI Tech Giants CC</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">320</td>
+      <td class="mono">$8,570</td>
+      <td class="mono green">$1,536</td>
+      <td class="mono green">$1,064</td>
+      <td class="mono green">$2,600</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">3.3%</span><div style="width:5px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Leveraged ETF" data-pnl="gain">
+      <td class="mono blue">SPXL</td>
+      <td class="text2">S&P500 3x ETF</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Leveraged ETF</td>
+      <td class="mono">23</td>
+      <td class="mono">$8,389</td>
+      <td class="mono green">$2,816</td>
+      <td class="mono green">$41</td>
+      <td class="mono green">$2,857</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">3.2%</span><div style="width:5px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Consumer Disc." data-pnl="gain">
+      <td class="mono blue">TSLA</td>
+      <td class="text2">Tesla</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Consumer Disc.</td>
+      <td class="mono">14</td>
+      <td class="mono">$8,315</td>
+      <td class="mono green">$3,547</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$3,547</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">3.2%</span><div style="width:5px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Financials" data-pnl="gain">
+      <td class="mono blue">CM.TO</td>
+      <td class="text2">CIBC</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Financials</td>
+      <td class="mono">50</td>
+      <td class="mono">$7,644</td>
+      <td class="mono green">$970</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$970</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">2.9%</span><div style="width:4px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="RRSP" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">TXF.TO</td>
+      <td class="text2">CI Tech Giants CC</td>
+      <td><span class="badge badge-rrsp">RRSP</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">284</td>
+      <td class="mono">$7,606</td>
+      <td class="mono green">$1,421</td>
+      <td class="mono green">$985</td>
+      <td class="mono green">$2,406</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">2.9%</span><div style="width:4px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="FHSA" data-sector="Leveraged ETF" data-pnl="gain">
+      <td class="mono blue">UDOW</td>
+      <td class="text2">Dow 3x ETF</td>
+      <td><span class="badge badge-fhsa">FHSA</span></td>
+      <td class="text2 small">Leveraged ETF</td>
+      <td class="mono">86</td>
+      <td class="mono">$7,229</td>
+      <td class="mono green">$1,899</td>
+      <td class="mono green">$77</td>
+      <td class="mono green">$1,976</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">2.8%</span><div style="width:4px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Leveraged ETF" data-pnl="gain">
+      <td class="mono blue">UDOW</td>
+      <td class="text2">Dow 3x ETF</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Leveraged ETF</td>
+      <td class="mono">84</td>
+      <td class="mono">$7,060</td>
+      <td class="mono green">$2,815</td>
+      <td class="mono green">$117</td>
+      <td class="mono green">$2,932</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">2.7%</span><div style="width:4px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Financials" data-pnl="gain">
+      <td class="mono blue">CM.TO</td>
+      <td class="text2">CIBC</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Financials</td>
+      <td class="mono">45</td>
+      <td class="mono">$6,880</td>
+      <td class="mono green">$3,923</td>
+      <td class="mono green">$304</td>
+      <td class="mono green">$4,227</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">2.6%</span><div style="width:4px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="FHSA" data-sector="Leveraged ETF" data-pnl="gain">
+      <td class="mono blue">FNGU</td>
+      <td class="text2">FANG+ 3x ETF</td>
+      <td><span class="badge badge-fhsa">FHSA</span></td>
+      <td class="text2 small">Leveraged ETF</td>
+      <td class="mono">157</td>
+      <td class="mono">$6,204</td>
+      <td class="mono green">$2,045</td>
+      <td class="mono green">$3,280</td>
+      <td class="mono green">$5,326</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">2.4%</span><div style="width:4px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="FHSA" data-sector="Energy" data-pnl="gain">
+      <td class="mono blue">ENB.TO</td>
+      <td class="text2">Enbridge</td>
+      <td><span class="badge badge-fhsa">FHSA</span></td>
+      <td class="text2 small">Energy</td>
+      <td class="mono">82</td>
+      <td class="mono">$6,166</td>
+      <td class="mono green">$1,666</td>
+      <td class="mono green">$542</td>
+      <td class="mono green">$2,208</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">2.4%</span><div style="width:4px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">TXF.TO</td>
+      <td class="text2">CI Tech Giants CC</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">221</td>
+      <td class="mono">$5,918</td>
+      <td class="mono green">$962</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$962</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">2.3%</span><div style="width:3px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">TSM</td>
+      <td class="text2">Taiwan Semi</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">9</td>
+      <td class="mono">$4,899</td>
+      <td class="mono green">$1,202</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$1,202</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">1.9%</span><div style="width:3px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Financials" data-pnl="gain">
+      <td class="mono blue">RY.TO</td>
+      <td class="text2">Royal Bank</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Financials</td>
+      <td class="mono">19</td>
+      <td class="mono">$4,748</td>
+      <td class="mono green">$852</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$852</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">1.8%</span><div style="width:3px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Financials" data-pnl="gain">
+      <td class="mono blue">IBKR</td>
+      <td class="text2">Interactive Brokers</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Financials</td>
+      <td class="mono">40</td>
+      <td class="mono">$4,636</td>
+      <td class="mono green">$1,441</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$1,441</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">1.8%</span><div style="width:3px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">AVGO</td>
+      <td class="text2">Broadcom</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">8</td>
+      <td class="mono">$4,596</td>
+      <td class="mono green">$220</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$220</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">1.8%</span><div style="width:3px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Consumer Staples" data-pnl="gain">
+      <td class="mono blue">COST</td>
+      <td class="text2">Costco</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Consumer Staples</td>
+      <td class="mono">3</td>
+      <td class="mono">$4,201</td>
+      <td class="mono green">$2,963</td>
+      <td class="mono green">$142</td>
+      <td class="mono green">$3,105</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">1.6%</span><div style="width:2px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="RRSP" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">TSM</td>
+      <td class="text2">Taiwan Semi</td>
+      <td><span class="badge badge-rrsp">RRSP</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">6</td>
+      <td class="mono">$3,266</td>
+      <td class="mono green">$34</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$34</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">1.2%</span><div style="width:2px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Financials" data-pnl="gain">
+      <td class="mono blue">BMO</td>
+      <td class="text2">Bank of Montreal</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Financials</td>
+      <td class="mono">15</td>
+      <td class="mono">$3,135</td>
+      <td class="mono green">$1,368</td>
+      <td class="mono green">$446</td>
+      <td class="mono green">$1,813</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">1.2%</span><div style="width:2px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="RRSP" data-sector="Leveraged ETF" data-pnl="gain">
+      <td class="mono blue">UDOW</td>
+      <td class="text2">Dow 3x ETF</td>
+      <td><span class="badge badge-rrsp">RRSP</span></td>
+      <td class="text2 small">Leveraged ETF</td>
+      <td class="mono">36</td>
+      <td class="mono">$3,026</td>
+      <td class="mono green">$472</td>
+      <td class="mono green">$40</td>
+      <td class="mono green">$512</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">1.2%</span><div style="width:2px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Financials" data-pnl="gain">
+      <td class="mono blue">RDS</td>
+      <td class="text2">RDS Holdings</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Financials</td>
+      <td class="mono">22</td>
+      <td class="mono">$2,573</td>
+      <td class="mono green">$1,178</td>
+      <td class="mono green">$161</td>
+      <td class="mono green">$1,339</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">1.0%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Comm. Services" data-pnl="gain">
+      <td class="mono blue">LYV</td>
+      <td class="text2">Live Nation</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Comm. Services</td>
+      <td class="mono">11</td>
+      <td class="mono">$2,497</td>
+      <td class="mono green">$1,189</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$1,189</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">1.0%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Comm. Services" data-pnl="gain">
+      <td class="mono blue">NFLX</td>
+      <td class="text2">Netflix</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Comm. Services</td>
+      <td class="mono">20</td>
+      <td class="mono">$2,402</td>
+      <td class="mono green">$954</td>
+      <td class="mono green">$0</td>
+      <td class="mono green">$954</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">0.9%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="RRSP" data-sector="Leveraged ETF" data-pnl="gain">
+      <td class="mono blue">FNGU</td>
+      <td class="text2">FANG+ 3x ETF</td>
+      <td><span class="badge badge-rrsp">RRSP</span></td>
+      <td class="text2 small">Leveraged ETF</td>
+      <td class="mono">56</td>
+      <td class="mono">$2,213</td>
+      <td class="mono green">$721</td>
+      <td class="mono green">$2,900</td>
+      <td class="mono green">$3,621</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">0.8%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Crypto" data-pnl="loss">
+      <td class="mono blue">GBTC</td>
+      <td class="text2">Grayscale BTC</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Crypto</td>
+      <td class="mono">25</td>
+      <td class="mono">$2,151</td>
+      <td class="mono red">-$457</td>
+      <td class="mono green">$0</td>
+      <td class="mono red">-$457</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">0.8%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Financials" data-pnl="gain">
+      <td class="mono blue">V</td>
+      <td class="text2">Visa</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Financials</td>
+      <td class="mono">4</td>
+      <td class="mono">$1,789</td>
+      <td class="mono green">$538</td>
+      <td class="mono green">$42</td>
+      <td class="mono green">$581</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">0.7%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Energy" data-pnl="gain">
+      <td class="mono blue">ET</td>
+      <td class="text2">Energy Transfer</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Energy</td>
+      <td class="mono">60</td>
+      <td class="mono">$1,644</td>
+      <td class="mono green">$577</td>
+      <td class="mono green">$173</td>
+      <td class="mono green">$750</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">0.6%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">AAPL</td>
+      <td class="text2">Apple</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">4</td>
+      <td class="mono">$1,616</td>
+      <td class="mono green">$974</td>
+      <td class="mono green">$25</td>
+      <td class="mono green">$998</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">0.6%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">QCOM</td>
+      <td class="text2">Qualcomm</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">5</td>
+      <td class="mono">$1,441</td>
+      <td class="mono green">$801</td>
+      <td class="mono green">$99</td>
+      <td class="mono green">$900</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">0.6%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="TFSA" data-sector="Technology" data-pnl="gain">
+      <td class="mono blue">MSFT</td>
+      <td class="text2">Microsoft</td>
+      <td><span class="badge badge-tfsa">TFSA</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">2</td>
+      <td class="mono">$1,118</td>
+      <td class="mono green">$628</td>
+      <td class="mono green">$1,503</td>
+      <td class="mono green">$2,131</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">0.4%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Technology" data-pnl="loss">
+      <td class="mono blue">MSTR</td>
+      <td class="text2">MicroStrategy</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Technology</td>
+      <td class="mono">4</td>
+      <td class="mono">$1,011</td>
+      <td class="mono red">-$770</td>
+      <td class="mono green">$0</td>
+      <td class="mono red">-$770</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">0.4%</span><div style="width:1px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+<tr data-account="Investment" data-sector="Consumer Disc." data-pnl="loss">
+      <td class="mono blue">BYDDF</td>
+      <td class="text2">BYD</td>
+      <td><span class="badge badge-inv">NON-REG</span></td>
+      <td class="text2 small">Consumer Disc.</td>
+      <td class="mono">3</td>
+      <td class="mono">$53</td>
+      <td class="mono red">-$21</td>
+      <td class="mono green">$0</td>
+      <td class="mono red">-$21</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">0.0%</span><div style="width:0px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- SECTION 05 -->
+<div class="section" id="sec05">
+  <div class="section-header">
+    <span class="section-num">05</span>
+    <span class="section-title">MACRO &amp; MARKET INTELLIGENCE</span>
+  </div>
+  <!-- Row A: Global Macro Themes -->
+  <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Global Macro Themes</div>
+  <div class="macro-grid" style="margin-bottom:20px">
+    <div class="macro-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span class="badge badge-high">HIGH IMPACT</span>
+        <span style="font-size:10px;color:var(--text3)">Confidence: 72%</span>
+      </div>
+      <div class="conf-meter"><div class="conf-fill" style="width:72%"></div></div>
+      <h4 style="margin-top:8px">Fed Chair Transition &amp; Rate Path</h4>
+      <p style="font-size:12px;color:var(--text2)">Jerome Powell exits in May 2026; confirmation proceedings for his successor are underway. Markets are pricing a hawkish lean with two more holds expected before any cut. The Fed funds rate sits at 4.25–4.50%, and with PCE still elevated at ~2.7%, the bar for cuts remains high.</p>
+      <div class="scenario-block">
+        <div class="scenario-line">🟢 <b>Bull:</b> Confirmation proceedings are smooth; successor signals patient easing path. Risk assets rally on certainty.</div>
+        <div class="scenario-line">🟡 <b>Base:</b> Fed holds through Q3, one cut in Q4. Leveraged ETFs consolidate but trend holds.</div>
+        <div class="scenario-line">🔴 <b>Bear:</b> Surprise hawkish nominee; markets reprice terminal rate higher. FNGU/SPXL -25%+.</div>
+      </div>
+    </div>
+    <div class="macro-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span class="badge badge-high">HIGH IMPACT</span>
+        <span style="font-size:10px;color:var(--text3)">Confidence: 81%</span>
+      </div>
+      <div class="conf-meter"><div class="conf-fill" style="width:81%"></div></div>
+      <h4 style="margin-top:8px">AI Capex Super-Cycle</h4>
+      <p style="font-size:12px;color:var(--text2)">Microsoft, Google, Amazon and Meta have collectively committed over $320B in 2026 AI infrastructure spend. NVIDIA's GB200 NVL72 systems are sold out through Q3 2026. Broadcom's custom ASIC designs for Alphabet and Meta represent a 2nd-generation AI chip wave that benefits AVGO significantly.</p>
+      <div class="scenario-block">
+        <div class="scenario-line">🟢 <b>Bull:</b> Capex commitments hold; NVDA and AVGO earnings beats continue. FNGU re-rates.</div>
+        <div class="scenario-line">🟡 <b>Base:</b> Capex steady; AI monetisation lags but supply sold out; semis range-bound +10%.</div>
+        <div class="scenario-line">🔴 <b>Bear:</b> Capex cuts signal ROI doubts; semis reprice -20%. FNGU top names impacted.</div>
+      </div>
+    </div>
+    <div class="macro-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span class="badge badge-med">MED IMPACT</span>
+        <span style="font-size:10px;color:var(--text3)">Confidence: 58%</span>
+      </div>
+      <div class="conf-meter"><div class="conf-fill" style="width:58%"></div></div>
+      <h4 style="margin-top:8px">USMCA / Trade Policy</h4>
+      <p style="font-size:12px;color:var(--text2)">The USMCA review process is active with the next formal trilateral meeting scheduled for June 2026. Canadian autos, energy and financial services remain key negotiation flashpoints. RY.TO, CM.TO and ENB.TO carry direct exposure to any punitive outcome.</p>
+      <div class="scenario-block">
+        <div class="scenario-line">🟢 <b>Bull:</b> Agreement reached with minor adjustments; CAD/CDN equities rally.</div>
+        <div class="scenario-line">🟡 <b>Base:</b> Review extends past Q3; uncertainty caps Canadian equity upside.</div>
+        <div class="scenario-line">🔴 <b>Bear:</b> Breakdown; tariffs escalate. ENB.TO and Cdn banks under pressure.</div>
+      </div>
+    </div>
+  </div>
+  <!-- Row B: Portfolio Risk Factors -->
+  <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Portfolio-Specific Risk Factors</div>
+  <div class="macro-grid" style="margin-bottom:20px">
+    <div class="macro-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span class="badge badge-high">HIGH RISK</span>
+        <span style="font-size:10px;color:var(--text3)">Concentration: 48.7%</span>
+      </div>
+      <h4 style="margin-top:8px">3× ETF Daily Decay (Volatility Drag)</h4>
+      <p style="font-size:12px;color:var(--text2)">FNGU, SPXL and UDOW represent $126,652 — nearly half the portfolio. These instruments reset daily, meaning in a sideways or volatile market, decay accumulates regardless of direction. In a -15% S&P correction, a 3× ETF could lose ~45%, translating to ~$57,000 off portfolio NAV.</p>
+    </div>
+    <div class="macro-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span class="badge badge-med">MED RISK</span>
+        <span style="font-size:10px;color:var(--text3)">FX Drag: -$2,521</span>
+      </div>
+      <h4 style="margin-top:8px">USD/CAD Currency Translation</h4>
+      <p style="font-size:12px;color:var(--text2)">68.7% of holdings are USD-denominated. A strengthening CAD (e.g. from trade deal tailwinds) translates to a headwind on USD-priced positions when marked in CAD. The portfolio has already absorbed -$2,521 in cumulative FX conversion drag.</p>
+    </div>
+    <div class="macro-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span class="badge badge-low">MONITOR</span>
+        <span style="font-size:10px;color:var(--text3)">Cdn exposure: $22,407</span>
+      </div>
+      <h4 style="margin-top:8px">Canadian Banks &amp; Enbridge</h4>
+      <p style="font-size:12px;color:var(--text2)">CM.TO (TFSA + Investment), RY.TO and ENB.TO carry USMCA and rate-sensitivity risk. CIBC has LatAm exposure and a domestic mortgage book sensitive to Canadian housing. ENB.TO pipeline approvals remain politically fluid.</p>
+    </div>
+  </div>
+  <!-- Row C: Key Headlines -->
+  <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Key Headlines</div>
+  <div class="grid-2">
+    <div class="news-card">
+      <div class="news-headline">NVIDIA GB200 NVL72: Sold Out Through Q3 2026</div>
+      <div class="news-body">NVIDIA's flagship Blackwell data centre rack system remains constrained by CoWoS packaging capacity at TSMC. All major cloud providers are on multi-quarter waitlists. This supply constraint is the single biggest upside risk to NVDA earnings — and the biggest catalyst for TSM re-rating.</div>
+    </div>
+    <div class="news-card">
+      <div class="news-headline">Fed Chair Confirmation — Market Watching for Hawkish Signals</div>
+      <div class="news-body">The Senate confirmation process for the incoming Fed Chair is the key macro event this month. Any testimony suggesting higher-for-longer beyond Q4 2026 would be negative for leveraged equity ETFs. Markets are pricing 1 cut in 2026 — that consensus is fragile.</div>
+    </div>
+    <div class="news-card">
+      <div class="news-headline">USMCA Formal Trilateral Review — June 2026 Meeting Scheduled</div>
+      <div class="news-body">Canada, the US and Mexico have confirmed a formal review session for June 2026. Energy and financial services are the two chapters of most direct relevance to this portfolio. ENB.TO and RY.TO are the names most exposed to a negative outcome.</div>
+    </div>
+    <div class="news-card">
+      <div class="news-headline">FNGU &amp; SPXL: Combined $55K+ — Leverage Math in Focus</div>
+      <div class="news-body">FNGU (TFSA + Investment + FHSA + RRSP) = $54,259. SPXL (across 3 accounts) = $55,078. Together, these two instruments represent ~42% of AUM. In a -10% market: expect ~-30% on these. In a +10% market: expect ~+28% on these. The math cuts both ways.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 06 -->
+<div class="section" id="sec06">
+  <div class="section-header">
+    <span class="section-num">06</span>
+    <span class="section-title">RECENT MARKET NEWS &amp; PORTFOLIO IMPACT</span>
+  </div>
+  <div class="grid-2">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:10px;text-transform:uppercase">Macro &amp; Rates</div>
+      <div class="news-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="news-headline">US PCE Holds at 2.7% — Fed Patience Continues</div>
+          <span class="badge badge-med">MED</span>
+        </div>
+        <div class="news-body">April 2026 PCE data printed at 2.7% YoY, matching expectations and giving the Fed no reason to move. This is a neutral-to-slightly-positive outcome: no rate hike threat, but no cut catalyst either. Markets have fully priced Fed on hold through September.</div>
+        <div class="news-exposure">Your exposure: Leveraged ETFs benefit most from rate cuts. On-hold is manageable but not a catalyst.</div>
+        <div class="news-scenarios">🟢 Bull: PCE drops to 2.3% by July → rate cut repricing → leveraged ETFs rally hard. 🔴 Bear: PCE re-accelerates above 3% → hike risk re-emerges → FNGU/SPXL -20%.</div>
+      </div>
+      <div class="news-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="news-headline">US Dollar Weakening vs CAD on Trade Optimism</div>
+          <span class="badge badge-low">LOW</span>
+        </div>
+        <div class="news-body">CAD has firmed to ~1.37/USD from 1.44 earlier this year as USMCA review optimism builds. A stronger CAD directly reduces the CAD value of US-dollar holdings when translated on portfolio reports. The -$2,521 cumulative FX drag could expand.</div>
+        <div class="news-exposure">Your exposure: 68.7% USD holdings. Every cent CAD appreciation = ~$1,800 FX drag on $260K portfolio.</div>
+        <div class="news-scenarios">🟢 Bull: CAD weakens back to 1.44 → FX tailwind adds ~$9K+ on USD book. 🔴 Bear: CAD 1.30 (parity near) → FX drag expands to -$18K.</div>
+      </div>
+      <div class="news-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="news-headline">Q1 2026 Earnings Season Wraps Strong for US Tech</div>
+          <span class="badge badge-high">HIGH</span>
+        </div>
+        <div class="news-body">Apple, Microsoft, Nvidia, Meta and Alphabet all beat Q1 2026 estimates. NVDA guidance +18% above street. MSFT Azure revenue acceleration confirmed. These are the core names in FNGU and TSM's customer base — all positive data points for your holdings.</div>
+        <div class="news-exposure">Your exposure: NVDA (+1,776%), MSFT (+435%), AAPL (+155%) in TFSA. FNGU/SPXL ride the same underlying moves.</div>
+        <div class="news-scenarios">🟢 Bull: AI monetisation inflects H2 2026 → FNGU re-rates to new highs. 🔴 Bear: Forward guide disappointments → mean reversion, especially leveraged names.</div>
+      </div>
+    </div>
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:10px;text-transform:uppercase">Sector &amp; Stock News</div>
+      <div class="news-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="news-headline">Broadcom (AVGO) Custom ASIC Wins Confirmed</div>
+          <span class="badge badge-high">HIGH</span>
+        </div>
+        <div class="news-body">Broadcom confirmed custom AI ASIC partnerships with Alphabet (TPU v6) and Meta (MTIA v2). Revenue from AI chips now constitutes over 60% of semiconductor segment revenue. Analysts have raised 12-month price targets to $270–$300 range. Your 8 shares at ~$74 cost basis are +5% — still early innings.</div>
+        <div class="news-exposure">Your exposure: 8 shares AVGO in TFSA · $4,596 MV · +5.0% unrealized — under-allocated at current thesis strength.</div>
+        <div class="news-scenarios">🟢 Bull: Add on 5-10% pullback → significant alpha on custom AI chip cycle. 🔴 Bear: Hyperscaler capex cuts → ASIC wins less valuable than market pricing.</div>
+      </div>
+      <div class="news-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="news-headline">CIBC (CM.TO) Beats Q2 Estimates — Turnaround Intact</div>
+          <span class="badge badge-med">MED</span>
+        </div>
+        <div class="news-body">CIBC delivered Q2 2026 EPS above consensus with domestic mortgage provisions declining and Caribbean/LatAm operations stabilising. The turnaround thesis from the 2022-2023 underperformance period is maturing. Combined TFSA + Investment position now $14,524 with strong momentum.</div>
+        <div class="news-exposure">Your exposure: 45 shares CM.TO (TFSA, +142.9%) + 50 shares CM.TO (Investment, +14.5%) = $14,524 combined.</div>
+        <div class="news-scenarios">🟢 Bull: Canadian housing stabilises; CIBC mortgage book improves → re-rating continues. 🔴 Bear: Housing correction accelerates → credit provisions spike.</div>
+      </div>
+      <div class="news-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="news-headline">Interactive Brokers (IBKR) — Fintech Platform Gains Market Share</div>
+          <span class="badge badge-low">LOW</span>
+        </div>
+        <div class="news-body">IBKR reported record Q1 2026 DARTs (daily average revenue trades) as retail investors returned to equities markets. Net interest income from client margin balances also strong. The platform is compounding well as an asset. Your 40-share position at +45.1% reflects this underlying strength.</div>
+        <div class="news-exposure">Your exposure: 40 shares IBKR in Investment account · $4,636 MV · +45.1% unrealized.</div>
+        <div class="news-scenarios">🟢 Bull: IBKR continues market share gains → $200+ PT (consensus target $185). 🔴 Bear: Retail trading volumes decline in bear market → revenue and margins compress.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 07 -->
+<div class="section" id="sec07">
+  <div class="section-header">
+    <span class="section-num">07</span>
+    <span class="section-title">STOCKS TO WATCH &amp; POTENTIAL BUYS</span>
+  </div>
+  <div class="grid-3" style="margin-bottom:16px">
+    <div class="card blue-accent">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="badge badge-add">ADD</span><span class="badge badge-tfsa">TFSA</span>
+      </div>
+      <div class="pick-ticker">AVGO</div>
+      <div class="pick-thesis">Broadcom is executing flawlessly on the custom AI ASIC supercycle. With confirmed wins at Google and Meta plus a dominant network switch portfolio (Tomahawk, Trident), AVGO is the highest-quality way to play AI infrastructure outside of NVDA. Currently only 8 shares — significantly underweight given the thesis strength.</div>
+      <div class="entry-box">🎯 Entry: $220–$240 on 5–10% pullback from current ~$287. Target: $320 (12M). Add 5–8 shares.</div>
+    </div>
+    <div class="card blue-accent">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="badge badge-new">NEW</span><span class="badge badge-tfsa">TFSA / RRSP</span>
+      </div>
+      <div class="pick-ticker">MU</div>
+      <div class="pick-thesis">Micron Technology is the AI memory play with the lowest institutional penetration. HBM3E (High Bandwidth Memory) demand is directly tied to every NVIDIA H100/GB200 order. Micron's share of HBM is growing from 20% to 35%+ by end-2026. No memory name in portfolio currently — this is a gap.</div>
+      <div class="entry-box">🎯 Entry: $100–$115 range (current ~$105). Position size: 10–15 shares = ~$1,500. TFSA first.</div>
+    </div>
+    <div class="card blue-accent">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="badge badge-spec">SPECULATIVE</span><span class="badge badge-tfsa">TFSA</span>
+      </div>
+      <div class="pick-ticker">ALAB</div>
+      <div class="pick-thesis">Astera Labs makes PCIe retimers and CXL connectivity chips that are essential for every AI server rack. It's a picks-and-shovels play that benefits from the same capex cycle as NVDA and AVGO, but with a smaller market cap ($9B) and higher potential return. Risk is limited liquidity and execution risk as a growth-stage company.</div>
+      <div class="entry-box">🎯 Entry: $50–$60 range. Max position: &lt;2% AUM (~$5,000). High risk, high reward.</div>
+    </div>
+  </div>
+  <div class="grid-3">
+    <div class="card blue-accent">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="badge badge-re">RE-ENTER</span><span class="badge badge-tfsa">TFSA</span>
+      </div>
+      <div class="pick-ticker">BNS.TO</div>
+      <div class="pick-thesis">Bank of Nova Scotia offers a differentiated Canadian bank story via its LatAm/Pacific Alliance exposure (Colombia, Peru, Chile, Mexico). Following management restructuring and capital redeployment away from LatAm toward North American wealth management, the risk profile has improved materially. ~6% dividend yield collected tax-free in TFSA is compelling.</div>
+      <div class="entry-box">🎯 Entry: $72–$76 range (current ~$74). Yield: ~6.0%. Position: 50 shares = ~$3,700.</div>
+    </div>
+    <div class="card blue-accent">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="badge badge-add">IMMEDIATE</span><span class="badge badge-rrsp">RRSP</span>
+      </div>
+      <div class="pick-ticker">ZSP.TO</div>
+      <div class="pick-thesis">BMO S&P 500 ETF (hedged CAD). You have $10,531 sitting in RRSP cash earning near-zero. ZSP.TO is the simplest, most tax-efficient deployment: 0% withholding on US dividends under Canada-US treaty, low MER (0.09%), broad market exposure. This is not a suggestion — it is the most obvious capital allocation in the portfolio right now.</div>
+      <div class="entry-box">🎯 Deploy all $10,531 immediately. No entry timing needed — DCA if preferred in 2 tranches.</div>
+    </div>
+    <div class="card blue-accent">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="badge badge-re">RE-ENTER</span><span class="badge badge-tfsa">TFSA</span>
+      </div>
+      <div class="pick-ticker">AMD</div>
+      <div class="pick-thesis">Advanced Micro Devices is the only credible alternative to NVIDIA in the GPU data centre market. MI300X adoption at Microsoft Azure and Meta is accelerating. AMD is trading at a meaningful discount to NVDA on forward P/E. A 15-20% pullback to $370–$400 would represent an attractive entry for a TFSA position with a 12-18 month view.</div>
+      <div class="entry-box">🎯 Entry: $370–$400 on pullback (current ~$460). Target: $550+ (12M). 5-10 shares.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 08 -->
+<div class="section" id="sec08">
+  <div class="section-header">
+    <span class="section-num">08</span>
+    <span class="section-title">PORTFOLIO STRENGTHS &amp; CONCERNS</span>
+  </div>
+  <div class="sc-grid">
+    <div class="card green-accent">
+      <div style="font-family:var(--mono);font-size:11px;color:var(--green);margin-bottom:12px">✦ STRENGTHS</div>
+      <div class="sc-item"><div class="sc-dot green"></div><div>NVDA in TFSA: <span class="sc-ticker">NVDA</span> at +1,776% return on a $643 cost basis. $12,101 market value, 100% tax-free. One of the best Canadian TFSA trades documented — untouchable compounding machine.</div></div>
+      <div class="sc-item"><div class="sc-dot green"></div><div>TFSA outperforms: <span class="sc-ticker">TFSA</span> at +112.76% ROI on $44,500 contributed = $49,575 pure tax-free gain. Compounding continues to accelerate as position base grows.</div></div>
+      <div class="sc-item"><div class="sc-dot green"></div><div>FHSA double-tax win: <span class="sc-ticker">FHSA</span> at +114.58% on $24,000 = $26,577 gain. Every dollar is sheltered from both income tax (deduction on contribution) and capital gains tax (tax-free on withdrawal). Down payment is well-funded.</div></div>
+      <div class="sc-item"><div class="sc-dot green"></div><div>Benchmark alpha: Portfolio +76.1% contribution-weighted ROI vs. S&P 500 +11.8%, NASDAQ +15.5%, TSX +14.6%. Alpha of +60+ percentage points validates active management approach.</div></div>
+      <div class="sc-item"><div class="sc-dot green"></div><div>Diversified income streams: $7,257 in dividends collected across TFSA/FHSA/RRSP/Investment. ENB.TO, CM.TO, TXF.TO (covered calls), and ET generating passive income while growth positions compound.</div></div>
+    </div>
+    <div class="card red-accent">
+      <div style="font-family:var(--mono);font-size:11px;color:var(--red);margin-bottom:12px">⚠ CONCERNS</div>
+      <div class="sc-item"><div class="sc-dot red"></div><div>Leveraged ETF concentration: <span class="sc-ticker">FNGU+SPXL+UDOW</span> = $126,652 = 48.7% of AUM. A -15% S&P drawdown translates to ~-45% on these instruments = -$57,000 portfolio impact. Exceeds the entire FHSA value.</div></div>
+      <div class="sc-item"><div class="sc-dot red"></div><div>Non-reg taxable exposure: <span class="sc-ticker">Investment</span> SPXL (+104.7%) and FNGU (+44.9%) = $53,636 in taxable unrealized gains. At 50% inclusion + ~50% marginal rate = ~$13,400 deferred tax liability. Capital efficiency drag vs. TFSA/FHSA.</div></div>
+      <div class="sc-item"><div class="sc-dot red"></div><div>RRSP idle cash crisis: <span class="sc-ticker">RRSP</span> holds $10,531 in cash — 39.5% of RRSP market value doing nothing. At a conservative 8% annualised return, this cash is costing ~$843/year in foregone compounding. Three weeks and counting.</div></div>
+      <div class="sc-item"><div class="sc-dot red"></div><div>Underwater positions: <span class="sc-ticker">MSTR</span> (-43.2%), <span class="sc-ticker">GBTC</span> (-17.5%), <span class="sc-ticker">BYDDF</span> (-28.9%) in Investment account. Combined unrealised loss ~$1,800. Potential tax-loss harvest candidates before year-end.</div></div>
+      <div class="sc-item"><div class="sc-dot red"></div><div>AVGO under-allocation: 8 shares at $4,596 = 1.8% of AUM despite being one of the highest-conviction AI infrastructure names. If the AVGO thesis is right, current weighting is too small to move the needle meaningfully.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 09 -->
+<div class="section" id="sec09">
+  <div class="section-header">
+    <span class="section-num">09</span>
+    <span class="section-title">STRATEGY RECOMMENDATIONS</span>
+  </div>
+  <div class="strat-grid">
+    <div class="strat-panel">
+      <div class="strat-header red">⚡ SHORT-TERM (0–6 months)</div>
+      <div class="strat-body">
+        <div class="strat-item"><div class="strat-num">1</div><div>Deploy $10,531 RRSP cash immediately into ZSP.TO or split ZSP.TO/IVV. US-source dividends are 0% withholding under the Canada-US treaty — only in RRSP. Every week of delay is measurable foregone return.</div></div>
+        <div class="strat-item"><div class="strat-num">2</div><div>Add AVGO on next 5–10% pullback. Target 5–8 additional shares in TFSA. Current 8-share position is too small for the conviction level implied by AVGO's custom AI ASIC wins.</div></div>
+        <div class="strat-item"><div class="strat-num">3</div><div>Tax-loss harvest MSTR (−43.2%), BYDDF (−28.9%) in Investment account before year-end. Realized losses offset capital gains — reduces 2026 taxable income.</div></div>
+        <div class="strat-item"><div class="strat-num">4</div><div>Max FHSA 2026 contribution room if any remains ($8,000 annual limit, $40,000 lifetime). At $24,000 contributed, you have $16,000 of lifetime room remaining — verify 2026 annual limit is used.</div></div>
+        <div class="strat-item"><div class="strat-num">5</div><div>Initiate MU position (10 shares in TFSA). No HBM memory exposure in portfolio is a gap as AI chip cycle enters next phase. Entry $100–$115.</div></div>
+      </div>
+    </div>
+    <div class="strat-panel">
+      <div class="strat-header amber">◆ MID-TERM (6 months–2 years)</div>
+      <div class="strat-body">
+        <div class="strat-item"><div class="strat-num">1</div><div>Target leveraged ETF concentration below 40% AUM (currently 48.7%). As portfolio grows, let contributions bring this ratio down organically rather than selling. Avoid adding to leveraged ETFs except on -10%+ corrections.</div></div>
+        <div class="strat-item"><div class="strat-num">2</div><div>Transition FHSA to lower-volatility profile as home purchase horizon approaches. Begin rotating SPXL/UDOW gains into ENB.TO and a bond ETF (e.g. ZAG.TO) — preserving the down payment capital.</div></div>
+        <div class="strat-item"><div class="strat-num">3</div><div>Build RRSP as the primary US dividend hub. After ZSP.TO deployment, add SCHD or VYM for dividend growth exposure. Dividend withholding advantage makes RRSP irreplaceable for this role.</div></div>
+        <div class="strat-item"><div class="strat-num">4</div><div>Add quality non-leveraged AI semis — NVDA (add on pullbacks), TSM (add to RRSP), AVGO, and potentially AMD at $370–$400. Build a direct semi book alongside the leveraged ETF exposure.</div></div>
+        <div class="strat-item"><div class="strat-num">5</div><div>Scale IBKR position — the Interactive Brokers compound story is under-appreciated. Target 80–100 shares over 12-18 months as cash from harvested positions is redeployed.</div></div>
+      </div>
+    </div>
+    <div class="strat-panel">
+      <div class="strat-header green">✦ LONG-TERM (2–10+ years)</div>
+      <div class="strat-body">
+        <div class="strat-item"><div class="strat-num">1</div><div>FHSA + RRSP HBP home purchase plan: FHSA $50,577 (full withdrawal, tax-free) + RRSP HBP up to $35,000 (repay over 15 years) = up to ~$85,000 for down payment. Well-positioned. Protect FHSA capital as purchase approaches.</div></div>
+        <div class="strat-item"><div class="strat-num">2</div><div>Never sell NVDA, COST, or MSFT in TFSA. These are permanent compounders. NVDA is a generational hold. COST and MSFT are quality franchises that compound at 15-20%/year. Let them run tax-free indefinitely.</div></div>
+        <div class="strat-item"><div class="strat-num">3</div><div>Target core-satellite allocation: 40% index (ZSP.TO, ZAG.TO) + 40% quality growth (NVDA, AVGO, COST, MSFT) + 15% leveraged/speculative + 5% crypto. Currently too concentrated in the speculative bucket.</div></div>
+        <div class="strat-item"><div class="strat-num">4</div><div>DCA leveraged ETFs (FNGU, SPXL, UDOW) only on -10%+ S&P corrections. Never chase. The current cost basis advantage is the result of buying during drawdowns — preserve that discipline.</div></div>
+        <div class="strat-item"><div class="strat-num">5</div><div>Post-home purchase income layer: redirect FHSA contribution room post-withdrawal into dividend growth (ENB.TO, BNS.TO, CM.TO) in a new TFSA contribution room cycle. Build passive income to cover 30-40% of housing costs by age 35.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 10 -->
+<div class="section" id="sec10">
+  <div class="section-header">
+    <span class="section-num">10</span>
+    <span class="section-title">TAX &amp; ACCOUNT OPTIMIZATION</span>
+  </div>
+  <div class="tax-grid">
+    <div class="tax-card" style="border-top:3px solid var(--blue-bright)">
+      <div class="tax-card-header">
+        <div class="badge badge-tfsa" style="margin-bottom:6px">TFSA</div>
+        <div class="mono" style="font-size:16px">$94,076</div>
+        <div class="small green">+112.76% ROI · 100% tax-free on all gains</div>
+      </div>
+      <div class="tax-item">✅ All capital gains, dividends and growth permanently sheltered from CRA</div>
+      <div class="tax-item">✅ NVDA +1,776% — holding this in TFSA is optimal (never sell unnecessarily)</div>
+      <div class="tax-item">⚠️ FNGU/SPXL/UDOW concentration at 48.7% — acceptable here given tax-free status</div>
+      <div class="tax-item">💡 Best account for highest-growth/highest-volatility positions — use full room</div>
+      <div class="tax-item">💡 2026 TFSA contribution room: verify with CRA — room opened Jan 1. Re-contribute gains!</div>
+    </div>
+    <div class="tax-card" style="border-top:3px solid var(--green)">
+      <div class="tax-card-header">
+        <div class="badge badge-fhsa" style="margin-bottom:6px">FHSA</div>
+        <div class="mono" style="font-size:16px">$50,577</div>
+        <div class="small green">+114.58% ROI · Double tax win</div>
+      </div>
+      <div class="tax-item">✅ $24,000 contributed was fully tax-deductible — front-loaded tax savings</div>
+      <div class="tax-item">✅ $50,577 withdrawal on qualifying home purchase = 100% tax-free, no repayment required</div>
+      <div class="tax-item">⚠️ $16,000 lifetime room remaining ($40K limit - $24K contributed) — contribute ASAP</div>
+      <div class="tax-item">⚠️ Begin transitioning to lower volatility as purchase horizon tightens (18-24 months?)</div>
+      <div class="tax-item">💡 Combine with RRSP HBP ($35K) for ~$85K total down payment (FHSA + HBP)</div>
+    </div>
+    <div class="tax-card" style="border-top:3px solid var(--amber)">
+      <div class="tax-card-header">
+        <div class="badge badge-rrsp" style="margin-bottom:6px">RRSP</div>
+        <div class="mono" style="font-size:16px">$26,642</div>
+        <div class="small green">+71.44% ROI · Deferred tax growth</div>
+      </div>
+      <div class="tax-item">✅ US-source dividends at 0% withholding tax (Canada-US treaty) — unique advantage</div>
+      <div class="tax-item">✅ $16,132 contributed generated $10,510 in gains — strong deferred-tax compounding</div>
+      <div class="tax-item">⚠️ $10,531 IDLE CASH (39.5% of RRSP) — top priority to deploy into ZSP.TO now</div>
+      <div class="tax-item">⚠️ TXF.TO covered call ETF not ideal here — US dividend ETFs (ZSP, IVV, SCHD) are better fit</div>
+      <div class="tax-item">💡 HBP: Can withdraw up to $35K for qualifying home purchase, repay over 15 years</div>
+    </div>
+    <div class="tax-card" style="border-top:3px solid var(--text3)">
+      <div class="tax-card-header">
+        <div class="badge badge-inv" style="margin-bottom:6px">NON-REG</div>
+        <div class="mono" style="font-size:16px">$89,014</div>
+        <div class="small green">+37.95% ROI · 50% inclusion rate</div>
+      </div>
+      <div class="tax-item">⚠️ $28,042 unrealized gains in Investment account — 50% inclusion at marginal rate ~$7,000 deferred tax</div>
+      <div class="tax-item">⚠️ SPXL (+104.7%) and FNGU (+44.9%) ideal candidates to reallocate to TFSA contribution room</div>
+      <div class="tax-item">✅ MSTR, GBTC, BYDDF are losers — consider harvesting losses to offset gains before Dec 31</div>
+      <div class="tax-item">💡 Only hold tax-efficient names here: eligible Canadian dividends (DTC), return of capital ETFs</div>
+      <div class="tax-item">💡 Long-term: migrate taxable gains to TFSA over annual contribution cycles ($7K/year room)</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>⚠️ This report is generated from Financials.xlsx data as of 2026-05-12.</p>
+  <p>For informational purposes only — not financial advice.</p>
+  <p>Contribution-weighted benchmark uses approximate index levels at each detected contribution injection date.</p>
+  <p>Consult a registered financial advisor (CFP/CFA) and tax professional (CPA) before making investment decisions. FHSA/RRSP/TFSA rules subject to CRA guidelines.</p>
+</div>
+
+</div><!-- end container -->
+
+<script>
+// ===== DATA =====
+const dataAllTime = [{"x":"2021-09","y":6.8472},{"x":"2021-10","y":17.4182},{"x":"2021-11","y":16.0341},{"x":"2021-12","y":20.6649},{"x":"2022-01","y":10.9882},{"x":"2022-02","y":6.2891},{"x":"2022-03","y":12.5269},{"x":"2022-04","y":-2.5004},{"x":"2022-05","y":-9.9547},{"x":"2022-06","y":-28.1115},{"x":"2022-07","y":-20.7175},{"x":"2022-08","y":-13.3924},{"x":"2022-09","y":-19.2532},{"x":"2022-10","y":-19.6273},{"x":"2022-11","y":-16.8196},{"x":"2022-12","y":-25.6447},{"x":"2023-01","y":-14.3703},{"x":"2023-02","y":-15.1302},{"x":"2023-03","y":-12.3366},{"x":"2023-04","y":-12.3094},{"x":"2023-05","y":-8.0651},{"x":"2023-06","y":0.5357},{"x":"2023-07","y":3.0455},{"x":"2023-08","y":4.5537},{"x":"2023-09","y":-2.604},{"x":"2023-10","y":-4.5841},{"x":"2023-11","y":6.8419},{"x":"2023-12","y":12.3161},{"x":"2024-01","y":16.0436},{"x":"2024-02","y":26.4975},{"x":"2024-03","y":29.5389},{"x":"2024-04","y":21.1762},{"x":"2024-05","y":30.0964},{"x":"2024-06","y":38.8796},{"x":"2024-07","y":38.4205},{"x":"2024-08","y":36.676},{"x":"2024-09","y":42.3277},{"x":"2024-10","y":43.6568},{"x":"2024-11","y":65.3065},{"x":"2024-12","y":58.7636},{"x":"2025-01","y":66.6647},{"x":"2025-02","y":46.107},{"x":"2025-03","y":37.008},{"x":"2025-04","y":18.5999},{"x":"2025-05","y":32.3248},{"x":"2025-06","y":38.3932},{"x":"2025-07","y":51.1908},{"x":"2025-08","y":54.1249},{"x":"2025-09","y":70.355},{"x":"2025-10","y":78.1016},{"x":"2025-11","y":59.8655},{"x":"2025-12","y":49.8122},{"x":"2026-01","y":46.2985},{"x":"2026-02","y":38.1934},{"x":"2026-03","y":30.4094},{"x":"2026-04","y":59.9757},{"x":"2026-05","y":76.0988}];
+const dataTFSA = [{"x":"2021-01","y":12.8756},{"x":"2021-02","y":12.6816},{"x":"2021-03","y":12.0603},{"x":"2021-04","y":11.1736},{"x":"2021-05","y":10.1496},{"x":"2021-06","y":17.5014},{"x":"2021-07","y":11.3472},{"x":"2021-08","y":17.4604},{"x":"2021-09","y":15.115},{"x":"2021-10","y":30.4462},{"x":"2021-11","y":34.9257},{"x":"2021-12","y":33.413},{"x":"2022-01","y":23.5875},{"x":"2022-02","y":20.6836},{"x":"2022-03","y":28.3813},{"x":"2022-04","y":10.0752},{"x":"2022-05","y":6.5348},{"x":"2022-06","y":-6.0066},{"x":"2022-07","y":5.0771},{"x":"2022-08","y":2.4237},{"x":"2022-09","y":-4.412},{"x":"2022-10","y":-4.6649},{"x":"2022-11","y":-1.0229},{"x":"2022-12","y":-12.1809},{"x":"2023-01","y":-0.6027},{"x":"2023-02","y":0.9429},{"x":"2023-03","y":4.4636},{"x":"2023-04","y":3.2224},{"x":"2023-05","y":8.5405},{"x":"2023-06","y":19.2662},{"x":"2023-07","y":22.1186},{"x":"2023-08","y":23.5514},{"x":"2023-09","y":17.0033},{"x":"2023-10","y":11.736},{"x":"2023-11","y":25.5547},{"x":"2023-12","y":32.9929},{"x":"2024-01","y":38.5883},{"x":"2024-02","y":55.0631},{"x":"2024-03","y":58.8087},{"x":"2024-04","y":41.008},{"x":"2024-05","y":51.3027},{"x":"2024-06","y":52.0318},{"x":"2024-07","y":51.8333},{"x":"2024-08","y":50.4302},{"x":"2024-09","y":56.1402},{"x":"2024-10","y":59.6772},{"x":"2024-11","y":80.3796},{"x":"2024-12","y":72.8736},{"x":"2025-01","y":76.8078},{"x":"2025-02","y":64.4286},{"x":"2025-03","y":54.1824},{"x":"2025-04","y":37.0304},{"x":"2025-05","y":53.411},{"x":"2025-06","y":60.4807},{"x":"2025-07","y":72.1849},{"x":"2025-08","y":75.1046},{"x":"2025-09","y":93.2532},{"x":"2025-10","y":105.3233},{"x":"2025-11","y":82.038},{"x":"2025-12","y":74.0443},{"x":"2026-01","y":70.5737},{"x":"2026-02","y":62.6829},{"x":"2026-03","y":66.8445},{"x":"2026-04","y":95.3571},{"x":"2026-05","y":112.7614}];
+const dataInv = [{"x":"2021-08","y":-1.0559},{"x":"2021-09","y":-2.7476},{"x":"2021-10","y":2.7948},{"x":"2021-11","y":-3.0511},{"x":"2021-12","y":-8.9911},{"x":"2022-01","y":-8.9369},{"x":"2022-02","y":-16.4124},{"x":"2022-03","y":-13.521},{"x":"2022-04","y":-24.3766},{"x":"2022-05","y":-28.7922},{"x":"2022-06","y":-33.6837},{"x":"2022-07","y":-31.0626},{"x":"2022-08","y":-31.6886},{"x":"2022-09","y":-33.5769},{"x":"2022-10","y":-39.3481},{"x":"2022-11","y":-35.5609},{"x":"2022-12","y":-38.1611},{"x":"2023-01","y":-28.2429},{"x":"2023-02","y":-35.4732},{"x":"2023-03","y":-33.6092},{"x":"2023-04","y":-31.9964},{"x":"2023-05","y":-29.8411},{"x":"2023-06","y":-28.2199},{"x":"2023-07","y":-26.6506},{"x":"2023-08","y":-25.9075},{"x":"2023-09","y":-30.7362},{"x":"2023-10","y":-27.7455},{"x":"2023-11","y":-20.6259},{"x":"2023-12","y":-18.3355},{"x":"2024-01","y":-18.5328},{"x":"2024-02","y":-13.489},{"x":"2024-03","y":-12.6047},{"x":"2024-04","y":-14.2368},{"x":"2024-05","y":-14.7793},{"x":"2024-06","y":-12.12},{"x":"2024-07","y":-10.8411},{"x":"2024-08","y":-30.0771},{"x":"2024-09","y":-22.0379},{"x":"2024-10","y":-36.7013},{"x":"2024-11","y":-28.6255},{"x":"2024-12","y":-29.1651},{"x":"2025-01","y":-21.8261},{"x":"2025-02","y":-39.8913},{"x":"2025-03","y":-53.4634},{"x":"2025-04","y":-44.8031},{"x":"2025-05","y":2.6198},{"x":"2025-06","y":10.6397},{"x":"2025-07","y":19.0282},{"x":"2025-08","y":19.7958},{"x":"2025-09","y":42.2793},{"x":"2025-10","y":27.7483},{"x":"2025-11","y":21.3486},{"x":"2025-12","y":16.4007},{"x":"2026-01","y":16.4714},{"x":"2026-02","y":11.5686},{"x":"2026-03","y":-1.8907},{"x":"2026-04","y":24.9149},{"x":"2026-05","y":37.9483}];
+const dataFHSA = [{"x":"2023-07","y":0.3127},{"x":"2023-08","y":-0.3495},{"x":"2023-09","y":-1.9956},{"x":"2023-10","y":-5.2116},{"x":"2023-11","y":3.6896},{"x":"2023-12","y":10.3422},{"x":"2024-01","y":10.0346},{"x":"2024-02","y":22.9218},{"x":"2024-03","y":26.973},{"x":"2024-04","y":17.1913},{"x":"2024-05","y":32.4057},{"x":"2024-06","y":55.8661},{"x":"2024-07","y":53.1668},{"x":"2024-08","y":50.0537},{"x":"2024-09","y":57.8652},{"x":"2024-10","y":62.5835},{"x":"2024-11","y":91.899},{"x":"2024-12","y":68.2897},{"x":"2025-01","y":83.1405},{"x":"2025-02","y":65.353},{"x":"2025-03","y":54.3314},{"x":"2025-04","y":25.3698},{"x":"2025-05","y":38.3575},{"x":"2025-06","y":49.1942},{"x":"2025-07","y":68.4469},{"x":"2025-08","y":72.5836},{"x":"2025-09","y":93.1711},{"x":"2025-10","y":107.2457},{"x":"2025-11","y":85.8553},{"x":"2025-12","y":69.5889},{"x":"2026-01","y":64.4715},{"x":"2026-02","y":53.4565},{"x":"2026-03","y":50.8101},{"x":"2026-04","y":94.2847},{"x":"2026-05","y":114.5766}];
+const dataRRSP = [{"x":"2024-10","y":-3.2668},{"x":"2024-11","y":17.7143},{"x":"2024-12","y":22.066},{"x":"2025-01","y":31.4171},{"x":"2025-02","y":43.2546},{"x":"2025-03","y":19.0234},{"x":"2025-04","y":18.6695},{"x":"2025-05","y":24.2427},{"x":"2025-06","y":32.1177},{"x":"2025-07","y":47.5565},{"x":"2025-08","y":53.8716},{"x":"2025-09","y":76.7332},{"x":"2025-10","y":95.0179},{"x":"2025-11","y":63.5831},{"x":"2025-12","y":43.3669},{"x":"2026-01","y":32.4836},{"x":"2026-02","y":19.508},{"x":"2026-03","y":16.4196},{"x":"2026-04","y":52.603},{"x":"2026-05","y":71.4387}];
+const mvAllTime = [{"x":"2021-09","y":35259.5917},{"x":"2021-10","y":38747.9976},{"x":"2021-11","y":38291.2471},{"x":"2021-12","y":39819.4036},{"x":"2022-01","y":36626.1194},{"x":"2022-02","y":35075.4171},{"x":"2022-03","y":37133.8867},{"x":"2022-04","y":32174.8727},{"x":"2022-05","y":29714.9449},{"x":"2022-06","y":23723.1896},{"x":"2022-07","y":26163.2382},{"x":"2022-08","y":28580.5133},{"x":"2022-09","y":26646.447},{"x":"2022-10","y":26522.9926},{"x":"2022-11","y":27449.5235},{"x":"2022-12","y":24537.265},{"x":"2023-01","y":28257.8087},{"x":"2023-02","y":28007.0195},{"x":"2023-03","y":28928.9244},{"x":"2023-04","y":28937.9067},{"x":"2023-05","y":30338.5103},{"x":"2023-06","y":33176.7706},{"x":"2023-07","y":34005.0105},{"x":"2023-08","y":34502.7258},{"x":"2023-09","y":32140.6871},{"x":"2023-10","y":39120.5327},{"x":"2023-11","y":48078.8649},{"x":"2023-12","y":51665.4063},{"x":"2024-01","y":55700.9151},{"x":"2024-02","y":68308.6476},{"x":"2024-03","y":69950.9877},{"x":"2024-04","y":73917.4842},{"x":"2024-05","y":79358.8109},{"x":"2024-06","y":95132.4951},{"x":"2024-07","y":94818.0196},{"x":"2024-08","y":93623.0917},{"x":"2024-09","y":97494.4472},{"x":"2024-10","y":98404.9242},{"x":"2024-11","y":113234.9799},{"x":"2024-12","y":132567.623},{"x":"2025-01","y":139164.9922},{"x":"2025-02","y":145376.5026},{"x":"2025-03","y":136322.964},{"x":"2025-04","y":137575.8432},{"x":"2025-05","y":153496.7258},{"x":"2025-06","y":166071.8854},{"x":"2025-07","y":181428.9924},{"x":"2025-08","y":184949.9287},{"x":"2025-09","y":204425.9984},{"x":"2025-10","y":227970.0164},{"x":"2025-11","y":204627.841},{"x":"2025-12","y":191759.6345},{"x":"2026-01","y":187262.0283},{"x":"2026-02","y":176887.5858},{"x":"2026-03","y":186485.4621},{"x":"2026-04","y":239374.8401},{"x":"2026-05","y":263500.1203}];
+const mvTFSA = [{"x":"2021-01","y":16931.3433},{"x":"2021-02","y":18029.0522},{"x":"2021-03","y":19050.2489},{"x":"2021-04","y":20011.2401},{"x":"2021-05","y":19826.9319},{"x":"2021-06","y":21150.2454},{"x":"2021-07","y":20042.5023},{"x":"2021-08","y":21142.869},{"x":"2021-09","y":20720.6935},{"x":"2021-10","y":23480.3223},{"x":"2021-11","y":24286.6255},{"x":"2021-12","y":24014.3427},{"x":"2022-01","y":25953.365},{"x":"2022-02","y":25343.5659},{"x":"2022-03","y":26960.0754},{"x":"2022-04","y":23115.7849},{"x":"2022-05","y":22372.3035},{"x":"2022-06","y":19738.6217},{"x":"2022-07","y":22066.1881},{"x":"2022-08","y":21508.97},{"x":"2022-09","y":20073.4843},{"x":"2022-10","y":20020.376},{"x":"2022-11","y":20785.1852},{"x":"2022-12","y":18442.0171},{"x":"2023-01","y":22861.3788},{"x":"2023-02","y":23216.8599},{"x":"2023-03","y":24026.6283},{"x":"2023-04","y":23741.1602},{"x":"2023-05","y":24964.305},{"x":"2023-06","y":27431.2334},{"x":"2023-07","y":28087.2687},{"x":"2023-08","y":28416.8146},{"x":"2023-09","y":26910.7686},{"x":"2023-10","y":25699.2873},{"x":"2023-11","y":28877.5764},{"x":"2023-12","y":30588.3631},{"x":"2024-01","y":31875.3041},{"x":"2024-02","y":35664.5116},{"x":"2024-03","y":36526.0072},{"x":"2024-04","y":42302.3948},{"x":"2024-05","y":45390.8007},{"x":"2024-06","y":57011.9085},{"x":"2024-07","y":56937.5034},{"x":"2024-08","y":56411.3069},{"x":"2024-09","y":58552.5612},{"x":"2024-10","y":59878.9641},{"x":"2024-11","y":67642.3386},{"x":"2024-12","y":76928.7394},{"x":"2025-01","y":78679.4612},{"x":"2025-02","y":73170.7228},{"x":"2025-03","y":68611.1549},{"x":"2025-04","y":60978.5284},{"x":"2025-05","y":68267.8879},{"x":"2025-06","y":71413.8941},{"x":"2025-07","y":76622.2805},{"x":"2025-08","y":77921.5627},{"x":"2025-09","y":85997.6905},{"x":"2025-10","y":91368.8735},{"x":"2025-11","y":81006.8942},{"x":"2025-12","y":77449.6998},{"x":"2026-01","y":75905.2841},{"x":"2026-02","y":72393.9061},{"x":"2026-03","y":74245.7855},{"x":"2026-04","y":86933.926},{"x":"2026-05","y":94678.8227}];
+const mvInv = [{"x":"2021-08","y":14841.6174},{"x":"2021-09","y":14587.863},{"x":"2021-10","y":15419.2185},{"x":"2021-11","y":14542.3318},{"x":"2021-12","y":13651.3367},{"x":"2022-01","y":13659.4654},{"x":"2022-02","y":12538.1396},{"x":"2022-03","y":12971.848},{"x":"2022-04","y":11343.5102},{"x":"2022-05","y":10681.1665},{"x":"2022-06","y":9947.4497},{"x":"2022-07","y":10340.6137},{"x":"2022-08","y":10246.7149},{"x":"2022-09","y":9963.462},{"x":"2022-10","y":9097.7836},{"x":"2022-11","y":9665.8635},{"x":"2022-12","y":9275.8335},{"x":"2023-01","y":10763.5624},{"x":"2023-02","y":9679.0178},{"x":"2023-03","y":9958.6216},{"x":"2023-04","y":10200.5408},{"x":"2023-05","y":10523.836},{"x":"2023-06","y":10767.0117},{"x":"2023-07","y":11002.4073},{"x":"2023-08","y":11113.8729},{"x":"2023-09","y":10389.5686},{"x":"2023-10","y":10838.1696},{"x":"2023-11","y":11906.118},{"x":"2023-12","y":12249.6702},{"x":"2024-01","y":12220.0794},{"x":"2024-02","y":12976.6516},{"x":"2024-03","y":13109.2986},{"x":"2024-04","y":12864.474},{"x":"2024-05","y":12783.1004},{"x":"2024-06","y":13182.0043},{"x":"2024-07","y":13373.8293},{"x":"2024-08","y":4177.1948},{"x":"2024-09","y":4657.4547},{"x":"2024-10","y":3781.4634},{"x":"2024-11","y":4263.9104},{"x":"2024-12","y":4231.6759},{"x":"2025-01","y":4670.1068},{"x":"2025-02","y":3590.892},{"x":"2025-03","y":2780.0956},{"x":"2025-04","y":3297.4631},{"x":"2025-05","y":23980.206},{"x":"2025-06","y":30279.8677},{"x":"2025-07","y":32575.6381},{"x":"2025-08","y":32785.7196},{"x":"2025-09","y":27556.6555},{"x":"2025-10","y":55401.8914},{"x":"2025-11","y":52626.4485},{"x":"2025-12","y":50480.6484},{"x":"2026-01","y":50511.3171},{"x":"2026-02","y":48385.0905},{"x":"2026-03","y":57264.4499},{"x":"2026-04","y":81194.6755},{"x":"2026-05","y":89666.4154}];
+const mvFHSA = [{"x":"2023-07","y":8025.013},{"x":"2023-08","y":7972.0383},{"x":"2023-09","y":7840.35},{"x":"2023-10","y":7583.0757},{"x":"2023-11","y":8295.1704},{"x":"2023-12","y":8827.3729},{"x":"2024-01","y":17605.5315},{"x":"2024-02","y":19667.4845},{"x":"2024-03","y":20315.6819},{"x":"2024-04","y":18750.6154},{"x":"2024-05","y":21184.9098},{"x":"2024-06","y":24938.5823},{"x":"2024-07","y":24506.6869},{"x":"2024-08","y":24008.59},{"x":"2024-09","y":25258.4313},{"x":"2024-10","y":26013.3577},{"x":"2024-11","y":30703.8375},{"x":"2024-12","y":40389.5332},{"x":"2025-01","y":43953.7172},{"x":"2025-02","y":39684.7256},{"x":"2025-03","y":37039.5402},{"x":"2025-04","y":30088.7461},{"x":"2025-05","y":33205.7958},{"x":"2025-06","y":35806.6105},{"x":"2025-07","y":40427.2649},{"x":"2025-08","y":41420.0755},{"x":"2025-09","y":46361.053},{"x":"2025-10","y":49738.971},{"x":"2025-11","y":44605.2744},{"x":"2025-12","y":40701.3394},{"x":"2026-01","y":39473.1655},{"x":"2026-02","y":36829.5667},{"x":"2026-03","y":36194.4196},{"x":"2026-04","y":46628.3261},{"x":"2026-05","y":51498.3884}];
+const mvRRSP = [{"x":"2024-10","y":8731.1391},{"x":"2024-11","y":10624.8935},{"x":"2024-12","y":11017.6745},{"x":"2025-01","y":11861.7071},{"x":"2025-02","y":12930.1622},{"x":"2025-03","y":10743.0484},{"x":"2025-04","y":10711.1056},{"x":"2025-05","y":20042.8361},{"x":"2025-06","y":21313.2344},{"x":"2025-07","y":23803.809},{"x":"2025-08","y":24822.5708},{"x":"2025-09","y":28510.5993},{"x":"2025-10","y":31460.2804},{"x":"2025-11","y":26389.2238},{"x":"2025-12","y":23127.9469},{"x":"2026-01","y":21372.2616},{"x":"2026-02","y":19279.0225},{"x":"2026-03","y":18780.8071},{"x":"2026-04","y":24617.9124},{"x":"2026-05","y":27656.4939}];
+const cAllTime = [{"x":"2021-09","y":33000.0},{"x":"2021-10","y":33000.0},{"x":"2021-11","y":33000.0},{"x":"2021-12","y":33000.0},{"x":"2022-01","y":33000.0},{"x":"2022-02","y":33000.0},{"x":"2022-03","y":33000.0},{"x":"2022-04","y":33000.0},{"x":"2022-05","y":33000.0},{"x":"2022-06","y":33000.0},{"x":"2022-07","y":33000.0},{"x":"2022-08","y":33000.0},{"x":"2022-09","y":33000.0},{"x":"2022-10","y":33000.0},{"x":"2022-11","y":33000.0},{"x":"2022-12","y":33000.0},{"x":"2023-01","y":33000.0},{"x":"2023-02","y":33000.0},{"x":"2023-03","y":33000.0},{"x":"2023-04","y":33000.0},{"x":"2023-05","y":33000.0},{"x":"2023-06","y":33000.0},{"x":"2023-07","y":33000.0},{"x":"2023-08","y":33000.0},{"x":"2023-09","y":33000.0},{"x":"2023-10","y":41000.0},{"x":"2023-11","y":45000.0},{"x":"2023-12","y":46000.0},{"x":"2024-01","y":48000.0},{"x":"2024-02","y":54000.0},{"x":"2024-03","y":54000.0},{"x":"2024-04","y":61000.0},{"x":"2024-05","y":61000.0},{"x":"2024-06","y":68500.0},{"x":"2024-07","y":68500.0},{"x":"2024-08","y":68500.0},{"x":"2024-09","y":68500.0},{"x":"2024-10","y":68500.0},{"x":"2024-11","y":68500.0},{"x":"2024-12","y":83500.0},{"x":"2025-01","y":83500.0},{"x":"2025-02","y":99500.0},{"x":"2025-03","y":99500.0},{"x":"2025-04","y":116000.0},{"x":"2025-05","y":116000.0},{"x":"2025-06","y":120000.0},{"x":"2025-07","y":120000.0},{"x":"2025-08","y":120000.0},{"x":"2025-09","y":120000.0},{"x":"2025-10","y":128000.0},{"x":"2025-11","y":128000.0},{"x":"2025-12","y":128000.0},{"x":"2026-01","y":128000.0},{"x":"2026-02","y":128000.0},{"x":"2026-03","y":143000.0},{"x":"2026-04","y":149632.0},{"x":"2026-05","y":149632.0}];
+const cTFSA = [{"x":"2021-01","y":15000.0},{"x":"2021-02","y":16000.0},{"x":"2021-03","y":17000.0},{"x":"2021-04","y":18000.0},{"x":"2021-05","y":18000.0},{"x":"2021-06","y":18000.0},{"x":"2021-07","y":18000.0},{"x":"2021-08","y":18000.0},{"x":"2021-09","y":18000.0},{"x":"2021-10","y":18000.0},{"x":"2021-11","y":18000.0},{"x":"2021-12","y":18000.0},{"x":"2022-01","y":21000.0},{"x":"2022-02","y":21000.0},{"x":"2022-03","y":21000.0},{"x":"2022-04","y":21000.0},{"x":"2022-05","y":21000.0},{"x":"2022-06","y":21000.0},{"x":"2022-07","y":21000.0},{"x":"2022-08","y":21000.0},{"x":"2022-09","y":21000.0},{"x":"2022-10","y":21000.0},{"x":"2022-11","y":21000.0},{"x":"2022-12","y":21000.0},{"x":"2023-01","y":23000.0},{"x":"2023-02","y":23000.0},{"x":"2023-03","y":23000.0},{"x":"2023-04","y":23000.0},{"x":"2023-05","y":23000.0},{"x":"2023-06","y":23000.0},{"x":"2023-07","y":23000.0},{"x":"2023-08","y":23000.0},{"x":"2023-09","y":23000.0},{"x":"2023-10","y":23000.0},{"x":"2023-11","y":23000.0},{"x":"2023-12","y":23000.0},{"x":"2024-01","y":23000.0},{"x":"2024-02","y":23000.0},{"x":"2024-03","y":23000.0},{"x":"2024-04","y":30000.0},{"x":"2024-05","y":30000.0},{"x":"2024-06","y":37500.0},{"x":"2024-07","y":37500.0},{"x":"2024-08","y":37500.0},{"x":"2024-09","y":37500.0},{"x":"2024-10","y":37500.0},{"x":"2024-11","y":37500.0},{"x":"2024-12","y":44500.0},{"x":"2025-01","y":44500.0},{"x":"2025-02","y":44500.0},{"x":"2025-03","y":44500.0},{"x":"2025-04","y":44500.0},{"x":"2025-05","y":44500.0},{"x":"2025-06","y":44500.0},{"x":"2025-07","y":44500.0},{"x":"2025-08","y":44500.0},{"x":"2025-09","y":44500.0},{"x":"2025-10","y":44500.0},{"x":"2025-11","y":44500.0},{"x":"2025-12","y":44500.0},{"x":"2026-01","y":44500.0},{"x":"2026-02","y":44500.0},{"x":"2026-03","y":44500.0},{"x":"2026-04","y":44500.0},{"x":"2026-05","y":44500.0}];
+const cInv = [{"x":"2021-08","y":15000.0},{"x":"2021-09","y":15000.0},{"x":"2021-10","y":15000.0},{"x":"2021-11","y":15000.0},{"x":"2021-12","y":15000.0},{"x":"2022-01","y":15000.0},{"x":"2022-02","y":15000.0},{"x":"2022-03","y":15000.0},{"x":"2022-04","y":15000.0},{"x":"2022-05","y":15000.0},{"x":"2022-06","y":15000.0},{"x":"2022-07","y":15000.0},{"x":"2022-08","y":15000.0},{"x":"2022-09","y":15000.0},{"x":"2022-10","y":15000.0},{"x":"2022-11","y":15000.0},{"x":"2022-12","y":15000.0},{"x":"2023-01","y":15000.0},{"x":"2023-02","y":15000.0},{"x":"2023-03","y":15000.0},{"x":"2023-04","y":15000.0},{"x":"2023-05","y":15000.0},{"x":"2023-06","y":15000.0},{"x":"2023-07","y":15000.0},{"x":"2023-08","y":15000.0},{"x":"2023-09","y":15000.0},{"x":"2023-10","y":15000.0},{"x":"2023-11","y":15000.0},{"x":"2023-12","y":15000.0},{"x":"2024-01","y":15000.0},{"x":"2024-02","y":15000.0},{"x":"2024-03","y":15000.0},{"x":"2024-04","y":15000.0},{"x":"2024-05","y":15000.0},{"x":"2024-06","y":15000.0},{"x":"2024-07","y":15000.0},{"x":"2024-08","y":5974.0},{"x":"2024-09","y":5974.0},{"x":"2024-10","y":5974.0},{"x":"2024-11","y":5974.0},{"x":"2024-12","y":5974.0},{"x":"2025-01","y":5974.0},{"x":"2025-02","y":5974.0},{"x":"2025-03","y":5974.0},{"x":"2025-04","y":5974.0},{"x":"2025-05","y":23368.0},{"x":"2025-06","y":27368.0},{"x":"2025-07","y":27368.0},{"x":"2025-08","y":27368.0},{"x":"2025-09","y":19368.0},{"x":"2025-10","y":43368.0},{"x":"2025-11","y":43368.0},{"x":"2025-12","y":43368.0},{"x":"2026-01","y":43368.0},{"x":"2026-02","y":43368.0},{"x":"2026-03","y":58368.0},{"x":"2026-04","y":65000.0},{"x":"2026-05","y":65000.0}];
+const cFHSA = [{"x":"2023-07","y":8000.0},{"x":"2023-08","y":8000.0},{"x":"2023-09","y":8000.0},{"x":"2023-10","y":8000.0},{"x":"2023-11","y":8000.0},{"x":"2023-12","y":8000.0},{"x":"2024-01","y":16000.0},{"x":"2024-02","y":16000.0},{"x":"2024-03","y":16000.0},{"x":"2024-04","y":16000.0},{"x":"2024-05","y":16000.0},{"x":"2024-06","y":16000.0},{"x":"2024-07","y":16000.0},{"x":"2024-08","y":16000.0},{"x":"2024-09","y":16000.0},{"x":"2024-10","y":16000.0},{"x":"2024-11","y":16000.0},{"x":"2024-12","y":24000.0},{"x":"2025-01","y":24000.0},{"x":"2025-02","y":24000.0},{"x":"2025-03","y":24000.0},{"x":"2025-04","y":24000.0},{"x":"2025-05","y":24000.0},{"x":"2025-06","y":24000.0},{"x":"2025-07","y":24000.0},{"x":"2025-08","y":24000.0},{"x":"2025-09","y":24000.0},{"x":"2025-10","y":24000.0},{"x":"2025-11","y":24000.0},{"x":"2025-12","y":24000.0},{"x":"2026-01","y":24000.0},{"x":"2026-02","y":24000.0},{"x":"2026-03","y":24000.0},{"x":"2026-04","y":24000.0},{"x":"2026-05","y":24000.0}];
+const cRRSP = [{"x":"2024-10","y":9026.0},{"x":"2024-11","y":9026.0},{"x":"2024-12","y":9026.0},{"x":"2025-01","y":9026.0},{"x":"2025-02","y":9026.0},{"x":"2025-03","y":9026.0},{"x":"2025-04","y":9026.0},{"x":"2025-05","y":16132.0},{"x":"2025-06","y":16132.0},{"x":"2025-07","y":16132.0},{"x":"2025-08","y":16132.0},{"x":"2025-09","y":16132.0},{"x":"2025-10","y":16132.0},{"x":"2025-11","y":16132.0},{"x":"2025-12","y":16132.0},{"x":"2026-01","y":16132.0},{"x":"2026-02","y":16132.0},{"x":"2026-03","y":16132.0},{"x":"2026-04","y":16132.0},{"x":"2026-05","y":16132.0}];
+const holdingsData = [{"ticker": "TSLA", "name": "Tesla", "account": "TFSA", "sector": "Consumer Disc.", "shares": 14.0, "market_value": 8315.24, "unrealized": 3547.13, "realized": 0, "total_pnl": 3547.13, "pct_return": 74.39, "weight": 3.19}, {"ticker": "NVDA", "name": "NVIDIA", "account": "TFSA", "sector": "Technology", "shares": 40.0, "market_value": 12101.17, "unrealized": 11455.57, "realized": 5.67, "total_pnl": 11466.91, "pct_return": 1776.15, "weight": 4.65}, {"ticker": "QCOM", "name": "Qualcomm", "account": "TFSA", "sector": "Technology", "shares": 5.0, "market_value": 1440.91, "unrealized": 800.86, "realized": 99.39, "total_pnl": 900.25, "pct_return": 140.65, "weight": 0.55}, {"ticker": "COST", "name": "Costco", "account": "TFSA", "sector": "Consumer Staples", "shares": 3.0, "market_value": 4200.77, "unrealized": 2963.37, "realized": 141.53, "total_pnl": 3104.9, "pct_return": 250.92, "weight": 1.61}, {"ticker": "BMO", "name": "Bank of Montreal", "account": "TFSA", "sector": "Financials", "shares": 15.0, "market_value": 3134.92, "unrealized": 1367.56, "realized": 445.64, "total_pnl": 1813.2, "pct_return": 102.59, "weight": 1.2}, {"ticker": "MSFT", "name": "Microsoft", "account": "TFSA", "sector": "Technology", "shares": 2.0, "market_value": 1117.51, "unrealized": 627.57, "realized": 1503.43, "total_pnl": 2131.0, "pct_return": 434.95, "weight": 0.43}, {"ticker": "AAPL", "name": "Apple", "account": "TFSA", "sector": "Technology", "shares": 4.0, "market_value": 1615.83, "unrealized": 973.57, "realized": 24.78, "total_pnl": 998.35, "pct_return": 155.44, "weight": 0.62}, {"ticker": "RDS", "name": "RDS Holdings", "account": "TFSA", "sector": "Financials", "shares": 22.0, "market_value": 2572.97, "unrealized": 1177.83, "realized": 161.34, "total_pnl": 1339.17, "pct_return": 95.99, "weight": 0.99}, {"ticker": "NFLX", "name": "Netflix", "account": "TFSA", "sector": "Comm. Services", "shares": 20.0, "market_value": 2402.37, "unrealized": 954.27, "realized": 0, "total_pnl": 954.27, "pct_return": 65.9, "weight": 0.92}, {"ticker": "ET", "name": "Energy Transfer", "account": "TFSA", "sector": "Energy", "shares": 60.0, "market_value": 1644.33, "unrealized": 576.76, "realized": 173.37, "total_pnl": 750.13, "pct_return": 70.27, "weight": 0.63}, {"ticker": "UDOW", "name": "Dow 3x ETF", "account": "TFSA", "sector": "Leveraged ETF", "shares": 84.0, "market_value": 7060.42, "unrealized": 2815.02, "realized": 117.37, "total_pnl": 2932.39, "pct_return": 69.07, "weight": 2.71}, {"ticker": "CM.TO", "name": "CIBC", "account": "TFSA", "sector": "Financials", "shares": 45.0, "market_value": 6880.05, "unrealized": 3923.05, "realized": 303.75, "total_pnl": 4226.8, "pct_return": 142.94, "weight": 2.64}, {"ticker": "TXF.TO", "name": "CI Tech Giants CC", "account": "TFSA", "sector": "Technology", "shares": 320.0, "market_value": 8569.6, "unrealized": 1536.31, "realized": 1063.97, "total_pnl": 2600.28, "pct_return": 36.97, "weight": 3.29}, {"ticker": "SPXL", "name": "S&P500 3x ETF", "account": "TFSA", "sector": "Leveraged ETF", "shares": 23.0, "market_value": 8389.33, "unrealized": 2815.59, "realized": 41.44, "total_pnl": 2857.03, "pct_return": 51.26, "weight": 3.22}, {"ticker": "FNGU", "name": "FANG+ 3x ETF", "account": "TFSA", "sector": "Leveraged ETF", "shares": 495.0, "market_value": 19561.77, "unrealized": 6491.13, "realized": 0, "total_pnl": 6491.13, "pct_return": 49.66, "weight": 7.51}, {"ticker": "AVGO", "name": "Broadcom", "account": "TFSA", "sector": "Technology", "shares": 8.0, "market_value": 4596.45, "unrealized": 220.08, "realized": 0, "total_pnl": 220.08, "pct_return": 5.03, "weight": 1.77}, {"ticker": "RY.TO", "name": "Royal Bank", "account": "Investment", "sector": "Financials", "shares": 19.0, "market_value": 4747.53, "unrealized": 852.08, "realized": 0, "total_pnl": 852.08, "pct_return": 21.87, "weight": 1.82}, {"ticker": "TXF.TO", "name": "CI Tech Giants CC", "account": "Investment", "sector": "Technology", "shares": 221.0, "market_value": 5918.38, "unrealized": 962.45, "realized": 0, "total_pnl": 962.45, "pct_return": 19.42, "weight": 2.27}, {"ticker": "CM.TO", "name": "CIBC", "account": "Investment", "sector": "Financials", "shares": 50.0, "market_value": 7644.5, "unrealized": 970.05, "realized": 0, "total_pnl": 970.05, "pct_return": 14.53, "weight": 2.94}, {"ticker": "V", "name": "Visa", "account": "Investment", "sector": "Financials", "shares": 4.0, "market_value": 1789.14, "unrealized": 538.48, "realized": 42.37, "total_pnl": 580.85, "pct_return": 46.44, "weight": 0.69}, {"ticker": "LYV", "name": "Live Nation", "account": "Investment", "sector": "Comm. Services", "shares": 11.0, "market_value": 2497.15, "unrealized": 1189.35, "realized": 0, "total_pnl": 1189.35, "pct_return": 90.94, "weight": 0.96}, {"ticker": "MSTR", "name": "MicroStrategy", "account": "Investment", "sector": "Technology", "shares": 4.0, "market_value": 1010.82, "unrealized": -769.92, "realized": 0, "total_pnl": -769.92, "pct_return": -43.24, "weight": 0.39}, {"ticker": "GBTC", "name": "Grayscale BTC", "account": "Investment", "sector": "Crypto", "shares": 25.0, "market_value": 2150.99, "unrealized": -457.26, "realized": 0, "total_pnl": -457.26, "pct_return": -17.53, "weight": 0.83}, {"ticker": "IBKR", "name": "Interactive Brokers", "account": "Investment", "sector": "Financials", "shares": 40.0, "market_value": 4636.46, "unrealized": 1441.32, "realized": 0, "total_pnl": 1441.32, "pct_return": 45.11, "weight": 1.78}, {"ticker": "BYDDF", "name": "BYD", "account": "Investment", "sector": "Consumer Disc.", "shares": 3.0, "market_value": 52.62, "unrealized": -21.38, "realized": 0, "total_pnl": -21.38, "pct_return": -28.89, "weight": 0.02}, {"ticker": "SPXL", "name": "S&P500 3x ETF", "account": "Investment", "sector": "Leveraged ETF", "shares": 75.0, "market_value": 27356.51, "unrealized": 13993.28, "realized": 0, "total_pnl": 13993.28, "pct_return": 104.71, "weight": 10.51}, {"ticker": "TSM", "name": "Taiwan Semi", "account": "Investment", "sector": "Technology", "shares": 9.0, "market_value": 4899.45, "unrealized": 1201.61, "realized": 0, "total_pnl": 1201.61, "pct_return": 32.49, "weight": 1.88}, {"ticker": "FNGU", "name": "FANG+ 3x ETF", "account": "Investment", "sector": "Leveraged ETF", "shares": 665.0, "market_value": 26279.96, "unrealized": 8142.17, "realized": 0, "total_pnl": 8142.17, "pct_return": 44.89, "weight": 10.1}, {"ticker": "SPXL", "name": "S&P500 3x ETF", "account": "FHSA", "sector": "Leveraged ETF", "shares": 53.0, "market_value": 19331.94, "unrealized": 12235.71, "realized": 182.92, "total_pnl": 12418.63, "pct_return": 175.0, "weight": 7.43}, {"ticker": "ENB.TO", "name": "Enbridge", "account": "FHSA", "sector": "Energy", "shares": 82.0, "market_value": 6165.58, "unrealized": 1665.74, "realized": 542.42, "total_pnl": 2208.16, "pct_return": 49.07, "weight": 2.37}, {"ticker": "UDOW", "name": "Dow 3x ETF", "account": "FHSA", "sector": "Leveraged ETF", "shares": 86.0, "market_value": 7228.53, "unrealized": 1898.97, "realized": 77.14, "total_pnl": 1976.11, "pct_return": 37.08, "weight": 2.78}, {"ticker": "FNGU", "name": "FANG+ 3x ETF", "account": "FHSA", "sector": "Leveraged ETF", "shares": 157.0, "market_value": 6204.44, "unrealized": 2045.19, "realized": 3280.41, "total_pnl": 5325.6, "pct_return": 44.08, "weight": 2.38}, {"ticker": "TXF.TO", "name": "CI Tech Giants CC", "account": "FHSA", "sector": "Technology", "shares": 434.0, "market_value": 11622.52, "unrealized": 211.39, "realized": 0, "total_pnl": 211.39, "pct_return": 1.85, "weight": 4.46}, {"ticker": "TXF.TO", "name": "CI Tech Giants CC", "account": "RRSP", "sector": "Technology", "shares": 284.0, "market_value": 7605.52, "unrealized": 1421.41, "realized": 984.63, "total_pnl": 2406.04, "pct_return": 38.91, "weight": 2.92}, {"ticker": "UDOW", "name": "Dow 3x ETF", "account": "RRSP", "sector": "Leveraged ETF", "shares": 36.0, "market_value": 3025.9, "unrealized": 471.53, "realized": 40.06, "total_pnl": 511.59, "pct_return": 20.03, "weight": 1.16}, {"ticker": "FNGU", "name": "FANG+ 3x ETF", "account": "RRSP", "sector": "Leveraged ETF", "shares": 56.0, "market_value": 2213.05, "unrealized": 721.49, "realized": 2899.64, "total_pnl": 3621.13, "pct_return": 42.02, "weight": 0.85}, {"ticker": "TSM", "name": "Taiwan Semi", "account": "RRSP", "sector": "Technology", "shares": 6.0, "market_value": 3266.3, "unrealized": 34.22, "realized": 0, "total_pnl": 34.22, "pct_return": 1.06, "weight": 1.25}];
+
+// ===== CHART SETUP =====
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = '#1a2e4a';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+function alignToLabels(data, labels) {
+  const map = Object.fromEntries(data.map(p => [p.x, p.y]));
+  return labels.map(l => l in map ? map[l] : null);
+}
+
+const allXLabels = [...new Set([
+  ...dataAllTime.map(p=>p.x), ...dataTFSA.map(p=>p.x),
+  ...dataInv.map(p=>p.x), ...dataFHSA.map(p=>p.x),
+  ...dataRRSP.map(p=>p.x)
+])].sort();
+
+const mvByAcct = {all:mvAllTime, tfsa:mvTFSA, inv:mvInv, fhsa:mvFHSA, rrsp:mvRRSP};
+const cByAcct  = {all:cAllTime, tfsa:cTFSA, inv:cInv, fhsa:cFHSA, rrsp:cRRSP};
+const roiByAcct = {all:dataAllTime, tfsa:dataTFSA, inv:dataInv, fhsa:dataFHSA, rrsp:dataRRSP};
+const acctColors = {all:'#3b82f6',tfsa:'#10b981',inv:'#94a3b8',fhsa:'#a78bfa',rrsp:'#fbbf24'};
+const acctLabels = {all:'All Accounts',tfsa:'TFSA',inv:'Investment',fhsa:'FHSA',rrsp:'RRSP'};
+
+const lineDefaults = (color, label, data) => ({
+  label, data,
+  borderColor: color, backgroundColor: color+'20',
+  borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
+  tension: 0.3, fill: false, spanGaps: false
+});
+
+// ROI Chart
+const roiCtx = document.getElementById('roiChart').getContext('2d');
+const roiChart = new Chart(roiCtx, {
+  type: 'line',
+  data: {
+    labels: allXLabels,
+    datasets: [
+      {...lineDefaults('#3b82f6','All-Time', alignToLabels(dataAllTime, allXLabels))},
+      {...lineDefaults('#10b981','TFSA',    alignToLabels(dataTFSA,   allXLabels))},
+      {...lineDefaults('#94a3b8','Investment', alignToLabels(dataInv,  allXLabels))},
+      {...lineDefaults('#a78bfa','FHSA',    alignToLabels(dataFHSA,  allXLabels))},
+      {...lineDefaults('#fbbf24','RRSP',    alignToLabels(dataRRSP,  allXLabels))},
+      {
+        label:'Contributions ($K)', type:'line',
+        data: alignToLabels(cAllTime, allXLabels).map(v => v ? v/1000 : null),
+        borderColor:'#f59e0b', borderDash:[5,5], borderWidth:1.5,
+        backgroundColor:'transparent', pointRadius:0, yAxisID:'y2', spanGaps:true
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: {mode:'index', intersect:false},
+    plugins: {
+      legend: {position:'top', labels:{boxWidth:12,font:{size:11}}},
+      tooltip: {callbacks:{label: ctx => {
+        if(ctx.datasetIndex===5) return ` Contributions: ${(ctx.raw||0).toFixed(0)}K`;
+        return ` ${ctx.dataset.label}: ${(ctx.raw||0).toFixed(1)}%`;
+      }}}
+    },
+    scales: {
+      x: {ticks:{maxTicksLimit:12, font:{size:10}}},
+      y: {ticks:{callback:v=>v+'%', font:{size:10}}, title:{display:true,text:'ROI %',font:{size:10}}},
+      y2: {position:'right', ticks:{callback:v=>v+'K',font:{size:10}}, title:{display:true,text:'Contrib ($K)',font:{size:10}}, grid:{drawOnChartArea:false}}
+    }
+  }
+});
+
+// Portfolio Value Chart (single y-axis)
+const mvCtx = document.getElementById('portfolioValueChart').getContext('2d');
+const portfolioValueChart = new Chart(mvCtx, {
+  type: 'line',
+  data: {
+    labels: allXLabels,
+    datasets: [
+      {
+        label:'Market Value', data: alignToLabels(mvAllTime, allXLabels),
+        borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.08)',
+        borderWidth:2, pointRadius:0, tension:0.3, fill:true, spanGaps:true
+      },
+      {
+        label:'Contributions', data: alignToLabels(cAllTime, allXLabels),
+        borderColor:'#f59e0b', borderDash:[5,5], borderWidth:1.5,
+        backgroundColor:'transparent', pointRadius:0, tension:0, fill:false, spanGaps:true,
+        stepped:'before'
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: {mode:'index', intersect:false},
+    plugins: {
+      legend: {position:'top', labels:{boxWidth:12,font:{size:11}}},
+      tooltip: {callbacks:{label: ctx => ` ${ctx.dataset.label}: ${(ctx.raw||0).toLocaleString('en-CA',{maximumFractionDigits:0})}` }}
+    },
+    scales: {
+      x: {ticks:{maxTicksLimit:12, font:{size:10}}},
+      y: {ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K', font:{size:10}}}
+    }
+  }
+});
+
+// Account Doughnut
+const acctCtx = document.getElementById('acctChart').getContext('2d');
+new Chart(acctCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ["TFSA", "Investment", "FHSA", "RRSP"],
+    datasets: [{
+      data: [94075.58, 89013.74, 50577.35, 26641.97],
+      backgroundColor: ['#10b981','#94a3b8','#a78bfa','#fbbf24'],
+      borderColor: '#0c1524', borderWidth: 2
+    }]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},
+    tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString('en-CA',{maximumFractionDigits:0})}}}
+  }
+});
+
+// Account ROI Chart
+const arCtx = document.getElementById('accountRoiChart').getContext('2d');
+const accountRoiChart = new Chart(arCtx, {
+  type: 'line',
+  data: {
+    labels: allXLabels,
+    datasets: [
+      {...lineDefaults('#3b82f6','All-Time', alignToLabels(dataAllTime, allXLabels))},
+      {...lineDefaults('#10b981','TFSA',    alignToLabels(dataTFSA,   allXLabels))},
+      {...lineDefaults('#94a3b8','Investment', alignToLabels(dataInv,  allXLabels))},
+      {...lineDefaults('#a78bfa','FHSA',    alignToLabels(dataFHSA,  allXLabels))},
+      {...lineDefaults('#fbbf24','RRSP',    alignToLabels(dataRRSP,  allXLabels))}
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},
+    tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${(ctx.raw||0).toFixed(1)}%`}}},
+    scales:{
+      x:{ticks:{maxTicksLimit:10,font:{size:10}}},
+      y:{ticks:{callback:v=>v+'%',font:{size:10}}}
+    }
+  }
+});
+
+// Contribution Chart
+const cCtx = document.getElementById('contribChart').getContext('2d');
+new Chart(cCtx, {
+  type:'line',
+  data:{
+    labels: allXLabels,
+    datasets:[{
+      label:'Cumulative Contributions', data: alignToLabels(cAllTime, allXLabels),
+      borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,0.12)',
+      borderWidth:2, pointRadius:0, fill:true, stepped:'before', spanGaps:true
+    }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString('en-CA',{maximumFractionDigits:0})}}},
+    scales:{
+      x:{ticks:{maxTicksLimit:10,font:{size:10}}},
+      y:{ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K',font:{size:10}}}
+    }
+  }
+});
+
+// Sector Doughnut
+const sColors = ['#ef4444','#3b82f6','#10b981','#f59e0b','#a78bfa','#06b6d4','#f97316','#64748b'];
+new Chart(document.getElementById('sectorChart').getContext('2d'), {
+  type:'doughnut',
+  data:{labels:["Leveraged ETF", "Technology", "Financials", "Consumer Disc.", "Energy", "Comm. Services", "Consumer Staples", "Crypto"],datasets:[{data:[126651.85, 63764.47, 31405.56, 8367.86, 7809.91, 4899.51, 4200.77, 2150.99],backgroundColor:sColors,borderColor:'#0c1524',borderWidth:2}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}},tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString('en-CA',{maximumFractionDigits:0})}}}}
+});
+// Geo Doughnut
+const gColors = ['#3b82f6','#10b981','#a78bfa','#f59e0b','#94a3b8'];
+new Chart(document.getElementById('geoChart').getContext('2d'), {
+  type:'doughnut',
+  data:{labels:["US", "Canada", "Taiwan", "China"],datasets:[{data:[178743.96, 62288.6, 8165.74, 52.62],backgroundColor:gColors,borderColor:'#0c1524',borderWidth:2}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}},tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString('en-CA',{maximumFractionDigits:0})}}}}
+});
+// Asset Class Doughnut
+const aColors = ['#ef4444','#3b82f6','#10b981','#f59e0b','#a78bfa','#94a3b8','#06b6d4','#f97316','#64748b'];
+new Chart(document.getElementById('assetChart').getContext('2d'), {
+  type:'doughnut',
+  data:{labels:["Leveraged ETF", "Covered Call ETF", "US Tech", "Cdn Banks", "US Growth", "US Financials", "Energy/Infra", "Crypto", "International"],datasets:[{data:[126651.85, 33716.02, 29037.62, 22407.0, 17415.52, 8998.57, 7809.91, 3161.81, 52.62],backgroundColor:aColors,borderColor:'#0c1524',borderWidth:2}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9}}},tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString('en-CA',{maximumFractionDigits:0})}}}}
+});
+
+// ===== CHART FILTER =====
+function setChartFilter(acct, btn) {
+  document.querySelectorAll('.chart-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const allDatasets = [
+    {color:'#3b82f6',key:'all'},
+    {color:'#10b981',key:'tfsa'},
+    {color:'#94a3b8',key:'inv'},
+    {color:'#a78bfa',key:'fhsa'},
+    {color:'#fbbf24',key:'rrsp'}
+  ];
+  // Update roiChart
+  allDatasets.forEach((ds,i)=>{
+    roiChart.data.datasets[i].borderColor = (acct==='all'||ds.key===acct) ? ds.color : 'rgba(100,116,139,0.15)';
+    roiChart.data.datasets[i].pointRadius = 0;
+  });
+  roiChart.update();
+  // Update accountRoiChart
+  allDatasets.forEach((ds,i)=>{
+    accountRoiChart.data.datasets[i].borderColor = (acct==='all'||ds.key===acct) ? ds.color : 'rgba(100,116,139,0.15)';
+  });
+  accountRoiChart.update();
+  // Update MV chart
+  const mvData = mvByAcct[acct];
+  const cData = cByAcct[acct];
+  portfolioValueChart.data.datasets[0].data = alignToLabels(mvData, allXLabels);
+  portfolioValueChart.data.datasets[0].borderColor = acctColors[acct];
+  portfolioValueChart.data.datasets[0].backgroundColor = acctColors[acct]+'15';
+  portfolioValueChart.data.datasets[1].data = alignToLabels(cData, allXLabels);
+  portfolioValueChart.update();
+  document.getElementById('roiChartTitle').textContent = 'ROI % — '+acctLabels[acct];
+  document.getElementById('mvChartTitle').textContent = 'Portfolio Market Value — '+acctLabels[acct];
+}
+
+// ===== HOLDINGS TABLE =====
+function filterTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const acctF = document.getElementById('acctFilter').value;
+  const sectorF = document.getElementById('sectorFilter').value;
+  const pnlF = document.getElementById('pnlFilter').value;
+  const rows = document.getElementById('holdingsBody').querySelectorAll('tr');
+  let count = 0;
+  rows.forEach(r => {
+    const ticker = r.cells[0].textContent.toLowerCase();
+    const name = r.cells[1].textContent.toLowerCase();
+    const acct = r.dataset.account;
+    const sector = r.dataset.sector;
+    const pnl = r.dataset.pnl;
+    const matchSearch = !search || ticker.includes(search) || name.includes(search);
+    const matchAcct = !acctF || acct===acctF;
+    const matchSector = !sectorF || sector===sectorF;
+    const matchPnl = !pnlF || pnl===pnlF;
+    const show = matchSearch && matchAcct && matchSector && matchPnl;
+    r.style.display = show ? '' : 'none';
+    if(show) count++;
+  });
+  document.getElementById('rowCount').textContent = count + ' position' + (count!==1?'s':'');
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value='';
+  document.getElementById('acctFilter').value='';
+  document.getElementById('sectorFilter').value='';
+  document.getElementById('pnlFilter').value='';
+  filterTable();
+}
+
+let sortDir = {};
+function sortTable(col) {
+  sortDir[col] = !sortDir[col];
+  const tbody = document.getElementById('holdingsBody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a,b)=>{
+    let av = a.cells[col].textContent.replace(/[$,%+]/g,'').trim();
+    let bv = b.cells[col].textContent.replace(/[$,%+]/g,'').trim();
+    const an = parseFloat(av.replace(/,/g,'')); const bn = parseFloat(bv.replace(/,/g,''));
+    if(!isNaN(an)&&!isNaN(bn)) return sortDir[col]?(an-bn):(bn-an);
+    return sortDir[col]?av.localeCompare(bv):bv.localeCompare(av);
+  });
+  rows.forEach(r=>tbody.appendChild(r));
+}
+
+// Init row count
+window.addEventListener('DOMContentLoaded', ()=>{ filterTable(); });
+filterTable();
+</script>
+</body>
+</html>

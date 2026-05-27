@@ -951,12 +951,19 @@ function updateMarketWidget(benchmarks) {
 // HEADER KPI UPDATES
 // ============================================================
 function updateHeaderKPIs(portfolio) {
-  const tv = portfolio.total_value;
+  const tv  = portfolio.total_value;
   const cost = portfolio.total_cost;
-  const pnl = portfolio.unrealized_gain;
-  const roi = portfolio.roi_pct;
-  const dc = portfolio.daily_change;
-  const dcp = portfolio.daily_change_pct;
+  const pnl  = portfolio.unrealized_gain;
+  const roi  = portfolio.roi_pct;
+  const dc   = portfolio.daily_change;
+  const dcp  = portfolio.daily_change_pct;
+
+  // Live FX conversion impact
+  if (portfolio.fx_impact !== undefined) {
+    const fxEl = document.getElementById('cardFX');
+    fxEl.textContent = fmt$(portfolio.fx_impact);
+    fxEl.className = `card-value ${colorClass(portfolio.fx_impact)}`;
+  }
 
   document.getElementById('kpiTotalValue').textContent = fmt$(tv);
   document.getElementById('kpiTotalPnl').textContent = fmt$(pnl);

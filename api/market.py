@@ -59,6 +59,18 @@ HOLDINGS = [
     {"ticker": "_CASH_CAD", "account": "RRSP",     "shares": 1,    "cost_total": 10531.00, "ccy": "CAD", "cash": True},
 ]
 
+# Average USD/CAD rate at which USD positions were originally purchased.
+# Back-calculated from Google Sheet FX Conversion Gain/Loss figure.
+# Update this if you significantly rebalance USD holdings at a different rate.
+USD_BOOK_RATE = 1.3925
+
+# Pre-computed total USD cost basis (sum of all USD-denominated holdings).
+# Used for dynamic FX impact calculation.
+USD_COST_BASIS = sum(
+    h["cost_total"] for h in HOLDINGS
+    if h.get("ccy") == "USD" and not h.get("cash")
+)
+
 BENCHMARKS = {
     "sp500":        "^GSPC",
     "nasdaq":       "^IXIC",
@@ -204,6 +216,7 @@ def compute_portfolio(prices):
 
     total_gain = total_value - total_cost
     base_val   = total_value - daily_change if total_value != daily_change else total_value
+    fx_impact  = round(USD_COST_BASIS * (usdcad - USD_BOOK_RATE))
 
     return {
         "total_value":       round(total_value),
@@ -214,6 +227,7 @@ def compute_portfolio(prices):
         "daily_change_pct":  round(daily_change / base_val * 100, 2) if base_val else 0,
         "accounts":          {k: round(v) for k, v in accounts.items()},
         "account_cost":      {k: round(v) for k, v in acct_cost.items()},
+        "fx_impact":         fx_impact,
     }
 
 

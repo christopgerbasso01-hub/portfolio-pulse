@@ -888,11 +888,11 @@ const cRRSP=[{"x":"2024-10","y":10000},{"x":"2025-05","y":14000},{"x":"2025-10",
 
 // Market value + contributions lookup by filter key
 const mvByAcct = {
-  all:  { mv: mvAllTime, c: cAllTime,  color: '#3b82f6' },
-  tfsa: { mv: mvTFSA,    c: cTFSA,    color: '#10b981' },
-  inv:  { mv: mvInv,     c: cInv,     color: '#94a3b8' },
-  fhsa: { mv: mvFHSA,    c: cFHSA,    color: '#a78bfa' },
-  rrsp: { mv: mvRRSP,    c: cRRSP,    color: '#fbbf24' },
+  all:  { mv: mvAllTimed, c: cAllTimed, color: '#3b82f6' },
+  tfsa: { mv: mvTFSAd,    c: cTFSAd,   color: '#10b981' },
+  inv:  { mv: mvInvd,     c: cInvd,    color: '#94a3b8' },
+  fhsa: { mv: mvFHSAd,    c: cFHSAd,   color: '#a78bfa' },
+  rrsp: { mv: mvRRSPd,    c: cRRSPd,   color: '#fbbf24' },
 };
 
 // Global state
@@ -1209,10 +1209,47 @@ function sortTable(col) {
 }
 
 // ============================================================
+// MONTHLY INTERPOLATION
+// Fills gaps between sparse snapshot data points with linear
+// interpolation so charts have a data point for every month.
+// ============================================================
+function interpolateMonthly(data) {
+  if (data.length < 2) return data;
+  const parseYM  = s => { const [y, m] = s.split('-').map(Number); return y * 12 + m; };
+  const toYM     = n => `${Math.floor((n - 1) / 12)}-${String(((n - 1) % 12) + 1).padStart(2, '0')}`;
+  const result   = [];
+  for (let i = 0; i < data.length - 1; i++) {
+    const a = data[i], b = data[i + 1];
+    const na = parseYM(a.x), nb = parseYM(b.x);
+    for (let t = 0; t < nb - na; t++) {
+      result.push({ x: toYM(na + t), y: +(a.y + (b.y - a.y) * (t / (nb - na))).toFixed(2) });
+    }
+  }
+  result.push(data[data.length - 1]);
+  return result;
+}
+
+// Dense (monthly) versions of all sparse arrays
+const dataTFSAd  = interpolateMonthly(dataTFSA);
+const dataInvd   = interpolateMonthly(dataInv);
+const dataFHSAd  = interpolateMonthly(dataFHSA);
+const dataRRSPd  = interpolateMonthly(dataRRSP);
+const mvAllTimed = interpolateMonthly(mvAllTime);
+const mvTFSAd    = interpolateMonthly(mvTFSA);
+const mvInvd     = interpolateMonthly(mvInv);
+const mvFHSAd    = interpolateMonthly(mvFHSA);
+const mvRRSPd    = interpolateMonthly(mvRRSP);
+const cAllTimed  = interpolateMonthly(cAllTime);
+const cTFSAd     = interpolateMonthly(cTFSA);
+const cInvd      = interpolateMonthly(cInv);
+const cFHSAd     = interpolateMonthly(cFHSA);
+const cRRSPd     = interpolateMonthly(cRRSP);
+
+// ============================================================
 // CHART DATA ALIGNMENT
 // ============================================================
 const allXLabels = [...new Set([
-  ...dataAllTime, ...dataTFSA, ...dataInv, ...dataFHSA, ...dataRRSP
+  ...dataAllTime, ...dataTFSAd, ...dataInvd, ...dataFHSAd, ...dataRRSPd
 ].map(p => p.x))].sort();
 
 function align(data, labels) {
@@ -1224,7 +1261,7 @@ const lineDef = (color, label, data) => ({
   label, data,
   borderColor: color, backgroundColor: color + '20',
   borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
-  tension: 0.3, fill: false, spanGaps: true
+  tension: 0.1, fill: false, spanGaps: true
 });
 
 const chartOpts = (ylabel, format = 'pct') => ({
@@ -1259,7 +1296,7 @@ Chart.defaults.font.family = "'DM Sans', sans-serif";
 let roiChart, portfolioValueChart, acctChart, sectorChart, geoChart, assetChart, accountRoiChart, contribChart;
 let currentFilter = 'all';
 
-const roiByAcct = { all: dataAllTime, tfsa: dataTFSA, inv: dataInv, fhsa: dataFHSA, rrsp: dataRRSP };
+const roiByAcct = { all: dataAllTime, tfsa: dataTFSAd, inv: dataInvd, fhsa: dataFHSAd, rrsp: dataRRSPd };
 const acctColors = { all: '#3b82f6', tfsa: '#10b981', inv: '#94a3b8', fhsa: '#a78bfa', rrsp: '#fbbf24' };
 const acctLabels = { all: 'All Accounts', tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' };
 
@@ -1267,19 +1304,19 @@ function initCharts() {
   // ROI Line
   roiChart = new Chart(document.getElementById('roiChart').getContext('2d'), {
     type: 'line',
-    data: { labels: allXLabels, datasets: [lineDef('#3b82f6', 'All-Time', align(dataAllTime, allXLabels)), lineDef('#10b981', 'TFSA', align(dataTFSA, allXLabels)), lineDef('#94a3b8', 'Investment', align(dataInv, allXLabels)), lineDef('#a78bfa', 'FHSA', align(dataFHSA, allXLabels)), lineDef('#fbbf24', 'RRSP', align(dataRRSP, allXLabels))] },
+    data: { labels: allXLabels, datasets: [lineDef('#3b82f6', 'All-Time', align(dataAllTime, allXLabels)), lineDef('#10b981', 'TFSA', align(dataTFSAd, allXLabels)), lineDef('#94a3b8', 'Investment', align(dataInvd, allXLabels)), lineDef('#a78bfa', 'FHSA', align(dataFHSAd, allXLabels)), lineDef('#fbbf24', 'RRSP', align(dataRRSPd, allXLabels))] },
     options: chartOpts('ROI %', 'pct')
   });
 
   // Portfolio Value
-  const mvLabels = mvAllTime.map(p => p.x);
+  const mvLabels = mvAllTimed.map(p => p.x);
   portfolioValueChart = new Chart(document.getElementById('portfolioValueChart').getContext('2d'), {
     type: 'line',
     data: {
       labels: mvLabels,
       datasets: [
-        { ...lineDef('#3b82f6', 'Market Value', mvAllTime.map(p => p.y)), fill: true, backgroundColor: 'rgba(59,130,246,0.08)' },
-        { ...lineDef('#64748b', 'Contributions', cAllTime.map(p => p.y)), borderDash: [4, 4] }
+        { ...lineDef('#3b82f6', 'Market Value', mvAllTimed.map(p => p.y)), fill: true, backgroundColor: 'rgba(59,130,246,0.08)' },
+        { ...lineDef('#64748b', 'Contributions', cAllTimed.map(p => p.y)), borderDash: [4, 4] }
       ]
     },
     options: chartOpts('Value', 'dollar')
@@ -1358,10 +1395,10 @@ function setChartFilter(key, btn) {
     roiChart.data.labels = allXLabels;
     roiChart.data.datasets = [
       lineDef('#3b82f6', 'All Accounts', align(dataAllTime, allXLabels)),
-      lineDef('#10b981', 'TFSA',         align(dataTFSA,    allXLabels)),
-      lineDef('#94a3b8', 'Investment',   align(dataInv,     allXLabels)),
-      lineDef('#a78bfa', 'FHSA',         align(dataFHSA,    allXLabels)),
-      lineDef('#fbbf24', 'RRSP',         align(dataRRSP,    allXLabels)),
+      lineDef('#10b981', 'TFSA',         align(dataTFSAd,   allXLabels)),
+      lineDef('#94a3b8', 'Investment',   align(dataInvd,    allXLabels)),
+      lineDef('#a78bfa', 'FHSA',         align(dataFHSAd,   allXLabels)),
+      lineDef('#fbbf24', 'RRSP',         align(dataRRSPd,   allXLabels)),
     ];
   } else {
     const xLabels = d.map(p => p.x);

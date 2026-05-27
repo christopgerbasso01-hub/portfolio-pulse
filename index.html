@@ -198,6 +198,66 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .error-state{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:14px;font-size:12px;color:var(--text2)}
 
 .footer{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;font-size:11px;color:var(--text3);margin-top:24px}
+
+/* ============================  MOBILE RESPONSIVE  ============================ */
+@media (max-width: 768px) {
+  .container { padding: 12px; }
+
+  /* Live bar — hide non-essential items */
+  .live-bar { flex-wrap: wrap; gap: 6px; padding: 6px 12px; }
+  .ticker-strip { display: none; }
+
+  /* Header */
+  .header { padding: 14px 16px; }
+  .header-title { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .header-meta { flex-wrap: wrap; gap: 8px; }
+  .header-kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .card-value { font-size: 16px; }
+
+  /* Market widget */
+  .market-widget { grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; }
+
+  /* All multi-column grids collapse */
+  .grid-4, .acct-grid, .tax-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .grid-3, .macro-grid, .strat-grid { grid-template-columns: 1fr; gap: 10px; }
+  .grid-2, .sc-grid { grid-template-columns: 1fr; gap: 10px; }
+
+  /* Inline grids used in chart section */
+  [style*="grid-template-columns:3fr 1fr"],
+  [style*="grid-template-columns:3fr 2fr"],
+  [style*="grid-template-columns:1fr 1fr"] {
+    display: block !important;
+  }
+
+  /* Chart heights */
+  #roiChart, #portfolioValueChart { height: 220px !important; }
+  #accountRoiChart, #contribChart { height: 180px !important; }
+  #acctChart, #sectorChart, #geoChart, #assetChart { height: 160px !important; }
+
+  /* Holdings table — horizontal scroll */
+  .section { padding: 14px 12px; overflow-x: auto; }
+  .holdings-table { font-size: 11px; min-width: 600px; }
+
+  /* Chart filter buttons */
+  .chart-filter-btn { padding: 4px 10px; font-size: 10px; }
+
+  /* Picks grid */
+  .picks-grid { grid-template-columns: 1fr !important; }
+
+  /* Section padding */
+  .section { padding: 14px 12px; }
+
+  /* Refresh button */
+  .refresh-btn { padding: 5px 12px; font-size: 10px; }
+}
+
+@media (max-width: 480px) {
+  .header-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .market-widget { grid-template-columns: repeat(2, 1fr); }
+  .grid-4, .acct-grid, .tax-grid { grid-template-columns: 1fr; }
+  .card-value { font-size: 15px; }
+  .header-title h1 { font-size: 14px; }
+}
 </style>
 </head>
 <body>
@@ -1238,7 +1298,24 @@ function setChartFilter(key, btn) {
   const d = roiByAcct[key];
   const c = acctColors[key];
   const l = acctLabels[key];
-  roiChart.data.datasets = [lineDef(c, l, align(d, allXLabels))];
+
+  if (key === 'all') {
+    // Show all five lines on the shared timeline
+    roiChart.data.labels = allXLabels;
+    roiChart.data.datasets = [
+      lineDef('#3b82f6', 'All Accounts', align(dataAllTime, allXLabels)),
+      lineDef('#10b981', 'TFSA',         align(dataTFSA,    allXLabels)),
+      lineDef('#94a3b8', 'Investment',   align(dataInv,     allXLabels)),
+      lineDef('#a78bfa', 'FHSA',         align(dataFHSA,    allXLabels)),
+      lineDef('#fbbf24', 'RRSP',         align(dataRRSP,    allXLabels)),
+    ];
+  } else {
+    // Use only this account's own x-labels so the line fills the chart
+    const xLabels = d.map(p => p.x);
+    roiChart.data.labels = xLabels;
+    roiChart.data.datasets = [lineDef(c, l, d.map(p => p.y))];
+  }
+
   roiChart.update();
   document.getElementById('roiChartTitle').textContent = `ROI % — ${l}`;
 }

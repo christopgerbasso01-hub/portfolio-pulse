@@ -96,12 +96,31 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
   ],
   "news": [
     {
-      "headline": "Portfolio-relevant headline",
+      "headline": "Portfolio-relevant headline under 90 chars",
       "impact": "HIGH|MED|LOW",
       "category": "Macro & Rates|Sector & Stock|Canadian Markets",
-      "body": "2–3 sentences: what happened and how it affects this portfolio",
-      "exposure": "Specific holding exposure in this portfolio",
-      "scenarios": "🟢 Bull: ... 🔴 Bear: ..."
+      "body": "2–3 sentences: what happened and EXACTLY which holdings are affected and why",
+      "exposure": "Name the specific tickers and approximate CAD value affected e.g. 'FNGU ~$87K CAD (3x leverage), SPXL ~$22K CAD'",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": <integer, must sum to 100 across all 3>,
+          "scenario": "1–2 sentences: what happens to THIS portfolio if bull plays out",
+          "estimate": "Quantified CAD impact e.g. '+$12,000–$18,000 on leveraged positions'"
+        },
+        {
+          "label": "Base",
+          "probability": <integer>,
+          "scenario": "1–2 sentences: most likely path for this portfolio",
+          "estimate": "Quantified CAD impact e.g. '±$3,000 — minimal net change'"
+        },
+        {
+          "label": "Bear",
+          "probability": <integer>,
+          "scenario": "1–2 sentences: downside path for this portfolio",
+          "estimate": "Quantified CAD impact e.g. '-$20,000–$30,000 via 3x leverage amplification'"
+        }
+      ]
     }
   ],
   "picks": [

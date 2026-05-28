@@ -168,8 +168,28 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .news-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}
 .news-headline{font-size:13px;font-weight:600;margin-bottom:6px}
 .news-body{font-size:12px;color:var(--text2);margin-bottom:8px}
-.news-exposure{font-size:11px;color:var(--text3);font-style:italic;margin-bottom:6px}
+.news-exposure{font-size:11px;color:var(--text3);font-style:italic;margin-bottom:8px}
 .news-scenarios{font-size:11px}
+.outcomes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.outcome-card{background:var(--surface3);border-radius:6px;padding:10px;border-top:2px solid transparent}
+.outcome-bull{border-top-color:#10b981}
+.outcome-base{border-top-color:#f59e0b}
+.outcome-bear{border-top-color:#ef4444}
+.outcome-label{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+.outcome-bull .outcome-label{color:#10b981}
+.outcome-base .outcome-label{color:#f59e0b}
+.outcome-bear .outcome-label{color:#ef4444}
+.outcome-prob{font-size:22px;font-weight:800;line-height:1;margin-bottom:5px}
+.outcome-bull .outcome-prob{color:#10b981}
+.outcome-base .outcome-prob{color:#f59e0b}
+.outcome-bear .outcome-prob{color:#ef4444}
+.outcome-bar-track{height:3px;background:var(--border);border-radius:2px;margin-bottom:7px}
+.outcome-bar-fill{height:3px;border-radius:2px}
+.outcome-bull .outcome-bar-fill{background:#10b981}
+.outcome-base .outcome-bar-fill{background:#f59e0b}
+.outcome-bear .outcome-bar-fill{background:#ef4444}
+.outcome-scenario{font-size:11px;color:var(--text2);margin-bottom:5px;line-height:1.4}
+.outcome-estimate{font-size:11px;font-weight:600;font-family:monospace}
 
 .pick-ticker{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--blue-bright);margin-bottom:6px}
 .pick-thesis{font-size:12px;color:var(--text2);margin-bottom:10px}
@@ -1877,16 +1897,35 @@ function renderAISection(analysis) {
   if (analysis.news) {
     const macro = analysis.news.filter(n => n.category === 'Macro & Rates');
     const sector = analysis.news.filter(n => n.category !== 'Macro & Rates');
-    const newsCard = (n) => `
-      <div class="news-card">
+    const newsCard = (n) => {
+      // Build outcomes block — supports new array format or legacy scenarios string
+      let outcomesHTML = '';
+      if (Array.isArray(n.outcomes) && n.outcomes.length) {
+        outcomesHTML = `<div class="outcomes-grid">${n.outcomes.map(o => {
+          const cls = o.label === 'Bull' ? 'bull' : o.label === 'Bear' ? 'bear' : 'base';
+          const icon = o.label === 'Bull' ? '🟢' : o.label === 'Bear' ? '🔴' : '🟡';
+          const pct = Math.min(100, Math.max(0, o.probability || 0));
+          return `<div class="outcome-card outcome-${cls}">
+            <div class="outcome-label">${icon} ${o.label}</div>
+            <div class="outcome-prob">${pct}%</div>
+            <div class="outcome-bar-track"><div class="outcome-bar-fill" style="width:${pct}%"></div></div>
+            <div class="outcome-scenario">${o.scenario || ''}</div>
+            <div class="outcome-estimate">${o.estimate || ''}</div>
+          </div>`;
+        }).join('')}</div>`;
+      } else if (n.scenarios) {
+        outcomesHTML = `<div class="news-scenarios">${n.scenarios}</div>`;
+      }
+      return `<div class="news-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div class="news-headline">${n.headline}</div>
           <span class="badge ${impactBadgeClass(n.impact)}">${n.impact}</span>
         </div>
         <div class="news-body">${n.body}</div>
         <div class="news-exposure">${n.exposure}</div>
-        <div class="news-scenarios">${n.scenarios}</div>
+        ${outcomesHTML}
       </div>`;
+    };
     document.getElementById('newsMacro').innerHTML = macro.map(newsCard).join('') || '<div class="error-state">No macro news available.</div>';
     document.getElementById('newsSector').innerHTML = sector.map(newsCard).join('') || '<div class="error-state">No sector news available.</div>';
   }

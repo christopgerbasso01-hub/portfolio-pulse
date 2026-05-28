@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install "google-generativeai>=0.8.0" "requests>=2.31.0"
+          pip install "google-genai>=0.3.0" "requests>=2.31.0"
 
       - name: Generate intelligence
         env:

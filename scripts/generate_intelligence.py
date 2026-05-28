@@ -2,7 +2,7 @@
 """
 Portfolio Pulse — Daily Intelligence Generator
 Runs via GitHub Actions at 6 AM EST weekdays.
-Pipeline: Finnhub news → Gemini 1.5 Flash → intelligence.json
+Pipeline: Finnhub news → Gemini 2.0 Flash → intelligence.json
 Output is consumed by index.html to populate sections 05-10.
 """
 
@@ -15,7 +15,8 @@ from datetime import datetime, timedelta, timezone
 import requests
 
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types as genai_types
     HAS_GENAI = True
 except ImportError:
     HAS_GENAI = False
@@ -237,15 +238,15 @@ INSTRUCTIONS:
 # ============================================================
 
 def call_gemini(api_key: str, prompt: str) -> dict:
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        "gemini-1.5-flash",
-        generation_config={
-            "temperature": 0.35,
-            "max_output_tokens": 8192,
-        },
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt,
+        config=genai_types.GenerateContentConfig(
+            temperature=0.35,
+            max_output_tokens=8192,
+        ),
     )
-    response = model.generate_content(prompt)
     text = response.text.strip()
 
     # Strip markdown code fences if Gemini adds them
@@ -288,7 +289,7 @@ def main() -> int:
         print("ERROR: FINNHUB_API_KEY environment variable not set")
         return 1
     if not HAS_GENAI:
-        print("ERROR: google-generativeai not installed — run: pip install google-generativeai")
+        print("ERROR: google-genai not installed — run: pip install google-genai")
         return 1
 
     now_utc = datetime.now(timezone.utc)

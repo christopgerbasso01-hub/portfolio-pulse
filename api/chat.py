@@ -1,6 +1,6 @@
 """
 Portfolio Pulse — AI Chat Endpoint
-Powered by Google Gemini 1.5 Flash (free tier).
+Powered by Google Gemini 2.0 Flash (free tier).
 POST /api/chat  →  { reply: string }
 
 Request body:
@@ -16,7 +16,8 @@ import os
 from http.server import BaseHTTPRequestHandler
 
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types as genai_types
     HAS_GENAI = True
 except ImportError:
     HAS_GENAI = False
@@ -75,12 +76,7 @@ class handler(BaseHTTPRequestHandler):
             return self._error(503, "AI service unavailable — GEMINI_API_KEY not configured on Vercel")
 
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(
-                "gemini-1.5-flash",
-                generation_config={"temperature": 0.45, "max_output_tokens": 1024},
-                system_instruction=SYSTEM_INSTRUCTION,
-            )
+            client = genai.Client(api_key=api_key)
 
             # Build context block injected as a synthetic first exchange
             ctx_lines = [f"[Session context — {intelligence.get('generated_date', 'today')}]"]
@@ -117,16 +113,26 @@ class handler(BaseHTTPRequestHandler):
 
             ctx_text = "\n".join(ctx_lines)
 
-            # Build Gemini chat history with context injected first
+            # Build chat history with context injected first
             gemini_history = [
-                {"role": "user",  "parts": [ctx_text]},
-                {"role": "model", "parts": ["Understood — I have the portfolio context and today's briefing. Ready to help."]},
+                genai_types.Content(role="user",  parts=[genai_types.Part(text=ctx_text)]),
+                genai_types.Content(role="model", parts=[genai_types.Part(text="Understood — I have the portfolio context and today's briefing. Ready to help.")]),
             ]
             for turn in history:
                 role = "user" if turn.get("role") == "user" else "model"
-                gemini_history.append({"role": role, "parts": [turn.get("content", "")]})
+                gemini_history.append(
+                    genai_types.Content(role=role, parts=[genai_types.Part(text=turn.get("content", ""))])
+                )
 
-            chat = model.start_chat(history=gemini_history)
+            chat = client.chats.create(
+                model="gemini-2.0-flash",
+                config=genai_types.GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    temperature=0.45,
+                    max_output_tokens=1024,
+                ),
+                history=gemini_history,
+            )
             response = chat.send_message(message)
             reply = response.text
 

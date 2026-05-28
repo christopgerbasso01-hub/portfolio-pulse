@@ -886,14 +886,7 @@ const cInv= [{"x":"2021-08","y":30000},{"x":"2022-06","y":40000},{"x":"2023-06",
 const cFHSA=[{"x":"2023-07","y":8000}, {"x":"2024-06","y":16000},{"x":"2025-04","y":22000},{"x":"2025-10","y":24000},{"x":"2026-05","y":24000}];
 const cRRSP=[{"x":"2024-10","y":10000},{"x":"2025-05","y":14000},{"x":"2025-10","y":16132},{"x":"2026-05","y":16132}];
 
-// Market value + contributions lookup by filter key
-const mvByAcct = {
-  all:  { mv: mvAllTimed, c: cAllTimed, color: '#3b82f6' },
-  tfsa: { mv: mvTFSAd,    c: cTFSAd,   color: '#10b981' },
-  inv:  { mv: mvInvd,     c: cInvd,    color: '#94a3b8' },
-  fhsa: { mv: mvFHSAd,    c: cFHSAd,   color: '#a78bfa' },
-  rrsp: { mv: mvRRSPd,    c: cRRSPd,   color: '#fbbf24' },
-};
+// mvByAcct is defined below after interpolateMonthly + dense arrays are ready
 
 // Global state
 let currentMarketData = null;
@@ -1244,6 +1237,15 @@ const cTFSAd     = interpolateMonthly(cTFSA);
 const cInvd      = interpolateMonthly(cInv);
 const cFHSAd     = interpolateMonthly(cFHSA);
 const cRRSPd     = interpolateMonthly(cRRSP);
+
+// Market value + contributions lookup by filter key (declared here so dense arrays above are ready)
+const mvByAcct = {
+  all:  { mv: mvAllTimed, c: cAllTimed, color: '#3b82f6' },
+  tfsa: { mv: mvTFSAd,    c: cTFSAd,   color: '#10b981' },
+  inv:  { mv: mvInvd,     c: cInvd,    color: '#94a3b8' },
+  fhsa: { mv: mvFHSAd,    c: cFHSAd,   color: '#a78bfa' },
+  rrsp: { mv: mvRRSPd,    c: cRRSPd,   color: '#fbbf24' },
+};
 
 // ============================================================
 // CHART DATA ALIGNMENT

@@ -906,6 +906,11 @@ const CONFIG = {
 // ============================================================
 // STATIC PORTFOLIO DATA
 // ============================================================
+// Average USD/CAD rate at time of original purchase, back-calculated
+// from Google Sheet FX Conversion Gain/Loss. Used for cost basis
+// display — reflects what was actually paid in CAD, not today's rate.
+const USD_BOOK_RATE = 1.3925;
+
 const HOLDINGS_STATIC = [
   {ticker:"SPXL",name:"S&P500 3x ETF",account:"Investment",sector:"Leveraged ETF",shares:75,cost_total:13363.23,unrealized:13993.28,realized:0,total_pnl:13993.28,pct_return:104.71,weight:10.51,ccy:"USD"},
   {ticker:"FNGU",name:"FANG+ 3x ETF",account:"Investment",sector:"Leveraged ETF",shares:665,cost_total:18137.79,unrealized:8142.17,realized:0,total_pnl:8142.17,pct_return:44.89,weight:10.10,ccy:"USD"},
@@ -1213,7 +1218,7 @@ function renderHoldingsTable(liveData) {
     const pnlAttr = pnl >= 0 ? 'gain' : 'loss';
     const acctBadge = acctBadgeClass(h.account);
     const widthPx = Math.max(1, Math.round(parseFloat(weight) * 1.5));
-    const costBasisCAD = h.cost_total * (h.ccy === 'USD' ? usdcad : 1);
+    const costBasisCAD = h.cost_total * (h.ccy === 'USD' ? USD_BOOK_RATE : 1);
 
     return `<tr data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}">
       <td class="mono blue">${h.ticker}</td>

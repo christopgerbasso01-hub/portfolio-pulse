@@ -25,10 +25,10 @@ HOLDINGS = [
     {"ticker": "AVGO",   "account": "TFSA",        "shares": 8,    "cost_total": 4376.37,  "ccy": "USD"},
     {"ticker": "COST",   "account": "TFSA",        "shares": 3,    "cost_total": 1237.40,  "ccy": "USD"},
     {"ticker": "NFLX",   "account": "TFSA",        "shares": 20,   "cost_total": 1448.10,  "ccy": "USD"},
-    {"ticker": "RY.TO",  "account": "TFSA",        "shares": 22,   "cost_total": 1395.14,  "ccy": "CAD"},
     {"ticker": "MSFT",   "account": "TFSA",        "shares": 2,    "cost_total": 489.94,   "ccy": "USD"},
     {"ticker": "AAPL",   "account": "TFSA",        "shares": 4,    "cost_total": 642.26,   "ccy": "USD"},
     {"ticker": "QCOM",   "account": "TFSA",        "shares": 5,    "cost_total": 640.05,   "ccy": "USD"},
+    {"ticker": "SHEL",   "account": "TFSA",        "shares": 22,   "cost_total": 1018.21,  "ccy": "USD"},
     {"ticker": "ET",     "account": "TFSA",        "shares": 60,   "cost_total": 1067.57,  "ccy": "USD"},
     {"ticker": "BMO.TO", "account": "TFSA",        "shares": 15,   "cost_total": 1767.36,  "ccy": "CAD"},
     # Non-Reg Investment

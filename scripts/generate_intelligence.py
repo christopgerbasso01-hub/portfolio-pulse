@@ -65,7 +65,7 @@ KEY SENSITIVITIES:
 # US tickers to pull company-specific news for (Finnhub free tier, no .TO support)
 COMPANY_NEWS_TICKERS = [
     "NVDA", "TSLA", "AVGO", "COST", "MSFT", "AAPL", "QCOM",
-    "TSM", "IBKR", "V", "LYV", "MSTR", "SPXL", "FNGU", "UDOW",
+    "TSM", "IBKR", "V", "LYV", "MSTR", "SHEL", "SPXL", "FNGU", "UDOW",
 ]
 
 # ============================================================

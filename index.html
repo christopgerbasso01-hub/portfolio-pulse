@@ -675,12 +675,14 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <th onclick="sortTable(3)">Sector ↕</th>
           <th onclick="sortTable(4)">Shares ↕</th>
           <th onclick="sortTable(5)">Live Price ↕</th>
-          <th onclick="sortTable(6)">Day ↕</th>
-          <th onclick="sortTable(7)">Mkt Value ↕</th>
-          <th onclick="sortTable(8)">Cost Basis ↕</th>
-          <th onclick="sortTable(9)">Unrealized ↕</th>
-          <th onclick="sortTable(10)">Total P/L ↕</th>
-          <th onclick="sortTable(11)">Weight% ↕</th>
+          <th onclick="sortTable(6)">Day % ↕</th>
+          <th onclick="sortTable(7)">Day $ ↕</th>
+          <th onclick="sortTable(8)">Mkt Value ↕</th>
+          <th onclick="sortTable(9)">Cost Basis ↕</th>
+          <th onclick="sortTable(10)">Unrealized ↕</th>
+          <th onclick="sortTable(11)">Dividends ↕</th>
+          <th onclick="sortTable(12)">Total P/L ↕</th>
+          <th onclick="sortTable(13)">Weight% ↕</th>
         </tr>
       </thead>
       <tbody id="holdingsBody"></tbody>
@@ -934,7 +936,6 @@ const HOLDINGS_STATIC = [
   {ticker:"AVGO",name:"Broadcom",account:"TFSA",sector:"Technology",shares:8,cost_total:4376.37,unrealized:220.08,realized:0,total_pnl:220.08,pct_return:5.03,weight:1.77,ccy:"USD"},
   {ticker:"COST",name:"Costco",account:"TFSA",sector:"Consumer Staples",shares:3,cost_total:1237.40,unrealized:2963.37,realized:141.53,total_pnl:3104.90,pct_return:250.92,weight:1.61,ccy:"USD"},
   {ticker:"TSM",name:"Taiwan Semi",account:"Investment",sector:"Technology",shares:9,cost_total:3697.84,unrealized:1201.61,realized:0,total_pnl:1201.61,pct_return:32.49,weight:1.88,ccy:"USD"},
-  {ticker:"RY.TO",name:"Royal Bank",account:"TFSA",sector:"Financials",shares:22,cost_total:1395.14,unrealized:1177.83,realized:161.34,total_pnl:1339.17,pct_return:95.99,weight:0.99,ccy:"CAD"},
   {ticker:"LYV",name:"Live Nation",account:"Investment",sector:"Comm. Services",shares:11,cost_total:1307.80,unrealized:1189.35,realized:0,total_pnl:1189.35,pct_return:90.94,weight:0.96,ccy:"USD"},
   {ticker:"NFLX",name:"Netflix",account:"TFSA",sector:"Comm. Services",shares:20,cost_total:1448.10,unrealized:954.27,realized:0,total_pnl:954.27,pct_return:65.90,weight:0.92,ccy:"USD"},
   {ticker:"GBTC",name:"Grayscale BTC",account:"Investment",sector:"Crypto",shares:25,cost_total:2608.25,unrealized:-457.26,realized:0,total_pnl:-457.26,pct_return:-17.53,weight:0.83,ccy:"USD"},
@@ -943,6 +944,7 @@ const HOLDINGS_STATIC = [
   {ticker:"MSFT",name:"Microsoft",account:"TFSA",sector:"Technology",shares:2,cost_total:489.94,unrealized:627.57,realized:1503.43,total_pnl:2131.00,pct_return:434.95,weight:0.43,ccy:"USD"},
   {ticker:"AAPL",name:"Apple",account:"TFSA",sector:"Technology",shares:4,cost_total:642.26,unrealized:973.57,realized:24.78,total_pnl:998.35,pct_return:155.44,weight:0.62,ccy:"USD"},
   {ticker:"QCOM",name:"Qualcomm",account:"TFSA",sector:"Technology",shares:5,cost_total:640.05,unrealized:800.86,realized:99.39,total_pnl:900.25,pct_return:140.65,weight:0.55,ccy:"USD"},
+  {ticker:"SHEL",name:"Shell PLC",account:"TFSA",sector:"Energy",shares:22,cost_total:1018.21,unrealized:-80.00,realized:221.54,total_pnl:141.54,pct_return:13.90,weight:0.48,book_rate:1.26858,dividends:221.54,ccy:"USD"},
   {ticker:"ET",name:"Energy Transfer",account:"TFSA",sector:"Energy",shares:60,cost_total:1067.57,unrealized:576.76,realized:173.37,total_pnl:750.13,pct_return:70.27,weight:0.63,ccy:"USD"},
   {ticker:"BMO.TO",name:"Bank of Montreal",account:"TFSA",sector:"Financials",shares:15,cost_total:1767.36,unrealized:1367.56,realized:445.64,total_pnl:1813.20,pct_return:102.59,weight:1.20,ccy:"CAD"},
   {ticker:"V",name:"Visa",account:"Investment",sector:"Financials",shares:4,cost_total:1250.66,unrealized:538.48,realized:42.37,total_pnl:580.85,pct_return:46.44,weight:0.69,ccy:"USD"},
@@ -1200,15 +1202,20 @@ function renderHoldingsTable(liveData) {
     const livePrice = p?.price;
     const dayChg = p?.change_pct;
 
-    let mktVal, liveStr, dayStr;
+    let mktVal, prevMktVal, liveStr, dayStr, dayDollarStr;
     if (livePrice) {
-      mktVal = livePrice * h.shares * (h.ccy === 'USD' ? usdcad : 1);
-      liveStr = h.ccy === 'USD' ? `$${livePrice.toFixed(2)} USD` : `$${livePrice.toFixed(2)} CAD`;
-      dayStr = fmtPct(dayChg);
+      const prevPrice = p?.prev || livePrice;
+      mktVal     = livePrice * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      prevMktVal = prevPrice * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      liveStr    = h.ccy === 'USD' ? `$${livePrice.toFixed(2)} USD` : `$${livePrice.toFixed(2)} CAD`;
+      dayStr     = fmtPct(dayChg);
+      const dayDollar = mktVal - prevMktVal;
+      dayDollarStr = (dayDollar >= 0 ? '+' : '') + fmt$(dayDollar);
     } else {
-      mktVal = (h.unrealized + h.cost_total) * (h.ccy === 'USD' ? usdcad : 1);
-      liveStr = '—';
-      dayStr = '—';
+      mktVal       = (h.unrealized + h.cost_total) * (h.ccy === 'USD' ? usdcad : 1);
+      liveStr      = '—';
+      dayStr       = '—';
+      dayDollarStr = '—';
     }
 
     const weight = totalVal > 0 ? (mktVal / totalVal * 100).toFixed(1) : h.weight.toFixed(1);
@@ -1218,7 +1225,9 @@ function renderHoldingsTable(liveData) {
     const pnlAttr = pnl >= 0 ? 'gain' : 'loss';
     const acctBadge = acctBadgeClass(h.account);
     const widthPx = Math.max(1, Math.round(parseFloat(weight) * 1.5));
-    const costBasisCAD = h.cost_total * (h.ccy === 'USD' ? USD_BOOK_RATE : 1);
+    const costBasisCAD = h.cost_total * (h.ccy === 'USD' ? (h.book_rate || USD_BOOK_RATE) : 1);
+    const divTotal = h.dividends || 0;
+    const divCAD   = divTotal * (h.ccy === 'USD' ? (h.book_rate || USD_BOOK_RATE) : 1);
 
     return `<tr data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}">
       <td class="mono blue">${h.ticker}</td>
@@ -1228,15 +1237,18 @@ function renderHoldingsTable(liveData) {
       <td class="mono">${h.shares}</td>
       <td class="mono small ${dayColor}">${liveStr}</td>
       <td class="mono small ${dayColor}">${dayStr}</td>
+      <td class="mono small ${dayColor}">${dayDollarStr}</td>
       <td class="mono">${fmt$(mktVal)}</td>
       <td class="mono text2">${fmt$(costBasisCAD)}</td>
       <td class="mono ${pnlColor}">${fmt$(h.unrealized)}</td>
+      <td class="mono small text2">${divCAD > 0 ? fmt$(divCAD) : '—'}</td>
       <td class="mono ${pnlColor}">${fmt$(pnl)}</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
     </tr>`;
   }).join('');
 
-  updateRowCount();
+  // Re-apply any active filters after table rebuild (prevents reset on auto-refresh)
+  filterTable();
 }
 
 // ============================================================

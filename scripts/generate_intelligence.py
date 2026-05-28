@@ -14,11 +14,17 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
-# Direct REST endpoint — no SDK, no versioning surprises
-GEMINI_URL = (
-    "https://generativelanguage.googleapis.com"
-    "/v1/models/gemini-1.5-flash:generateContent"
-)
+# Direct REST — no SDK, no versioning surprises
+GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
+
+# Preference order: lightweight flash first, then standard, then pro
+PREFERRED_MODELS = [
+    "gemini-2.0-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash-8b",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+]
 
 
 # ============================================================
@@ -236,7 +242,38 @@ INSTRUCTIONS:
 # GEMINI CALL
 # ============================================================
 
-def call_gemini(api_key: str, prompt: str) -> dict:
+def discover_model(api_key: str) -> str:
+    """Return the best available generateContent model for this API key."""
+    try:
+        resp = requests.get(
+            f"{GEMINI_BASE}/models",
+            params={"key": api_key},
+            timeout=10,
+        )
+        if resp.ok:
+            available = {
+                m["name"].split("/")[-1]
+                for m in resp.json().get("models", [])
+                if "generateContent" in m.get("supportedGenerationMethods", [])
+            }
+            print(f"  Available models: {sorted(available)}")
+            for model in PREFERRED_MODELS:
+                if model in available:
+                    print(f"  → Using: {model}")
+                    return model
+            # Fall back to any flash model
+            flash = next((n for n in sorted(available) if "flash" in n), None)
+            if flash:
+                print(f"  → Falling back to: {flash}")
+                return flash
+    except Exception as exc:
+        print(f"  ⚠ Model discovery failed: {exc}")
+    # Last resort
+    return "gemini-2.0-flash-lite"
+
+
+def call_gemini(api_key: str, prompt: str, model: str) -> dict:
+    url = f"{GEMINI_BASE}/models/{model}:generateContent?key={api_key}"
     payload = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -244,11 +281,7 @@ def call_gemini(api_key: str, prompt: str) -> dict:
             "maxOutputTokens": 8192,
         },
     }
-    resp = requests.post(
-        f"{GEMINI_URL}?key={api_key}",
-        json=payload,
-        timeout=120,
-    )
+    resp = requests.post(url, json=payload, timeout=120)
     resp.raise_for_status()
     text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
 
@@ -309,9 +342,10 @@ def main() -> int:
     print(f"     → {total_articles} articles across {len(COMPANY_NEWS_TICKERS)} tickers")
 
     # 3. Generate with Gemini
-    print("3/3  Generating intelligence with Gemini 1.5 Flash...")
+    print("3/3  Generating intelligence with Gemini...")
+    model = discover_model(gemini_key)
     prompt = build_prompt(general_news, company_news)
-    intelligence = call_gemini(gemini_key, prompt)
+    intelligence = call_gemini(gemini_key, prompt, model)
 
     # Add metadata
     intelligence["generated_at"] = now_utc.isoformat()

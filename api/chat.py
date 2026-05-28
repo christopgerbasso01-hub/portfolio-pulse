@@ -125,7 +125,7 @@ class handler(BaseHTTPRequestHandler):
                 )
 
             chat = client.chats.create(
-                model="gemini-2.0-flash",
+                model="gemini-1.5-flash",
                 config=genai_types.GenerateContentConfig(
                     system_instruction=SYSTEM_INSTRUCTION,
                     temperature=0.45,

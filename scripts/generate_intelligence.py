@@ -240,7 +240,7 @@ INSTRUCTIONS:
 def call_gemini(api_key: str, prompt: str) -> dict:
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-1.5-flash",
         contents=prompt,
         config=genai_types.GenerateContentConfig(
             temperature=0.35,

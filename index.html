@@ -1283,9 +1283,12 @@ function renderHoldingsTable(liveData) {
     const pnlAttr = pnl >= 0 ? 'gain' : 'loss';
     const acctBadge = acctBadgeClass(h.account);
     const widthPx = Math.max(1, Math.round(parseFloat(weight) * 1.5));
-    const costBasisCAD = h.cost_total * (h.ccy === 'USD' ? (h.book_rate || USD_BOOK_RATE) : 1);
+    // If book_rate is set → cost_total is in USD (from transaction analysis) → convert to CAD.
+    // If no book_rate   → cost_total is already the CAD ACB (from Google Sheet / brokerage ACB).
+    const fxRate     = h.book_rate || null;
+    const costBasisCAD = fxRate ? h.cost_total * fxRate : h.cost_total;
     const divTotal = h.dividends || 0;
-    const divCAD   = divTotal * (h.ccy === 'USD' ? (h.book_rate || USD_BOOK_RATE) : 1);
+    const divCAD   = divTotal * (fxRate || 1);
 
     return `<tr data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}">
       <td class="mono blue">${h.ticker}</td>

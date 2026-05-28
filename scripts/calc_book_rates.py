@@ -139,7 +139,8 @@ def parse_transactions(csv_path: str) -> list[dict]:
 # -----------------------------------------------------------------------
 # For each held USD position, accumulate weighted-average book rate
 # -----------------------------------------------------------------------
-def compute_book_rates(rows: list[dict]) -> dict[tuple, float]:
+def compute_book_rates(rows: list[dict]) -> tuple[dict[tuple, float], dict[tuple, dict]]:
+    """Returns (book_rates, totals) where totals has 'usd' and 'cad' costs per position."""
     # Filter only USD buy rows for the held positions
     held_set = set(HELD_USD)
 
@@ -193,7 +194,7 @@ def compute_book_rates(rows: list[dict]) -> dict[tuple, float]:
             print(f"  WARNING: no buy data found for {key}")
             result[key] = 1.3925  # fallback
 
-    return result
+    return result, totals
 
 # -----------------------------------------------------------------------
 # Main
@@ -208,20 +209,30 @@ def main():
     rows = parse_transactions(str(csv_path))
     print(f"  {len(rows)} transaction rows parsed")
 
-    book_rates = compute_book_rates(rows)
+    book_rates, totals = compute_book_rates(rows)
 
-    print("\n" + "=" * 60)
-    print("BOOK RATES PER POSITION")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("BOOK RATES & COST TOTALS PER POSITION")
+    print("=" * 70)
+    print(f"  {'Ticker':<10} {'Account':<12} {'book_rate':>10}  {'cost_total USD':>16}  {'cost_total CAD':>16}")
+    print("  " + "-" * 66)
     for (ticker, account), rate in sorted(book_rates.items()):
-        print(f"  ({ticker!r:8}, {account!r:12})  →  {rate:.5f}")
+        t = totals[(ticker, account)]
+        cad = t["cad"]
+        usd = t["usd"]
+        print(f"  {ticker:<10} {account:<12} {rate:>10.5f}  ${usd:>14,.2f}  ${cad:>14,.2f}")
 
-    print("\n# market.py HOLDINGS  — add book_rate to each USD entry:")
-    print("# Example:  {\"ticker\": \"NVDA\", ... \"book_rate\": 1.32234},")
+    print("\n# ── index.html HOLDINGS_STATIC — paste these book_rate values ──")
+    print("# For positions currently WITHOUT book_rate:")
+    print("# 1. Add  book_rate:<value>  to the entry")
+    print("# 2. Update cost_total to the USD amount below")
+    print("# 3. Remove any hard-coded CAD cost_total (it was a fallback)")
+    print()
     for (ticker, account), rate in sorted(book_rates.items()):
-        print(f'#  {ticker} / {account}: {rate:.5f}')
+        t = totals[(ticker, account)]
+        print(f'  # {ticker:<10} / {account:<12}  →  book_rate:{rate:.5f},  cost_total:{t["usd"]:.2f} USD  (CAD paid: ${t["cad"]:.2f})')
 
-    return book_rates
+    return book_rates, totals
 
 if __name__ == "__main__":
     main()

@@ -2,7 +2,7 @@
 """
 Portfolio Pulse — Daily Intelligence Generator
 Runs via GitHub Actions at 6 AM EST weekdays.
-Pipeline: Finnhub news → Gemini 1.5 Flash (REST v1) → intelligence.json
+Pipeline: Finnhub news → Groq (Llama 3.3 70B) → intelligence.json
 Output is consumed by index.html to populate sections 05-10.
 """
 
@@ -14,17 +14,9 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
-# Direct REST — no SDK, no versioning surprises
-GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
-
-# Preference order: lightweight flash first, then standard, then pro
-PREFERRED_MODELS = [
-    "gemini-2.0-flash-lite",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash-8b",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-]
+# Groq — free tier, OpenAI-compatible API
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
 
 # ============================================================
@@ -242,67 +234,23 @@ INSTRUCTIONS:
 # GEMINI CALL
 # ============================================================
 
-def discover_model(api_key: str) -> str:
-    """Return the best available generateContent model for this API key."""
-    try:
-        resp = requests.get(
-            f"{GEMINI_BASE}/models",
-            params={"key": api_key},
-            timeout=10,
-        )
-        if resp.ok:
-            available = {
-                m["name"].split("/")[-1]
-                for m in resp.json().get("models", [])
-                if "generateContent" in m.get("supportedGenerationMethods", [])
-            }
-            print(f"  Available models: {sorted(available)}")
-            for model in PREFERRED_MODELS:
-                if model in available:
-                    print(f"  → Using: {model}")
-                    return model
-            # Fall back to any flash model
-            flash = next((n for n in sorted(available) if "flash" in n), None)
-            if flash:
-                print(f"  → Falling back to: {flash}")
-                return flash
-    except Exception as exc:
-        print(f"  ⚠ Model discovery failed: {exc}")
-    # Last resort
-    return "gemini-2.0-flash-lite"
-
-
-def call_gemini(api_key: str, prompt: str, model: str) -> dict:
-    url = f"{GEMINI_BASE}/models/{model}:generateContent?key={api_key}"
-    payload = {
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.35,
-            "maxOutputTokens": 8192,
-        },
+def call_llm(api_key: str, prompt: str) -> dict:
+    """Call Groq's free-tier Llama API and return parsed JSON."""
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
     }
+    payload = {
+        "model": GROQ_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.35,
+        "max_tokens": 8192,
+    }
+    resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=120)
+    resp.raise_for_status()
+    text = resp.json()["choices"][0]["message"]["content"].strip()
 
-    # Retry up to 3 times with backoff for transient 429s
-    wait_secs = [0, 45, 90]
-    for attempt, wait in enumerate(wait_secs):
-        if wait:
-            print(f"  ↻ Attempt {attempt + 1}: waiting {wait}s before retry...")
-            time.sleep(wait)
-        resp = requests.post(url, json=payload, timeout=120)
-        if resp.status_code == 429:
-            try:
-                err = resp.json()
-            except Exception:
-                err = resp.text
-            print(f"  ⚠ 429 on attempt {attempt + 1}: {json.dumps(err)[:600]}")
-            if attempt < len(wait_secs) - 1:
-                continue
-        resp.raise_for_status()
-        break
-
-    text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-
-    # Strip markdown code fences if Gemini adds them
+    # Strip markdown code fences if the model adds them
     if text.startswith("```"):
         lines = text.split("\n")
         start = 1
@@ -328,11 +276,11 @@ def save(data: dict, path: str = "data/intelligence.json") -> None:
 # ============================================================
 
 def main() -> int:
-    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    groq_key    = os.environ.get("GROQ_API_KEY", "")
     finnhub_key = os.environ.get("FINNHUB_API_KEY", "")
 
-    if not gemini_key:
-        print("ERROR: GEMINI_API_KEY environment variable not set")
+    if not groq_key:
+        print("ERROR: GROQ_API_KEY environment variable not set")
         return 1
     if not finnhub_key:
         print("ERROR: FINNHUB_API_KEY environment variable not set")
@@ -358,11 +306,10 @@ def main() -> int:
     total_articles = sum(len(v) for v in company_news.values())
     print(f"     → {total_articles} articles across {len(COMPANY_NEWS_TICKERS)} tickers")
 
-    # 3. Generate with Gemini
-    print("3/3  Generating intelligence with Gemini...")
-    model = discover_model(gemini_key)
+    # 3. Generate with Groq (Llama 3.3 70B)
+    print(f"3/3  Generating intelligence with Groq ({GROQ_MODEL})...")
     prompt = build_prompt(general_news, company_news)
-    intelligence = call_gemini(gemini_key, prompt, model)
+    intelligence = call_llm(groq_key, prompt)
 
     # Add metadata
     intelligence["generated_at"] = now_utc.isoformat()

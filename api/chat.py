@@ -1,6 +1,6 @@
 """
 Portfolio Pulse — AI Chat Endpoint
-Powered by Google Gemini 1.5 Flash (REST v1, free tier).
+Powered by Groq (Llama 3.3 70B, free tier).
 POST /api/chat  →  { reply: string }
 
 Request body:
@@ -16,10 +16,8 @@ import os
 import requests
 from http.server import BaseHTTPRequestHandler
 
-GEMINI_URL = (
-    "https://generativelanguage.googleapis.com"
-    "/v1beta/models/gemini-2.0-flash-lite:generateContent"
-)
+GROQ_URL   = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
 
 SYSTEM_INSTRUCTION = """You are "Pulse", an AI portfolio analyst embedded in a personal Canadian investment dashboard.
@@ -70,12 +68,12 @@ class handler(BaseHTTPRequestHandler):
         intelligence = body.get("intelligence") or {}
         history = (body.get("history") or [])[-12:]   # last 12 turns max
 
-        api_key = os.environ.get("GEMINI_API_KEY", "")
+        api_key = os.environ.get("GROQ_API_KEY", "")
         if not api_key:
-            return self._error(503, "AI service unavailable — GEMINI_API_KEY not configured on Vercel")
+            return self._error(503, "AI service unavailable — GROQ_API_KEY not configured on Vercel")
 
         try:
-            # Build context block injected as a synthetic first exchange
+            # Build context block
             ctx_lines = [f"[Session context — {intelligence.get('generated_date', 'today')}]"]
 
             if portfolio:
@@ -110,28 +108,30 @@ class handler(BaseHTTPRequestHandler):
 
             ctx_text = "\n".join(ctx_lines)
 
-            # Build contents array: context exchange + history + current message
-            contents = [
-                {"role": "user",  "parts": [{"text": ctx_text}]},
-                {"role": "model", "parts": [{"text": "Understood — I have the portfolio context and today's briefing. Ready to help."}]},
+            # Build OpenAI-compatible messages array
+            messages = [
+                {"role": "system",    "content": SYSTEM_INSTRUCTION},
+                {"role": "user",      "content": ctx_text},
+                {"role": "assistant", "content": "Understood — I have the portfolio context and today's briefing. Ready to help."},
             ]
             for turn in history:
-                role = "user" if turn.get("role") == "user" else "model"
-                contents.append({"role": role, "parts": [{"text": turn.get("content", "")}]})
-            contents.append({"role": "user", "parts": [{"text": message}]})
+                role = "user" if turn.get("role") == "user" else "assistant"
+                messages.append({"role": role, "content": turn.get("content", "")})
+            messages.append({"role": "user", "content": message})
 
-            payload = {
-                "system_instruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]},
-                "contents": contents,
-                "generationConfig": {"temperature": 0.45, "maxOutputTokens": 1024},
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
             }
-            resp = requests.post(
-                f"{GEMINI_URL}?key={api_key}",
-                json=payload,
-                timeout=30,
-            )
+            payload = {
+                "model": GROQ_MODEL,
+                "messages": messages,
+                "temperature": 0.45,
+                "max_tokens": 1024,
+            }
+            resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=30)
             resp.raise_for_status()
-            reply = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+            reply = resp.json()["choices"][0]["message"]["content"]
 
         except Exception as exc:
             print(f"Gemini error: {exc}")

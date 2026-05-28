@@ -2,7 +2,7 @@
 """
 Portfolio Pulse — Daily Intelligence Generator
 Runs via GitHub Actions at 6 AM EST weekdays.
-Pipeline: Finnhub news → Gemini 2.0 Flash → intelligence.json
+Pipeline: Finnhub news → Gemini 1.5 Flash (REST v1) → intelligence.json
 Output is consumed by index.html to populate sections 05-10.
 """
 
@@ -14,12 +14,11 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
-try:
-    from google import genai
-    from google.genai import types as genai_types
-    HAS_GENAI = True
-except ImportError:
-    HAS_GENAI = False
+# Direct REST endpoint — no SDK, no versioning surprises
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com"
+    "/v1/models/gemini-1.5-flash:generateContent"
+)
 
 
 # ============================================================
@@ -238,26 +237,26 @@ INSTRUCTIONS:
 # ============================================================
 
 def call_gemini(api_key: str, prompt: str) -> dict:
-    client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model="gemini-1.5-flash",
-        contents=prompt,
-        config=genai_types.GenerateContentConfig(
-            temperature=0.35,
-            max_output_tokens=8192,
-        ),
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.35,
+            "maxOutputTokens": 8192,
+        },
+    }
+    resp = requests.post(
+        f"{GEMINI_URL}?key={api_key}",
+        json=payload,
+        timeout=120,
     )
-    text = response.text.strip()
+    resp.raise_for_status()
+    text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     # Strip markdown code fences if Gemini adds them
     if text.startswith("```"):
         lines = text.split("\n")
         start = 1
-        end = len(lines)
-        if lines[0].startswith("```"):
-            start = 1
-        if lines[-1].strip() == "```":
-            end = len(lines) - 1
+        end = len(lines) - 1 if lines[-1].strip() == "```" else len(lines)
         text = "\n".join(lines[start:end])
 
     return json.loads(text)
@@ -287,9 +286,6 @@ def main() -> int:
         return 1
     if not finnhub_key:
         print("ERROR: FINNHUB_API_KEY environment variable not set")
-        return 1
-    if not HAS_GENAI:
-        print("ERROR: google-genai not installed — run: pip install google-genai")
         return 1
 
     now_utc = datetime.now(timezone.utc)

@@ -1,6 +1,6 @@
 """
 Portfolio Pulse — AI Chat Endpoint
-Powered by Google Gemini 2.0 Flash (free tier).
+Powered by Google Gemini 1.5 Flash (REST v1, free tier).
 POST /api/chat  →  { reply: string }
 
 Request body:
@@ -13,14 +13,13 @@ Request body:
 """
 import json
 import os
+import requests
 from http.server import BaseHTTPRequestHandler
 
-try:
-    from google import genai
-    from google.genai import types as genai_types
-    HAS_GENAI = True
-except ImportError:
-    HAS_GENAI = False
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com"
+    "/v1/models/gemini-1.5-flash:generateContent"
+)
 
 
 SYSTEM_INSTRUCTION = """You are "Pulse", an AI portfolio analyst embedded in a personal Canadian investment dashboard.
@@ -72,12 +71,10 @@ class handler(BaseHTTPRequestHandler):
         history = (body.get("history") or [])[-12:]   # last 12 turns max
 
         api_key = os.environ.get("GEMINI_API_KEY", "")
-        if not api_key or not HAS_GENAI:
+        if not api_key:
             return self._error(503, "AI service unavailable — GEMINI_API_KEY not configured on Vercel")
 
         try:
-            client = genai.Client(api_key=api_key)
-
             # Build context block injected as a synthetic first exchange
             ctx_lines = [f"[Session context — {intelligence.get('generated_date', 'today')}]"]
 
@@ -113,28 +110,28 @@ class handler(BaseHTTPRequestHandler):
 
             ctx_text = "\n".join(ctx_lines)
 
-            # Build chat history with context injected first
-            gemini_history = [
-                genai_types.Content(role="user",  parts=[genai_types.Part(text=ctx_text)]),
-                genai_types.Content(role="model", parts=[genai_types.Part(text="Understood — I have the portfolio context and today's briefing. Ready to help.")]),
+            # Build contents array: context exchange + history + current message
+            contents = [
+                {"role": "user",  "parts": [{"text": ctx_text}]},
+                {"role": "model", "parts": [{"text": "Understood — I have the portfolio context and today's briefing. Ready to help."}]},
             ]
             for turn in history:
                 role = "user" if turn.get("role") == "user" else "model"
-                gemini_history.append(
-                    genai_types.Content(role=role, parts=[genai_types.Part(text=turn.get("content", ""))])
-                )
+                contents.append({"role": role, "parts": [{"text": turn.get("content", "")}]})
+            contents.append({"role": "user", "parts": [{"text": message}]})
 
-            chat = client.chats.create(
-                model="gemini-1.5-flash",
-                config=genai_types.GenerateContentConfig(
-                    system_instruction=SYSTEM_INSTRUCTION,
-                    temperature=0.45,
-                    max_output_tokens=1024,
-                ),
-                history=gemini_history,
+            payload = {
+                "system_instruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]},
+                "contents": contents,
+                "generationConfig": {"temperature": 0.45, "maxOutputTokens": 1024},
+            }
+            resp = requests.post(
+                f"{GEMINI_URL}?key={api_key}",
+                json=payload,
+                timeout=30,
             )
-            response = chat.send_message(message)
-            reply = response.text
+            resp.raise_for_status()
+            reply = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
 
         except Exception as exc:
             print(f"Gemini error: {exc}")

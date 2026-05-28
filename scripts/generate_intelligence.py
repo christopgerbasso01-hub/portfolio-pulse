@@ -281,8 +281,25 @@ def call_gemini(api_key: str, prompt: str, model: str) -> dict:
             "maxOutputTokens": 8192,
         },
     }
-    resp = requests.post(url, json=payload, timeout=120)
-    resp.raise_for_status()
+
+    # Retry up to 3 times with backoff for transient 429s
+    wait_secs = [0, 45, 90]
+    for attempt, wait in enumerate(wait_secs):
+        if wait:
+            print(f"  ↻ Attempt {attempt + 1}: waiting {wait}s before retry...")
+            time.sleep(wait)
+        resp = requests.post(url, json=payload, timeout=120)
+        if resp.status_code == 429:
+            try:
+                err = resp.json()
+            except Exception:
+                err = resp.text
+            print(f"  ⚠ 429 on attempt {attempt + 1}: {json.dumps(err)[:600]}")
+            if attempt < len(wait_secs) - 1:
+                continue
+        resp.raise_for_status()
+        break
+
     text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     # Strip markdown code fences if Gemini adds them

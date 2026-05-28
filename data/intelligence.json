@@ -1,211 +1,309 @@
 {
   "macro": [
     {
-      "title": "US-Iran Tensions",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "The ongoing US-Iran conflict is causing market volatility, with potential implications for global trade and oil prices. This could lead to increased uncertainty and risk for the portfolio. The conflict's impact on the global economy will depend on its duration and severity.",
-      "bull": "A swift resolution to the conflict could lead to a relief rally, benefiting the portfolio's equity holdings.",
-      "base": "A prolonged conflict could lead to increased market volatility, potentially negatively impacting the portfolio's performance."
-    },
-    {
       "title": "Inflation Firming",
       "impact": "MED",
-      "confidence": 60,
-      "body": "US inflation is firming, driven by the Iran war and rising prices. This could lead to higher interest rates, affecting the portfolio's bond holdings and overall performance.",
-      "bull": "A moderate increase in inflation could lead to higher interest rates, potentially benefiting the portfolio's bond holdings.",
-      "base": "A sharp increase in inflation could lead to decreased purchasing power, negatively impacting the portfolio's performance."
+      "confidence": 70,
+      "body": "The recent escalation of the Iran war is driving up prices, which may lead to higher inflation. This could impact the portfolio's value, particularly the leveraged ETFs. The firming inflation may also lead to changes in monetary policy, affecting the overall market.",
+      "bull": "If inflation is managed, the portfolio's growth may accelerate, driven by the technology and financial sectors.",
+      "base": "A moderate increase in inflation may lead to a neutral impact on the portfolio, with some sectors benefiting and others being negatively affected.",
+      "bear": "Uncontrolled inflation could lead to a decline in the portfolio's value, especially if interest rates rise and the economy slows down."
     },
     {
-      "title": "Global Economic Slowdown",
+      "title": "Geopolitical Tensions",
+      "impact": "HIGH",
+      "confidence": 80,
+      "body": "The ongoing US-Iran conflict is creating uncertainty in the market, which may lead to increased volatility. The portfolio's exposure to international markets and companies may be affected by the escalating tensions.",
+      "bull": "If a ceasefire is reached, the market may experience a relief rally, benefiting the portfolio's growth.",
+      "base": "The conflict may continue, leading to ongoing volatility and a neutral impact on the portfolio.",
+      "bear": "An escalation of the conflict could lead to a significant decline in the portfolio's value, driven by the increased uncertainty and risk aversion."
+    },
+    {
+      "title": "Sector Rotation",
       "impact": "LOW",
       "confidence": 40,
-      "body": "The global economy is experiencing a slowdown, with potential implications for trade and growth. However, the portfolio's diversified holdings and Canadian context may mitigate this risk.",
-      "bull": "A slowdown in the global economy could lead to decreased interest rates, potentially benefiting the portfolio's bond holdings.",
-      "base": "A severe slowdown could lead to decreased economic growth, negatively impacting the portfolio's performance."
+      "body": "The market may experience sector rotation, with some sectors benefiting from the current economic conditions and others being negatively affected. The portfolio's diversification may help mitigate the impact of sector rotation.",
+      "bull": "If the technology sector continues to grow, the portfolio may benefit from its exposure to this sector.",
+      "base": "Sector rotation may lead to a neutral impact on the portfolio, with some sectors offsetting others.",
+      "bear": "If the financial sector is negatively affected, the portfolio's value may decline due to its exposure to this sector."
     }
   ],
   "risks": [
     {
-      "title": "Leveraged ETF Risk",
+      "title": "Leverage Risk",
       "level": "HIGH",
-      "context": "49% of portfolio (~ $135K CAD) in leveraged ETFs (FNGU, SPXL, UDOW)",
-      "body": "The portfolio's significant allocation to leveraged ETFs amplifies market movements, increasing potential gains but also potential losses."
+      "context": "49% of portfolio (~ $135K CAD) is invested in leveraged ETFs",
+      "body": "The portfolio's exposure to leveraged ETFs amplifies both gains and losses, increasing the risk of significant declines in value. The current market volatility may exacerbate this risk."
     },
     {
-      "title": "FX Book Rate Drag",
+      "title": "FX Risk",
       "level": "MED",
-      "context": "68% of portfolio denominated in USD, with a book rate of 1.3925",
-      "body": "The portfolio's USD-denominated holdings are subject to currency fluctuations, which could result in losses if the CAD strengthens against the USD."
+      "context": "68% of portfolio is denominated in USD",
+      "body": "The portfolio's value may be affected by changes in the USD/CAD exchange rate, with a 1¢ move impacting the portfolio by approximately $1,800 CAD."
     },
     {
       "title": "Concentration Risk",
-      "level": "LOW",
-      "context": "Significant allocation to NVDA (TFSA) and FNGU (TFSA, Investment, FHSA, RRSP)",
-      "body": "The portfolio's concentration in a few key holdings increases risk, as poor performance by these holdings could significantly impact the portfolio's overall performance."
+      "level": "MED",
+      "context": "Large positions in NVDA and FNGU",
+      "body": "The portfolio's concentration in a few large positions, such as NVDA and FNGU, increases the risk of significant declines in value if these positions perform poorly."
     }
   ],
   "news": [
     {
-      "headline": "US and Iran reach deal but need Trump's final approval",
+      "headline": "US-Iran Ceasefire Extension",
       "impact": "HIGH",
       "category": "Macro & Rates",
-      "body": "A potential deal between the US and Iran could lead to decreased tensions and market volatility, benefiting the portfolio's equity holdings.",
-      "exposure": "FNGU, SPXL, and UDOW are directly exposed to US market movements",
-      "scenarios": "🟢 Bull: Relief rally in US markets, 🔴 Bear: Deal falls through, leading to increased tensions and market volatility"
+      "body": "The US and Iran have reached a 60-day ceasefire extension, which may lead to a decrease in volatility and an increase in market confidence. The portfolio's exposure to international markets and companies may benefit from this development.",
+      "exposure": "FNGU ~$87K CAD (3x leverage), SPXL ~$22K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 40,
+          "scenario": "The ceasefire leads to a relief rally, benefiting the portfolio's growth.",
+          "estimate": "+$12,000–$18,000 on leveraged positions"
+        },
+        {
+          "label": "Base",
+          "probability": 30,
+          "scenario": "The conflict continues, leading to ongoing volatility and a neutral impact on the portfolio.",
+          "estimate": "±$3,000 — minimal net change"
+        },
+        {
+          "label": "Bear",
+          "probability": 30,
+          "scenario": "The conflict escalates, leading to a significant decline in the portfolio's value.",
+          "estimate": "-$20,000–$30,000 via 3x leverage amplification"
+        }
+      ]
     },
     {
-      "headline": "Snowflake surges 35% toward best day ever on AI frenzy",
+      "headline": "Nvidia Market Cap Prediction",
       "impact": "MED",
       "category": "Sector & Stock",
-      "body": "Snowflake's surge is part of a broader AI-driven rally, which could benefit the portfolio's technology holdings, including NVDA and TXF.TO.",
-      "exposure": "NVDA and TXF.TO are directly exposed to the AI and technology sectors",
-      "scenarios": "🟢 Bull: Continued AI-driven rally, 🔴 Bear: Rally fades, leading to decreased interest in AI and technology stocks"
+      "body": "Jensen Huang has made a bold new market cap prediction for Nvidia, which may lead to an increase in the stock's value. The portfolio's exposure to NVDA may benefit from this development.",
+      "exposure": "NVDA ~$40K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 50,
+          "scenario": "The prediction leads to an increase in NVDA's value, benefiting the portfolio.",
+          "estimate": "+$8,000–$12,000"
+        },
+        {
+          "label": "Base",
+          "probability": 30,
+          "scenario": "The prediction has a neutral impact on NVDA's value.",
+          "estimate": "±$2,000 — minimal net change"
+        },
+        {
+          "label": "Bear",
+          "probability": 20,
+          "scenario": "The prediction leads to a decline in NVDA's value.",
+          "estimate": "-$4,000–$6,000"
+        }
+      ]
     },
     {
-      "headline": "Gold prices pare losses after US inflation data",
+      "headline": "Snowflake Surges 35%",
       "impact": "LOW",
-      "category": "Macro & Rates",
-      "body": "The US inflation data and gold price movement have limited direct impact on the portfolio, as it does not hold significant gold or inflation-indexed holdings.",
-      "exposure": "No direct exposure to gold or inflation-indexed holdings",
-      "scenarios": "🟢 Bull: Increased inflation leads to higher gold prices, 🔴 Bear: Decreased inflation leads to lower gold prices"
+      "category": "Sector & Stock",
+      "body": "Snowflake has surged 35% due to the AI frenzy, which may lead to an increase in the value of other AI-related stocks. The portfolio's exposure to AI-related stocks may benefit from this development.",
+      "exposure": "None directly, but may impact NVDA and other AI-related stocks",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 40,
+          "scenario": "The surge leads to an increase in the value of AI-related stocks, benefiting the portfolio.",
+          "estimate": "+$2,000–$4,000"
+        },
+        {
+          "label": "Base",
+          "probability": 30,
+          "scenario": "The surge has a neutral impact on the portfolio.",
+          "estimate": "±$1,000 — minimal net change"
+        },
+        {
+          "label": "Bear",
+          "probability": 30,
+          "scenario": "The surge leads to a decline in the value of AI-related stocks.",
+          "estimate": "-$2,000–$4,000"
+        }
+      ]
     },
     {
-      "headline": "Dollar falls after reports of US and Iran deal to extend ceasefire",
+      "headline": "US Inflation Firming",
       "impact": "MED",
       "category": "Macro & Rates",
-      "body": "A potential deal between the US and Iran could lead to a decrease in the USD, benefiting the portfolio's USD-denominated holdings.",
-      "exposure": "68% of portfolio denominated in USD",
-      "scenarios": "🟢 Bull: Decreased USD leads to increased value of USD-denominated holdings, 🔴 Bear: Increased USD leads to decreased value of USD-denominated holdings"
+      "body": "The US inflation is firming, which may lead to an increase in interest rates and a decrease in the value of bonds. The portfolio's exposure to bonds may be negatively affected by this development.",
+      "exposure": "None directly, but may impact the overall market",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 30,
+          "scenario": "The firming inflation leads to an increase in interest rates, benefiting the portfolio's growth.",
+          "estimate": "+$4,000–$6,000"
+        },
+        {
+          "label": "Base",
+          "probability": 40,
+          "scenario": "The firming inflation has a neutral impact on the portfolio.",
+          "estimate": "±$2,000 — minimal net change"
+        },
+        {
+          "label": "Bear",
+          "probability": 30,
+          "scenario": "The firming inflation leads to a decline in the value of bonds, negatively affecting the portfolio.",
+          "estimate": "-$4,000–$6,000"
+        }
+      ]
     }
   ],
   "picks": [
     {
-      "ticker": "ZSP.TO",
+      "ticker": "COST",
       "action": "ADD",
-      "account": "RRSP",
-      "thesis": "Using the idle RRSP cash to invest in ZSP.TO, a low-cost, US-dollar denominated ETF, could provide a tax-efficient way to gain exposure to the US market.",
-      "entry": "Consider adding ZSP.TO to the RRSP account, using the idle cash to reduce opportunity cost."
+      "account": "TFSA",
+      "thesis": "Costco is a strong retail company with a history of stable growth, and its recent earnings report shows promising signs of a turnaround. Adding COST to the portfolio may provide a defensive position and diversify the portfolio's exposure to the retail sector.",
+      "entry": "Consider adding COST on a pullback or at current levels"
     },
     {
-      "ticker": "ENB.TO",
+      "ticker": "QCOM",
       "action": "WATCH",
       "account": "Any",
-      "thesis": "Enbridge's stable dividend and pipeline business could provide a defensive play in a volatile market.",
-      "entry": "Monitor ENB.TO's performance and consider adding it to the portfolio if the market continues to decline."
+      "thesis": "Qualcomm is a leading company in the AI chip design sector, and its recent earnings report shows promising signs of growth. Watching QCOM may provide an opportunity to add a strong company to the portfolio and diversify its exposure to the technology sector.",
+      "entry": "Consider watching QCOM for a potential entry point"
+    },
+    {
+      "ticker": "GBTC",
+      "action": "SPECULATIVE",
+      "account": "Investment",
+      "thesis": "The Bitcoin proxy GBTC may provide a speculative opportunity for growth, but it is a high-risk investment and should be considered carefully. Adding GBTC to the portfolio may provide a diversification benefit and exposure to the cryptocurrency market.",
+      "entry": "Consider adding GBTC on a significant pullback or at current levels, but be aware of the high risk"
     }
   ],
   "strengths": [
     {
-      "ticker": null,
-      "text": "Tax-efficient portfolio structure, with significant holdings in tax-free TFSA and FHSA accounts"
-    },
-    {
       "ticker": "NVDA",
-      "text": "Strong performance of NVDA, a core holding in the TFSA account, with a +1,776% ROI"
+      "text": "The portfolio's core holding in NVDA provides a strong foundation for growth and has a low cost basis, allowing for significant tax-free gains in the TFSA."
     },
     {
       "ticker": "FNGU",
-      "text": "Leveraged ETFs, such as FNGU, provide amplified exposure to the US market, increasing potential gains"
+      "text": "The portfolio's exposure to FNGU provides a leveraged play on the technology sector, which has been a strong performer in recent years."
+    },
+    {
+      "ticker": "SPXL",
+      "text": "The portfolio's exposure to SPXL provides a leveraged play on the S&P 500, which has been a stable performer in recent years."
     },
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of equity, bond, and alternative holdings, reducing overall risk"
+      "text": "The portfolio's tax-efficient structure, with a large portion of assets held in tax-free accounts, provides a significant advantage in terms of long-term growth and wealth accumulation."
     }
   ],
   "concerns": [
     {
-      "ticker": null,
-      "text": "Uninvested RRSP cash, approximately $10,531, is not generating returns, resulting in opportunity cost"
-    },
-    {
       "ticker": "FNGU",
-      "text": "Concentration risk in FNGU, with significant allocations in multiple accounts, increasing potential losses"
+      "text": "The portfolio's exposure to FNGU is a high-risk investment due to its 3x leverage, which may amplify losses as well as gains."
     },
     {
-      "ticker": "UDOW",
-      "text": "Leveraged ETFs, such as UDOW, amplify market movements, increasing potential losses"
+      "ticker": "NVDA",
+      "text": "The portfolio's concentration in NVDA is a concern, as a significant decline in the stock's value could negatively impact the portfolio's overall performance."
     },
     {
       "ticker": null,
-      "text": "FX book rate drag, with a significant portion of the portfolio denominated in USD, could result in losses if the CAD strengthens"
+      "text": "The portfolio's uninvested RRSP cash is a concern, as it may lead to opportunity costs and reduced long-term growth."
+    },
+    {
+      "ticker": "GBTC",
+      "text": "The portfolio's exposure to GBTC is a high-risk investment due to its speculative nature and potential for significant losses."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the US-Iran situation and be prepared to adjust the portfolio if tensions escalate or a deal is reached"
+      "text": "Consider adding to existing positions on pullbacks or at current levels to take advantage of potential growth opportunities."
     },
     {
       "num": "02",
-      "text": "Consider reducing leverage in the portfolio by trimming FNGU, SPXL, or UDOW positions if market volatility increases"
+      "text": "Monitor the portfolio's exposure to leveraged ETFs and consider reducing positions if volatility increases or market conditions change."
     },
     {
       "num": "03",
-      "text": "Keep an eye on interest rates and be prepared to adjust the portfolio's bond holdings if rates change"
+      "text": "Keep a close eye on the US-Iran conflict and its potential impact on the market, and be prepared to adjust the portfolio accordingly."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to monitor the portfolio's sector allocation and consider rebalancing if any sector becomes over- or under-weighted"
+      "text": "Consider diversifying the portfolio's exposure to the technology sector by adding new positions or reducing existing ones."
     },
     {
       "num": "02",
-      "text": "Consider adding more Canadian dividend-paying stocks to the portfolio to increase income generation"
+      "text": "Monitor the portfolio's tax efficiency and consider tax-loss harvesting or other strategies to minimize tax liabilities."
     },
     {
       "num": "03",
-      "text": "Review the portfolio's tax efficiency and consider tax-loss harvesting or other strategies to minimize taxes"
+      "text": "Keep a long-term perspective and avoid making emotional decisions based on short-term market fluctuations."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Continue to focus on long-term growth and consider adding more equity holdings to the portfolio"
+      "text": "Consider increasing the portfolio's exposure to dividend-paying stocks or other income-generating investments to provide a steady income stream in retirement."
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's overall risk level and consider adding more bonds or other fixed-income holdings to reduce risk"
+      "text": "Monitor the portfolio's overall asset allocation and consider rebalancing periodically to ensure it remains aligned with long-term investment objectives."
     },
     {
       "num": "03",
-      "text": "Consider adding alternative investments, such as real estate or commodities, to the portfolio to increase diversification"
+      "text": "Keep a long-term perspective and focus on steady, consistent growth rather than trying to time the market or make quick profits."
     }
   ],
   "tax": {
     "tfsa": [
       {
         "icon": "✦",
-        "text": "Tax-free growth in the TFSA account, with no taxes owed on withdrawals"
+        "text": "The TFSA provides a tax-free environment for growth, allowing the portfolio to benefit from tax-free gains on investments like NVDA and FNGU."
       },
       {
         "icon": "✦",
-        "text": "Consider maximizing TFSA contributions to take advantage of tax-free growth"
+        "text": "Consider maximizing TFSA contributions to take full advantage of the tax-free growth opportunity."
       }
     ],
     "fhsa": [
       {
         "icon": "✦",
-        "text": "Double tax advantage in the FHSA account, with tax deductions on contributions and tax-free growth"
+        "text": "The FHSA provides a double tax advantage, allowing the portfolio to benefit from tax-free growth and withdrawals for first-time homebuyers."
+      },
+      {
+        "icon": "✦",
+        "text": "Consider maximizing FHSA contributions to take full advantage of the double tax advantage."
       }
     ],
     "rrsp": [
       {
         "icon": "⚡",
-        "text": "Deferred tax growth in the RRSP account, with taxes owed on withdrawals in retirement"
+        "text": "The RRSP provides a tax-deferred environment for growth, allowing the portfolio to benefit from tax-deferred gains on investments like TSM and MSTR."
+      },
+      {
+        "icon": "⚡",
+        "text": "Consider maximizing RRSP contributions to take full advantage of the tax-deferred growth opportunity."
       }
     ],
     "investment": [
       {
         "icon": "⚠",
-        "text": "Consider tax implications when selling holdings in the non-registered account, as capital gains taxes may apply"
+        "text": "The non-registered investment account is subject to tax on investment income and capital gains, so consider tax-efficient investing strategies to minimize tax liabilities."
+      },
+      {
+        "icon": "⚠",
+        "text": "Consider using tax-loss harvesting or other strategies to minimize tax liabilities in the non-registered investment account."
       }
     ]
   },
-  "daily_outlook": "The portfolio's overall outlook is neutral, with a mix of positive and negative factors at play. The US-Iran situation and market volatility are key concerns, while the strong performance of NVDA and the tax-efficient portfolio structure are positives.",
+  "daily_outlook": "The portfolio's overall outlook is neutral, with a mix of positive and negative factors influencing its performance. The US-Iran conflict and firming inflation are concerns, but the portfolio's diversification and tax-efficient structure provide a solid foundation for long-term growth.",
   "market_mood": "neutral",
-  "generated_at": "2026-05-28T17:58:22.457707+00:00",
+  "generated_at": "2026-05-28T18:05:28.012134+00:00",
   "generated_date": "May 28, 2026",
   "next_update": "6:00 AM EST next trading day"
 }

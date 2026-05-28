@@ -227,6 +227,24 @@ INSTRUCTIONS:
 6. Canadian context: reference TFSA/FHSA/RRSP rules, CAD amounts, and CRA where relevant
 7. For PICKS: suggest additions that complement existing holdings or use idle RRSP cash
 
+SECTION DISTINCTIVENESS — each section must cover UNIQUE ground, zero repetition across sections:
+- macro:     Broad economic/geopolitical forces ONLY (Fed, inflation, GDP, trade, sector rotations).
+             Do NOT mention specific portfolio tickers. Do NOT repeat events covered in 'news'.
+- news:      Specific headlines from TODAY'S feed ONLY. Each item = one distinct event.
+             Do NOT restate macro themes — only the event and its direct holding impact.
+- risks:     Portfolio-specific TECHNICAL risks ONLY (3x leverage amplification, FX book rate drag,
+             account concentration). Do NOT rehash macro themes already in 'macro'.
+- picks:     Genuinely NEW tickers not already held, OR a specific sizing action on an existing position.
+             Do NOT suggest anything already covered as a strength.
+- strengths: Structural/positional advantages ONLY (low cost basis, tax shelter, realised gains locked in).
+             Do NOT list macroeconomic tailwinds — those belong in 'macro'.
+- concerns:  Structural/positional WEAKNESSES only (uninvested RRSP cash drag, ETF overlap, illiquidity).
+             Do NOT repeat items already in 'risks'.
+- strategy_short: Actions for 0–6 months ONLY. No overlap with mid or long.
+- strategy_mid:   Actions for 6–24 months ONLY. Must be different themes from short.
+- strategy_long:  Actions for 2–10+ years ONLY. Horizon-appropriate, not a repeat of short/mid.
+- tax:        CRA/account-mechanics notes ONLY. Not strategy already in strategy sections.
+
 {OUTPUT_SCHEMA}"""
 
 

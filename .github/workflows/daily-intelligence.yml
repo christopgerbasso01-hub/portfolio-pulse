@@ -1,0 +1,46 @@
+name: Daily Portfolio Intelligence
+
+on:
+  schedule:
+    # 6:00 AM EST = 11:00 UTC (UTC-5). Weekdays only.
+    - cron: '0 11 * * 1-5'
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+
+permissions:
+  contents: write  # Required to commit intelligence.json back to repo
+
+jobs:
+  generate-intelligence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install "google-generativeai>=0.8.0" "requests>=2.31.0"
+
+      - name: Generate intelligence
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+        run: python scripts/generate_intelligence.py
+
+      - name: Commit and push intelligence.json
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/intelligence.json
+          git diff --staged --quiet \
+            && echo "No changes to intelligence.json — skipping commit" \
+            || git commit -m "chore: daily intelligence update $(date -u +'%Y-%m-%d')"
+          git push

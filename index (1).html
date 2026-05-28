@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Pulse — Live Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ============================  TOKENS  ============================ */
+:root{
+  --bg:#060b14;--surface:#0c1524;--surface2:#111d30;
+  --border:#1a2e4a;--border2:#223659;
+  --blue-bright:#3b82f6;--blue-glow:rgba(59,130,246,0.15);
+  --green:#10b981;--green-dim:#064e3b;
+  --red:#ef4444;--red-dim:#450a0a;
+  --amber:#f59e0b;--amber-dim:#451a03;
+  --purple:#8b5cf6;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;position:relative}
+body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(59,130,246,0.03) 39px,rgba(59,130,246,0.03) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(59,130,246,0.03) 39px,rgba(59,130,246,0.03) 40px);pointer-events:none;z-index:0}
+.live-bar{background:#050c18;border-bottom:1px solid var(--border);padding:6px 24px;display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--text3);position:sticky;top:0;z-index:100}
+.live-indicator{display:flex;align-items:center;gap:6px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+.live-dot.offline{background:var(--text3);box-shadow:none;animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.market-status{display:flex;align-items:center;gap:16px}
+.mkt-badge{padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700}
+.mkt-open{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.mkt-closed{background:rgba(100,116,139,.15);color:var(--text3);border:1px solid rgba(100,116,139,.3)}
+.ticker-strip{background:#080f1c;border-bottom:1px solid var(--border);overflow:hidden;height:34px;display:flex;align-items:center}
+.ticker-track{display:flex;gap:0;white-space:nowrap;animation:scroll 60s linear infinite}
+.ticker-track:hover{animation-play-state:paused}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tick-item{display:inline-flex;align-items:center;gap:8px;padding:0 20px;font-family:var(--mono);font-size:11px;border-right:1px solid var(--border)}
+.tick-sym{color:var(--blue-bright);font-weight:700}
+.tick-price{color:var(--text)}
+.tick-chg.pos{color:var(--green)}
+.tick-chg.neg{color:var(--red)}
+.container{max-width:1400px;margin:0 auto;padding:24px;position:relative;z-index:1}
+.header{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.header-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.header-title h1{font-family:var(--mono);font-size:18px;color:var(--blue-bright);letter-spacing:.05em}
+.header-meta{display:flex;align-items:center;gap:12px}
+.header-date{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.refresh-btn{font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);padding:3px 8px;border-radius:4px;cursor:pointer;transition:all .2s}
+.refresh-btn:hover{border-color:var(--blue-bright);color:var(--blue-bright)}
+.header-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.hkpi{text-align:center}
+.hkpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.hkpi-value{font-family:var(--mono);font-size:16px;font-weight:700;transition:color .4s}
+.section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.section-header{display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.section-num{font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface2);padding:2px 6px;border-radius:4px}
+.section-title{font-family:var(--mono);font-size:13px;color:var(--text);letter-spacing:.03em}
+.ai-badge{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--purple);background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);padding:2px 7px;border-radius:4px}
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px}
+.card.green-accent{border-left:3px solid var(--green)}
+.card.red-accent{border-left:3px solid var(--red)}
+.card.blue-accent{border-left:3px solid var(--blue-bright)}
+.card.amber-accent{border-left:3px solid var(--amber)}
+.card-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.card-value{font-family:var(--mono);font-size:20px;font-weight:700}
+.card-sub{font-size:11px;color:var(--text2);margin-top:4px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.chart-container{position:relative;height:280px}
+.chart-title{font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:8px}
+.chart-filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.chart-filter-btn{font-family:var(--mono);font-size:11px;padding:6px 12px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);border-radius:6px;cursor:pointer;transition:all .2s}
+.chart-filter-btn:hover,.chart-filter-btn.active{background:var(--blue-glow);border-color:var(--blue-bright);color:var(--blue-bright)}
+.market-widget{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;padding:16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px}
+.mw-item{text-align:center}
+.mw-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.mw-value{font-family:var(--mono);font-size:14px;font-weight:700}
+.mw-chg{font-family:var(--mono);font-size:10px;margin-top:2px}
+.green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}.blue{color:var(--blue-bright)}.purple{color:var(--purple)}
+.text2{color:var(--text2)}.text3{color:var(--text3)}
+.mono{font-family:var(--mono)}
+.small{font-size:11px}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700}
+.badge-tfsa{background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.3)}
+.badge-fhsa{background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3)}
+.badge-rrsp{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.badge-inv{background:rgba(148,163,184,.15);color:#94a3b8;border:1px solid rgba(148,163,184,.3)}
+.badge-high{background:rgba(239,68,68,.15);color:#ef4444}
+.badge-med{background:rgba(245,158,11,.15);color:#f59e0b}
+.badge-low{background:rgba(16,185,129,.15);color:#10b981}
+.holdings-table{width:100%;border-collapse:collapse}
+.holdings-table th{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:8px;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap}
+.holdings-table th:hover{color:var(--text)}
+.holdings-table td{padding:8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.holdings-table tr:hover td{background:var(--blue-glow)}
+.table-wrap{overflow-x:auto}
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:6px;font-family:var(--sans);font-size:12px}
+.filter-bar input:focus,.filter-bar select:focus{outline:none;border-color:var(--blue-bright)}
+.clear-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--text2);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px}
+.row-count{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:auto}
+.footer{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;font-size:11px;color:var(--text3);margin-top:24px}
+@media(max-width:768px){.container{padding:12px}.live-bar{flex-wrap:wrap;gap:6px;padding:6px 12px}.ticker-strip{display:none}.header{padding:14px 16px}.header-title{flex-direction:column;align-items:flex-start;gap:8px}.header-kpis{grid-template-columns:repeat(2,1fr);gap:10px}.card-value{font-size:16px}.market-widget{grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}.grid-4{grid-template-columns:repeat(2,1fr);gap:10px}.grid-3{grid-template-columns:1fr;gap:10px}.grid-2{grid-template-columns:1fr;gap:10px}.section{padding:14px 12px;overflow-x:auto}.holdings-table{font-size:11px;min-width:600px}.chart-filter-btn{padding:4px 10px;font-size:10px}}
+@media(max-width:480px){.header-kpis{grid-template-columns:1fr 1fr;gap:8px}.market-widget{grid-template-columns:repeat(2,1fr)}.grid-4{grid-template-columns:1fr}.card-value{font-size:15px}.header-title h1{font-size:14px}}
+</style>
+</head>
+<body>
+
+<!-- LIVE STATUS BAR -->
+<div class="live-bar">
+  <div class="live-indicator">
+    <div class="live-dot" id="liveDot"></div>
+    <span id="liveStatus">Connecting...</span>
+  </div>
+  <div class="market-status">
+    <span id="marketStatusBadge" class="mkt-badge mkt-closed">MARKET</span>
+    <span id="usdcadRate" class="mono" style="font-size:11px">USD/CAD —</span>
+    <span id="lastUpdated">—</span>
+    <button class="refresh-btn" onclick="refreshAll()">↻ REFRESH</button>
+  </div>
+</div>
+
+<!-- PRICE TICKER STRIP -->
+<div class="ticker-strip">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<div class="container">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-title">
+    <h1>⚡ PORTFOLIO PULSE — LIVE INVESTMENT DASHBOARD</h1>
+    <div class="header-meta">
+      <div class="header-date" id="headerDate">Loading...</div>
+    </div>
+  </div>
+  <div class="header-kpis">
+    <div class="hkpi"><div class="hkpi-label">Total Market Value</div><div class="hkpi-value blue" id="kpiTotalValue">—</div></div>
+    <div class="hkpi"><div class="hkpi-label">Total Contributions</div><div class="hkpi-value">$149,632</div></div>
+    <div class="hkpi"><div class="hkpi-label">Total P&amp;L</div><div class="hkpi-value green" id="kpiTotalPnl">—</div></div>
+    <div class="hkpi"><div class="hkpi-label">Total ROI</div><div class="hkpi-value green" id="kpiRoi">—</div></div>
+    <div class="hkpi"><div class="hkpi-label">Daily Change</div><div class="hkpi-value" id="kpiDailyChange">—</div></div>
+    <div class="hkpi"><div class="hkpi-label">FX Impact</div><div class="hkpi-value" id="kpiFxImpact">—</div></div>
+  </div>
+</div>
+
+<!-- MARKET WIDGET -->
+<div class="section">
+  <div class="section-header"><span class="section-num">01</span><span class="section-title">MARKET OVERVIEW</span></div>
+  <div class="market-widget" id="marketWidget">
+    <div class="mw-item"><div class="mw-label">S&amp;P 500</div><div class="mw-value" id="mwSP500">—</div><div class="mw-chg" id="mwSP500chg">—</div></div>
+    <div class="mw-item"><div class="mw-label">NASDAQ</div><div class="mw-value" id="mwNasdaq">—</div><div class="mw-chg" id="mwNasdaqchg">—</div></div>
+    <div class="mw-item"><div class="mw-label">TSX</div><div class="mw-value" id="mwTSX">—</div><div class="mw-chg" id="mwTSXchg">—</div></div>
+    <div class="mw-item"><div class="mw-label">VIX</div><div class="mw-value" id="mwVIX">—</div><div class="mw-chg" id="mwVIXchg">—</div></div>
+    <div class="mw-item"><div class="mw-label">10Y Treasury</div><div class="mw-value" id="mwTreasury">—</div><div class="mw-chg" id="mwTreasurychg">—</div></div>
+    <div class="mw-item"><div class="mw-label">Dow Jones</div><div class="mw-value" id="mwDow">—</div><div class="mw-chg" id="mwDowchg">—</div></div>
+  </div>
+  <div class="grid-4">
+    <div class="card green-accent"><div class="card-label">Unrealized Gains</div><div class="card-value green" id="cardUnrealized">—</div><div class="card-sub">Across all accounts</div></div>
+    <div class="card green-accent"><div class="card-label">Realized Gains</div><div class="card-value green">$22,193</div><div class="card-sub">Booked profits</div></div>
+    <div class="card blue-accent"><div class="card-label">Total Dividends</div><div class="card-value blue">$7,259</div><div class="card-sub">Income collected</div></div>
+    <div class="card red-accent"><div class="card-label">FX Conversion Impact</div><div class="card-value" id="cardFX">—</div><div class="card-sub">USD/CAD translation</div></div>
+  </div>
+</div>
+
+<!-- HOLDINGS TABLE -->
+<div class="section" id="sec04">
+  <div class="section-header"><span class="section-num">02</span><span class="section-title">FULL HOLDINGS TABLE</span></div>
+  <div class="filter-bar">
+    <input type="text" id="searchInput" placeholder="Search ticker or name..." oninput="filterTable()" style="width:200px">
+    <select id="acctFilter" onchange="filterTable()">
+      <option value="">All Accounts</option><option value="TFSA">TFSA</option><option value="FHSA">FHSA</option><option value="RRSP">RRSP</option><option value="Investment">NON-REG</option><option value="Crypto">Crypto</option>
+    </select>
+    <select id="sectorFilter" onchange="filterTable()">
+      <option value="">All Sectors</option><option>Leveraged ETF</option><option>Technology</option><option>Financials</option><option>Energy</option><option>Consumer Disc.</option><option>Comm. Services</option><option>Consumer Staples</option><option>Crypto</option><option>Cash</option>
+    </select>
+    <select id="pnlFilter" onchange="filterTable()">
+      <option value="">All P&amp;L</option><option value="gain">Gains Only</option><option value="loss">Losses Only</option>
+    </select>
+    <button class="clear-btn" onclick="clearFilters()">CLEAR</button>
+    <span class="row-count" id="rowCount"></span>
+  </div>
+  <div class="table-wrap">
+    <table class="holdings-table" id="holdingsTable">
+      <thead><tr>
+        <th onclick="sortTable(0)">Ticker ↕</th><th onclick="sortTable(1)">Name ↕</th><th onclick="sortTable(2)">Account ↕</th>
+        <th onclick="sortTable(3)">Sector ↕</th><th onclick="sortTable(4)">Shares ↕</th><th onclick="sortTable(5)">Live Price ↕</th>
+        <th onclick="sortTable(6)">Day ↕</th><th onclick="sortTable(7)">Book Cost ↕</th><th onclick="sortTable(8)">Mkt Value ↕</th>
+        <th onclick="sortTable(9)">Unrealized ↕</th><th onclick="sortTable(10)">Weight% ↕</th>
+      </tr></thead>
+      <tbody id="holdingsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>⚡ Portfolio Pulse — Live Dashboard</p>
+  <p>For informational purposes only — not financial advice.</p>
+  <p>Holdings data derived from truth CSV (2026-05-28). Market values update live via API prices.</p>
+  <p id="footerTimestamp"></p>
+</div>
+
+</div><!-- end container -->
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const CONFIG = {
+  API_BASE: 'https://portfolio-pulse-dun.vercel.app',
+  MARKET_REFRESH_MS: 60_000,
+};
+
+// ============================================================
+// CONTRIBUTIONS — DO NOT CHANGE
+// ============================================================
+const CONTRIBUTIONS_CAD = { TFSA: 44500, Investment: 65000, FHSA: 24000, RRSP: 16132 };
+const TOTAL_CONTRIBUTIONS = 149632;
+
+// ============================================================
+// STATIC CONSTANTS
+// ============================================================
+const REALIZED_GAINS_CAD = 22193;
+const DIVIDENDS_CAD = 7259;
+const USD_COST_BASIS_USD = 80732.64;
+const USD_COST_BASIS_CAD = 93205.22;
+
+// ============================================================
+// HOLDINGS — computed from truth CSV (2026-05-28)
+// cost_cad = book cost in CAD using historic FX on each Buy
+// ============================================================
+const HOLDINGS_STATIC = [
+    {ticker:'BTC-CAD',name:'Bitcoin',account:'Crypto',sector:'Crypto',shares:0.0009,cost_cad:50.01,ccy:'CAD'},
+    {ticker:'ETH-CAD',name:'Ethereum',account:'Crypto',sector:'Crypto',shares:0.025734,cost_cad:110.00,ccy:'CAD'},
+    {ticker:'CAD=CASH',name:'CAD',account:'FHSA',sector:'Cash',shares:24.34,cost_cad:0.00,ccy:'CAD'},
+    {ticker:'ENB.TO',name:'Enbridge Inc',account:'FHSA',sector:'Energy',shares:82,cost_cad:4499.84,ccy:'CAD'},
+    {ticker:'FNGU',name:'MicroSectors FANG+ 3X Leveraged',account:'FHSA',sector:'Leveraged ETF',shares:157,cost_cad:3028.81,ccy:'USD'},
+    {ticker:'SPXL',name:'Direxion Daily S&amp;P 500 Bull 3X ',account:'FHSA',sector:'Leveraged ETF',shares:53,cost_cad:7014.52,ccy:'USD'},
+    {ticker:'TXF.TO',name:'Ci Tech Giants Covered Call Etf',account:'FHSA',sector:'Technology',shares:434,cost_cad:11411.13,ccy:'CAD'},
+    {ticker:'UDOW',name:'ProShares UltraPro Dow30',account:'FHSA',sector:'Leveraged ETF',shares:86,cost_cad:5601.37,ccy:'USD'},
+    {ticker:'USD=CASH',name:'USD',account:'FHSA',sector:'Cash',shares:0.0001,cost_cad:0.00,ccy:'USD'},
+    {ticker:'BYDDF',name:'Byd Co.,Ltd.',account:'Investment',sector:'Consumer Disc.',shares:3,cost_cad:77.22,ccy:'USD'},
+    {ticker:'CAD=CASH',name:'CAD',account:'Investment',sector:'Cash',shares:58.99,cost_cad:0.00,ccy:'CAD'},
+    {ticker:'CM.TO',name:'Canadian Imperial Bank Of Comme',account:'Investment',sector:'Financials',shares:50,cost_cad:6674.45,ccy:'CAD'},
+    {ticker:'FNGU',name:'MicroSectors FANG+ 3X Leveraged',account:'Investment',sector:'Leveraged ETF',shares:665,cost_cad:13236.60,ccy:'USD'},
+    {ticker:'GBTC',name:'Grayscale Bitcoin Trust (BTC)',account:'Investment',sector:'Crypto',shares:25,cost_cad:2722.07,ccy:'USD'},
+    {ticker:'IBKR',name:'Interactive Brokers Group,Inc.',account:'Investment',sector:'Financials',shares:40,cost_cad:3334.57,ccy:'USD'},
+    {ticker:'LYV',name:'Live Nation Entertainment,Inc.',account:'Investment',sector:'Comm. Services',shares:11,cost_cad:1198.03,ccy:'USD'},
+    {ticker:'MSTR',name:'Strategy Inc',account:'Investment',sector:'Technology',shares:4,cost_cad:1858.45,ccy:'USD'},
+    {ticker:'RY.TO',name:'Royal Bank Of Canada',account:'Investment',sector:'Financials',shares:19,cost_cad:3895.45,ccy:'CAD'},
+    {ticker:'SPXL',name:'Direxion Daily S&amp;P 500 Bull 3X ',account:'Investment',sector:'Leveraged ETF',shares:75,cost_cad:9752.23,ccy:'USD'},
+    {ticker:'TSM',name:'Taiwan Semiconductor Manufactur',account:'Investment',sector:'Technology',shares:9,cost_cad:2698.61,ccy:'USD'},
+    {ticker:'TXF.TO',name:'Ci Tech Giants Covered Call Etf',account:'Investment',sector:'Technology',shares:221,cost_cad:4955.93,ccy:'CAD'},
+    {ticker:'USD=CASH',name:'USD',account:'Investment',sector:'Cash',shares:57.39,cost_cad:0.00,ccy:'USD'},
+    {ticker:'V',name:'Visa Inc.',account:'Investment',sector:'Financials',shares:4,cost_cad:1145.69,ccy:'USD'},
+    {ticker:'CAD=CASH',name:'CAD',account:'RRSP',sector:'Cash',shares:0.001,cost_cad:0.00,ccy:'CAD'},
+    {ticker:'FNGU',name:'MicroSectors FANG+ 3X Leveraged',account:'RRSP',sector:'Leveraged ETF',shares:56,cost_cad:1080.27,ccy:'USD'},
+    {ticker:'TSM',name:'Taiwan Semiconductor Manufactur',account:'RRSP',sector:'Technology',shares:6,cost_cad:2358.71,ccy:'USD'},
+    {ticker:'TXF.TO',name:'Ci Tech Giants Covered Call Etf',account:'RRSP',sector:'Technology',shares:284,cost_cad:6184.11,ccy:'CAD'},
+    {ticker:'UDOW',name:'ProShares UltraPro Dow30',account:'RRSP',sector:'Leveraged ETF',shares:36,cost_cad:1864.13,ccy:'USD'},
+    {ticker:'USD=CASH',name:'USD',account:'RRSP',sector:'Cash',shares:7685.47,cost_cad:0.00,ccy:'USD'},
+    {ticker:'AAPL',name:'Apple Inc.',account:'TFSA',sector:'Technology',shares:4,cost_cad:619.79,ccy:'USD'},
+    {ticker:'AVGO',name:'Broadcom Inc.',account:'TFSA',sector:'Technology',shares:8,cost_cad:3193.79,ccy:'USD'},
+    {ticker:'BMO',name:'Bank Of Montreal',account:'TFSA',sector:'Financials',shares:15,cost_cad:1661.44,ccy:'USD'},
+    {ticker:'CAD=CASH',name:'CAD',account:'TFSA',sector:'Cash',shares:0.001,cost_cad:0.00,ccy:'CAD'},
+    {ticker:'CM.TO',name:'Canadian Imperial Bank Of Comme',account:'TFSA',sector:'Financials',shares:45,cost_cad:2957.00,ccy:'CAD'},
+    {ticker:'COST',name:'Costco Wholesale Corporation',account:'TFSA',sector:'Consumer Staples',shares:3,cost_cad:1210.48,ccy:'USD'},
+    {ticker:'ET',name:'Energy Transfer LP',account:'TFSA',sector:'Energy',shares:60,cost_cad:779.09,ccy:'USD'},
+    {ticker:'FNGU',name:'MicroSectors FANG+ 3X Leveraged',account:'TFSA',sector:'Leveraged ETF',shares:495,cost_cad:9538.70,ccy:'USD'},
+    {ticker:'MSFT',name:'Microsoft Corporation',account:'TFSA',sector:'Technology',shares:2,cost_cad:476.43,ccy:'USD'},
+    {ticker:'NFLX',name:'Netflix,Inc.',account:'TFSA',sector:'Comm. Services',shares:20,cost_cad:1322.09,ccy:'USD'},
+    {ticker:'NVDA',name:'NVIDIA Corporation',account:'TFSA',sector:'Technology',shares:40,cost_cad:623.02,ccy:'USD'},
+    {ticker:'QCOM',name:'QUALCOMM Incorporated',account:'TFSA',sector:'Technology',shares:5,cost_cad:626.93,ccy:'USD'},
+    {ticker:'SHEL',name:'Shell PLC',account:'TFSA',sector:'Energy',shares:22,cost_cad:1291.68,ccy:'USD'},
+    {ticker:'SPXL',name:'Direxion Daily S&amp;P 500 Bull 3X ',account:'TFSA',sector:'Leveraged ETF',shares:23,cost_cad:5851.30,ccy:'USD'},
+    {ticker:'TSLA',name:'Tesla,Inc.',account:'TFSA',sector:'Consumer Disc.',shares:14,cost_cad:4773.18,ccy:'USD'},
+    {ticker:'TXF.TO',name:'Ci Tech Giants Covered Call Etf',account:'TFSA',sector:'Technology',shares:320,cost_cad:7033.29,ccy:'CAD'},
+    {ticker:'UDOW',name:'ProShares UltraPro Dow30',account:'TFSA',sector:'Leveraged ETF',shares:84,cost_cad:4266.02,ccy:'USD'},
+    {ticker:'USD=CASH',name:'USD',account:'TFSA',sector:'Cash',shares:344.41,cost_cad:0.00,ccy:'USD'}
+];
+
+const TICKER_NAMES = {};
+HOLDINGS_STATIC.forEach(h => { TICKER_NAMES[h.ticker] = h.name; });
+
+const TICKER_STRIP_LIST = ["ENB.TO", "FNGU", "SPXL", "TXF.TO", "UDOW", "BYDDF", "CM.TO", "GBTC", "IBKR", "LYV", "MSTR", "RY.TO", "TSM", "V", "AAPL", "AVGO", "BMO", "COST", "ET", "MSFT", "NFLX", "NVDA", "QCOM", "SHEL", "TSLA"];
+
+// ============================================================
+// UTILITY HELPERS
+// ============================================================
+let sortDir = {};
+const fmt$ = (n, dec=0) => {
+  if (n == null) return '—';
+  const abs = Math.abs(n);
+  const s = abs.toLocaleString('en-CA', {minimumFractionDigits:dec,maximumFractionDigits:dec});
+  return (n < 0 ? '-$' : '$') + s;
+};
+const fmtPct = (n) => n == null ? '—' : `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
+const colorClass = (n) => n == null ? '' : (n >= 0 ? 'green' : 'red');
+const acctBadgeClass = (acct) => ({'TFSA':'badge-tfsa','FHSA':'badge-fhsa','RRSP':'badge-rrsp','Investment':'badge-inv'}[acct] || 'badge-inv');
+function isCashTicker(t) { return t === 'CAD=CASH' || t === 'USD=CASH'; }
+function isMarketOpen() {
+  const now = new Date();
+  const etOffset = -4;
+  const et = new Date(now.getTime() + (now.getTimezoneOffset() + etOffset * 60) * 60000);
+  const day = et.getDay();
+  const hour = et.getHours() + et.getMinutes() / 60;
+  return day >= 1 && day <= 5 && hour >= 9.5 && hour <= 16;
+}
+
+// ============================================================
+// LIVE PORTFOLIO COMPUTATION
+// Book cost = historic FX (already baked into cost_cad)
+// Market value = current price × current USD/CAD
+// ============================================================
+function computeLivePortfolio(liveData) {
+  const usdcad = liveData?.usdcad || 1.37;
+  const prices = liveData?.holdings || {};
+  let totalValue = 0, dailyChange = 0;
+  const accounts = {TFSA:0, FHSA:0, RRSP:0, Investment:0, Crypto:0};
+
+  for (const h of HOLDINGS_STATIC) {
+    const isCash = isCashTicker(h.ticker);
+    const px = isCash ? 1 : (prices[h.ticker]?.price ?? null);
+    const prev = isCash ? 1 : (prices[h.ticker]?.prev ?? px);
+    if (px == null) continue;
+    let val = px * h.shares;
+    let prevVal = (prev ?? px) * h.shares;
+    if (h.ccy === 'USD') { val *= usdcad; prevVal *= usdcad; }
+    totalValue += val;
+    dailyChange += (val - prevVal);
+    if (accounts[h.account] !== undefined) accounts[h.account] += val;
+    else accounts[h.account] = (accounts[h.account] || 0) + val;
+  }
+
+  const totalCost = TOTAL_CONTRIBUTIONS;
+  const totalPnl = totalValue - totalCost;
+  const fxImpact = Math.round((usdcad * USD_COST_BASIS_USD) - USD_COST_BASIS_CAD);
+  const unrealized = Math.round(totalPnl - REALIZED_GAINS_CAD - fxImpact);
+  const baseVal = totalValue - dailyChange;
+
+  return {
+    total_value: Math.round(totalValue),
+    total_pnl: Math.round(totalPnl),
+    unrealized_gain: unrealized,
+    fx_impact: fxImpact,
+    roi_pct: totalCost ? +(totalPnl / totalCost * 100).toFixed(2) : 0,
+    daily_change: Math.round(dailyChange),
+    daily_change_pct: baseVal ? +(dailyChange / baseVal * 100).toFixed(2) : 0,
+    accounts: Object.fromEntries(Object.entries(accounts).map(([k,v]) => [k, Math.round(v)])),
+    account_cost: {...CONTRIBUTIONS_CAD},
+  };
+}
+
+// ============================================================
+// TICKER STRIP
+// ============================================================
+function buildTickerStrip(holdings) {
+  const items = TICKER_STRIP_LIST.map(sym => {
+    const p = holdings[sym];
+    if (!p) return `<div class="tick-item"><span class="tick-sym">${sym}</span><span class="tick-price text3">—</span></div>`;
+    const chgCls = (p.change_pct || 0) >= 0 ? 'pos' : 'neg';
+    return `<div class="tick-item"><span class="tick-sym">${sym}</span><span class="tick-price">${fmt$(p.price, 2)}</span><span class="tick-chg ${chgCls}">${fmtPct(p.change_pct)}</span></div>`;
+  }).join('');
+  document.getElementById('tickerTrack').innerHTML = items + items;
+}
+
+// ============================================================
+// MARKET WIDGET
+// ============================================================
+function updateMarketWidget(benchmarks) {
+  [['mwSP500','mwSP500chg','sp500'],['mwNasdaq','mwNasdaqchg','nasdaq'],['mwTSX','mwTSXchg','tsx'],['mwVIX','mwVIXchg','vix'],['mwTreasury','mwTreasurychg','treasury_10y'],['mwDow','mwDowchg','dow']].forEach(([valId, chgId, key]) => {
+    const d = benchmarks[key]; if (!d) return;
+    const el = document.getElementById(valId);
+    const chgEl = document.getElementById(chgId);
+    if (el) {
+      if (key === 'treasury_10y') el.textContent = `${d.price?.toFixed(2)}%`;
+      else if (key === 'vix') el.textContent = d.price?.toFixed(2);
+      else el.textContent = d.price?.toLocaleString('en-CA', {maximumFractionDigits:0});
+      el.className = `mw-value ${colorClass(d.change_pct)}`;
+    }
+    if (chgEl) { chgEl.textContent = fmtPct(d.change_pct); chgEl.className = `mw-chg ${colorClass(d.change_pct)}`; }
+  });
+}
+
+// ============================================================
+// UPDATE KPIs
+// ============================================================
+function updateHeaderKPIs(port) {
+  document.getElementById('kpiTotalValue').textContent = fmt$(port.total_value);
+  document.getElementById('kpiTotalPnl').textContent = fmt$(port.total_pnl);
+  document.getElementById('kpiTotalPnl').className = `hkpi-value ${colorClass(port.total_pnl)}`;
+  document.getElementById('kpiRoi').textContent = fmtPct(port.roi_pct);
+  document.getElementById('kpiRoi').className = `hkpi-value ${colorClass(port.roi_pct)}`;
+  const dcEl = document.getElementById('kpiDailyChange');
+  dcEl.textContent = `${fmt$(port.daily_change)} (${fmtPct(port.daily_change_pct)})`;
+  dcEl.className = `hkpi-value ${colorClass(port.daily_change)}`;
+  document.getElementById('cardUnrealized').textContent = fmt$(port.unrealized_gain);
+  document.getElementById('cardUnrealized').className = `card-value ${colorClass(port.unrealized_gain)}`;
+  const fxEl = document.getElementById('cardFX');
+  fxEl.textContent = fmt$(port.fx_impact);
+  fxEl.className = `card-value ${colorClass(port.fx_impact)}`;
+  document.getElementById('kpiFxImpact').textContent = fmt$(port.fx_impact);
+  document.getElementById('kpiFxImpact').className = `hkpi-value ${colorClass(port.fx_impact)}`;
+}
+
+// ============================================================
+// HOLDINGS TABLE
+// ============================================================
+function renderHoldingsTable(liveData) {
+  const usdcad = liveData?.usdcad || 1.37;
+  const hPrices = liveData?.holdings || {};
+  const tbody = document.getElementById('holdingsBody');
+
+  const totalVal = HOLDINGS_STATIC.reduce((sum, h) => {
+    const price = isCashTicker(h.ticker) ? 1 : (hPrices[h.ticker]?.price ?? null);
+    if (!price) return sum;
+    let mv = price * h.shares;
+    if (h.ccy === 'USD') mv *= usdcad;
+    return sum + mv;
+  }, 0);
+
+  tbody.innerHTML = HOLDINGS_STATIC.map(h => {
+    const p = hPrices[h.ticker];
+    const livePrice = isCashTicker(h.ticker) ? 1 : p?.price;
+    const dayChg = p?.change_pct;
+    let mktVal = null, liveStr = '—', dayStr = '—';
+
+    if (livePrice != null) {
+      mktVal = livePrice * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      liveStr = isCashTicker(h.ticker) ? `$1.00 ${h.ccy}` : (h.ccy === 'USD' ? `$${livePrice.toFixed(2)} USD` : `$${livePrice.toFixed(2)} CAD`);
+      dayStr = fmtPct(dayChg);
+    }
+
+    const costCad = isCashTicker(h.ticker) ? (mktVal ?? 0) : h.cost_cad;
+    const unreal = (mktVal ?? 0) - costCad;
+    const pctReturn = costCad > 0 ? (unreal / costCad * 100) : 0;
+    const weight = totalVal > 0 && mktVal != null ? (mktVal / totalVal * 100) : 0;
+    const pnlColor = unreal >= 0 ? 'green' : 'red';
+    const dayColor = dayChg == null ? '' : (dayChg >= 0 ? 'green' : 'red');
+    const pnlAttr = unreal >= 0 ? 'gain' : 'loss';
+    const acctBadge = acctBadgeClass(h.account);
+    const widthPx = Math.max(1, Math.round(weight * 1.5));
+
+    return `<tr data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}">
+      <td class="mono blue">${h.ticker}</td>
+      <td class="text2">${h.name}</td>
+      <td><span class="badge ${acctBadge}">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
+      <td class="text2 small">${h.sector}</td>
+      <td class="mono">${h.shares}</td>
+      <td class="mono small ${dayColor}">${liveStr}</td>
+      <td class="mono small ${dayColor}">${dayStr}</td>
+      <td class="mono">${fmt$(costCad)}</td>
+      <td class="mono">${fmt$(mktVal)}</td>
+      <td class="mono ${pnlColor}">${fmt$(unreal)} (${pctReturn >= 0 ? '+' : ''}${pctReturn.toFixed(1)}%)</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight.toFixed(1)}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>`;
+  }).join('');
+  updateRowCount();
+}
+
+// ============================================================
+// TABLE FILTER / SORT
+// ============================================================
+function filterTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const acct = document.getElementById('acctFilter').value;
+  const sector = document.getElementById('sectorFilter').value;
+  const pnl = document.getElementById('pnlFilter').value;
+  document.querySelectorAll('#holdingsBody tr').forEach(r => {
+    const ticker = r.cells[0]?.textContent.toLowerCase() || '';
+    const name = r.cells[1]?.textContent.toLowerCase() || '';
+    const rowAcct = r.getAttribute('data-account') || '';
+    const rowSector = r.getAttribute('data-sector') || '';
+    const rowPnl = r.getAttribute('data-pnl') || '';
+    r.style.display = (!search || ticker.includes(search) || name.includes(search))
+      && (!acct || rowAcct === acct) && (!sector || rowSector === sector)
+      && (!pnl || rowPnl === pnl) ? '' : 'none';
+  });
+  updateRowCount();
+}
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('acctFilter').value = '';
+  document.getElementById('sectorFilter').value = '';
+  document.getElementById('pnlFilter').value = '';
+  filterTable();
+}
+function updateRowCount() {
+  const total = document.querySelectorAll('#holdingsBody tr').length;
+  const visible = document.querySelectorAll('#holdingsBody tr:not([style*="none"])').length;
+  document.getElementById('rowCount').textContent = `${visible} / ${total} holdings`;
+}
+function sortTable(col) {
+  const tbody = document.getElementById('holdingsBody');
+  const rows = [...tbody.querySelectorAll('tr')];
+  sortDir[col] = !sortDir[col];
+  rows.sort((a, b) => {
+    const av = a.cells[col]?.textContent.replace(/[$,+%]/g, '') || '';
+    const bv = b.cells[col]?.textContent.replace(/[$,+%]/g, '') || '';
+    const an = parseFloat(av), bn = parseFloat(bv);
+    const v = isNaN(an) || isNaN(bn) ? av.localeCompare(bv) : an - bn;
+    return sortDir[col] ? v : -v;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+// ============================================================
+// DATA FETCHING
+// ============================================================
+async function fetchMarketData() {
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/api/market`, { signal: AbortSignal.timeout(12000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    document.getElementById('liveDot').className = 'live-dot';
+    document.getElementById('liveStatus').textContent = 'LIVE';
+    document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+    document.getElementById('usdcadRate').textContent = `USD/CAD ${data.usdcad?.toFixed(4)}`;
+
+    const open = isMarketOpen();
+    const badge = document.getElementById('marketStatusBadge');
+    badge.className = `mkt-badge ${open ? 'mkt-open' : 'mkt-closed'}`;
+    badge.textContent = open ? 'MARKET OPEN' : 'MARKET CLOSED';
+    document.getElementById('headerDate').textContent = `Live as of ${new Date().toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}`;
+
+    if (data.benchmarks) updateMarketWidget(data.benchmarks);
+    if (data.holdings) buildTickerStrip(data.holdings);
+
+    const computed = computeLivePortfolio(data);
+    updateHeaderKPIs(computed);
+    renderHoldingsTable(data);
+
+    return data;
+  } catch (err) {
+    console.warn('Market data fetch failed:', err.message);
+    document.getElementById('liveDot').className = 'live-dot offline';
+    document.getElementById('liveStatus').textContent = 'Offline — using static data';
+    renderHoldingsTable(null);
+    return null;
+  }
+}
+
+async function refreshAll() { await fetchMarketData(); }
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  renderHoldingsTable(null);
+  updateRowCount();
+  document.getElementById('headerDate').textContent = `As of ${new Date().toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}`;
+  document.getElementById('footerTimestamp').textContent = `Dashboard last loaded: ${new Date().toLocaleString('en-CA', { dateStyle: 'full', timeStyle: 'medium' })}`;
+  fetchMarketData();
+  setInterval(fetchMarketData, CONFIG.MARKET_REFRESH_MS);
+});
+</script>
+
+</body>
+</html>

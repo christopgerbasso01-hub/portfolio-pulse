@@ -95,11 +95,12 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .chart-filter-btn:hover,.chart-filter-btn.active{background:var(--blue-glow);border-color:var(--blue-bright);color:var(--blue-bright)}
 
 /* ============================  MARKET WIDGET  ============================ */
-.market-widget{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;padding:16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px}
-.mw-item{text-align:center}
-.mw-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
-.mw-value{font-family:var(--mono);font-size:14px;font-weight:700}
-.mw-chg{font-family:var(--mono);font-size:10px;margin-top:2px}
+.market-widget{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:20px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.mw-item{display:flex;align-items:center;gap:8px;padding:8px 16px;border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0}
+.mw-item:last-child{border-right:none}
+.mw-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.mw-value{font-family:var(--mono);font-size:12px;font-weight:700}
+.mw-chg{font-family:var(--mono);font-size:11px}
 
 /* ============================  MISC  ============================ */
 .green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}.blue{color:var(--blue-bright)}.purple{color:var(--purple)}
@@ -243,8 +244,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   .header-kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .card-value { font-size: 16px; }
 
-  /* Market widget */
-  .market-widget { grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; }
+  /* Market widget — flex wraps naturally on small screens */
 
   /* All multi-column grids collapse */
   .grid-4, .acct-grid, .tax-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -260,7 +260,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 
   /* Chart heights */
   #roiChart, #portfolioValueChart { height: 220px !important; }
-  #accountRoiChart, #contribChart { height: 180px !important; }
+  #contribChart { height: 180px !important; }
   #acctChart, #sectorChart, #geoChart, #assetChart { height: 160px !important; }
 
   /* Holdings table — horizontal scroll */
@@ -282,7 +282,6 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 
 @media (max-width: 480px) {
   .header-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .market-widget { grid-template-columns: repeat(2, 1fr); }
   .grid-4, .acct-grid, .tax-grid { grid-template-columns: 1fr; }
   .card-value { font-size: 15px; }
   .header-title h1 { font-size: 14px; }
@@ -450,19 +449,14 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
       <div class="mw-chg" id="mwTSXchg">—</div>
     </div>
     <div class="mw-item">
-      <div class="mw-label">VIX</div>
-      <div class="mw-value" id="mwVIX">—</div>
-      <div class="mw-chg" id="mwVIXchg">—</div>
+      <div class="mw-label">Dow Jones</div>
+      <div class="mw-value" id="mwDow">—</div>
+      <div class="mw-chg" id="mwDowchg">—</div>
     </div>
     <div class="mw-item">
       <div class="mw-label">10Y Treasury</div>
       <div class="mw-value" id="mwTreasury">—</div>
       <div class="mw-chg" id="mwTreasurychg">—</div>
-    </div>
-    <div class="mw-item">
-      <div class="mw-label">Dow Jones</div>
-      <div class="mw-value" id="mwDow">—</div>
-      <div class="mw-chg" id="mwDowchg">—</div>
     </div>
   </div>
 
@@ -535,10 +529,6 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     <span class="section-num">02</span>
     <span class="section-title">CONTRIBUTION-WEIGHTED BENCHMARK</span>
   </div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-label">Methodology</div>
-    <p style="font-size:12px;color:var(--text2);margin-top:6px">Equivalent contributions invested into each index at their respective dates. The initial $33,000 balance is anchored at September 2021. Final benchmark value = units × current index. This contribution-weighted approach fairly compares Chris's actual strategy against passive alternatives.</p>
-  </div>
   <div style="max-width:600px;margin-bottom:20px">
     <div class="bm-bar-wrap">
       <div class="bm-bar-label">
@@ -570,15 +560,9 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     </div>
     <div style="margin-top:8px;font-size:11px;color:var(--green)" id="bmAlphaLine">✓ Portfolio ALPHA over S&amp;P 500: +64.3 percentage points</div>
   </div>
-  <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px">
-    <div>
-      <div class="chart-title">ROI % Per Account (Independent Start Dates)</div>
-      <div class="chart-container"><canvas id="accountRoiChart"></canvas></div>
-    </div>
-    <div>
-      <div class="chart-title">Cumulative Contributions — All Accounts</div>
-      <div class="chart-container"><canvas id="contribChart"></canvas></div>
-    </div>
+  <div style="max-width:700px">
+    <div class="chart-title">Cumulative Contributions — All Accounts</div>
+    <div class="chart-container"><canvas id="contribChart"></canvas></div>
   </div>
 </div>
 
@@ -1188,9 +1172,8 @@ function updateMarketWidget(benchmarks) {
     ['mwSP500', 'mwSP500chg', 'sp500', 'S&P'],
     ['mwNasdaq', 'mwNasdaqchg', 'nasdaq', 'NDX'],
     ['mwTSX', 'mwTSXchg', 'tsx', 'TSX'],
-    ['mwVIX', 'mwVIXchg', 'vix', 'VIX'],
-    ['mwTreasury', 'mwTreasurychg', 'treasury_10y', '10Y'],
     ['mwDow', 'mwDowchg', 'dow', 'DOW'],
+    ['mwTreasury', 'mwTreasurychg', 'treasury_10y', '10Y'],
   ];
   pairs.forEach(([valId, chgId, key]) => {
     const d = benchmarks[key];
@@ -1350,18 +1333,6 @@ function updateHeaderKPIs(data) {
       accts.RRSP      || 0,
     ];
     acctChart.update();
-  }
-
-  // Live per-account ROI bar chart
-  if (accountRoiChart && accts.TFSA) {
-    const ac = portfolio.account_cost || {};
-    const roiFor = (val, cost) => val && cost ? (val - cost) / cost * 100 : null;
-    const tfsaR  = roiFor(accts.TFSA,       ac.TFSA);
-    const fhsaR  = roiFor(accts.FHSA,       ac.FHSA);
-    const rrspR  = roiFor(accts.RRSP,       ac.RRSP);
-    const invR   = roiFor(accts.Investment,  ac.Investment);
-    accountRoiChart.data.datasets[0].data = [tfsaR, fhsaR, rrspR, invR];
-    accountRoiChart.update();
   }
 
   // ROI based on client-side market value vs contributions
@@ -2016,7 +1987,7 @@ Chart.defaults.color = '#94a3b8';
 Chart.defaults.borderColor = '#1a2e4a';
 Chart.defaults.font.family = "'DM Sans', sans-serif";
 
-let roiChart, portfolioValueChart, acctChart, sectorChart, geoChart, assetChart, accountRoiChart, contribChart;
+let roiChart, portfolioValueChart, acctChart, sectorChart, geoChart, assetChart, contribChart;
 let currentFilter = 'all';
 
 const roiByAcct = { all: dataAllTime, tfsa: dataTFSAd, inv: dataInvd, fhsa: dataFHSAd, rrsp: dataRRSPd };
@@ -2083,16 +2054,6 @@ function initCharts() {
       datasets: [{ data: [126652, 119205, 33716, 3162], backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'], borderWidth: 0 }]
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 8 } } } }
-  });
-
-  // Account ROI Bar
-  accountRoiChart = new Chart(document.getElementById('accountRoiChart').getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: ['TFSA', 'FHSA', 'RRSP', 'Investment'],
-      datasets: [{ label: 'ROI %', data: [120.84, 122.96, 72.15, 45.03], backgroundColor: ['#3b82f6', '#10b981', '#fbbf24', '#94a3b8'], borderRadius: 4 }]
-    },
-    options: { ...chartOpts('ROI %', 'pct'), plugins: { legend: { display: false } } }
   });
 
   // Contributions Area
@@ -2828,12 +2789,20 @@ async function sendChat() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: msg,
-        portfolio:    currentMarketData?.portfolio || {},
-        intelligence: intelligenceData || {},
-        history:      chatHistory.slice(-12),
+        message:         msg,
+        portfolio:       currentMarketData?.portfolio || {},
+        intelligence:    intelligenceData || {},
+        history:         chatHistory.slice(-12),
+        holdings_prices: currentMarketData?.holdings || {},
+        holdings_list:   HOLDINGS_STATIC.map(h => ({
+          ticker:  h.ticker,
+          name:    h.name,
+          account: h.account,
+          shares:  h.shares,
+          ccy:     h.ccy,
+        })),
       }),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(35000),
     });
 
     const data = await res.json();

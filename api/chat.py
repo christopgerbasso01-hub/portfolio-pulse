@@ -83,47 +83,56 @@ def should_search(message: str) -> bool:
 
 
 def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
-    """Build a per-holding performance table sorted by today's change."""
+    """Build a per-holding table. ALL holdings are included — live price shown
+    where available, 'n/a' where market data is missing (e.g. Canadian close)."""
     if not holdings_list:
         return ""
 
-    rows = []
+    live_rows = []
+    no_price_rows = []
+
     for h in holdings_list:
         ticker = h.get("ticker", "")
         if ticker.startswith("_CASH"):
             continue
-        p = holdings_prices.get(ticker) or {}
-        price    = p.get("price")
-        day_pct  = p.get("change_pct")
-        day_chg  = p.get("change")
-        shares   = h.get("shares", 0)
-        ccy      = h.get("ccy", "USD")
+        p       = holdings_prices.get(ticker) or {}
+        price   = p.get("price")
+        day_pct = p.get("change_pct")
+        shares  = h.get("shares", 0)
+        ccy     = h.get("ccy", "USD")
+        row = {
+            "ticker":  ticker,
+            "name":    h.get("name", ""),
+            "account": h.get("account", ""),
+            "shares":  shares,
+            "ccy":     ccy,
+            "price":   price,
+            "day_pct": day_pct if day_pct is not None else None,
+        }
         if price is not None:
-            rows.append({
-                "ticker":  ticker,
-                "name":    h.get("name", ""),
-                "account": h.get("account", ""),
-                "shares":  shares,
-                "ccy":     ccy,
-                "price":   price,
-                "day_pct": day_pct if day_pct is not None else 0.0,
-                "day_chg": day_chg if day_chg is not None else 0.0,
-            })
+            live_rows.append(row)
+        else:
+            no_price_rows.append(row)
 
-    if not rows:
-        return ""
+    # Sort live rows best → worst; no-price rows alphabetically
+    live_rows.sort(key=lambda x: x["day_pct"] if x["day_pct"] is not None else 0.0, reverse=True)
+    no_price_rows.sort(key=lambda x: x["ticker"])
 
-    rows.sort(key=lambda x: x["day_pct"], reverse=True)
-
-    lines = ["", "HOLDINGS — TODAY'S PERFORMANCE (sorted best → worst):"]
+    lines = ["", "FULL HOLDINGS LIST (all positions):"]
     lines.append(f"  {'TICKER':<8}  {'ACCOUNT':<12}  {'SHARES':>6}  {'PRICE':>9}  {'DAY %':>7}")
-    lines.append("  " + "-" * 52)
-    for r in rows:
-        sign = "+" if r["day_pct"] >= 0 else ""
+    lines.append("  " + "-" * 54)
+
+    for r in live_rows + no_price_rows:
+        if r["price"] is not None:
+            pct_str = (("+" if r["day_pct"] >= 0 else "") + f"{r['day_pct']:.2f}%") if r["day_pct"] is not None else "  n/a"
+            price_str = f"${r['price']:>8.2f} {r['ccy']}"
+        else:
+            pct_str   = "  n/a"
+            price_str = f"{'n/a':>12}"
         lines.append(
-            f"  {r['ticker']:<8}  {r['account']:<12}  {r['shares']:>6}  "
-            f"${r['price']:>8.2f} {r['ccy']}  {sign}{r['day_pct']:.2f}%"
+            f"  {r['ticker']:<8}  {r['account']:<12}  {r['shares']:>6}  {price_str}  {pct_str}"
         )
+
     return "\n".join(lines)
 
 

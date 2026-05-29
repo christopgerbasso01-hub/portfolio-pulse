@@ -155,33 +155,35 @@ def tavily_search(query: str, search_depth: str = "basic", max_results: int = 7)
     """Search via Tavily AI — reliable from Vercel/AWS, built for AI agents."""
     api_key = os.environ.get("TAVILY_API_KEY", "")
     if not api_key:
+        print("  tavily: no API key set")
         return ""
     try:
         resp = requests.post(
             "https://api.tavily.com/search",
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type":  "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
             json={
-                "api_key":      api_key,
-                "query":        query,
-                "search_depth": search_depth,
-                "max_results":  max_results,
+                "query":          query,
+                "search_depth":   search_depth,
+                "max_results":    max_results,
                 "include_answer": True,
             },
-            timeout=10,
+            timeout=12,
         )
         resp.raise_for_status()
         data = resp.json()
 
         results = []
-        # Include Tavily's direct answer if present (often very precise for dates)
         if data.get("answer"):
-            results.append(f"Summary: {data['answer']}")
+            results.append(f"Direct answer: {data['answer']}")
         for r in data.get("results", []):
             title   = r.get("title", "")
-            content = (r.get("content") or "")[:350]
-            url     = r.get("url", "")
-            results.append(f"{title} ({url}): {content}")
+            content = (r.get("content") or "")[:400]
+            results.append(f"{title}: {content}")
 
+        print(f"  tavily: returned {len(results)} results for: {query[:60]}")
         return "\n\n".join(results)
     except Exception as exc:
         print(f"  tavily_search error: {exc}")

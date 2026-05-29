@@ -27,7 +27,7 @@ TAVILY_API_KEY  = os.environ.get("TAVILY_API_KEY", "")
 FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
 GROQ_MODEL      = "llama-3.3-70b-versatile"
 GROQ_URL        = "https://api.groq.com/openai/v1/chat/completions"
-MAX_TOOL_ROUNDS = 6  # max back-and-forth tool-call rounds per request
+MAX_TOOL_ROUNDS = 5  # max back-and-forth tool-call rounds per request
 
 # ── Tool status labels (shown in UI while tools run) ──────────────────────────
 _TOOL_STATUS = {
@@ -631,9 +631,10 @@ def build_system_prompt(
     cash_total = sum(c.get("amount", 0) for c in cash_positions)
     overall_return = (total_pnl / total_cost * 100) if total_cost else 0
 
-    # Compact positions table (ticker, account, shares, mkt value, return%)
+    # Compact positions list (top 20 by weight to keep token count manageable)
     pos_lines = []
-    for h in sorted(holdings_list, key=lambda x: -(x.get("weight") or 0)):
+    sorted_holdings = sorted(holdings_list, key=lambda x: -(x.get("weight") or 0))
+    for h in sorted_holdings[:20]:
         ticker = h.get("ticker", "")
         pd = holdings_prices.get(ticker) or {}
         price = pd.get("price")
@@ -642,9 +643,11 @@ def build_system_prompt(
         unreal = h.get("unrealized", 0)
         mkt = (price * shares) if (price and shares) else (cost + unreal)
         pos_lines.append(
-            f"  {ticker:<10} {h.get('account',''):<12} {h.get('name',''):<28} "
-            f"${mkt:>10,.0f}   {h.get('pct_return',0):>+7.1f}%   {h.get('shares',0)} shares"
+            f"  {ticker:<9} {h.get('account',''):<11} {h.get('name','')[:22]:<22} "
+            f"${mkt:>9,.0f}  {h.get('pct_return',0):>+6.1f}%"
         )
+    if len(sorted_holdings) > 20:
+        pos_lines.append(f"  ... and {len(sorted_holdings)-20} more — call get_portfolio_data for full list")
 
     acct_lines = "\n".join(
         f"  {a}: ${v:,.0f}" for a, v in sorted(account_totals.items())
@@ -779,9 +782,7 @@ class handler(BaseHTTPRequestHandler):
 
         try:
             for round_num in range(MAX_TOOL_ROUNDS):
-                # Round 0: force at least one tool call (required).
-                # Round 1+: model decides (auto).
-                tool_choice = "required" if round_num == 0 else "auto"
+                tool_choice = "auto"
                 resp = requests.post(
                     GROQ_URL,
                     headers={
@@ -801,7 +802,21 @@ class handler(BaseHTTPRequestHandler):
                 )
                 if not resp.ok:
                     print(f"  Groq round-{round_num} error {resp.status_code}: {resp.text[:300]}")
-                    break
+                    if resp.status_code == 429:
+                        # Rate limit — wait and retry once
+                        import time; time.sleep(8)
+                        resp = requests.post(
+                            GROQ_URL,
+                            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                            json={"model": GROQ_MODEL, "messages": messages, "tools": TOOLS,
+                                  "tool_choice": tool_choice, "temperature": 0.3,
+                                  "max_tokens": 1024, "stream": False},
+                            timeout=25,
+                        )
+                        if not resp.ok:
+                            break
+                    else:
+                        break
 
                 choice = resp.json()["choices"][0]
                 msg = choice["message"]
@@ -872,6 +887,14 @@ class handler(BaseHTTPRequestHandler):
                 timeout=35,
                 stream=True,
             )
+
+            if not stream_resp.ok and stream_resp.status_code == 429:
+                import time; time.sleep(8)
+                stream_resp = requests.post(
+                    GROQ_URL,
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                    json=stream_payload, timeout=35, stream=True,
+                )
 
             if not stream_resp.ok:
                 err = stream_resp.text[:400]

@@ -13,6 +13,7 @@ Request body:
     "holdings_list":  array    ([{ticker, name, account, shares, ccy}])
   }
 """
+import datetime
 import json
 import os
 import requests
@@ -21,14 +22,96 @@ from http.server import BaseHTTPRequestHandler
 GROQ_URL   = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# Keywords that suggest the user wants external market/news information
-_SEARCH_TRIGGERS = [
-    "news", "today", "latest", "why", "what happened", "what's happening",
-    "whats happening", "earnings", "inflation", "fed ", "rate ", "rates",
-    "market", "nasdaq", "s&p", "tsx", "crypto", "bitcoin", "etf", "sector",
-    "analyst", "upgrade", "downgrade", "report", "data", "gdp", "jobs",
-    "tariff", "trade", "geopolit", "oil", "gold", "bond", "yield",
+# ── Search trigger categories ────────────────────────────────────────────────
+
+# Factual / calendar lookups — no time cap needed; use text search
+_TRIGGERS_LOOKUP = [
+    "earnings", "when are", "when is", "when does", "when will",
+    "ex-div", "ex div", "ex-dividend", "dividend date", "pay date", "record date",
+    "split", "stock split", "ipo", "merger", "acquisition", "takeover",
+    "guidance", "forecast", "outlook", "eps", "revenue estimate",
+    "price target", "analyst", "upgrade", "downgrade", "rating",
+    "quarter", "report date", "next report", "fiscal",
 ]
+
+# Timely / news queries — use news search (1-month window)
+_TRIGGERS_NEWS = [
+    "news", "today", "latest", "why", "what happened", "what's happening",
+    "whats happening", "inflation", "fed ", "rate ", "rates",
+    "market", "nasdaq", "s&p", "tsx", "crypto", "bitcoin", "etf", "sector",
+    "tariff", "trade", "geopolit", "oil", "gold", "bond", "yield",
+    "moved", "moving", "dropped", "fell", "surged", "rallied", "crashed",
+    "pumped", "dipped", "spiked", "gdp", "jobs", "cpi", "pce",
+    "recession", "interest rate", "bank of canada", "federal reserve",
+]
+
+
+def classify_search(message: str) -> str | None:
+    """Return 'lookup', 'news', or None based on what the message needs."""
+    msg = message.lower()
+    if any(kw in msg for kw in _TRIGGERS_LOOKUP):
+        return "lookup"
+    if any(kw in msg for kw in _TRIGGERS_NEWS):
+        return "news"
+    return None
+
+
+def build_search_query(message: str, mode: str) -> str:
+    """Build an optimised DuckDuckGo query for the given search mode."""
+    year = datetime.date.today().year
+    if mode == "lookup":
+        # Append current year so facts are fresh without needing a time cap
+        base = message.strip()
+        if str(year) not in base:
+            base = f"{base} {year}"
+        return base
+    # News mode — ground it in finance/stocks
+    return f"{message} stock market"
+
+
+def web_search(query: str, mode: str = "news", max_results: int = 6) -> str:
+    """Search via DuckDuckGo. mode='news' for recent events, 'lookup' for facts/dates."""
+    try:
+        from duckduckgo_search import DDGS
+        results = []
+        with DDGS() as ddgs:
+            if mode == "news":
+                # 1-month window (was 1 week) — catches recent but not ancient news
+                for r in ddgs.news(query, max_results=max_results, timelimit="m"):
+                    date  = (r.get("date") or "")[:10]
+                    title = r.get("title") or ""
+                    body  = (r.get("body") or "")[:300]
+                    results.append(f"[{date}] {title}: {body}")
+                # Fall back to text search if no news results
+                if not results:
+                    for r in ddgs.text(query, max_results=3):
+                        results.append(f"{r.get('title','')}: {(r.get('body') or '')[:300]}")
+
+            else:  # lookup — text search has no time cap, great for dates/facts
+                for r in ddgs.text(query, max_results=max_results):
+                    title = r.get("title", "")
+                    body  = (r.get("body") or "")[:350]
+                    results.append(f"{title}: {body}")
+                # Supplement with any recent news on the same topic
+                for r in ddgs.news(query, max_results=3, timelimit="m"):
+                    date  = (r.get("date") or "")[:10]
+                    title = r.get("title") or ""
+                    body  = (r.get("body") or "")[:220]
+                    results.append(f"[{date}] {title}: {body}")
+
+        # Deduplicate by leading content
+        seen, deduped = set(), []
+        for r in results:
+            key = r[:80].lower()
+            if key not in seen:
+                seen.add(key)
+                deduped.append(r)
+
+        return "\n\n".join(deduped[:8])
+    except Exception as exc:
+        print(f"  web_search error: {exc}")
+        return ""
+
 
 SYSTEM_INSTRUCTION = """You are "Pulse", an AI portfolio analyst embedded in a personal Canadian investment dashboard.
 
@@ -44,7 +127,7 @@ YOUR ROLE:
   ✓ Explain what's happening in the market and why it matters to these specific positions
   ✓ Summarise news, themes, and sector moves in portfolio context
   ✓ Help understand account structures (TFSA, FHSA, RRSP, non-reg) and Canadian tax rules
-  ✓ Use web search results when provided to answer questions about current market events
+  ✓ Use web search results when provided — for earnings dates, analyst targets, news events, and any factual lookup
 
 STRICT LIMITS:
   ✗ Never predict specific future prices or guaranteed returns
@@ -56,34 +139,8 @@ STYLE:
   - Canadian context: CAD amounts, CRA rules, registered account nuances
   - Reference specific tickers and dollar amounts from the provided data
   - Be direct and analytical, not vague and hedged
+  - When web search results are provided, cite the specific date or source so the user knows how fresh the information is
   - Never add a regulatory disclaimer to routine portfolio or market questions"""
-
-
-def web_search(query: str, max_results: int = 5) -> str:
-    """Search the web via DuckDuckGo for live market/news context."""
-    try:
-        from duckduckgo_search import DDGS
-        results = []
-        with DDGS() as ddgs:
-            # Try news search first (most timely)
-            for r in ddgs.news(query, max_results=max_results, timelimit="w"):
-                date = (r.get("date") or "")[:10]
-                title = r.get("title") or ""
-                body  = (r.get("body") or "")[:220]
-                results.append(f"[{date}] {title}: {body}")
-            # Fall back to text search if no news results
-            if not results:
-                for r in ddgs.text(query, max_results=3):
-                    results.append(f"{r.get('title','')}: {(r.get('body') or '')[:220]}")
-        return "\n".join(results)
-    except Exception as exc:
-        print(f"  web_search error: {exc}")
-        return ""
-
-
-def should_search(message: str) -> bool:
-    msg = message.lower()
-    return any(kw in msg for kw in _SEARCH_TRIGGERS)
 
 
 def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
@@ -224,31 +281,33 @@ class handler(BaseHTTPRequestHandler):
                     f"  Concerns:     {concerns}",
                 ]
 
-            # ── 2. Web search if question needs external data ─────────
-            if should_search(message):
-                search_query = f"{message} stock market finance"
-                search_results = web_search(search_query)
+            # ── 2. Web search if question needs external data ─────────────
+            search_mode = classify_search(message)
+            if search_mode:
+                search_query   = build_search_query(message, search_mode)
+                search_results = web_search(search_query, mode=search_mode)
                 if search_results:
+                    label = "LOOKUP" if search_mode == "lookup" else "NEWS"
                     ctx_lines += [
                         "",
-                        "WEB SEARCH RESULTS:",
+                        f"WEB SEARCH RESULTS ({label}):",
                         search_results,
                     ]
 
             ctx_text = "\n".join(ctx_lines)
 
-            # ── 3. Build message array ────────────────────────────────
+            # ── 3. Build message array ────────────────────────────────────
             messages = [
                 {"role": "system",    "content": SYSTEM_INSTRUCTION},
                 {"role": "user",      "content": ctx_text},
-                {"role": "assistant", "content": "Understood — I have the complete holdings list with cost basis and live prices, portfolio totals, and today's market briefing. Ready to help."},
+                {"role": "assistant", "content": "Understood — I have the complete holdings list with cost basis and live prices, portfolio totals, today's market briefing, and any web search results. Ready to help."},
             ]
             for turn in history:
                 role = "user" if turn.get("role") == "user" else "assistant"
                 messages.append({"role": role, "content": turn.get("content", "")})
             messages.append({"role": "user", "content": message})
 
-            # ── 4. Call Groq ──────────────────────────────────────────
+            # ── 4. Call Groq ──────────────────────────────────────────────
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",

@@ -25,8 +25,8 @@ from http.server import BaseHTTPRequestHandler
 CEREBRAS_API_KEY = os.environ.get("CEREBRAS_API_KEY", "")
 TAVILY_API_KEY   = os.environ.get("TAVILY_API_KEY", "")
 FINNHUB_API_KEY  = os.environ.get("FINNHUB_API_KEY", "")
-LLM_MODEL        = "llama3.3-70b"    # high quality responses (60k TPM free tier)
-LLM_MODEL_FAST   = "llama3.1-8b"     # tool-calling rounds (60k TPM free tier)
+LLM_MODEL        = "gpt-oss-120b"    # Cerebras production model (120B)
+LLM_MODEL_FAST   = "gpt-oss-120b"    # same model — no smaller option currently listed
 LLM_URL          = "https://api.cerebras.ai/v1/chat/completions"
 MAX_TOOL_ROUNDS  = 5  # max back-and-forth tool-call rounds per request
 

@@ -1,486 +1,731 @@
 """
 Portfolio Pulse — AI Chat Endpoint
-Powered by Groq (Llama 3.3 70B, free tier).
-POST /api/chat  →  { reply: string }
+Architecture: Groq Llama 3.3 70B with tool calling + SSE streaming
 
-Request body:
-  {
-    "message":         string,
-    "portfolio":       object   (live portfolio totals from /api/market),
-    "intelligence":    object   (today's intelligence.json — full object),
-    "history":         array    (last N chat turns: [{role, content}]),
-    "holdings_prices": object   ({ticker: {price, change_pct, ...}}),
-    "holdings_list":   array    ([{ticker, name, account, shares, ccy, cost_total, ...}])
-  }
+Tools available to the model:
+  search_web                — Tavily AI real-time search
+  get_portfolio_data        — structured holdings retrieval
+  calculate_capital_gains_tax — deterministic Canadian tax calculator
+  get_dividend_forecast     — Finnhub + Tavily dividend lookup
+
+SSE event format:
+  data: {"status": "..."}   — tool-call progress (shown in typing indicator)
+  data: {"content": "..."}  — response text chunks (streamed)
+  data: [DONE]              — end of stream
 """
-import datetime
 import json
 import os
 import re
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler
 
-GROQ_URL   = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3.3-70b-versatile"
+# ── Config ────────────────────────────────────────────────────────────────────
+GROQ_API_KEY    = os.environ.get("GROQ_API_KEY", "")
+TAVILY_API_KEY  = os.environ.get("TAVILY_API_KEY", "")
+FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
+GROQ_MODEL      = "llama-3.3-70b-versatile"
+GROQ_URL        = "https://api.groq.com/openai/v1/chat/completions"
+MAX_TOOL_ROUNDS = 6  # max back-and-forth tool-call rounds per request
 
-# ── Search trigger words ─────────────────────────────────────────────────────
-
-_TRIGGERS_FINANCIAL = [
-    "earnings", "when are", "when is", "when does", "when will",
-    "ex-div", "ex div", "ex-dividend", "dividend date", "pay date", "record date",
-    "dividend", "next dividend", "distribution",
-    "split", "stock split", "ipo", "merger", "acquisition",
-    "guidance", "eps", "revenue estimate",
-    "price target", "analyst", "upgrade", "downgrade", "rating",
-    "quarter", "report date", "next report", "fiscal",
-]
-
-_TRIGGERS_NEWS = [
-    "news", "today", "latest", "why", "what happened", "what's happening",
-    "whats happening", "inflation", "fed ", "rate ", "rates",
-    "market", "nasdaq", "s&p", "tsx", "crypto", "bitcoin", "etf", "sector",
-    "tariff", "trade", "geopolit", "oil", "gold", "bond", "yield",
-    "moved", "moving", "dropped", "fell", "surged", "rallied", "crashed",
-    "dipped", "spiked", "gdp", "jobs", "cpi", "pce", "recession",
-    "interest rate", "bank of canada", "federal reserve",
-]
-
-# Words that look like tickers but aren't
-_STOP_WORDS = {
-    "I", "A", "AN", "THE", "IN", "ON", "AT", "TO", "OF", "AND", "OR",
-    "BUT", "IF", "MY", "BE", "IT", "DO", "GO", "NO", "UP", "SO", "BY",
-    "AS", "US", "AM", "IS", "AI", "CAD", "USD", "ETF", "ADD", "MED",
-    "HIGH", "LOW", "BUY", "SELL", "ASK", "GET", "CAN", "NOW", "HOW",
-    "WHY", "WHO", "FOR", "ALL", "NEW", "NOT", "HAS", "HAD", "WAS", "ARE",
-    "ITS", "WHEN", "NEXT", "WILL", "THAT", "THIS", "WITH", "FROM", "HAVE",
-    "WHAT", "DOES", "WOULD", "COULD", "SHOULD", "THEIR", "ABOUT", "INTO",
-    "ALSO", "JUST", "OVER", "SHOW", "TELL", "GIVE", "EACH", "BOTH",
+# ── Tool status labels (shown in UI while tools run) ──────────────────────────
+_TOOL_STATUS = {
+    "search_web":                  "🔍 Searching the web...",
+    "get_portfolio_data":          "📊 Retrieving portfolio data...",
+    "calculate_capital_gains_tax": "🧮 Calculating capital gains tax...",
+    "get_dividend_forecast":       "💰 Looking up dividend data...",
 }
 
+# ── Tool JSON schemas ─────────────────────────────────────────────────────────
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "search_web",
+            "description": (
+                "Search the internet for real-time financial data. Use this for: "
+                "earnings dates, analyst price targets, upgrades/downgrades, stock news, "
+                "dividend announcements, economic releases (CPI, GDP, Fed), market events, "
+                "Canadian tax rules, sector trends, company filings. "
+                "NEVER fabricate financial data — always call this when you need current info. "
+                "You can call this multiple times with different queries for different tickers."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": (
+                            "Specific search query. Include ticker, company name, and what you need. "
+                            "E.g. 'NVDA Nvidia next earnings date Q2 2026' or "
+                            "'Canadian capital gains tax rate 2025 Ontario non-registered account'"
+                        )
+                    },
+                    "depth": {
+                        "type": "string",
+                        "enum": ["basic", "advanced"],
+                        "description": (
+                            "'advanced' for precise financial data (earnings dates, dividend amounts, "
+                            "analyst targets, tax rates). 'basic' for news and general context."
+                        )
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_portfolio_data",
+            "description": (
+                "Retrieve detailed portfolio holdings data. Returns positions with cost basis, "
+                "unrealized/realized gains, live prices, account breakdown, and dividends received. "
+                "Call this before any calculation that requires specific cost basis, position size, "
+                "or detailed P&L. The system prompt has a compact overview; call this for full detail."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "tickers": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Specific tickers (e.g. ['NVDA', 'FNGU']). Empty = all positions."
+                    },
+                    "account": {
+                        "type": "string",
+                        "description": "Filter by account: 'TFSA', 'RRSP', 'FHSA', 'Investment'. Empty = all."
+                    },
+                    "include_closed": {
+                        "type": "boolean",
+                        "description": "Include closed/sold positions. Default false."
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calculate_capital_gains_tax",
+            "description": (
+                "Deterministic Canadian capital gains tax calculator. "
+                "Handles account-specific treatment: TFSA/FHSA = completely tax-free; "
+                "RRSP = full withdrawal amount taxed as income at marginal rate; "
+                "non-registered (Investment) = 50% capital gains inclusion rate. "
+                "If marginal_tax_rate is omitted, returns estimates for all Ontario tax brackets. "
+                "ALWAYS call this for any tax estimation question — never calculate manually."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "tickers": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Tickers to include. Empty = all open positions."
+                    },
+                    "marginal_tax_rate": {
+                        "type": "number",
+                        "description": (
+                            "Marginal tax rate as decimal (e.g. 0.43 for 43%). "
+                            "Omit to get estimates across all income brackets."
+                        )
+                    },
+                    "province": {
+                        "type": "string",
+                        "description": "Province for rates. Default: Ontario."
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_dividend_forecast",
+            "description": (
+                "Fetch upcoming dividend data for portfolio holdings from Finnhub and Tavily. "
+                "Returns dividend dates, amounts per share, and calculates total income based on shares held. "
+                "Use for any question about upcoming dividends, expected dividend income, or yield."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "months": {
+                        "type": "integer",
+                        "description": "Months to look ahead. Default: 3."
+                    },
+                    "tickers": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Specific tickers. Empty = all holdings that have historically paid dividends."
+                    }
+                },
+                "required": []
+            }
+        }
+    }
+]
 
-# ── Ticker extraction ────────────────────────────────────────────────────────
 
-def extract_tickers(message: str, holdings_list: list) -> list:
-    """Pull ticker symbols from the message; known portfolio holdings first."""
-    candidates = re.findall(r'\b([A-Z]{2,5}(?:\.[A-Z]{1,3})?)\b', message.upper())
-    known = {h.get("ticker", "").upper() for h in holdings_list if h.get("ticker")}
+# ── Tool implementations ──────────────────────────────────────────────────────
 
-    seen, result = set(), []
-    for c in candidates:
-        if c not in _STOP_WORDS and c not in seen:
-            seen.add(c)
-            result.append(c)
-
-    # Sort: known portfolio holdings first, then others alphabetically
-    result.sort(key=lambda x: (0 if x in known else 1, x))
-    return result[:4]
-
-
-# ── Yahoo Finance lookup (earnings, analyst targets, dividends) ──────────────
-
-def yf_lookup(tickers: list, message: str) -> str:
-    """Structured financial data from Yahoo Finance — no API key, completely free."""
-    if not tickers:
-        return ""
-    try:
-        import yfinance as yf
-    except ImportError:
-        return ""
-
-    msg = message.lower()
-    want_earnings = any(k in msg for k in ["earnings", "when", "report", "quarter", "eps", "fiscal"])
-    want_analyst  = any(k in msg for k in ["target", "analyst", "rating", "upgrade", "downgrade"])
-    want_dividend = any(k in msg for k in ["dividend", "ex-div", "pay date", "record date"])
-    show_all = not (want_earnings or want_analyst or want_dividend)
-
-    sections = []
-    for ts in tickers[:3]:
-        try:
-            t    = yf.Ticker(ts)
-            info = t.info or {}
-            name = info.get("longName") or info.get("shortName") or ts
-            lines = [f"  {ts} — {name}:"]
-
-            # Earnings calendar
-            if want_earnings or show_all:
-                try:
-                    cal = t.calendar
-                    if isinstance(cal, dict):
-                        dates = cal.get("Earnings Date") or []
-                        if not isinstance(dates, list):
-                            dates = [dates]
-                        if dates:
-                            date_str = " to ".join(str(d)[:10] for d in dates[:2])
-                            lines.append(f"    Next Earnings Date: {date_str}")
-                        if cal.get("Earnings Average"):
-                            lo = cal.get("Earnings Low", 0)
-                            hi = cal.get("Earnings High", 0)
-                            lines.append(f"    EPS Estimate: ${cal['Earnings Average']:.2f} avg  (${lo:.2f}–${hi:.2f} range)")
-                        if cal.get("Revenue Average"):
-                            lines.append(f"    Revenue Estimate: ${cal['Revenue Average'] / 1e9:.1f}B")
-                except Exception as e:
-                    print(f"    yf calendar {ts}: {e}")
-
-            # Analyst price targets
-            if want_analyst or show_all:
-                if info.get("targetMeanPrice"):
-                    lo = info.get("targetLowPrice", 0)
-                    hi = info.get("targetHighPrice", 0)
-                    n  = info.get("numberOfAnalystOpinions", "?")
-                    lines.append(f"    Analyst Price Target: ${info['targetMeanPrice']:.2f} mean  (${lo:.2f}–${hi:.2f})  [{n} analysts]")
-                if info.get("recommendationKey"):
-                    lines.append(f"    Consensus Rating: {info['recommendationKey'].upper()}")
-
-            # Dividend info
-            if want_dividend or show_all:
-                if info.get("exDividendDate"):
-                    ex = datetime.datetime.fromtimestamp(info["exDividendDate"]).strftime("%Y-%m-%d")
-                    lines.append(f"    Ex-Dividend Date: {ex}")
-                if info.get("dividendRate"):
-                    lines.append(f"    Annual Dividend: ${info['dividendRate']:.2f}  ({info.get('dividendYield', 0) * 100:.2f}% yield)")
-
-            if len(lines) > 1:
-                sections.extend(lines)
-                sections.append("")
-        except Exception as e:
-            print(f"  yf_lookup {ts}: {e}")
-
-    if not sections:
-        return ""
-    return "YAHOO FINANCE DATA:\n" + "\n".join(sections)
-
-
-# ── Tavily AI Search (primary — works from cloud IPs, free 1k/month) ─────────
-
-def tavily_search(query: str, search_depth: str = "basic", max_results: int = 7) -> str:
-    """Search via Tavily AI — reliable from Vercel/AWS, built for AI agents."""
-    api_key = os.environ.get("TAVILY_API_KEY", "")
-    if not api_key:
-        print("  tavily: no API key set")
-        return ""
+def tool_search_web(query: str, depth: str = "basic") -> dict:
+    """Tavily AI search — works from cloud/AWS IPs."""
+    if not TAVILY_API_KEY:
+        return {"error": "TAVILY_API_KEY not configured", "hint": "Add TAVILY_API_KEY to Vercel env vars"}
     try:
         resp = requests.post(
             "https://api.tavily.com/search",
             headers={
-                "Content-Type":  "application/json",
-                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {TAVILY_API_KEY}",
             },
             json={
-                "query":          query,
-                "search_depth":   search_depth,
-                "max_results":    max_results,
+                "query": query,
+                "search_depth": depth,
+                "max_results": 8,
                 "include_answer": True,
             },
             timeout=12,
         )
         resp.raise_for_status()
         data = resp.json()
-
         results = []
         if data.get("answer"):
-            results.append(f"Direct answer: {data['answer']}")
+            results.append({"type": "direct_answer", "content": data["answer"]})
         for r in data.get("results", []):
-            title   = r.get("title", "")
-            content = (r.get("content") or "")[:400]
-            results.append(f"{title}: {content}")
-
-        print(f"  tavily: returned {len(results)} results for: {query[:60]}")
-        return "\n\n".join(results)
+            results.append({
+                "title":   r.get("title", ""),
+                "content": (r.get("content") or "")[:600],
+                "url":     r.get("url", ""),
+                "date":    r.get("published_date", ""),
+            })
+        print(f"  [search_web] {len(results)} results: {query[:60]}")
+        return {"query": query, "results": results}
     except Exception as exc:
-        print(f"  tavily_search error: {exc}")
-        return ""
+        print(f"  [search_web] error: {exc}")
+        return {"error": str(exc), "query": query}
 
 
-# ── Google News RSS (fallback if no Tavily key) ───────────────────────────────
+def tool_get_portfolio_data(
+    holdings_list: list,
+    holdings_prices: dict,
+    closed_positions: list,
+    cash_positions: list,
+    tickers=None,
+    account=None,
+    include_closed: bool = False,
+) -> dict:
+    """Return filtered, enriched holdings data."""
+    filtered = holdings_list
+    if tickers:
+        up = {t.upper() for t in tickers}
+        filtered = [h for h in filtered if h.get("ticker", "").upper() in up]
+    if account:
+        filtered = [h for h in filtered if h.get("account", "").upper() == account.upper()]
 
-def google_news_search(query: str, max_results: int = 6) -> str:
-    """Google News RSS — fallback when Tavily is unavailable."""
-    import urllib.parse
-    import xml.etree.ElementTree as ET
+    out = []
+    total_value = total_cost = total_pnl = 0.0
 
-    encoded = urllib.parse.quote(query[:200])
-    url = f"https://news.google.com/rss/search?q={encoded}&hl=en-US&gl=US&ceid=US:en"
-    try:
-        resp = requests.get(
-            url, timeout=8,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; PortfolioPulse/1.0)"},
-        )
-        resp.raise_for_status()
-        root = ET.fromstring(resp.content)
-        results = []
-        for item in root.findall(".//item")[:max_results]:
-            title     = item.findtext("title") or ""
-            desc      = re.sub(r"<[^>]+>", " ", item.findtext("description") or "").strip()[:300]
-            pub_date  = (item.findtext("pubDate") or "")[:16]
-            results.append(f"[{pub_date}] {title}: {desc}")
-        return "\n\n".join(results)
-    except Exception as exc:
-        print(f"  google_news error: {exc}")
-        return ""
+    for h in filtered:
+        ticker = h.get("ticker", "")
+        pd = holdings_prices.get(ticker) or {}
+        price = pd.get("price")
+        shares = h.get("shares", 0)
+        cost = h.get("cost_total", 0)
+        unreal = h.get("unrealized", 0)
+        mkt = (price * shares) if (price and shares) else (cost + unreal)
+        total_value += mkt
+        total_cost += cost
+        total_pnl += h.get("total_pnl", 0)
+        out.append({
+            "ticker":           ticker,
+            "name":             h.get("name", ""),
+            "account":          h.get("account", ""),
+            "sector":           h.get("sector", ""),
+            "shares":           shares,
+            "currency":         h.get("ccy", "USD"),
+            "live_price":       round(price, 4) if price else None,
+            "day_change_pct":   pd.get("change_pct"),
+            "market_value":     round(mkt, 2),
+            "cost_basis":       round(cost, 2),
+            "unrealized_gain":  round(unreal, 2),
+            "realized_gain":    round(h.get("realized", 0), 2),
+            "dividends_received": round(h.get("dividends", 0), 2),
+            "total_pnl":        round(h.get("total_pnl", 0), 2),
+            "return_pct":       round(h.get("pct_return", 0), 2),
+            "weight_pct":       round(h.get("weight", 0), 2),
+        })
 
+    result = {
+        "holdings": out,
+        "summary": {
+            "count":             len(out),
+            "total_market_value": round(total_value, 2),
+            "total_cost_basis":  round(total_cost, 2),
+            "total_pnl":         round(total_pnl, 2),
+        },
+    }
+    if include_closed and closed_positions:
+        result["closed_positions"] = closed_positions
+    if not tickers and not account:
+        result["cash_positions"] = cash_positions
 
-def get_external_context(message: str, holdings_list: list) -> list:
-    """Fetch live financial data and news for the question."""
-    ctx     = []
-    msg     = message.lower()
-    tickers = extract_tickers(message, holdings_list)
-
-    needs_financial = any(kw in msg for kw in _TRIGGERS_FINANCIAL)
-    needs_news      = any(kw in msg for kw in _TRIGGERS_NEWS)
-
-    has_tavily = bool(os.environ.get("TAVILY_API_KEY", ""))
-
-    if needs_financial or needs_news:
-        # Build a focused query
-        if tickers:
-            base_query = " ".join(tickers[:2]) + " " + message
-        else:
-            base_query = message + " stock market"
-
-        # Tavily: handles both financial lookups AND news in one call
-        if has_tavily:
-            depth = "advanced" if needs_financial else "basic"
-            results = tavily_search(base_query[:300], search_depth=depth)
-            if results:
-                ctx += ["", "LIVE WEB SEARCH RESULTS:", results]
-        else:
-            # Fallback chain: yfinance for financial data, Google News for news
-            if needs_financial:
-                yf_data = yf_lookup(tickers, message)
-                if yf_data:
-                    ctx += ["", yf_data]
-            news_query = base_query + (" earnings date" if needs_financial else "")
-            news = google_news_search(news_query)
-            if news:
-                ctx += ["", "WEB NEWS:", news]
-
-    return ctx
+    print(f"  [get_portfolio_data] {len(out)} positions returned")
+    return result
 
 
-# ── Intelligence context (full — all sections) ───────────────────────────────
+def tool_calculate_capital_gains_tax(
+    holdings_list: list,
+    holdings_prices: dict,
+    tickers=None,
+    marginal_tax_rate=None,
+    province: str = "Ontario",
+) -> dict:
+    """
+    Deterministic Canadian capital gains tax estimate.
 
-def build_intelligence_context(intelligence: dict) -> list:
-    """Serialize the full intelligence.json into context lines for the model."""
-    if not intelligence:
-        return []
+    Account treatment:
+      TFSA  → completely tax-free
+      FHSA  → tax-free (qualifying home purchase assumed)
+      RRSP  → full withdrawal taxed as income at marginal rate
+      Investment (non-registered) → 50% capital gains inclusion
+    """
+    positions = holdings_list
+    if tickers:
+        up = {t.upper() for t in tickers}
+        positions = [h for h in positions if h.get("ticker", "").upper() in up]
 
-    lines = [
-        "",
-        f"TODAY'S INTELLIGENCE BRIEFING  [{intelligence.get('generated_date', '—')}]",
-        "(This is supplementary market analysis — the HOLDINGS LIST above is the authoritative source for portfolio positions.)",
-        f"  Market Mood: {intelligence.get('market_mood', '—')}",
-        f"  Outlook: {intelligence.get('daily_outlook', '—')}",
+    accts: dict = {}
+    for h in positions:
+        ticker = h.get("ticker", "")
+        acct = h.get("account", "Investment")
+        shares = h.get("shares", 0)
+        cost = h.get("cost_total", 0)
+        unreal = h.get("unrealized", 0)
+        pd = holdings_prices.get(ticker) or {}
+        price = pd.get("price")
+        mkt = (price * shares) if (price and shares) else (cost + unreal)
+        gain = mkt - cost
+
+        if acct not in accts:
+            accts[acct] = {"positions": [], "proceeds": 0.0, "cost": 0.0, "gain": 0.0}
+        accts[acct]["positions"].append({
+            "ticker": ticker,
+            "name": h.get("name", ""),
+            "shares": shares,
+            "cost_basis":    round(cost, 2),
+            "market_value":  round(mkt, 2),
+            "capital_gain":  round(gain, 2),
+        })
+        accts[acct]["proceeds"] += mkt
+        accts[acct]["cost"]     += cost
+        accts[acct]["gain"]     += gain
+
+    for a in accts.values():
+        a["proceeds"] = round(a["proceeds"], 2)
+        a["cost"]     = round(a["cost"], 2)
+        a["gain"]     = round(a["gain"], 2)
+
+    # Ontario combined marginal rates (fed + prov, 2025 approximate)
+    brackets = [
+        ("Up to ~$57K",     0.2965),
+        ("~$57K–$100K",     0.4316),
+        ("~$100K–$155K",    0.4797),
+        ("~$155K–$221K",    0.5197),
+        ("Over $221K",      0.5353),
     ]
 
-    # Macro themes — full body + bull/bear scenarios
-    for t in intelligence.get("macro", []):
-        lines.append(
-            f"\n  MACRO — {t.get('title', '')}  "
-            f"[Impact: {t.get('impact', '')} | Confidence: {t.get('confidence', '')}%]"
-        )
-        lines.append(f"    {t.get('body', '')}")
-        if t.get("bull"):  lines.append(f"    Bull: {t['bull']}")
-        if t.get("base"):  lines.append(f"    Base: {t['base']}")
-        if t.get("bear"):  lines.append(f"    Bear: {t['bear']}")
+    treatment = {
+        "TFSA":       ("tax_free",      "Completely tax-free — no tax on any gains"),
+        "FHSA":       ("tax_free",      "Tax-free for qualifying first home purchase"),
+        "RRSP":       ("income",        "Full withdrawal amount taxed as ordinary income"),
+        "Investment": ("cap_gains_50",  "50% capital gains inclusion rate"),
+    }
 
-    # Portfolio risks
-    for r in intelligence.get("risks", []):
-        lines.append(f"\n  RISK — {r.get('title', '')}  [{r.get('level', '')}]  {r.get('context', '')}")
-        lines.append(f"    {r.get('body', '')}")
+    def tax_at_rate(rate: float):
+        total = 0.0
+        detail = {}
+        for acct, d in accts.items():
+            kind, note = treatment.get(acct, ("cap_gains_50", "50% capital gains"))
+            if kind == "tax_free":
+                detail[acct] = {"tax": 0, "note": note}
+            elif kind == "income":
+                t = d["proceeds"] * rate
+                total += t
+                detail[acct] = {
+                    "taxable_amount": round(d["proceeds"], 2),
+                    "tax": round(t, 2),
+                    "note": note,
+                }
+            else:  # cap_gains_50
+                taxable = max(d["gain"], 0) * 0.5
+                t = taxable * rate
+                total += t
+                detail[acct] = {
+                    "capital_gain":      round(d["gain"], 2),
+                    "taxable_inclusion": round(taxable, 2),
+                    "tax":               round(t, 2),
+                    "note":              note,
+                }
+        return round(total, 2), detail
 
-    # Key news events with portfolio exposure + outcome scenarios
-    for n in intelligence.get("news", []):
-        lines.append(
-            f"\n  KEY EVENT — {n.get('headline', '')}  "
-            f"[{n.get('impact', '')} impact | {n.get('category', '')}]"
+    result = {
+        "account_summary": {
+            acct: {**d, "tax_treatment": treatment.get(acct, ("cap_gains_50", ""))[1]}
+            for acct, d in accts.items()
+        }
+    }
+
+    if marginal_tax_rate is not None:
+        total, detail = tax_at_rate(float(marginal_tax_rate))
+        result["calculation"] = {
+            "province":             province,
+            "marginal_rate":        marginal_tax_rate,
+            "per_account":          detail,
+            "total_estimated_tax":  total,
+        }
+    else:
+        estimates = []
+        for label, rate in brackets:
+            total, _ = tax_at_rate(rate)
+            estimates.append({
+                "income_range":   label,
+                "marginal_rate":  rate,
+                "estimated_tax":  total,
+            })
+        result["estimates_by_bracket"] = estimates
+        result["follow_up"] = (
+            "What is your approximate annual income or marginal tax rate? "
+            "I can then give you a precise number. Also, what province are you in?"
         )
-        lines.append(f"    {n.get('body', '')}")
-        if n.get("exposure"):
-            lines.append(f"    Portfolio exposure: {n['exposure']}")
-        for o in n.get("outcomes", []):
-            lines.append(
-                f"    {o.get('label', '')} ({o.get('probability', '')}%): "
-                f"{o.get('scenario', '')} → {o.get('estimate', '')}"
+
+    result["important_notes"] = [
+        "TFSA/FHSA gains are 100% tax-free — no capital gains tax",
+        "RRSP: the FULL withdrawal (not just gains) is taxed as income — this is significant",
+        "Non-registered: only 50% of capital gains are included in taxable income",
+        "USD positions: FX gains/losses on purchase vs. sale rate are also taxable in non-reg",
+        f"Rates shown are combined federal + {province} provincial (approximate)",
+        "These are estimates — consult a CPA for exact figures and tax planning",
+    ]
+
+    print(f"  [calculate_capital_gains_tax] {len(positions)} positions, rate={marginal_tax_rate}")
+    return result
+
+
+def _finnhub_dividends(symbol: str) -> list:
+    """Try Finnhub for structured dividend history. Returns [] on failure."""
+    if not FINNHUB_API_KEY:
+        return []
+    # Finnhub uses bare symbol for TSX stocks (no .TO suffix)
+    for sym in [symbol, symbol.replace(".TO", "")]:
+        try:
+            r = requests.get(
+                "https://finnhub.io/api/v1/stock/dividend2",
+                params={"symbol": sym, "token": FINNHUB_API_KEY},
+                timeout=8,
             )
-
-    # Watchlist / picks
-    for p in intelligence.get("picks", []):
-        lines.append(
-            f"\n  PICK — {p.get('ticker', '')}  [{p.get('action', '')} in {p.get('account', '')}]: "
-            f"{p.get('thesis', '')}  |  Entry: {p.get('entry', '')}"
-        )
-
-    # Strengths and concerns — all of them
-    lines.append("\n  PORTFOLIO STRENGTHS:")
-    for s in intelligence.get("strengths", []):
-        lines.append(f"    [{s.get('ticker', '')}] {s.get('text', '')}")
-
-    lines.append("\n  PORTFOLIO CONCERNS:")
-    for c in intelligence.get("concerns", []):
-        lines.append(f"    [{c.get('ticker', '')}] {c.get('text', '')}")
-
-    # Strategy recommendations
-    shorts = intelligence.get("strategy_short", [])
-    mids   = intelligence.get("strategy_mid", [])
-    longs  = intelligence.get("strategy_long", [])
-    if shorts or mids or longs:
-        lines.append("\n  STRATEGY:")
-        for s in shorts:
-            lines.append(f"    Short-term: {s.get('text', '')}")
-        for m in mids:
-            lines.append(f"    Mid-term: {m.get('text', '')}")
-        for lo in longs[:2]:
-            lines.append(f"    Long-term: {lo.get('text', '')}")
-
-    # Tax notes
-    tax = intelligence.get("tax", {})
-    if tax:
-        lines.append("\n  TAX NOTES:")
-        for acct, notes in tax.items():
-            if isinstance(notes, list):
-                for note in notes[:2]:
-                    lines.append(f"    {acct.upper()}: {note.get('text', '')}")
-
-    return lines
+            if r.ok:
+                data = r.json().get("data") or []
+                if data:
+                    return data
+        except Exception:
+            pass
+    return []
 
 
-# ── System prompt ────────────────────────────────────────────────────────────
+def tool_get_dividend_forecast(
+    holdings_list: list,
+    holdings_prices: dict,
+    months: int = 3,
+    tickers=None,
+) -> dict:
+    """Fetch dividend data via Finnhub + Tavily for held positions."""
+    if tickers:
+        up = {t.upper() for t in tickers}
+        candidates = [h for h in holdings_list if h.get("ticker", "").upper() in up]
+    else:
+        candidates = [h for h in holdings_list if (h.get("dividends") or 0) > 0]
 
-SYSTEM_INSTRUCTION = """You are "Pulse", an AI portfolio analyst embedded in a personal Canadian investment dashboard.
+    if not candidates:
+        return {
+            "message": "No dividend-paying holdings found in the specified criteria.",
+            "results": [],
+        }
 
-CRITICAL — DATA AUTHORITY:
-  The OPEN POSITIONS table is the definitive, complete list of every current holding. It begins with a ticker
-  roster line ("OPEN POSITIONS (N positions): AAPL, COST, FNGU ...") — if a ticker appears there, it IS held.
-  NEVER say a ticker is not held unless it is genuinely absent from both the roster and the table.
-  If a holding shows "n/a" for live price it means the market is closed or data is delayed — the position still exists.
-  The table includes sector, cost basis, unrealized P&L, total P&L, dividends, return %, and portfolio weight.
-  CLOSED POSITIONS shows fully exited trades (realized gains/losses). CASH POSITIONS shows uninvested cash per account.
+    def process(h):
+        ticker = h.get("ticker", "")
+        shares = h.get("shares", 0)
+        ccy    = h.get("ccy", "USD")
+        entry = {
+            "ticker":       ticker,
+            "name":         h.get("name", ""),
+            "account":      h.get("account", ""),
+            "shares":       shares,
+            "currency":     ccy,
+            "total_divs_received_historically": round(h.get("dividends", 0), 2),
+            "source": None,
+            "dividend_records": None,
+        }
 
-EXTERNAL DATA:
-  When YAHOO FINANCE DATA or LIVE WEB NEWS appears in your context, use it to give precise, up-to-date answers.
-  Always cite the date from news results so the user knows how fresh the information is.
-  For earnings dates and analyst targets, quote the exact numbers from Yahoo Finance data.
+        # Try Finnhub first
+        records = _finnhub_dividends(ticker)
+        if records:
+            recent = sorted(records, key=lambda x: x.get("date", ""), reverse=True)[:8]
+            processed = []
+            for d in recent:
+                amt = d.get("amount") or 0
+                if amt > 0:
+                    processed.append({
+                        "ex_date":           d.get("date", ""),
+                        "pay_date":          d.get("payDate", ""),
+                        "declaration_date":  d.get("declarationDate", ""),
+                        "amount_per_share":  amt,
+                        "estimated_total":   round(amt * shares, 2),
+                        "currency":          d.get("currency", ccy),
+                    })
+            if processed:
+                entry["dividend_records"] = processed
+                entry["source"] = "Finnhub (structured data)"
+                # Estimate frequency and upcoming amount
+                if len(processed) >= 2:
+                    avg_amount = sum(r["amount_per_share"] for r in processed[:4]) / min(4, len(processed))
+                    entry["avg_dividend_per_share"] = round(avg_amount, 4)
+                    entry["forecast_note"] = (
+                        f"Based on recent history, estimated {months}-month income: "
+                        f"~${round(avg_amount * shares * (months / 3), 2)} {ccy} "
+                        f"(assuming quarterly payments)"
+                    )
+                return entry
 
-YOUR ROLE:
-  ✓ Answer questions about any holding — price, daily gain/loss, cost basis, total P&L, account
-  ✓ Calculate daily dollar gains: shares × live price × day% (or use the live price data directly)
-  ✓ Explain what's happening in the market and why it matters to these specific positions
-  ✓ Answer earnings dates, analyst targets, dividend dates using the Yahoo Finance data provided
-  ✓ Summarise news, themes, and sector moves in portfolio context
-  ✓ Help understand account structures (TFSA, FHSA, RRSP, non-reg) and Canadian tax rules
+        # Tavily fallback
+        if TAVILY_API_KEY:
+            try:
+                q = f"{ticker} next dividend ex-date payment amount per share 2025 2026"
+                r = requests.post(
+                    "https://api.tavily.com/search",
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {TAVILY_API_KEY}",
+                    },
+                    json={
+                        "query":        q,
+                        "search_depth": "advanced",
+                        "max_results":  5,
+                        "include_answer": True,
+                    },
+                    timeout=10,
+                )
+                if r.ok:
+                    d = r.json()
+                    raw = d.get("answer", "")
+                    for rec in d.get("results", [])[:3]:
+                        raw += f"\n\n{rec.get('title','')}: {(rec.get('content') or '')[:400]}"
+                    entry["dividend_records"] = raw
+                    entry["source"] = "Tavily web search (interpret dates and amounts from text)"
+            except Exception:
+                entry["source"] = "search unavailable"
 
-STRICT LIMITS:
-  ✗ Never predict specific future prices or guaranteed returns
-  ✗ Never recommend selling core positions (especially NVDA, FNGU, SPXL)
-  ✗ Only mention consulting a financial professional if the user is explicitly asking for personalised advice on a major decision
+        return entry
 
-STYLE:
-  - Concise: 2–4 paragraphs unless a detailed breakdown is requested
-  - Canadian context: CAD amounts, CRA rules, registered account nuances
-  - Reference specific tickers and dollar amounts from the provided data
-  - Be direct and analytical — cite specific dates, prices, and percentages from the data
-  - Never add a regulatory disclaimer to routine portfolio or market questions"""
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futures = [ex.submit(process, h) for h in candidates]
+        results = [f.result() for f in as_completed(futures)]
+
+    results.sort(key=lambda x: x.get("ticker", ""))
+    print(f"  [get_dividend_forecast] {len(results)} holdings processed")
+    return {
+        "forecast_months":         months,
+        "forecast_end":            (datetime.now() + timedelta(days=months * 31)).strftime("%Y-%m-%d"),
+        "dividend_holding_results": results,
+        "instructions": (
+            "For Finnhub results: sum 'estimated_total' values for upcoming ex-dates. "
+            "For Tavily results: interpret dates, amounts, and shares from the raw text. "
+            "Present a clear table to the user showing ticker, ex-date, $/share, total, account."
+        ),
+    }
 
 
-# ── Holdings table ────────────────────────────────────────────────────────────
+# ── Execute a single tool call ────────────────────────────────────────────────
 
-def build_holdings_context(
+def execute_tool(
+    name: str,
+    args: dict,
     holdings_list: list,
     holdings_prices: dict,
     closed_positions: list,
     cash_positions: list,
 ) -> str:
-    """Complete holdings context: open positions, closed positions, and cash."""
-    if not holdings_list:
-        return ""
+    """Dispatch a tool call and return JSON result string."""
+    try:
+        if name == "search_web":
+            result = tool_search_web(args.get("query", ""), args.get("depth", "basic"))
 
-    # ── Open positions ────────────────────────────────────────────────────────
-    live_rows, no_price_rows = [], []
+        elif name == "get_portfolio_data":
+            result = tool_get_portfolio_data(
+                holdings_list, holdings_prices, closed_positions, cash_positions,
+                tickers=args.get("tickers"),
+                account=args.get("account"),
+                include_closed=args.get("include_closed", False),
+            )
+
+        elif name == "calculate_capital_gains_tax":
+            result = tool_calculate_capital_gains_tax(
+                holdings_list, holdings_prices,
+                tickers=args.get("tickers"),
+                marginal_tax_rate=args.get("marginal_tax_rate"),
+                province=args.get("province", "Ontario"),
+            )
+
+        elif name == "get_dividend_forecast":
+            result = tool_get_dividend_forecast(
+                holdings_list, holdings_prices,
+                months=args.get("months", 3),
+                tickers=args.get("tickers"),
+            )
+        else:
+            result = {"error": f"Unknown tool: {name}"}
+
+        return json.dumps(result)
+    except Exception as exc:
+        print(f"  [execute_tool] {name} error: {exc}")
+        return json.dumps({"error": str(exc)})
+
+
+# ── System prompt builder ─────────────────────────────────────────────────────
+
+def build_system_prompt(
+    holdings_list: list,
+    holdings_prices: dict,
+    closed_positions: list,
+    cash_positions: list,
+    intelligence: dict,
+) -> str:
+    today = date.today().isoformat()
+
+    # Portfolio totals
+    total_value = total_cost = total_pnl = 0.0
+    account_totals: dict = {}
+    dividend_payers = []
 
     for h in holdings_list:
         ticker = h.get("ticker", "")
-        if ticker.startswith("_CASH"):
-            continue
-        p       = holdings_prices.get(ticker) or {}
-        price   = p.get("price")
-        day_pct = p.get("change_pct")
-        day_chg = p.get("change")
-        row = {
-            "ticker":     ticker,
-            "name":       h.get("name", ""),
-            "account":    h.get("account", ""),
-            "sector":     h.get("sector", ""),
-            "shares":     h.get("shares", 0),
-            "ccy":        h.get("ccy", "USD"),
-            "price":      price,
-            "day_pct":    day_pct,
-            "day_chg":    day_chg,
-            "cost_total": h.get("cost_total", 0),
-            "unrealized": h.get("unrealized", 0),
-            "realized":   h.get("realized", 0),
-            "dividends":  h.get("dividends", 0),
-            "total_pnl":  h.get("total_pnl", 0),
-            "pct_return": h.get("pct_return", 0),
-            "weight":     h.get("weight", 0),
-        }
-        if price is not None:
-            live_rows.append(row)
-        else:
-            no_price_rows.append(row)
+        pd = holdings_prices.get(ticker) or {}
+        price = pd.get("price")
+        shares = h.get("shares", 0)
+        cost = h.get("cost_total", 0)
+        unreal = h.get("unrealized", 0)
+        mkt = (price * shares) if (price and shares) else (cost + unreal)
+        acct = h.get("account", "Other")
+        total_value += mkt
+        total_cost  += cost
+        total_pnl   += h.get("total_pnl", 0)
+        account_totals[acct] = account_totals.get(acct, 0.0) + mkt
+        if (h.get("dividends") or 0) > 0:
+            dividend_payers.append(ticker)
 
-    live_rows.sort(key=lambda x: x["day_pct"] if x["day_pct"] is not None else 0.0, reverse=True)
-    no_price_rows.sort(key=lambda x: x["ticker"])
-    all_rows = live_rows + no_price_rows
+    cash_total = sum(c.get("amount", 0) for c in cash_positions)
+    overall_return = (total_pnl / total_cost * 100) if total_cost else 0
 
-    # Ticker roster — quick reference so model never denies a position
-    all_tickers = sorted({r["ticker"] for r in all_rows})
-    lines = [
-        "",
-        f"OPEN POSITIONS ({len(all_rows)} positions): {', '.join(all_tickers)}",
-        "",
-        "FULL HOLDINGS TABLE (live price where available):",
-        f"  {'TICKER':<8}  {'NAME':<20}  {'ACCT':<10}  {'SECTOR':<18}  {'SHS':>5}  "
-        f"{'PRICE':>10}  {'DAY%':>6}  {'DAY $':>7}  {'COST':>8}  {'UNREAL':>8}  {'TOT P&L':>9}  {'RTN%':>6}",
-        "  " + "-" * 130,
-    ]
-
-    for r in all_rows:
-        if r["price"] is not None:
-            price_s = f"${r['price']:.2f}{r['ccy']}"
-            pct_s   = (("+" if r["day_pct"] >= 0 else "") + f"{r['day_pct']:.2f}%") if r["day_pct"] is not None else "n/a"
-            chg_s   = (("+" if (r["day_chg"] or 0) >= 0 else "") + f"${abs(r['day_chg'] or 0):.0f}") if r["day_chg"] is not None else "n/a"
-        else:
-            price_s = "n/a"
-            pct_s   = "n/a"
-            chg_s   = "n/a"
-
-        lines.append(
-            f"  {r['ticker']:<8}  {r['name'][:20]:<20}  {r['account']:<10}  {r['sector'][:18]:<18}  {r['shares']:>5}  "
-            f"  {price_s:>10}  {pct_s:>6}  {chg_s:>7}  "
-            f"${r['cost_total']:>7,.0f}  ${r['unrealized']:>7,.0f}  ${r['total_pnl']:>8,.0f}  {r['pct_return']:>5.1f}%"
+    # Compact positions table (ticker, account, shares, mkt value, return%)
+    pos_lines = []
+    for h in sorted(holdings_list, key=lambda x: -(x.get("weight") or 0)):
+        ticker = h.get("ticker", "")
+        pd = holdings_prices.get(ticker) or {}
+        price = pd.get("price")
+        shares = h.get("shares", 0)
+        cost = h.get("cost_total", 0)
+        unreal = h.get("unrealized", 0)
+        mkt = (price * shares) if (price and shares) else (cost + unreal)
+        pos_lines.append(
+            f"  {ticker:<10} {h.get('account',''):<12} {h.get('name',''):<28} "
+            f"${mkt:>10,.0f}   {h.get('pct_return',0):>+7.1f}%   {h.get('shares',0)} shares"
         )
 
-    # ── Closed / exited positions ─────────────────────────────────────────────
-    if closed_positions:
-        lines += ["", f"CLOSED / EXITED POSITIONS ({len(closed_positions)} positions):"]
-        lines.append(
-            f"  {'TICKER':<8}  {'NAME':<22}  {'ACCT':<10}  {'CCY':<4}  {'COST':>8}  {'TOT P&L':>9}  {'DIVS':>7}"
-        )
-        lines.append("  " + "-" * 80)
-        for c in sorted(closed_positions, key=lambda x: x.get("account", "")):
-            lines.append(
-                f"  {c.get('ticker',''):<8}  {c.get('name','')[:22]:<22}  {c.get('account',''):<10}  "
-                f"{c.get('ccy',''):<4}  ${c.get('cost_total',0):>7,.0f}  "
-                f"${c.get('total_pnl',0):>8,.0f}  ${c.get('dividends',0):>6,.0f}"
-            )
+    acct_lines = "\n".join(
+        f"  {a}: ${v:,.0f}" for a, v in sorted(account_totals.items())
+    )
 
-    # ── Cash positions ────────────────────────────────────────────────────────
-    if cash_positions:
-        lines += ["", "CASH POSITIONS:"]
-        for c in cash_positions:
-            lines.append(f"  {c.get('account',''):<12}  {c.get('ccy','')}  ${c.get('amount',0):,.2f}")
+    # Intelligence context
+    intel_lines = []
+    if intelligence:
+        if intelligence.get("market_mood"):
+            intel_lines.append(f"Market mood: {intelligence['market_mood']}")
+        if intelligence.get("daily_outlook"):
+            intel_lines.append(f"Today's outlook: {intelligence['daily_outlook']}")
+        for t in (intelligence.get("macro") or [])[:3]:
+            if isinstance(t, dict):
+                intel_lines.append(f"Macro — {t.get('title','')}: {t.get('body','')[:200]}")
+        for r in (intelligence.get("risks") or [])[:2]:
+            if isinstance(r, dict):
+                intel_lines.append(f"Risk — {r.get('title','')}: {r.get('body','')[:150]}")
 
-    return "\n".join(lines)
+    intel_block = ("\n## TODAY'S MARKET CONTEXT\n" + "\n".join(intel_lines)) if intel_lines else ""
+
+    positions_block = "\n".join(pos_lines)
+
+    prompt = f"""You are Pulse — an elite AI financial analyst and portfolio advisor for a Canadian investor.
+Today's date: {today}
+
+## YOUR 4 TOOLS  (use them proactively — never fabricate financial data)
+
+**search_web(query, depth)** — Real-time web search via Tavily AI.
+  USE FOR: earnings dates, analyst targets, upgrades/downgrades, stock news, dividend dates,
+           economic data (CPI, Fed, BoC), Canadian tax law, market events, sector news.
+  RULE: Never state earnings dates, prices, or analyst targets from memory. Always search.
+  You can make multiple search_web calls in one response (different queries/tickers).
+
+**get_portfolio_data(tickers, account, include_closed)** — Full position detail.
+  USE FOR: cost basis, unrealized/realized breakdown, exact P&L, tax-lot data.
+  The system prompt has a compact overview; call this for calculations requiring precision.
+
+**calculate_capital_gains_tax(tickers, marginal_tax_rate, province)** — Deterministic tax calc.
+  ALWAYS call for any tax estimation question. Never calculate tax manually.
+  Omit marginal_tax_rate to get estimates across all Ontario tax brackets.
+
+**get_dividend_forecast(months, tickers)** — Dividend data from Finnhub + Tavily.
+  USE FOR: upcoming dividend dates, amounts, expected income over a period.
+
+## HOW TO RESPOND
+- Think like ChatGPT, Grok, or Claude — reason step by step, use multiple tools if needed
+- Ask follow-up questions when critical info is missing (tax bracket, province, time horizon)
+- Format answers with tables and bullet points — especially for dividend forecasts and tax breakdowns
+- Always cite sources and dates from web search results
+- Be comprehensive: a 10-second wait for a great answer beats a fast shallow one
+
+## PORTFOLIO OVERVIEW  (as of {today})
+Total market value:  ${total_value:,.0f} (CAD equiv.)
+Total P&L:           ${total_pnl:+,.0f}  |  Cost basis: ${total_cost:,.0f}  |  Return: {overall_return:.1f}%
+Cash (uninvested):   ${cash_total:,.0f}
+
+Accounts:
+{acct_lines}
+
+Dividend-paying holdings: {', '.join(dividend_payers) if dividend_payers else 'None identified'}
+
+## ALL OPEN POSITIONS  (sorted by portfolio weight)
+  {"TICKER":<10} {"ACCOUNT":<12} {"NAME":<28} {"MKT VALUE":>12}   {"RETURN":>8}   SHARES
+  {"-" * 84}
+{positions_block}
+
+## CANADIAN TAX RULES (key facts)
+- TFSA:       All growth and withdrawals 100% tax-free. No contribution room impact on gains.
+- FHSA:       Tax-deductible contributions; withdrawals tax-free for qualifying home purchase.
+- RRSP:       Contributions deductible; withdrawals fully taxed as income at marginal rate.
+- Investment: Capital gains → 50% inclusion rate. Canadian dividends → dividend tax credit.
+              USD position gains include FX component (also taxable in non-registered).
+- Leveraged ETFs (FNGU, SPXL, UDOW): treated as capital gains, not income.{intel_block}
+
+## STRICT RULES
+- Never predict specific future prices or guaranteed returns
+- For tax/legal questions: provide estimates from tools, then note to consult a CPA
+- Reference specific dollar amounts and percentages from data — be precise"""
+
+    return prompt
 
 
 # ── Request handler ───────────────────────────────────────────────────────────
@@ -493,137 +738,191 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
+        # ── Parse request ──────────────────────────────────────────────────────
         try:
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length))
         except Exception:
             return self._error(400, "Invalid JSON body")
 
-        message = (body.get("message") or "").strip()
+        message          = (body.get("message") or "").strip()
+        history          = (body.get("history") or [])[-14:]
+        holdings_list    = body.get("holdings_list")    or []
+        holdings_prices  = body.get("holdings_prices")  or {}
+        closed_positions = body.get("closed_positions") or []
+        cash_positions   = body.get("cash_positions")   or []
+        intelligence     = body.get("intelligence")     or {}
+
         if not message:
             return self._error(400, "message is required")
+        if not GROQ_API_KEY:
+            return self._error(503, "GROQ_API_KEY not configured")
 
-        portfolio         = body.get("portfolio")         or {}
-        intelligence      = body.get("intelligence")      or {}
-        history           = (body.get("history") or [])[-12:]
-        holdings_prices   = body.get("holdings_prices")   or {}
-        holdings_list     = body.get("holdings_list")     or []
-        closed_positions  = body.get("closed_positions")  or []
-        cash_positions    = body.get("cash_positions")    or []
+        # ── Build system prompt + message history ──────────────────────────────
+        system_prompt = build_system_prompt(
+            holdings_list, holdings_prices, closed_positions, cash_positions, intelligence
+        )
 
-        api_key = os.environ.get("GROQ_API_KEY", "")
-        if not api_key:
-            return self._error(503, "AI service unavailable — GROQ_API_KEY not configured")
+        messages = [{"role": "system", "content": system_prompt}]
+        for turn in history:
+            role = turn.get("role", "")
+            if role in ("user", "assistant"):
+                messages.append({"role": role, "content": turn.get("content", "")})
+        messages.append({"role": "user", "content": message})
+
+        # ── Start SSE response immediately ─────────────────────────────────────
+        self.send_response(200)
+        self.send_header("Content-Type",  "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Accel-Buffering", "no")
+        self._cors()
+        self.end_headers()
+
+        def send_event(data: dict):
+            try:
+                self.wfile.write(f"data: {json.dumps(data)}\n\n".encode())
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        # ── Tool-calling loop (non-streaming) ──────────────────────────────────
+        print(f"  chat: message='{message[:60]}' | holdings={len(holdings_list)}")
 
         try:
-            # ── 1. Holdings table — FIRST, definitive source ──────────────
-            ctx_lines = [f"[Dashboard context — {intelligence.get('generated_date', 'today')}]"]
+            for round_num in range(MAX_TOOL_ROUNDS):
+                resp = requests.post(
+                    GROQ_URL,
+                    headers={
+                        "Authorization": f"Bearer {GROQ_API_KEY}",
+                        "Content-Type":  "application/json",
+                    },
+                    json={
+                        "model":       GROQ_MODEL,
+                        "messages":    messages,
+                        "tools":       TOOLS,
+                        "tool_choice": "auto",
+                        "temperature": 0.3,
+                        "max_tokens":  1024,
+                        "stream":      False,
+                    },
+                    timeout=25,
+                )
+                if not resp.ok:
+                    print(f"  Groq tool-round error {resp.status_code}: {resp.text[:200]}")
+                    break
 
-            holdings_ctx = build_holdings_context(
-                holdings_list, holdings_prices, closed_positions, cash_positions
-            )
-            if holdings_ctx:
-                ctx_lines.append(holdings_ctx)
+                choice = resp.json()["choices"][0]
+                msg = choice["message"]
+                tool_calls = msg.get("tool_calls") or []
 
-            # ── 2. Portfolio-level totals ─────────────────────────────────
-            if portfolio:
-                pf = portfolio
-                ctx_lines += [
-                    "",
-                    "PORTFOLIO TOTALS (live):",
-                    f"  Total Value:  CAD ${pf.get('total_value', 0):,.0f}",
-                    f"  Total P&L:    CAD ${pf.get('total_pnl', 0):,.0f}  ({pf.get('roi_pct', 0):.2f}% ROI)",
-                    f"  Daily Δ:      CAD ${pf.get('daily_change', 0):,.0f}  ({pf.get('daily_change_pct', 0):.2f}%)",
-                    f"  Unrealized:   CAD ${pf.get('unrealized_gain', 0):,.0f}",
-                    f"  Realized:     CAD ${pf.get('realized_gain', 0):,.0f}",
-                    f"  FX Impact:    CAD ${pf.get('fx_impact', 0):,.0f}",
-                    f"  Accounts:     {json.dumps(pf.get('accounts', {}))}",
-                ]
+                if not tool_calls:
+                    # Model is satisfied — proceed to streaming final response
+                    break
 
-            # ── 3. Intelligence briefing (key sections only — keeps context lean) ──
-            ctx_lines += build_intelligence_context(intelligence)
+                # ── Add assistant's tool-call turn ─────────────────────────────
+                messages.append({
+                    "role":       "assistant",
+                    "content":    msg.get("content"),
+                    "tool_calls": tool_calls,
+                })
 
-            print(f"  context lines: {len(ctx_lines)} | holdings: {len(holdings_list)} | tavily: {bool(os.environ.get('TAVILY_API_KEY'))}")
+                # ── Send status event(s) ───────────────────────────────────────
+                unique_tools = list(dict.fromkeys(tc["function"]["name"] for tc in tool_calls))
+                status_parts = [_TOOL_STATUS.get(n, f"🔧 {n}...") for n in unique_tools]
+                send_event({"status": "  |  ".join(status_parts)})
 
-            # ── 4. External data — Yahoo Finance + Google News ────────────
-            ctx_lines += get_external_context(message, holdings_list)
-
-            ctx_text = "\n".join(ctx_lines)
-
-            # ── 5. Build messages array ───────────────────────────────────
-            messages = [
-                {"role": "system",    "content": SYSTEM_INSTRUCTION},
-                {"role": "user",      "content": ctx_text},
-                {"role": "assistant", "content": (
-                    "Understood — I have the complete holdings list with cost basis and live prices, "
-                    "portfolio totals, the full intelligence briefing (macro themes, risks, news events, "
-                    "picks, strategy, tax notes), and any live Yahoo Finance or web news data. Ready to help."
-                )},
-            ]
-            for turn in history:
-                role = "user" if turn.get("role") == "user" else "assistant"
-                messages.append({"role": role, "content": turn.get("content", "")})
-
-            # ── Inject relevant holding data directly beside the question ──
-            # This prevents "lost in the middle" — model reads this right before answering
-            tickers_asked = extract_tickers(message, holdings_list)
-            matching = [h for h in holdings_list if h.get("ticker") in set(tickers_asked)]
-            if matching:
-                qr = "HOLDINGS DATA FOR THIS QUESTION:\n"
-                for h in matching:
-                    p     = holdings_prices.get(h.get("ticker", "")) or {}
-                    price = p.get("price")
-                    pstr  = f"${price:.2f} {h.get('ccy','')}" if price else f"market closed ({h.get('ccy','')})"
-                    qr += (
-                        f"• {h['ticker']} ({h.get('name','')}) — {h.get('account','')} | "
-                        f"{h.get('shares',0)} shares | live: {pstr} | "
-                        f"cost basis: ${h.get('cost_total',0):,.0f} | "
-                        f"unrealized: ${h.get('unrealized',0):,.0f} | "
-                        f"total P&L: ${h.get('total_pnl',0):,.0f} ({h.get('pct_return',0):+.1f}%)\n"
+                # ── Execute tools in parallel ──────────────────────────────────
+                def run_tc(tc):
+                    name = tc["function"]["name"]
+                    try:
+                        args = json.loads(tc["function"]["arguments"])
+                    except Exception:
+                        args = {}
+                    result_json = execute_tool(
+                        name, args,
+                        holdings_list, holdings_prices,
+                        closed_positions, cash_positions,
                     )
-                final_message = qr + "\n" + message
-            else:
-                final_message = message
+                    return tc["id"], result_json
 
-            messages.append({"role": "user", "content": final_message})
+                with ThreadPoolExecutor(max_workers=4) as executor:
+                    futures = [executor.submit(run_tc, tc) for tc in tool_calls]
+                    for future in as_completed(futures):
+                        tc_id, result_json = future.result()
+                        messages.append({
+                            "role":         "tool",
+                            "tool_call_id": tc_id,
+                            "content":      result_json,
+                        })
 
-            # ── 6. Call Groq ──────────────────────────────────────────────
-            resp = requests.post(
+            # ── Stream final response ──────────────────────────────────────────
+            stream_resp = requests.post(
                 GROQ_URL,
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                headers={
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
+                    "Content-Type":  "application/json",
+                },
                 json={
                     "model":       GROQ_MODEL,
                     "messages":    messages,
-                    "temperature": 0.4,
-                    "max_tokens":  1500,
+                    "temperature": 0.3,
+                    "max_tokens":  2048,
+                    "stream":      True,
                 },
                 timeout=35,
+                stream=True,
             )
-            resp.raise_for_status()
-            reply = resp.json()["choices"][0]["message"]["content"]
 
+            if not stream_resp.ok:
+                send_event({"content": "Sorry, I had trouble generating a response. Please try again."})
+                self.wfile.write(b"data: [DONE]\n\n")
+                self.wfile.flush()
+                return
+
+            for raw_line in stream_resp.iter_lines():
+                if not raw_line:
+                    continue
+                line = raw_line.decode("utf-8") if isinstance(raw_line, bytes) else raw_line
+                if not line.startswith("data: "):
+                    continue
+                chunk = line[6:]
+                if chunk == "[DONE]":
+                    self.wfile.write(b"data: [DONE]\n\n")
+                    self.wfile.flush()
+                    break
+                try:
+                    chunk_data = json.loads(chunk)
+                    delta = chunk_data["choices"][0]["delta"]
+                    text = delta.get("content") or ""
+                    if text:
+                        send_event({"content": text})
+                except Exception:
+                    pass
+
+        except (BrokenPipeError, ConnectionResetError):
+            pass
         except Exception as exc:
-            print(f"chat error: {exc}")
-            reply = "Sorry, I'm having trouble right now. Please try again in a moment."
+            print(f"  chat error: {exc}")
+            send_event({"content": f"Sorry, something went wrong: {exc}"})
+            try:
+                self.wfile.write(b"data: [DONE]\n\n")
+                self.wfile.flush()
+            except Exception:
+                pass
 
-        self._json(200, {"reply": reply})
+    def _cors(self):
+        self.send_header("Access-Control-Allow-Origin",  "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
-    def _json(self, code: int, data: dict) -> None:
-        body = json.dumps(data).encode()
+    def _error(self, code: int, msg: str):
+        body = json.dumps({"error": msg}).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self._cors()
         self.end_headers()
         self.wfile.write(body)
-
-    def _error(self, code: int, message: str) -> None:
-        self._json(code, {"error": message})
-
-    def _cors(self) -> None:
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
     def log_message(self, fmt, *args):
         pass

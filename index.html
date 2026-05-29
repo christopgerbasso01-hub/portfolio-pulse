@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@13/marked.min.js"></script>
 <style>
 /* ============================  TOKENS  ============================ */
 :root{
@@ -363,6 +364,24 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .chat-send:hover{opacity:.85}
 .chat-send:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:480px){.chat-panel{width:calc(100vw - 32px);left:16px}}
+/* Markdown rendering inside bot messages */
+.chat-msg.bot p{margin:0 0 6px 0}
+.chat-msg.bot p:last-child{margin-bottom:0}
+.chat-msg.bot ul,.chat-msg.bot ol{margin:4px 0 6px 16px;padding:0}
+.chat-msg.bot li{margin-bottom:2px}
+.chat-msg.bot h1,.chat-msg.bot h2,.chat-msg.bot h3{font-size:13px;font-weight:700;margin:8px 0 4px 0;color:var(--text)}
+.chat-msg.bot strong{font-weight:700;color:var(--text)}
+.chat-msg.bot em{font-style:italic;color:var(--text2)}
+.chat-msg.bot code{background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:1px 4px;font-family:var(--mono);font-size:11px}
+.chat-msg.bot pre{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px;overflow-x:auto;margin:6px 0}
+.chat-msg.bot pre code{background:none;border:none;padding:0}
+.chat-msg.bot blockquote{border-left:3px solid var(--purple);margin:4px 0 4px 0;padding-left:8px;color:var(--text2)}
+.chat-msg.bot table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
+.chat-msg.bot th{background:var(--surface);border:1px solid var(--border2);padding:4px 8px;text-align:left;font-weight:700}
+.chat-msg.bot td{border:1px solid var(--border);padding:3px 8px}
+.chat-msg.bot tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.chat-msg.bot a{color:var(--blue-bright);text-decoration:none}
+.chat-msg.bot a:hover{text-decoration:underline}
 
 /* ── Transaction Modal ─────────────────────────────────────── */
 .tx-fab{position:fixed;bottom:24px;right:24px;z-index:998;background:var(--blue-bright);color:#fff;border:none;border-radius:8px;padding:10px 16px;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.05em;box-shadow:0 4px 20px rgba(96,165,250,.35);transition:all .2s}
@@ -3148,6 +3167,18 @@ function toggleChat() {
   }
 }
 
+// Configure marked.js
+if (typeof marked !== 'undefined') {
+  marked.setOptions({ breaks: true, gfm: true });
+}
+
+function renderMarkdown(text) {
+  if (typeof marked !== 'undefined') {
+    try { return marked.parse(text); } catch(e) {}
+  }
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
 async function sendChat() {
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
@@ -3162,73 +3193,136 @@ async function sendChat() {
 
   // Typing indicator
   const typingId = 'typing_' + Date.now();
-  appendChat('bot', '…', typingId, true);
+  appendChat('bot', '⏳ Thinking…', typingId, true);
+  const typingEl = document.getElementById(typingId);
+
+  const payload = {
+    message:         msg,
+    portfolio:       currentMarketData?.portfolio || {},
+    intelligence:    intelligenceData || {},
+    history:         chatHistory.slice(-14),
+    holdings_prices: currentMarketData?.holdings || {},
+    holdings_list: HOLDINGS_STATIC.map(h => ({
+      ticker:      h.ticker,
+      name:        h.name,
+      account:     h.account,
+      sector:      h.sector      || '',
+      shares:      h.shares,
+      ccy:         h.ccy,
+      cost_total:  h.cost_total  || 0,
+      unrealized:  h.unrealized  || 0,
+      realized:    h.realized    || 0,
+      dividends:   h.dividends   || 0,
+      total_pnl:   h.total_pnl   || 0,
+      pct_return:  h.pct_return  || 0,
+      weight:      h.weight      || 0,
+      book_rate:   h.book_rate   || null,
+    })),
+    closed_positions: CLOSED_POSITIONS_STATIC.map(h => ({
+      ticker:     h.ticker,
+      name:       h.name,
+      account:    h.account,
+      sector:     h.sector    || '',
+      ccy:        h.ccy,
+      cost_total: h.cost_total || 0,
+      total_pnl:  h.total_pnl  || 0,
+      dividends:  h.dividends  || 0,
+    })),
+    cash_positions: CASH_POSITIONS.map(c => ({
+      account: c.account,
+      ccy:     c.ccy,
+      amount:  c.amount,
+    })),
+  };
 
   try {
     const res = await fetch(`${CONFIG.API_BASE}/api/chat`, {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message:         msg,
-        portfolio:       currentMarketData?.portfolio || {},
-        intelligence:    intelligenceData || {},
-        history:         chatHistory.slice(-12),
-        holdings_prices: currentMarketData?.holdings || {},
-        holdings_list: HOLDINGS_STATIC.map(h => ({
-          ticker:      h.ticker,
-          name:        h.name,
-          account:     h.account,
-          sector:      h.sector      || '',
-          shares:      h.shares,
-          ccy:         h.ccy,
-          cost_total:  h.cost_total  || 0,
-          unrealized:  h.unrealized  || 0,
-          realized:    h.realized    || 0,
-          dividends:   h.dividends   || 0,
-          total_pnl:   h.total_pnl   || 0,
-          pct_return:  h.pct_return  || 0,
-          weight:      h.weight      || 0,
-          book_rate:   h.book_rate   || null,
-        })),
-        closed_positions: CLOSED_POSITIONS_STATIC.map(h => ({
-          ticker:    h.ticker,
-          name:      h.name,
-          account:   h.account,
-          sector:    h.sector    || '',
-          ccy:       h.ccy,
-          cost_total: h.cost_total || 0,
-          total_pnl:  h.total_pnl  || 0,
-          dividends:  h.dividends  || 0,
-        })),
-        cash_positions: CASH_POSITIONS.map(c => ({
-          account: c.account,
-          ccy:     c.ccy,
-          amount:  c.amount,
-        })),
-      }),
-      signal: AbortSignal.timeout(35000),
+      body:    JSON.stringify(payload),
+      signal:  AbortSignal.timeout(90000),
     });
 
-    const data = await res.json();
-    const reply = data.reply || data.error || 'No response from AI.';
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    // Replace typing indicator with reply
-    const typingEl = document.getElementById(typingId);
-    if (typingEl) {
-      typingEl.className = 'chat-msg bot';
-      typingEl.textContent = reply;
+    const contentType = res.headers.get('content-type') || '';
+
+    // ── SSE streaming response ─────────────────────────────────────────────
+    if (contentType.includes('text/event-stream')) {
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer   = '';
+      let fullText = '';
+      const msgs   = document.getElementById('chatMsgs');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const raw = line.slice(6).trim();
+          if (raw === '[DONE]') {
+            chatHistory.push({ role: 'assistant', content: fullText });
+            return;
+          }
+          try {
+            const parsed = JSON.parse(raw);
+
+            if (parsed.status && typingEl && !fullText) {
+              // Still in tool-calling phase — show status
+              typingEl.className = 'chat-msg bot typing';
+              typingEl.textContent = parsed.status;
+
+            } else if (parsed.content && typingEl) {
+              // First content chunk — switch from typing to streaming
+              if (!fullText) {
+                typingEl.className = 'chat-msg bot';
+                typingEl.innerHTML = '';
+              }
+              fullText += parsed.content;
+              typingEl.innerHTML = renderMarkdown(fullText);
+              msgs.scrollTop = msgs.scrollHeight;
+
+            } else if (parsed.error && typingEl) {
+              typingEl.className = 'chat-msg bot';
+              typingEl.textContent = parsed.error;
+              chatHistory.push({ role: 'assistant', content: parsed.error });
+              return;
+            }
+          } catch (_) {}
+        }
+      }
+      // Stream ended without [DONE] — finalise
+      if (fullText) chatHistory.push({ role: 'assistant', content: fullText });
+
+    // ── Fallback: non-streaming JSON ───────────────────────────────────────
     } else {
-      appendChat('bot', reply);
+      const data  = await res.json();
+      const reply = data.reply || data.error || 'No response from AI.';
+      if (typingEl) {
+        typingEl.className = 'chat-msg bot';
+        typingEl.innerHTML = renderMarkdown(reply);
+      } else {
+        appendChat('bot', reply);
+      }
+      chatHistory.push({ role: 'assistant', content: reply });
     }
-    chatHistory.push({ role: 'assistant', content: reply });
 
   } catch (err) {
-    const typingEl = document.getElementById(typingId);
     const errMsg = err.name === 'TimeoutError'
-      ? 'Request timed out. Try again.'
-      : 'Connection error. Check API configuration.';
-    if (typingEl) { typingEl.className = 'chat-msg bot'; typingEl.textContent = errMsg; }
-    else appendChat('bot', errMsg);
+      ? 'Request timed out (90s). The AI may be doing deep research — try a more focused question.'
+      : 'Connection error. Please try again.';
+    if (typingEl) {
+      typingEl.className = 'chat-msg bot';
+      typingEl.textContent = errMsg;
+    } else {
+      appendChat('bot', errMsg);
+    }
   } finally {
     sendBtn.disabled = false;
     document.getElementById('chatInput').focus();
@@ -3238,7 +3332,11 @@ async function sendChat() {
 function appendChat(role, text, id, isTyping) {
   const div = document.createElement('div');
   div.className = `chat-msg ${role === 'user' ? 'user' : 'bot'}${isTyping ? ' typing' : ''}`;
-  div.textContent = text;
+  if (role === 'user') {
+    div.textContent = text;
+  } else {
+    div.textContent = text; // plain text for initial state; SSE updates use innerHTML
+  }
   if (id) div.id = id;
   const msgs = document.getElementById('chatMsgs');
   msgs.appendChild(div);

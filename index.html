@@ -319,6 +319,45 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .chat-send:hover{opacity:.85}
 .chat-send:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:480px){.chat-panel{width:calc(100vw - 32px);right:16px}}
+
+/* ── Transaction Modal ─────────────────────────────────────── */
+.tx-fab{position:fixed;bottom:24px;right:24px;z-index:998;background:var(--blue-bright);color:#fff;border:none;border-radius:8px;padding:10px 16px;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.05em;box-shadow:0 4px 20px rgba(96,165,250,.35);transition:all .2s}
+.tx-fab:hover{background:#3b82f6;transform:translateY(-2px);box-shadow:0 6px 24px rgba(96,165,250,.45)}
+.tx-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px}
+.tx-modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 24px 64px rgba(0,0,0,.7)}
+.tx-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.tx-title{font-family:var(--mono);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.tx-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;padding:0 4px}
+.tx-close:hover{color:var(--text)}
+.tx-tabs{display:flex;gap:4px;margin-bottom:20px}
+.tx-tab{flex:1;padding:7px 2px;border:1px solid var(--border2);background:var(--surface2);color:var(--text3);border-radius:6px;cursor:pointer;font-family:var(--mono);font-size:10px;text-align:center;text-transform:uppercase;letter-spacing:.04em;transition:all .15s}
+.tx-tab.active{border-color:var(--blue-bright);color:var(--blue-bright);background:rgba(96,165,250,.08)}
+.tx-tab:hover:not(.active){border-color:var(--border);color:var(--text2)}
+.tx-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tx-field{margin-bottom:14px}
+.tx-field label{display:block;font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.tx-field input,.tx-field select{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:8px 10px;border-radius:6px;font-family:var(--mono);font-size:12px;box-sizing:border-box;transition:border-color .15s}
+.tx-field input:focus,.tx-field select:focus{outline:none;border-color:var(--blue-bright)}
+.tx-preview{font-family:var(--mono);font-size:11px;color:var(--text3);min-height:18px;margin-bottom:16px;padding:6px 8px;background:var(--surface2);border-radius:5px;border:1px solid var(--border)}
+.tx-actions{display:flex;gap:8px}
+.tx-submit{flex:1;padding:10px;background:var(--blue-bright);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;transition:background .15s}
+.tx-submit:hover{background:#3b82f6}
+.tx-cancel{padding:10px 20px;background:var(--surface2);border:1px solid var(--border2);color:var(--text2);border-radius:6px;cursor:pointer;font-family:var(--mono);font-size:12px;transition:border-color .15s}
+.tx-cancel:hover{border-color:var(--border)}
+.tx-history{margin-top:20px;border-top:1px solid var(--border);padding-top:16px}
+.tx-history-title{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.tx-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:11px}
+.tx-item:last-child{border-bottom:none}
+.tx-item-date{color:var(--text3);min-width:80px}
+.tx-item-type{padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700}
+.tx-type-BUY{background:rgba(16,185,129,.15);color:#10b981}
+.tx-type-SELL{background:rgba(239,68,68,.12);color:#f87171}
+.tx-type-DIVIDEND{background:rgba(245,158,11,.12);color:#fbbf24}
+.tx-type-SPLIT{background:rgba(139,92,246,.12);color:#a78bfa}
+.tx-type-CONTRIBUTION{background:rgba(96,165,250,.12);color:var(--blue-bright)}
+.tx-item-desc{flex:1;color:var(--text2)}
+.tx-del{background:none;border:none;color:var(--text3);cursor:pointer;padding:2px 5px;font-size:12px;border-radius:3px;transition:all .15s}
+.tx-del:hover{color:#f87171;background:rgba(239,68,68,.1)}
 </style>
 </head>
 <body>
@@ -361,7 +400,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     </div>
     <div class="hkpi">
       <div class="hkpi-label">Total Contributions</div>
-      <div class="hkpi-value">$149,632</div>
+      <div class="hkpi-value" id="kpiContributions">$149,632</div>
     </div>
     <div class="hkpi">
       <div class="hkpi-label">Total P&amp;L</div>
@@ -955,7 +994,7 @@ const CONFIG = {
 // kept only as a last-resort fallback for any future new positions.
 const USD_BOOK_RATE = 1.3925;
 
-const HOLDINGS_STATIC = [
+const _HOLDINGS_BASE = [
   {ticker:"SPXL",name:"S&P500 3x ETF",account:"Investment",sector:"Leveraged ETF",shares:75,cost_total:9785.05,unrealized:13993.28,realized:231.45,total_pnl:14224.73,pct_return:104.71,weight:10.51,book_rate:1.37585,dividends:231.45,ccy:"USD"},
   {ticker:"FNGU",name:"FANG+ 3x ETF",account:"Investment",sector:"Leveraged ETF",shares:665,cost_total:13266.68,unrealized:8142.17,realized:0,total_pnl:8142.17,pct_return:44.89,weight:10.10,book_rate:1.37735,ccy:"USD"},
   {ticker:"FNGU",name:"FANG+ 3x ETF",account:"TFSA",sector:"Leveraged ETF",shares:495,cost_total:9435.62,unrealized:6491.13,realized:0,total_pnl:6491.13,pct_return:49.66,weight:7.51,book_rate:1.39547,ccy:"USD"},
@@ -1002,7 +1041,7 @@ const HOLDINGS_STATIC = [
 // ============================================================
 let showClosedPositions = false;
 
-const CLOSED_POSITIONS_STATIC = [
+const _CLOSED_BASE = [
   // --- TFSA ---
   {ticker:"FNGA",  name:"FANG+ 2x ETF",         account:"TFSA",       sector:"Leveraged ETF",   cost_total:6039.10, dividends:0,      total_pnl:3511.76,  ccy:"USD"},
   {ticker:"USO",   name:"US Oil Fund ETF",        account:"TFSA",       sector:"Energy",          cost_total:998.90,  dividends:0,      total_pnl:1355.77,  ccy:"USD"},
@@ -1047,13 +1086,26 @@ const CLOSED_POSITIONS_STATIC = [
 
 // Cash on hand — amounts in native currency (USD converted at live rate)
 // Update whenever cash balances change.
-const CASH_POSITIONS = [
+const _CASH_BASE = [
   { ticker: 'CASH·USD', account: 'TFSA',       ccy: 'USD', amount: 344.41,  name: 'USD Cash' },
   { ticker: 'CASH·CAD', account: 'FHSA',       ccy: 'CAD', amount: 24.34,   name: 'CAD Cash' },
   { ticker: 'CASH·CAD', account: 'Investment', ccy: 'CAD', amount: 58.99,   name: 'CAD Cash' },
   { ticker: 'CASH·USD', account: 'Investment', ccy: 'USD', amount: 50.71,   name: 'USD Cash' },
   { ticker: 'CASH·USD', account: 'RRSP',       ccy: 'USD', amount: 7685.47, name: 'USD Cash' },
 ];
+
+// ── Live state (mutable — rebuilt from base + transaction log on every change) ──
+function deepCopy(x) { return JSON.parse(JSON.stringify(x)); }
+const _CONTRIB_BASE = { TFSA: 44500, Investment: 65000, FHSA: 24000, RRSP: 16132 };
+let HOLDINGS_STATIC         = deepCopy(_HOLDINGS_BASE);
+let CASH_POSITIONS          = deepCopy(_CASH_BASE);
+let CLOSED_POSITIONS_STATIC = deepCopy(_CLOSED_BASE);
+let CONTRIB_STATE           = { ..._CONTRIB_BASE };
+const CONTRIB_TOTAL         = () => Object.values(CONTRIB_STATE).reduce((a, b) => a + b, 0);
+
+// Cache of last API response — used to re-render after a transaction is logged
+let _lastLiveData  = null;
+let _liveUsdcad    = 1.37;
 
 const TICKER_NAMES = {};
 HOLDINGS_STATIC.forEach(h => { TICKER_NAMES[h.ticker] = h.name; });
@@ -1209,7 +1261,7 @@ function updateHeaderKPIs(data) {
 
   // FX Impact = Total P&L residual after stripping unrealized and realized
   // i.e. the portion of P&L attributable to currency translation
-  const totalPnlClient = sumMktVal - 149632;
+  const totalPnlClient = sumMktVal - CONTRIB_TOTAL();
   sumFX = Math.round(totalPnlClient - sumUnrealized - sumRealized);
 
   // ── Update the four live cards ────────────────────────────────────────────
@@ -1254,10 +1306,10 @@ function updateHeaderKPIs(data) {
   const accts = portfolio.accounts;
   const acctCosts = portfolio.account_cost || {};
   [
-    ['acctTFSAValue', 'acctTFSARoi', 'acctTFSAPnl', 'TFSA', 44500],
-    ['acctInvValue',  'acctInvRoi',  'acctInvPnl',  'Investment', 65000],
-    ['acctFHSAValue', 'acctFHSARoi', 'acctFHSAPnl', 'FHSA', 24000],
-    ['acctRRSPValue', 'acctRRSPRoi', 'acctRRSPPnl', 'RRSP', 16132],
+    ['acctTFSAValue', 'acctTFSARoi', 'acctTFSAPnl', 'TFSA',       CONTRIB_STATE.TFSA],
+    ['acctInvValue',  'acctInvRoi',  'acctInvPnl',  'Investment', CONTRIB_STATE.Investment],
+    ['acctFHSAValue', 'acctFHSARoi', 'acctFHSAPnl', 'FHSA',       CONTRIB_STATE.FHSA],
+    ['acctRRSPValue', 'acctRRSPRoi', 'acctRRSPPnl', 'RRSP',       CONTRIB_STATE.RRSP],
   ].forEach(([valId, roiId, pnlId, key, contrib]) => {
     const val = accts[key];
     const cost2 = acctCosts[key] || contrib;
@@ -1308,9 +1360,14 @@ function updateHeaderKPIs(data) {
   }
 
   // ROI based on client-side market value vs contributions
-  const clientRoi = displayMv > 0 ? ((displayMv - 149632) / 149632 * 100) : roi;
+  const ct = CONTRIB_TOTAL();
+  const clientRoi = displayMv > 0 ? ((displayMv - ct) / ct * 100) : roi;
   document.getElementById('kpiRoi').textContent = fmtPct(clientRoi);
   document.getElementById('kpiRoi').className = `hkpi-value ${colorClass(clientRoi)}`;
+
+  // Contributions card (updates when new contributions are logged)
+  const contribEl = document.getElementById('kpiContributions');
+  if (contribEl) contribEl.textContent = fmt$(CONTRIB_TOTAL());
 
   // Benchmark bar
   const tv2 = displayMv || tv || 273825;
@@ -1365,7 +1422,7 @@ function updateAccountFooters(data) {
   const hPrices  = data.holdings || {};
   const usdcad   = data.usdcad   || 1.37;
   const accts    = data.portfolio?.accounts || {};
-  const CONTRIBS = { TFSA: 44500, Investment: 65000, FHSA: 24000, RRSP: 16132 };
+  const CONTRIBS = CONTRIB_STATE;
   const s = n => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';  // signed pct string
 
   // Build per-account metrics from live prices
@@ -1447,7 +1504,7 @@ function updateAccountFooters(data) {
   // ── FHSA ─────────────────────────────────────────────────────────────────
   {
     const m = metrics('FHSA');
-    const growthMult = (m.acctVal / 24000).toFixed(2);
+    const growthMult = (m.acctVal / (CONTRIB_STATE.FHSA || 24000)).toFixed(2);
     const spxl = m.holdingStats.find(h => h.ticker === 'SPXL');
     const spxlPct = spxl ? (spxl.mv / m.acctVal * 100) : 0;
     let msg;
@@ -2456,6 +2513,10 @@ async function fetchMarketData() {
     // Header date
     document.getElementById('headerDate').textContent = `Live as of ${new Date().toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}`;
 
+    // Cache for post-transaction re-render
+    _lastLiveData = data;
+    if (data.usdcad) _liveUsdcad = data.usdcad;
+
     // Update widgets & KPIs
     if (data.benchmarks) updateMarketWidget(data.benchmarks);
     if (data.portfolio) updateHeaderKPIs(data);
@@ -2549,6 +2610,7 @@ async function refreshAll() {
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
+  applyAllTransactions();   // replay saved transactions on top of base data
   renderHoldingsTable(null);
   updateRowCount();
   initCharts();
@@ -2650,7 +2712,439 @@ function appendChat(role, text, id, isTyping) {
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
 }
+
+// ============================================================
+// TRANSACTION ENGINE
+// ============================================================
+function getTransactions() {
+  try { return JSON.parse(localStorage.getItem('pp_transactions') || '[]'); }
+  catch(e) { return []; }
+}
+function saveTransaction(tx) {
+  tx.id = Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  const txs = getTransactions();
+  txs.push(tx);
+  localStorage.setItem('pp_transactions', JSON.stringify(txs));
+}
+function deleteTransaction(id) {
+  localStorage.setItem('pp_transactions', JSON.stringify(getTransactions().filter(t => t.id !== id)));
+  applyAllTransactions();
+  refreshAfterTx();
+  renderTxHistory();
+}
+
+function applyOneTx(holdings, closed, contribs, cash, tx) {
+  switch (tx.type) {
+    case 'BUY': {
+      const idx = holdings.findIndex(h => h.ticker === tx.ticker && h.account === tx.account);
+      const addCost = tx.shares * tx.price;
+      if (idx >= 0) {
+        const old = holdings[idx];
+        if (tx.ccy === 'USD' && old.book_rate && tx.rate) {
+          const newTotal = old.cost_total + addCost;
+          holdings[idx].book_rate = (old.cost_total * old.book_rate + addCost * tx.rate) / newTotal;
+          holdings[idx].cost_total = newTotal;
+        } else {
+          holdings[idx].cost_total += addCost;
+        }
+        holdings[idx].shares += tx.shares;
+      } else {
+        holdings.push({
+          ticker: tx.ticker, name: tx.name || tx.ticker, account: tx.account,
+          sector: tx.sector || 'Unknown', shares: tx.shares, cost_total: addCost,
+          ccy: tx.ccy || 'USD', book_rate: tx.ccy === 'USD' ? (tx.rate || 1.37) : null,
+          dividends: 0, realized: 0, unrealized: 0, weight: 0
+        });
+      }
+      break;
+    }
+    case 'SELL': {
+      const idx = holdings.findIndex(h => h.ticker === tx.ticker && h.account === tx.account);
+      if (idx < 0) break;
+      const old = holdings[idx];
+      const sellShares = Math.min(tx.shares, old.shares);
+      const acbPerShare = old.cost_total / old.shares;
+      const realNative  = (tx.price - acbPerShare) * sellShares;
+      const rate        = tx.rate || old.book_rate || 1.37;
+      const realCAD     = old.ccy === 'USD' ? realNative * rate : realNative;
+      holdings[idx].shares     -= sellShares;
+      holdings[idx].cost_total -= acbPerShare * sellShares;
+      holdings[idx].realized    = (old.realized || 0) + realCAD;
+      if (holdings[idx].shares <= 0) holdings.splice(idx, 1);
+      break;
+    }
+    case 'DIVIDEND': {
+      const idx = holdings.findIndex(h => h.ticker === tx.ticker && h.account === tx.account);
+      if (idx < 0) break;
+      const amtCAD = tx.ccy === 'USD' ? tx.amount * (tx.rate || 1.37) : tx.amount;
+      holdings[idx].dividends = (holdings[idx].dividends || 0) + amtCAD;
+      break;
+    }
+    case 'SPLIT': {
+      holdings.forEach((h, i) => {
+        if (h.ticker === tx.ticker && (!tx.account || h.account === tx.account))
+          holdings[i].shares = Math.round(h.shares * tx.ratio);
+      });
+      break;
+    }
+    case 'CONTRIBUTION': {
+      contribs[tx.account] = (contribs[tx.account] || 0) + tx.amount;
+      const ci = cash.findIndex(c => c.account === tx.account && c.ccy === 'CAD');
+      if (ci >= 0) cash[ci].amount += tx.amount;
+      else cash.push({ ticker: 'CASH·CAD', account: tx.account, ccy: 'CAD', amount: tx.amount, name: 'CAD Cash' });
+      break;
+    }
+  }
+}
+
+function applyAllTransactions() {
+  const txs = getTransactions().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  HOLDINGS_STATIC         = deepCopy(_HOLDINGS_BASE);
+  CASH_POSITIONS          = deepCopy(_CASH_BASE);
+  CLOSED_POSITIONS_STATIC = deepCopy(_CLOSED_BASE);
+  CONTRIB_STATE           = { ..._CONTRIB_BASE };
+  txs.forEach(tx => applyOneTx(HOLDINGS_STATIC, CLOSED_POSITIONS_STATIC, CONTRIB_STATE, CASH_POSITIONS, tx));
+}
+
+function refreshAfterTx() {
+  renderHoldingsTable(_lastLiveData);
+  if (_lastLiveData?.portfolio) {
+    updateHeaderKPIs(_lastLiveData);
+    updateAccountFooters(_lastLiveData);
+  }
+  const el = document.getElementById('kpiContributions');
+  if (el) el.textContent = fmt$(CONTRIB_TOTAL());
+}
+
+// ── Modal UI ─────────────────────────────────────────────────
+let _txType = 'BUY';
+
+function openTxModal() {
+  document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('txRate').value = _liveUsdcad.toFixed(4);
+  populateTickerDatalist();
+  setTxType('BUY');
+  renderTxHistory();
+  document.getElementById('txOverlay').style.display = 'flex';
+}
+function closeTxModal() {
+  document.getElementById('txOverlay').style.display = 'none';
+}
+function setTxType(type) {
+  _txType = type;
+  ['BUY','SELL','DIVIDEND','SPLIT','CONTRIBUTION'].forEach(t =>
+    document.getElementById('txTab-' + t).classList.toggle('active', t === type));
+  updateTxForm();
+}
+
+function updateTxForm() {
+  const isBuy = _txType === 'BUY', isSell = _txType === 'SELL',
+        isDiv = _txType === 'DIVIDEND', isSplit = _txType === 'SPLIT',
+        isContrib = _txType === 'CONTRIBUTION';
+  const show = (id, v) => { const el = document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
+
+  show('txTickerRow',     !isContrib);
+  show('txSharesPriceRow', isBuy || isSell);
+  show('txCcyRateRow',    isBuy || isSell);
+  show('txDivRow',        isDiv);
+  show('txNewTickerRow',  false);   // shown dynamically
+  show('txSplitRow',      isSplit);
+  show('txContribRow',    isContrib);
+
+  if (isBuy || isSell) {
+    document.getElementById('txSharesLabel').textContent = isSell ? 'Shares to Sell' : 'Shares';
+    document.getElementById('txPriceLabel').textContent  = isSell ? 'Sell Price / Share' : 'Price / Share';
+  }
+  if (isSell || isDiv) populateHoldingsTickers();
+  onTickerChange();
+}
+
+function populateTickerDatalist() {
+  const dl = document.getElementById('txTickerDL');
+  dl.innerHTML = '';
+  [...new Set(HOLDINGS_STATIC.map(h => h.ticker))].forEach(t => {
+    const o = document.createElement('option'); o.value = t; dl.appendChild(o);
+  });
+}
+function populateHoldingsTickers() {
+  const acct = document.getElementById('txAcct').value;
+  const dl = document.getElementById('txTickerDL');
+  dl.innerHTML = '';
+  HOLDINGS_STATIC.filter(h => h.account === acct).forEach(h => {
+    const o = document.createElement('option');
+    o.value = h.ticker;
+    o.label = `${h.ticker} (${h.shares} shs)`;
+    dl.appendChild(o);
+  });
+}
+
+function onTickerChange() {
+  const ticker = (document.getElementById('txTicker')?.value || '').toUpperCase();
+  const acct   = document.getElementById('txAcct')?.value || '';
+  const existing = HOLDINGS_STATIC.find(h => h.ticker === ticker && h.account === acct);
+  const anywhere  = HOLDINGS_STATIC.find(h => h.ticker === ticker);
+
+  // Show new-ticker name/sector fields only for BUY of unknown ticker
+  const showNew = _txType === 'BUY' && ticker && !anywhere;
+  document.getElementById('txNewTickerRow').style.display = showNew ? '' : 'none';
+
+  // Auto-fill currency from existing holding
+  if (anywhere) {
+    const ccyEl = document.getElementById('txCcy');
+    if (ccyEl) ccyEl.value = anywhere.ccy || 'USD';
+  }
+  // Auto-fill max shares for SELL
+  if (existing && _txType === 'SELL') {
+    const sharesEl = document.getElementById('txShares');
+    if (sharesEl) { sharesEl.max = existing.shares; sharesEl.placeholder = `max ${existing.shares}`; }
+  }
+  onCcyChange();
+  renderPreview();
+}
+
+function onCcyChange() {
+  const ccy = document.getElementById('txCcy')?.value || 'USD';
+  const rateRow = document.getElementById('txRateField');
+  if (rateRow) rateRow.style.display = ccy === 'USD' ? '' : 'none';
+  renderPreview();
+}
+
+function renderPreview() {
+  const el = document.getElementById('txPreview');
+  if (!el) return;
+  try {
+    const ticker = (document.getElementById('txTicker')?.value || '').toUpperCase();
+    const acct   = document.getElementById('txAcct')?.value || '';
+    const shares = parseFloat(document.getElementById('txShares')?.value) || 0;
+    const price  = parseFloat(document.getElementById('txPrice')?.value) || 0;
+    const ccy    = document.getElementById('txCcy')?.value || 'USD';
+    const rate   = parseFloat(document.getElementById('txRate')?.value) || _liveUsdcad;
+    const existing = HOLDINGS_STATIC.find(h => h.ticker === ticker && h.account === acct);
+
+    if (_txType === 'BUY' && ticker && shares > 0 && price > 0) {
+      const totalNative = shares * price;
+      const totalCAD = ccy === 'USD' ? totalNative * rate : totalNative;
+      el.textContent = `→ ${shares} × ${ticker} @ $${price} ${ccy} = ${fmt$(totalCAD)} CAD total`;
+    } else if (_txType === 'SELL' && existing && shares > 0 && price > 0) {
+      const acbPS = existing.cost_total / existing.shares;
+      const realN = (price - acbPS) * shares;
+      const realCAD = ccy === 'USD' ? realN * rate : realN;
+      el.textContent = `→ ACB/share $${acbPS.toFixed(2)} ${ccy}  ·  Realized: ${realCAD >= 0 ? '+' : ''}${fmt$(realCAD)} CAD`;
+    } else if (_txType === 'CONTRIBUTION') {
+      const amt = parseFloat(document.getElementById('txContribAmt')?.value) || 0;
+      if (amt > 0) el.textContent = `→ ${acct} contributions: ${fmt$(CONTRIB_STATE[acct] || 0)} → ${fmt$((CONTRIB_STATE[acct] || 0) + amt)}`;
+      else el.textContent = '';
+    } else {
+      el.textContent = '';
+    }
+  } catch(e) { el.textContent = ''; }
+}
+
+function submitTx() {
+  const date = document.getElementById('txDate').value;
+  const acct = document.getElementById('txAcct').value;
+  const rate = parseFloat(document.getElementById('txRate').value) || _liveUsdcad;
+  let tx = { type: _txType, date, account: acct };
+
+  if (_txType === 'BUY' || _txType === 'SELL') {
+    const ticker = document.getElementById('txTicker').value.trim().toUpperCase();
+    const shares = parseFloat(document.getElementById('txShares').value);
+    const price  = parseFloat(document.getElementById('txPrice').value);
+    const ccy    = document.getElementById('txCcy').value;
+    if (!ticker || !(shares > 0) || !(price > 0)) { alert('Fill in Ticker, Shares, and Price.'); return; }
+    const existing = HOLDINGS_STATIC.find(h => h.ticker === ticker && h.account === acct);
+    if (_txType === 'SELL' && existing && shares > existing.shares) {
+      alert(`Only ${existing.shares} shares of ${ticker} in ${acct}.`); return;
+    }
+    tx = { ...tx, ticker, shares, price, ccy };
+    if (ccy === 'USD') tx.rate = rate;
+    if (_txType === 'BUY' && !HOLDINGS_STATIC.find(h => h.ticker === ticker)) {
+      tx.name   = document.getElementById('txName').value.trim() || ticker;
+      tx.sector = document.getElementById('txSectorSelect').value || 'Unknown';
+    }
+  } else if (_txType === 'DIVIDEND') {
+    const ticker = document.getElementById('txTicker').value.trim().toUpperCase();
+    const amount = parseFloat(document.getElementById('txDivAmt').value);
+    const ccy    = document.getElementById('txDivCcy').value;
+    if (!ticker || !(amount > 0)) { alert('Fill in Ticker and Amount.'); return; }
+    tx = { ...tx, ticker, amount, ccy };
+    if (ccy === 'USD') tx.rate = rate;
+  } else if (_txType === 'SPLIT') {
+    const ticker = document.getElementById('txTicker').value.trim().toUpperCase();
+    const ratio  = parseFloat(document.getElementById('txSplitRatio').value);
+    if (!ticker || !(ratio > 0)) { alert('Fill in Ticker and Ratio.'); return; }
+    tx = { ...tx, ticker, ratio };
+  } else if (_txType === 'CONTRIBUTION') {
+    const amount = parseFloat(document.getElementById('txContribAmt').value);
+    if (!(amount > 0)) { alert('Enter a contribution amount.'); return; }
+    tx = { ...tx, amount };
+  }
+
+  saveTransaction(tx);
+  applyAllTransactions();
+  refreshAfterTx();
+  renderTxHistory();
+
+  // Clear inputs
+  ['txTicker','txShares','txPrice','txDivAmt','txContribAmt','txSplitRatio','txName'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.getElementById('txPreview').textContent = '✅ Transaction saved.';
+}
+
+function renderTxHistory() {
+  const txs = getTransactions().slice().reverse().slice(0, 15);
+  const el  = document.getElementById('txHistoryList');
+  if (!el) return;
+  if (!txs.length) { el.innerHTML = '<div style="color:var(--text3);font-family:var(--mono);font-size:11px">No transactions yet.</div>'; return; }
+  el.innerHTML = txs.map(tx => {
+    const labels = { BUY:'BUY', SELL:'SELL', DIVIDEND:'DIV', SPLIT:'SPLIT', CONTRIBUTION:'CONTRIB' };
+    let desc = '';
+    if (tx.type === 'BUY')          desc = `${tx.shares} × ${tx.ticker} @ $${tx.price} ${tx.ccy||'USD'} · ${tx.account}`;
+    else if (tx.type === 'SELL')    desc = `${tx.shares} × ${tx.ticker} @ $${tx.price} ${tx.ccy||'USD'} · ${tx.account}`;
+    else if (tx.type === 'DIVIDEND')desc = `${tx.ticker} +${tx.amount} ${tx.ccy||'CAD'} · ${tx.account}`;
+    else if (tx.type === 'SPLIT')   desc = `${tx.ticker} ×${tx.ratio} split`;
+    else if (tx.type === 'CONTRIBUTION') desc = `+${fmt$(tx.amount)} CAD → ${tx.account}`;
+    return `<div class="tx-item">
+      <span class="tx-item-date">${tx.date||'—'}</span>
+      <span class="tx-item-type tx-type-${tx.type}">${labels[tx.type]||tx.type}</span>
+      <span class="tx-item-desc">${desc}</span>
+      <button class="tx-del" onclick="deleteTransaction('${tx.id}')" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+}
 </script>
+
+<!-- ======================================================  TRANSACTION MODAL -->
+<button class="tx-fab" onclick="openTxModal()">＋ LOG TRADE</button>
+
+<div id="txOverlay" class="tx-overlay" style="display:none" onclick="if(event.target===this)closeTxModal()">
+  <div class="tx-modal">
+    <div class="tx-header">
+      <span class="tx-title">Log Transaction</span>
+      <button class="tx-close" onclick="closeTxModal()">✕</button>
+    </div>
+
+    <!-- Type tabs -->
+    <div class="tx-tabs">
+      <div class="tx-tab active" id="txTab-BUY"          onclick="setTxType('BUY')">Buy</div>
+      <div class="tx-tab"       id="txTab-SELL"         onclick="setTxType('SELL')">Sell</div>
+      <div class="tx-tab"       id="txTab-DIVIDEND"     onclick="setTxType('DIVIDEND')">Dividend</div>
+      <div class="tx-tab"       id="txTab-SPLIT"        onclick="setTxType('SPLIT')">Split</div>
+      <div class="tx-tab"       id="txTab-CONTRIBUTION" onclick="setTxType('CONTRIBUTION')">Contribution</div>
+    </div>
+
+    <!-- Date + Account -->
+    <div class="tx-row">
+      <div class="tx-field">
+        <label>Date</label>
+        <input type="date" id="txDate">
+      </div>
+      <div class="tx-field">
+        <label>Account</label>
+        <select id="txAcct" onchange="populateHoldingsTickers();renderPreview()">
+          <option value="TFSA">TFSA</option>
+          <option value="Investment">Non-Reg</option>
+          <option value="FHSA">FHSA</option>
+          <option value="RRSP">RRSP</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Ticker -->
+    <div id="txTickerRow">
+      <div class="tx-field">
+        <label>Ticker</label>
+        <input type="text" id="txTicker" list="txTickerDL" placeholder="e.g. AAPL"
+               oninput="this.value=this.value.toUpperCase();onTickerChange()" style="text-transform:uppercase">
+        <datalist id="txTickerDL"></datalist>
+      </div>
+    </div>
+
+    <!-- Shares + Price (BUY / SELL) -->
+    <div class="tx-row" id="txSharesPriceRow">
+      <div class="tx-field">
+        <label id="txSharesLabel">Shares</label>
+        <input type="number" id="txShares" min="0" step="any" placeholder="0" oninput="renderPreview()">
+      </div>
+      <div class="tx-field">
+        <label id="txPriceLabel">Price / Share</label>
+        <input type="number" id="txPrice" min="0" step="any" placeholder="0.00" oninput="renderPreview()">
+      </div>
+    </div>
+
+    <!-- Currency + Rate (BUY / SELL) -->
+    <div class="tx-row" id="txCcyRateRow">
+      <div class="tx-field">
+        <label>Currency</label>
+        <select id="txCcy" onchange="onCcyChange()">
+          <option value="USD">USD</option>
+          <option value="CAD">CAD</option>
+        </select>
+      </div>
+      <div class="tx-field" id="txRateField">
+        <label>USD/CAD Rate</label>
+        <input type="number" id="txRate" min="0" step="0.0001" oninput="renderPreview()">
+      </div>
+    </div>
+
+    <!-- Dividend amount (DIVIDEND) -->
+    <div class="tx-row" id="txDivRow" style="display:none">
+      <div class="tx-field">
+        <label>Amount</label>
+        <input type="number" id="txDivAmt" min="0" step="any" placeholder="0.00" oninput="renderPreview()">
+      </div>
+      <div class="tx-field">
+        <label>Currency</label>
+        <select id="txDivCcy"><option value="CAD">CAD</option><option value="USD">USD</option></select>
+      </div>
+    </div>
+
+    <!-- New-ticker name/sector (BUY only, shown when ticker unknown) -->
+    <div class="tx-row" id="txNewTickerRow" style="display:none">
+      <div class="tx-field">
+        <label>Display Name</label>
+        <input type="text" id="txName" placeholder="e.g. Apple Inc.">
+      </div>
+      <div class="tx-field">
+        <label>Sector</label>
+        <select id="txSectorSelect">
+          <option>Technology</option><option>Financials</option><option>Leveraged ETF</option>
+          <option>Energy</option><option>Consumer Disc.</option><option>Consumer Staples</option>
+          <option>Comm. Services</option><option>Healthcare</option><option>Industrials</option>
+          <option>Materials</option><option>Utilities</option><option>Crypto</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Split ratio -->
+    <div class="tx-field" id="txSplitRow" style="display:none">
+      <label>Split Ratio (e.g. 10 = 10-for-1, shares × ratio)</label>
+      <input type="number" id="txSplitRatio" min="0" step="any" placeholder="10">
+    </div>
+
+    <!-- Contribution amount -->
+    <div class="tx-field" id="txContribRow" style="display:none">
+      <label>Amount (CAD)</label>
+      <input type="number" id="txContribAmt" min="0" step="any" placeholder="0" oninput="renderPreview()">
+    </div>
+
+    <!-- Live preview -->
+    <div class="tx-preview" id="txPreview">—</div>
+
+    <!-- Actions -->
+    <div class="tx-actions">
+      <button class="tx-submit" onclick="submitTx()">CONFIRM TRANSACTION</button>
+      <button class="tx-cancel" onclick="closeTxModal()">Cancel</button>
+    </div>
+
+    <!-- Recent history -->
+    <div class="tx-history">
+      <div class="tx-history-title">Recent Transactions</div>
+      <div id="txHistoryList"></div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

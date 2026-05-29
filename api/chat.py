@@ -806,7 +806,9 @@ class handler(BaseHTTPRequestHandler):
             )
 
             if not stream_resp.ok and stream_resp.status_code == 429:
-                import time; time.sleep(8)
+                # 70B rate-limited → fall back to 8B model (higher TPM budget)
+                import time; time.sleep(3)
+                stream_payload["model"] = GROQ_MODEL_FAST
                 stream_resp = requests.post(
                     GROQ_URL,
                     headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},

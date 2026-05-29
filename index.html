@@ -299,9 +299,9 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .intel-banner-outlook{font-size:12px;color:var(--text2);margin-top:6px;padding:0 16px 10px;display:none}
 
 /* ============================  CHAT PANEL  ============================ */
-.chat-fab{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--purple);border:none;color:#fff;font-size:20px;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(139,92,246,.5);transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center}
+.chat-fab{position:fixed;bottom:24px;left:24px;width:52px;height:52px;border-radius:50%;background:var(--purple);border:none;color:#fff;font-size:20px;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(139,92,246,.5);transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center}
 .chat-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(139,92,246,.7)}
-.chat-panel{position:fixed;bottom:88px;right:24px;width:380px;max-height:540px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;display:none;flex-direction:column;z-index:199;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.chat-panel{position:fixed;bottom:88px;left:24px;width:380px;max-height:540px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;display:none;flex-direction:column;z-index:199;box-shadow:0 8px 40px rgba(0,0,0,.5)}
 .chat-panel.open{display:flex}
 .chat-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);border-radius:12px 12px 0 0}
 .chat-hdr-title{font-family:var(--mono);font-size:12px;color:var(--purple);display:flex;align-items:center;gap:8px}
@@ -318,7 +318,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .chat-send{background:var(--purple);border:none;color:#fff;width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .2s}
 .chat-send:hover{opacity:.85}
 .chat-send:disabled{opacity:.4;cursor:not-allowed}
-@media(max-width:480px){.chat-panel{width:calc(100vw - 32px);right:16px}}
+@media(max-width:480px){.chat-panel{width:calc(100vw - 32px);left:16px}}
 
 /* ── Transaction Modal ─────────────────────────────────────── */
 .tx-fab{position:fixed;bottom:24px;right:24px;z-index:998;background:var(--blue-bright);color:#fff;border:none;border-radius:8px;padding:10px 16px;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.05em;box-shadow:0 4px 20px rgba(96,165,250,.35);transition:all .2s}

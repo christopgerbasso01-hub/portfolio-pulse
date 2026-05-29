@@ -43,33 +43,12 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "search_web",
-            "description": (
-                "Search the internet for real-time financial data. Use this for: "
-                "earnings dates, analyst price targets, upgrades/downgrades, stock news, "
-                "dividend announcements, economic releases (CPI, GDP, Fed), market events, "
-                "Canadian tax rules, sector trends, company filings. "
-                "NEVER fabricate financial data — always call this when you need current info. "
-                "You can call this multiple times with different queries for different tickers."
-            ),
+            "description": "Search internet for live financial data: earnings dates, analyst targets, news, dividends, economic data, Canadian tax rules. Call immediately — don't narrate.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": (
-                            "Specific search query. Include ticker, company name, and what you need. "
-                            "E.g. 'NVDA Nvidia next earnings date Q2 2026' or "
-                            "'Canadian capital gains tax rate 2025 Ontario non-registered account'"
-                        )
-                    },
-                    "depth": {
-                        "type": "string",
-                        "enum": ["basic", "advanced"],
-                        "description": (
-                            "'advanced' for precise financial data (earnings dates, dividend amounts, "
-                            "analyst targets, tax rates). 'basic' for news and general context."
-                        )
-                    }
+                    "query": {"type": "string", "description": "Search query. Include ticker and specific data needed."},
+                    "depth": {"type": "string", "enum": ["basic", "advanced"], "description": "advanced=financial precision, basic=news"}
                 },
                 "required": ["query"]
             }
@@ -79,28 +58,13 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "get_portfolio_data",
-            "description": (
-                "Retrieve detailed portfolio holdings data. Returns positions with cost basis, "
-                "unrealized/realized gains, live prices, account breakdown, and dividends received. "
-                "Call this before any calculation that requires specific cost basis, position size, "
-                "or detailed P&L. The system prompt has a compact overview; call this for full detail."
-            ),
+            "description": "Get detailed holdings: cost basis, unrealized/realized gains, live prices. Call for exact P&L calculations.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "tickers": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Specific tickers (e.g. ['NVDA', 'FNGU']). Empty = all positions."
-                    },
-                    "account": {
-                        "type": "string",
-                        "description": "Filter by account: 'TFSA', 'RRSP', 'FHSA', 'Investment'. Empty = all."
-                    },
-                    "include_closed": {
-                        "type": "boolean",
-                        "description": "Include closed/sold positions. Default false."
-                    }
+                    "tickers": {"type": "array", "items": {"type": "string"}, "description": "Specific tickers or empty for all"},
+                    "account": {"type": "string", "description": "TFSA/RRSP/FHSA/Investment or empty for all"},
+                    "include_closed": {"type": "boolean", "description": "Include closed positions"}
                 },
                 "required": []
             }
@@ -110,33 +74,13 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "calculate_capital_gains_tax",
-            "description": (
-                "Deterministic Canadian capital gains tax calculator. "
-                "Handles account-specific treatment: TFSA/FHSA = completely tax-free; "
-                "RRSP = full withdrawal amount taxed as income at marginal rate; "
-                "non-registered (Investment) = 50% capital gains inclusion rate. "
-                "If marginal_tax_rate is omitted, returns estimates for all Ontario tax brackets. "
-                "ALWAYS call this for any tax estimation question — never calculate manually."
-            ),
+            "description": "Canadian tax calculator: TFSA/FHSA=tax-free, RRSP=income, Investment=50% inclusion. Always call for tax questions.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "tickers": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Tickers to include. Empty = all open positions."
-                    },
-                    "marginal_tax_rate": {
-                        "type": "number",
-                        "description": (
-                            "Marginal tax rate as decimal (e.g. 0.43 for 43%). "
-                            "Omit to get estimates across all income brackets."
-                        )
-                    },
-                    "province": {
-                        "type": "string",
-                        "description": "Province for rates. Default: Ontario."
-                    }
+                    "tickers": {"type": "array", "items": {"type": "string"}, "description": "Tickers or empty for all"},
+                    "marginal_tax_rate": {"type": "number", "description": "Rate as decimal (0.43=43%). Omit for bracket estimates."},
+                    "province": {"type": "string", "description": "Province (default Ontario)"}
                 },
                 "required": []
             }
@@ -146,23 +90,12 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "get_dividend_forecast",
-            "description": (
-                "Fetch upcoming dividend data for portfolio holdings from Finnhub and Tavily. "
-                "Returns dividend dates, amounts per share, and calculates total income based on shares held. "
-                "Use for any question about upcoming dividends, expected dividend income, or yield."
-            ),
+            "description": "Fetch upcoming dividend dates and amounts from Finnhub/Tavily for held positions.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "months": {
-                        "type": "integer",
-                        "description": "Months to look ahead. Default: 3."
-                    },
-                    "tickers": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Specific tickers. Empty = all holdings that have historically paid dividends."
-                    }
+                    "months": {"type": "integer", "description": "Months ahead (default 3)"},
+                    "tickers": {"type": "array", "items": {"type": "string"}, "description": "Specific tickers or empty for all dividend payers"}
                 },
                 "required": []
             }
@@ -176,7 +109,7 @@ TOOLS = [
 def tool_search_web(query: str, depth: str = "basic") -> dict:
     """Tavily AI search — works from cloud/AWS IPs."""
     if not TAVILY_API_KEY:
-        return {"error": "TAVILY_API_KEY not configured", "hint": "Add TAVILY_API_KEY to Vercel env vars"}
+        return {"error": "TAVILY_API_KEY not configured"}
     try:
         resp = requests.post(
             "https://api.tavily.com/search",
@@ -187,7 +120,7 @@ def tool_search_web(query: str, depth: str = "basic") -> dict:
             json={
                 "query": query,
                 "search_depth": depth,
-                "max_results": 8,
+                "max_results": 5,       # reduced from 8 to save tokens
                 "include_answer": True,
             },
             timeout=12,
@@ -196,19 +129,18 @@ def tool_search_web(query: str, depth: str = "basic") -> dict:
         data = resp.json()
         results = []
         if data.get("answer"):
-            results.append({"type": "direct_answer", "content": data["answer"]})
+            results.append({"answer": data["answer"]})  # compact key
         for r in data.get("results", []):
             results.append({
-                "title":   r.get("title", ""),
-                "content": (r.get("content") or "")[:600],
-                "url":     r.get("url", ""),
-                "date":    r.get("published_date", ""),
+                "t": r.get("title", ""),
+                "c": (r.get("content") or "")[:300],   # reduced from 600
+                "d": r.get("published_date", ""),
             })
         print(f"  [search_web] {len(results)} results: {query[:60]}")
-        return {"query": query, "results": results}
+        return {"q": query, "results": results}
     except Exception as exc:
         print(f"  [search_web] error: {exc}")
-        return {"error": str(exc), "query": query}
+        return {"error": str(exc)}
 
 
 def tool_get_portfolio_data(
@@ -671,51 +603,35 @@ def build_system_prompt(
 
     positions_block = "\n".join(pos_lines)
 
-    prompt = f"""You are Pulse — an elite AI financial analyst and portfolio advisor for a Canadian investor.
-Today's date: {today}
+    # Compact 1-line position entries to save tokens
+    pos_str = " | ".join(
+        f"{h.get('ticker','')}({h.get('account','')[:3]} {h.get('pct_return',0):+.0f}%)"
+        for h in sorted_holdings[:25]
+    )
+    if len(sorted_holdings) > 25:
+        pos_str += f" +{len(sorted_holdings)-25} more"
 
-## TOOL CALLING RULES (critical)
-You have 4 tools. You MUST call them — do not narrate or plan to call them, just call them:
-- Earnings dates, analyst targets, news → call search_web immediately
-- Tax questions → call calculate_capital_gains_tax immediately
-- Dividend income questions → call get_dividend_forecast immediately
-- Questions needing exact cost basis, P&L detail → call get_portfolio_data
-You may call multiple tools in one response. Ask follow-up questions when you need the user's
-marginal tax rate, province, or time horizon before proceeding.
+    intel_str = ""
+    if intelligence:
+        parts = []
+        if intelligence.get("market_mood"):
+            parts.append(f"Mood:{intelligence['market_mood']}")
+        if intelligence.get("daily_outlook"):
+            parts.append(intelligence["daily_outlook"][:120])
+        if parts:
+            intel_str = "\nMarket: " + " | ".join(parts)
 
-## RESPONSE STYLE
-- Comprehensive answers with tables and bullet points
-- Show exact dollar amounts and dates from tool results
-- Cite the source/date of web search results
-- Brief disclaimer for tax/financial advice
+    prompt = f"""You are Pulse, an AI portfolio analyst for a Canadian investor. Today: {today}.
 
-## PORTFOLIO OVERVIEW  (as of {today})
-Total market value:  ${total_value:,.0f} (CAD equiv.)
-Total P&L:           ${total_pnl:+,.0f}  |  Cost basis: ${total_cost:,.0f}  |  Return: {overall_return:.1f}%
-Cash (uninvested):   ${cash_total:,.0f}
+TOOLS: Call them directly — don't narrate. Use search_web for any live financial data (earnings dates, prices, news, dividends, analyst targets, tax rates). Use calculate_capital_gains_tax for tax questions. Use get_dividend_forecast for dividend income. Use get_portfolio_data for exact position details. Ask user for tax bracket/province when needed.
 
-Accounts:
-{acct_lines}
+PORTFOLIO ({today}): ${total_value:,.0f} total | P&L ${total_pnl:+,.0f} ({overall_return:.1f}%) | Cash ${cash_total:,.0f}
+Accounts: {acct_lines.replace(chr(10), ' | ').replace('  ', '')}
+Positions: {pos_str}
+Dividends: {', '.join(dividend_payers[:10]) if dividend_payers else 'none'}{intel_str}
 
-Dividend-paying holdings: {', '.join(dividend_payers) if dividend_payers else 'None identified'}
-
-## ALL OPEN POSITIONS  (sorted by portfolio weight)
-  {"TICKER":<10} {"ACCOUNT":<12} {"NAME":<28} {"MKT VALUE":>12}   {"RETURN":>8}   SHARES
-  {"-" * 84}
-{positions_block}
-
-## CANADIAN TAX RULES (key facts)
-- TFSA:       All growth and withdrawals 100% tax-free. No contribution room impact on gains.
-- FHSA:       Tax-deductible contributions; withdrawals tax-free for qualifying home purchase.
-- RRSP:       Contributions deductible; withdrawals fully taxed as income at marginal rate.
-- Investment: Capital gains → 50% inclusion rate. Canadian dividends → dividend tax credit.
-              USD position gains include FX component (also taxable in non-registered).
-- Leveraged ETFs (FNGU, SPXL, UDOW): treated as capital gains, not income.{intel_block}
-
-## STRICT RULES
-- Never predict specific future prices or guaranteed returns
-- For tax/legal questions: provide estimates from tools, then note to consult a CPA
-- Reference specific dollar amounts and percentages from data — be precise"""
+TAX: TFSA/FHSA=tax-free | RRSP=full withdrawal taxed as income | Investment=50% cap gains inclusion
+Use tables/bullets. Cite dates from search results. Disclaimer for tax advice."""
 
     return prompt
 

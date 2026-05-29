@@ -28,6 +28,7 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 _TRIGGERS_FINANCIAL = [
     "earnings", "when are", "when is", "when does", "when will",
     "ex-div", "ex div", "ex-dividend", "dividend date", "pay date", "record date",
+    "dividend", "next dividend", "distribution",
     "split", "stock split", "ipo", "merger", "acquisition",
     "guidance", "eps", "revenue estimate",
     "price target", "analyst", "upgrade", "downgrade", "rating",

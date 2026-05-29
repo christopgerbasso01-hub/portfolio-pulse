@@ -611,7 +611,10 @@ def build_system_prompt(
     acct_lines = " | ".join(f"{a}:${v:,.0f}" for a, v in sorted(account_totals.items()))
 
     # USD/CAD rate for conversions
-    usdcad = _safe_float((holdings_prices.get("USDCAD=X") or {}).get("price")) or 1.37
+    try:
+        usdcad = float((holdings_prices.get("USDCAD=X") or {}).get("price") or 1.37)
+    except (TypeError, ValueError):
+        usdcad = 1.37
 
     def _cad(val, ccy, rate=None):
         """Convert native-currency value to CAD."""

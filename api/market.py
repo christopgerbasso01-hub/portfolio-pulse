@@ -106,12 +106,15 @@ def _safe_float(val, default=None):
         return default
 
 
+_fetch_errors = {}   # temporary debug — tracks last error per ticker
+
 def _fetch_one(session, ticker):
     """Fetch current price + previous close from Yahoo Finance chart API."""
     url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
     try:
-        r = session.get(url, headers=_YF_HEADERS, timeout=8)
+        r = session.get(url, headers=_YF_HEADERS, timeout=5)
         if not r.ok:
+            _fetch_errors[ticker] = f"HTTP {r.status_code}"
             return ticker, None
         data = r.json()
         result = data["chart"]["result"][0]
@@ -125,6 +128,7 @@ def _fetch_one(session, ticker):
             or meta.get("previousClose")
         )
         if not curr:
+            _fetch_errors[ticker] = "no price in response"
             return ticker, None
         prev = prev or curr
         return ticker, {
@@ -133,7 +137,8 @@ def _fetch_one(session, ticker):
             "change": round(curr - prev, 2),
             "change_pct": round((curr - prev) / prev * 100, 2),
         }
-    except Exception:
+    except Exception as e:
+        _fetch_errors[ticker] = str(e)
         return ticker, None
 
 
@@ -147,6 +152,7 @@ def fetch_prices():
     bench_tickers = list(BENCHMARKS.values())
     all_tickers = portfolio_tickers + bench_tickers
 
+    _fetch_errors.clear()
     prices = {}
     session = requests.Session()
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -258,6 +264,7 @@ class handler(BaseHTTPRequestHandler):
             "benchmarks": benchmarks,
             "holdings": holdings_prices,
             "portfolio": portfolio,
+            "_debug_errors": dict(_fetch_errors) if _fetch_errors else None,
         }
 
         body = json.dumps(resp).encode()

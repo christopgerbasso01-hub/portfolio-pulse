@@ -1131,6 +1131,7 @@ function updateHeaderKPIs(data) {
   let sumUnrealized = 0;
   let sumRealized   = 0;
   let sumFX         = 0;
+  let sumMktVal     = 0;  // client-side total market value (matches holdings table)
 
   HOLDINGS_STATIC.forEach(h => {
     const fxRate       = h.book_rate || 1;
@@ -1141,25 +1142,28 @@ function updateHeaderKPIs(data) {
       sumFX += h.cost_total * (usdcad - h.book_rate);
     }
 
-    // Unrealized: live mktVal − CAD cost basis; static fallback if no live price
+    // Market value (for total card — matches what the table displays)
     const p = hPrices[h.ticker];
     if (p?.price) {
-      sumUnrealized += p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1) - costBasisCAD;
+      const mv = p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      sumMktVal     += mv;
+      sumUnrealized += mv - costBasisCAD;
     } else {
+      sumMktVal     += ((h.unrealized || 0) + (h.cost_total || 0)) * (h.ccy === 'USD' ? fxRate : 1);
       sumUnrealized += (h.unrealized || 0) * (h.ccy === 'USD' ? fxRate : 1);
     }
 
-    // Realized: dividends + crystallized gains on open positions
-    sumRealized += (h.realized || 0) * (h.ccy === 'USD' ? fxRate : 1);
+    // Realized & dividends stored in CAD — no FX conversion needed
+    sumRealized += h.realized  || 0;
   });
 
-  // Closed positions: add their full realized P&L (total_pnl)
+  // Closed positions: total_pnl is in native currency → convert to CAD
   CLOSED_POSITIONS_STATIC.forEach(h => {
     const fxRate = h.book_rate || USD_BOOK_RATE;
     sumRealized += (h.total_pnl || 0) * (h.ccy === 'USD' ? fxRate : 1);
   });
 
-  // ── Update the three live cards ───────────────────────────────────────────
+  // ── Update the four live cards ────────────────────────────────────────────
   const unrealEl = document.getElementById('cardUnrealized');
   unrealEl.textContent = fmt$(Math.round(sumUnrealized));
   unrealEl.className = `card-value ${colorClass(sumUnrealized)}`;
@@ -1172,12 +1176,9 @@ function updateHeaderKPIs(data) {
   fxEl.textContent = fmt$(Math.round(sumFX));
   fxEl.className = `card-value ${colorClass(sumFX)}`;
 
-  // Total dividends — summed live from HOLDINGS_STATIC + CLOSED_POSITIONS_STATIC
+  // Total dividends: open positions stored in CAD; closed positions in native ccy
   const totalDivCAD = [
-    ...HOLDINGS_STATIC.map(h => {
-      const fx = h.book_rate || 1;
-      return (h.dividends || 0) * (h.ccy === 'USD' ? fx : 1);
-    }),
+    ...HOLDINGS_STATIC.map(h => h.dividends || 0),
     ...CLOSED_POSITIONS_STATIC.map(h => {
       const fx = h.book_rate || USD_BOOK_RATE;
       return (h.dividends || 0) * (h.ccy === 'USD' ? fx : 1);
@@ -1185,11 +1186,12 @@ function updateHeaderKPIs(data) {
   ].reduce((a, b) => a + b, 0);
   document.getElementById('cardDividends').textContent = fmt$(totalDivCAD);
 
-  document.getElementById('kpiTotalValue').textContent = fmt$(tv);
-  document.getElementById('kpiTotalPnl').textContent = fmt$(totalPnl);
-  document.getElementById('kpiTotalPnl').className = `hkpi-value ${colorClass(totalPnl)}`;
-  document.getElementById('kpiRoi').textContent = fmtPct(roi);
-  document.getElementById('kpiRoi').className = `hkpi-value ${colorClass(roi)}`;
+  // Total value = sum of all open holdings (matches table); Total P&L vs contributions
+  const displayMv  = sumMktVal > 0 ? Math.round(sumMktVal) : tv;
+  const displayPnl = sumMktVal > 0 ? Math.round(sumMktVal - 149632) : totalPnl;
+  document.getElementById('kpiTotalValue').textContent = fmt$(displayMv);
+  document.getElementById('kpiTotalPnl').textContent = fmt$(displayPnl);
+  document.getElementById('kpiTotalPnl').className = `hkpi-value ${colorClass(displayPnl)}`;
 
   const dcEl = document.getElementById('kpiDailyChange');
   dcEl.textContent = `${fmt$(dc)} (${fmtPct(dcp)})`;
@@ -1246,9 +1248,14 @@ function updateHeaderKPIs(data) {
     accountRoiChart.update();
   }
 
+  // ROI based on client-side market value vs contributions
+  const clientRoi = displayMv > 0 ? ((displayMv - 149632) / 149632 * 100) : roi;
+  document.getElementById('kpiRoi').textContent = fmtPct(clientRoi);
+  document.getElementById('kpiRoi').className = `hkpi-value ${colorClass(clientRoi)}`;
+
   // Benchmark bar
-  const tv2 = tv || 273825;
-  document.getElementById('bmPortfolioLabel').textContent = `${fmt$(tv2)} · +${roi?.toFixed(1)}%`;
+  const tv2 = displayMv || tv || 273825;
+  document.getElementById('bmPortfolioLabel').textContent = `${fmt$(tv2)} · +${clientRoi?.toFixed(1)}%`;
   document.getElementById('bmPortfolioBar').textContent = fmt$(tv2);
 }
 
@@ -1340,10 +1347,9 @@ function renderHoldingsTable(liveData) {
     const unrealizedCAD = livePrice
       ? mktVal - costBasisCAD
       : (h.unrealized || 0) * (fxRate || 1);
-    // Dividends received (native ccy → CAD via book_rate)
-    const divCAD       = (h.dividends || 0) * (fxRate || 1);
-    // Realized = dividends received + gains/losses on share sales (native ccy → CAD via book_rate)
-    const realizedCAD  = (h.realized || 0) * (fxRate || 1);
+    // Dividends and realized are stored in CAD directly (from brokerage) — no FX conversion needed
+    const divCAD      = h.dividends || 0;
+    const realizedCAD = h.realized  || 0;
     // Total P&L = unrealized + realized, both in CAD
     const totalPnlCAD  = unrealizedCAD + realizedCAD;
     const unrealColor  = unrealizedCAD >= 0 ? 'green' : 'red';

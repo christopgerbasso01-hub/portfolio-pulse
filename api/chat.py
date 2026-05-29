@@ -317,10 +317,12 @@ def build_intelligence_context(intelligence: dict) -> list:
 SYSTEM_INSTRUCTION = """You are "Pulse", an AI portfolio analyst embedded in a personal Canadian investment dashboard.
 
 CRITICAL — DATA AUTHORITY:
-  The FULL HOLDINGS LIST provided in your context is the definitive, complete list of every position in this portfolio.
-  NEVER say a ticker is not held unless it is genuinely absent from that list.
+  The OPEN POSITIONS table is the definitive, complete list of every current holding. It begins with a ticker
+  roster line ("OPEN POSITIONS (N positions): AAPL, COST, FNGU ...") — if a ticker appears there, it IS held.
+  NEVER say a ticker is not held unless it is genuinely absent from both the roster and the table.
   If a holding shows "n/a" for live price it means the market is closed or data is delayed — the position still exists.
-  The list includes cost basis, unrealized/realized P&L, dividends, and weight for every position.
+  The table includes sector, cost basis, unrealized P&L, total P&L, dividends, return %, and portfolio weight.
+  CLOSED POSITIONS shows fully exited trades (realized gains/losses). CASH POSITIONS shows uninvested cash per account.
 
 EXTERNAL DATA:
   When YAHOO FINANCE DATA or LIVE WEB NEWS appears in your context, use it to give precise, up-to-date answers.
@@ -350,11 +352,17 @@ STYLE:
 
 # ── Holdings table ────────────────────────────────────────────────────────────
 
-def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
-    """Complete per-holding table — ALL positions, live price where available."""
+def build_holdings_context(
+    holdings_list: list,
+    holdings_prices: dict,
+    closed_positions: list,
+    cash_positions: list,
+) -> str:
+    """Complete holdings context: open positions, closed positions, and cash."""
     if not holdings_list:
         return ""
 
+    # ── Open positions ────────────────────────────────────────────────────────
     live_rows, no_price_rows = [], []
 
     for h in holdings_list:
@@ -369,6 +377,7 @@ def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
             "ticker":     ticker,
             "name":       h.get("name", ""),
             "account":    h.get("account", ""),
+            "sector":     h.get("sector", ""),
             "shares":     h.get("shares", 0),
             "ccy":        h.get("ccy", "USD"),
             "price":      price,
@@ -378,6 +387,7 @@ def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
             "unrealized": h.get("unrealized", 0),
             "realized":   h.get("realized", 0),
             "dividends":  h.get("dividends", 0),
+            "total_pnl":  h.get("total_pnl", 0),
             "pct_return": h.get("pct_return", 0),
             "weight":     h.get("weight", 0),
         }
@@ -390,12 +400,17 @@ def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
     no_price_rows.sort(key=lambda x: x["ticker"])
     all_rows = live_rows + no_price_rows
 
-    lines = ["", "FULL HOLDINGS LIST — ALL POSITIONS (live price where available):"]
-    lines.append(
-        f"  {'TICKER':<8}  {'NAME':<20}  {'ACCT':<10}  {'SHS':>5}  "
-        f"{'PRICE':>10}  {'DAY%':>6}  {'DAY $':>7}  {'COST':>8}  {'UNREAL':>8}  {'RTN%':>6}"
-    )
-    lines.append("  " + "-" * 110)
+    # Ticker roster — quick reference so model never denies a position
+    all_tickers = sorted({r["ticker"] for r in all_rows})
+    lines = [
+        "",
+        f"OPEN POSITIONS ({len(all_rows)} positions): {', '.join(all_tickers)}",
+        "",
+        "FULL HOLDINGS TABLE (live price where available):",
+        f"  {'TICKER':<8}  {'NAME':<20}  {'ACCT':<10}  {'SECTOR':<18}  {'SHS':>5}  "
+        f"{'PRICE':>10}  {'DAY%':>6}  {'DAY $':>7}  {'COST':>8}  {'UNREAL':>8}  {'TOT P&L':>9}  {'RTN%':>6}",
+        "  " + "-" * 130,
+    ]
 
     for r in all_rows:
         if r["price"] is not None:
@@ -408,10 +423,30 @@ def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
             chg_s   = "n/a"
 
         lines.append(
-            f"  {r['ticker']:<8}  {r['name'][:20]:<20}  {r['account']:<10}  {r['shares']:>5}  "
+            f"  {r['ticker']:<8}  {r['name'][:20]:<20}  {r['account']:<10}  {r['sector'][:18]:<18}  {r['shares']:>5}  "
             f"  {price_s:>10}  {pct_s:>6}  {chg_s:>7}  "
-            f"${r['cost_total']:>7,.0f}  ${r['unrealized']:>7,.0f}  {r['pct_return']:>5.1f}%"
+            f"${r['cost_total']:>7,.0f}  ${r['unrealized']:>7,.0f}  ${r['total_pnl']:>8,.0f}  {r['pct_return']:>5.1f}%"
         )
+
+    # ── Closed / exited positions ─────────────────────────────────────────────
+    if closed_positions:
+        lines += ["", f"CLOSED / EXITED POSITIONS ({len(closed_positions)} positions):"]
+        lines.append(
+            f"  {'TICKER':<8}  {'NAME':<22}  {'ACCT':<10}  {'CCY':<4}  {'COST':>8}  {'TOT P&L':>9}  {'DIVS':>7}"
+        )
+        lines.append("  " + "-" * 80)
+        for c in sorted(closed_positions, key=lambda x: x.get("account", "")):
+            lines.append(
+                f"  {c.get('ticker',''):<8}  {c.get('name','')[:22]:<22}  {c.get('account',''):<10}  "
+                f"{c.get('ccy',''):<4}  ${c.get('cost_total',0):>7,.0f}  "
+                f"${c.get('total_pnl',0):>8,.0f}  ${c.get('dividends',0):>6,.0f}"
+            )
+
+    # ── Cash positions ────────────────────────────────────────────────────────
+    if cash_positions:
+        lines += ["", "CASH POSITIONS:"]
+        for c in cash_positions:
+            lines.append(f"  {c.get('account',''):<12}  {c.get('ccy','')}  ${c.get('amount',0):,.2f}")
 
     return "\n".join(lines)
 
@@ -436,11 +471,13 @@ class handler(BaseHTTPRequestHandler):
         if not message:
             return self._error(400, "message is required")
 
-        portfolio       = body.get("portfolio")       or {}
-        intelligence    = body.get("intelligence")    or {}
-        history         = (body.get("history") or [])[-12:]
-        holdings_prices = body.get("holdings_prices") or {}
-        holdings_list   = body.get("holdings_list")   or []
+        portfolio         = body.get("portfolio")         or {}
+        intelligence      = body.get("intelligence")      or {}
+        history           = (body.get("history") or [])[-12:]
+        holdings_prices   = body.get("holdings_prices")   or {}
+        holdings_list     = body.get("holdings_list")     or []
+        closed_positions  = body.get("closed_positions")  or []
+        cash_positions    = body.get("cash_positions")    or []
 
         api_key = os.environ.get("GROQ_API_KEY", "")
         if not api_key:
@@ -450,7 +487,9 @@ class handler(BaseHTTPRequestHandler):
             # ── 1. Holdings table — FIRST, definitive source ──────────────
             ctx_lines = [f"[Dashboard context — {intelligence.get('generated_date', 'today')}]"]
 
-            holdings_ctx = build_holdings_context(holdings_list, holdings_prices)
+            holdings_ctx = build_holdings_context(
+                holdings_list, holdings_prices, closed_positions, cash_positions
+            )
             if holdings_ctx:
                 ctx_lines.append(holdings_ctx)
 

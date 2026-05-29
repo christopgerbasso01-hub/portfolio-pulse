@@ -688,9 +688,10 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <th onclick="sortTable(8)">Mkt Value ↕</th>
           <th onclick="sortTable(9)">Cost Basis ↕</th>
           <th onclick="sortTable(10)">Unrealized ↕</th>
-          <th onclick="sortTable(11)">Realized ↕</th>
-          <th onclick="sortTable(12)">Total P/L ↕</th>
-          <th onclick="sortTable(13)">Weight% ↕</th>
+          <th onclick="sortTable(11)">Dividends ↕</th>
+          <th onclick="sortTable(12)">Realized ↕</th>
+          <th onclick="sortTable(13)">Total P/L ↕</th>
+          <th onclick="sortTable(14)">Weight% ↕</th>
         </tr>
       </thead>
       <tbody id="holdingsBody"></tbody>
@@ -1289,6 +1290,8 @@ function renderHoldingsTable(liveData) {
     const unrealizedCAD = livePrice
       ? mktVal - costBasisCAD
       : (h.unrealized || 0) * (fxRate || 1);
+    // Dividends received (native ccy → CAD via book_rate)
+    const divCAD       = (h.dividends || 0) * (fxRate || 1);
     // Realized = dividends received + gains/losses on share sales (native ccy → CAD via book_rate)
     const realizedCAD  = (h.realized || 0) * (fxRate || 1);
     // Total P&L = unrealized + realized, both in CAD
@@ -1310,6 +1313,7 @@ function renderHoldingsTable(liveData) {
       <td class="mono">${fmt$(mktVal)}</td>
       <td class="mono text2">${fmt$(costBasisCAD)}</td>
       <td class="mono ${unrealColor}">${fmt$(unrealizedCAD)}</td>
+      <td class="mono small text2">${divCAD > 0 ? fmt$(divCAD) : '—'}</td>
       <td class="mono small ${realColor}">${realizedCAD !== 0 ? fmt$(realizedCAD) : '—'}</td>
       <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
@@ -1339,6 +1343,7 @@ function renderHoldingsTable(liveData) {
       <td class="mono text3">${costBasisCAD > 0 ? fmt$(costBasisCAD) : '—'}</td>
       <td class="mono text3">—</td>
       <td class="mono small text3">${divCAD > 0 ? fmt$(divCAD) : '—'}</td>
+      <td class="mono small ${pnlCAD >= 0 ? 'green' : 'red'}">${pnlCAD !== 0 ? fmt$(pnlCAD) : '—'}</td>
       <td class="mono ${pnlColor}">${(pnlCAD >= 0 ? '+' : '') + fmt$(pnlCAD)}</td>
       <td class="mono text3">—</td>
     </tr>`;

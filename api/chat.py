@@ -539,8 +539,10 @@ class handler(BaseHTTPRequestHandler):
                     f"  Accounts:     {json.dumps(pf.get('accounts', {}))}",
                 ]
 
-            # ── 3. Full intelligence briefing (all sections) ──────────────
+            # ── 3. Intelligence briefing (key sections only — keeps context lean) ──
             ctx_lines += build_intelligence_context(intelligence)
+
+            print(f"  context lines: {len(ctx_lines)} | holdings: {len(holdings_list)} | tavily: {bool(os.environ.get('TAVILY_API_KEY'))}")
 
             # ── 4. External data — Yahoo Finance + Google News ────────────
             ctx_lines += get_external_context(message, holdings_list)
@@ -560,7 +562,29 @@ class handler(BaseHTTPRequestHandler):
             for turn in history:
                 role = "user" if turn.get("role") == "user" else "assistant"
                 messages.append({"role": role, "content": turn.get("content", "")})
-            messages.append({"role": "user", "content": message})
+
+            # ── Inject relevant holding data directly beside the question ──
+            # This prevents "lost in the middle" — model reads this right before answering
+            tickers_asked = extract_tickers(message, holdings_list)
+            matching = [h for h in holdings_list if h.get("ticker") in set(tickers_asked)]
+            if matching:
+                qr = "HOLDINGS DATA FOR THIS QUESTION:\n"
+                for h in matching:
+                    p     = holdings_prices.get(h.get("ticker", "")) or {}
+                    price = p.get("price")
+                    pstr  = f"${price:.2f} {h.get('ccy','')}" if price else f"market closed ({h.get('ccy','')})"
+                    qr += (
+                        f"• {h['ticker']} ({h.get('name','')}) — {h.get('account','')} | "
+                        f"{h.get('shares',0)} shares | live: {pstr} | "
+                        f"cost basis: ${h.get('cost_total',0):,.0f} | "
+                        f"unrealized: ${h.get('unrealized',0):,.0f} | "
+                        f"total P&L: ${h.get('total_pnl',0):,.0f} ({h.get('pct_return',0):+.1f}%)\n"
+                    )
+                final_message = qr + "\n" + message
+            else:
+                final_message = message
+
+            messages.append({"role": "user", "content": final_message})
 
             # ── 6. Call Groq ──────────────────────────────────────────────
             resp = requests.post(

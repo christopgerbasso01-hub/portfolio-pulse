@@ -671,31 +671,20 @@ def build_system_prompt(
     prompt = f"""You are Pulse — an elite AI financial analyst and portfolio advisor for a Canadian investor.
 Today's date: {today}
 
-## YOUR 4 TOOLS  (use them proactively — never fabricate financial data)
+## TOOL CALLING RULES (critical)
+You have 4 tools. You MUST call them — do not narrate or plan to call them, just call them:
+- Earnings dates, analyst targets, news → call search_web immediately
+- Tax questions → call calculate_capital_gains_tax immediately
+- Dividend income questions → call get_dividend_forecast immediately
+- Questions needing exact cost basis, P&L detail → call get_portfolio_data
+You may call multiple tools in one response. Ask follow-up questions when you need the user's
+marginal tax rate, province, or time horizon before proceeding.
 
-**search_web(query, depth)** — Real-time web search via Tavily AI.
-  USE FOR: earnings dates, analyst targets, upgrades/downgrades, stock news, dividend dates,
-           economic data (CPI, Fed, BoC), Canadian tax law, market events, sector news.
-  RULE: Never state earnings dates, prices, or analyst targets from memory. Always search.
-  You can make multiple search_web calls in one response (different queries/tickers).
-
-**get_portfolio_data(tickers, account, include_closed)** — Full position detail.
-  USE FOR: cost basis, unrealized/realized breakdown, exact P&L, tax-lot data.
-  The system prompt has a compact overview; call this for calculations requiring precision.
-
-**calculate_capital_gains_tax(tickers, marginal_tax_rate, province)** — Deterministic tax calc.
-  ALWAYS call for any tax estimation question. Never calculate tax manually.
-  Omit marginal_tax_rate to get estimates across all Ontario tax brackets.
-
-**get_dividend_forecast(months, tickers)** — Dividend data from Finnhub + Tavily.
-  USE FOR: upcoming dividend dates, amounts, expected income over a period.
-
-## HOW TO RESPOND
-- Think like ChatGPT, Grok, or Claude — reason step by step, use multiple tools if needed
-- Ask follow-up questions when critical info is missing (tax bracket, province, time horizon)
-- Format answers with tables and bullet points — especially for dividend forecasts and tax breakdowns
-- Always cite sources and dates from web search results
-- Be comprehensive: a 10-second wait for a great answer beats a fast shallow one
+## RESPONSE STYLE
+- Comprehensive answers with tables and bullet points
+- Show exact dollar amounts and dates from tool results
+- Cite the source/date of web search results
+- Brief disclaimer for tax/financial advice
 
 ## PORTFOLIO OVERVIEW  (as of {today})
 Total market value:  ${total_value:,.0f} (CAD equiv.)
@@ -790,6 +779,9 @@ class handler(BaseHTTPRequestHandler):
 
         try:
             for round_num in range(MAX_TOOL_ROUNDS):
+                # Round 0: force at least one tool call (required).
+                # Round 1+: model decides (auto).
+                tool_choice = "required" if round_num == 0 else "auto"
                 resp = requests.post(
                     GROQ_URL,
                     headers={
@@ -800,7 +792,7 @@ class handler(BaseHTTPRequestHandler):
                         "model":       GROQ_MODEL,
                         "messages":    messages,
                         "tools":       TOOLS,
-                        "tool_choice": "auto",
+                        "tool_choice": tool_choice,
                         "temperature": 0.3,
                         "max_tokens":  1024,
                         "stream":      False,
@@ -808,7 +800,7 @@ class handler(BaseHTTPRequestHandler):
                     timeout=25,
                 )
                 if not resp.ok:
-                    print(f"  Groq tool-round error {resp.status_code}: {resp.text[:200]}")
+                    print(f"  Groq round-{round_num} error {resp.status_code}: {resp.text[:300]}")
                     break
 
                 choice = resp.json()["choices"][0]
@@ -856,25 +848,35 @@ class handler(BaseHTTPRequestHandler):
                         })
 
             # ── Stream final response ──────────────────────────────────────────
+            # Include tools + tool_choice:"none" when the conversation has tool
+            # messages — Groq requires the tools schema to be present in that case.
+            has_tool_context = any(m.get("role") == "tool" for m in messages)
+            stream_payload = {
+                "model":       GROQ_MODEL,
+                "messages":    messages,
+                "temperature": 0.3,
+                "max_tokens":  2048,
+                "stream":      True,
+            }
+            if has_tool_context:
+                stream_payload["tools"]       = TOOLS
+                stream_payload["tool_choice"] = "none"
+
             stream_resp = requests.post(
                 GROQ_URL,
                 headers={
                     "Authorization": f"Bearer {GROQ_API_KEY}",
                     "Content-Type":  "application/json",
                 },
-                json={
-                    "model":       GROQ_MODEL,
-                    "messages":    messages,
-                    "temperature": 0.3,
-                    "max_tokens":  2048,
-                    "stream":      True,
-                },
+                json=stream_payload,
                 timeout=35,
                 stream=True,
             )
 
             if not stream_resp.ok:
-                send_event({"content": "Sorry, I had trouble generating a response. Please try again."})
+                err = stream_resp.text[:400]
+                print(f"  Groq stream error {stream_resp.status_code}: {err}")
+                send_event({"content": f"AI error ({stream_resp.status_code}). Please try again."})
                 self.wfile.write(b"data: [DONE]\n\n")
                 self.wfile.flush()
                 return

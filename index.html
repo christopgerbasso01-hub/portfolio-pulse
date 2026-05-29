@@ -1186,9 +1186,9 @@ function updateHeaderKPIs(data) {
   ].reduce((a, b) => a + b, 0);
   document.getElementById('cardDividends').textContent = fmt$(totalDivCAD);
 
-  // Total value = sum of all open holdings (matches table); Total P&L vs contributions
-  const displayMv  = sumMktVal > 0 ? Math.round(sumMktVal) : tv;
-  const displayPnl = sumMktVal > 0 ? Math.round(sumMktVal - 149632) : totalPnl;
+  // Total value = API value (live holdings + cash positions); P&L vs contributions
+  const displayMv  = tv || Math.round(sumMktVal);
+  const displayPnl = displayMv > 0 ? Math.round(displayMv - 149632) : totalPnl;
   document.getElementById('kpiTotalValue').textContent = fmt$(displayMv);
   document.getElementById('kpiTotalPnl').textContent = fmt$(displayPnl);
   document.getElementById('kpiTotalPnl').className = `hkpi-value ${colorClass(displayPnl)}`;

@@ -55,8 +55,12 @@ HOLDINGS = [
     {"ticker": "TSM",    "account": "RRSP",         "shares": 6,    "cost_total": 3232.08,  "ccy": "USD"},
     {"ticker": "UDOW",   "account": "RRSP",         "shares": 36,   "cost_total": 2554.37,  "ccy": "USD"},
     {"ticker": "FNGU",   "account": "RRSP",         "shares": 56,   "cost_total": 1491.56,  "ccy": "USD"},
-    # RRSP cash position
-    {"ticker": "_CASH_CAD", "account": "RRSP",     "shares": 1,    "cost_total": 10531.00, "ccy": "CAD", "cash": True},
+    # Cash positions — updated snapshot 2026-05-29
+    {"ticker": "_CASH_USD", "account": "TFSA",       "shares": 1, "cost_total": 344.41,  "ccy": "USD", "cash": True},
+    {"ticker": "_CASH_CAD", "account": "FHSA",       "shares": 1, "cost_total": 24.34,   "ccy": "CAD", "cash": True},
+    {"ticker": "_CASH_CAD", "account": "Investment", "shares": 1, "cost_total": 58.99,   "ccy": "CAD", "cash": True},
+    {"ticker": "_CASH_USD", "account": "Investment", "shares": 1, "cost_total": 50.71,   "ccy": "USD", "cash": True},
+    {"ticker": "_CASH_USD", "account": "RRSP",       "shares": 1, "cost_total": 7685.47, "ccy": "USD", "cash": True},
 ]
 
 # Average USD/CAD rate at which USD positions were originally purchased.

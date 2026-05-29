@@ -377,7 +377,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     </div>
     <div class="hkpi">
       <div class="hkpi-label">Cash on Hand</div>
-      <div class="hkpi-value amber">$11,164</div>
+      <div class="hkpi-value amber" id="kpiCashOnHand">—</div>
     </div>
   </div>
 </div>
@@ -665,6 +665,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
       <option>Comm. Services</option>
       <option>Consumer Staples</option>
       <option>Crypto</option>
+      <option>Cash</option>
     </select>
     <select id="pnlFilter" onchange="filterTable()">
       <option value="">All P&amp;L</option>
@@ -1032,6 +1033,16 @@ const CLOSED_POSITIONS_STATIC = [
   {ticker:"SOUN",  name:"SoundHound AI",           account:"RRSP",       sector:"Technology",      cost_total:3005.64, dividends:0,      total_pnl:-809.16,  ccy:"USD"},
 ];
 
+// Cash on hand — amounts in native currency (USD converted at live rate)
+// Update whenever cash balances change.
+const CASH_POSITIONS = [
+  { ticker: 'CASH·USD', account: 'TFSA',       ccy: 'USD', amount: 344.41,  name: 'USD Cash' },
+  { ticker: 'CASH·CAD', account: 'FHSA',       ccy: 'CAD', amount: 24.34,   name: 'CAD Cash' },
+  { ticker: 'CASH·CAD', account: 'Investment', ccy: 'CAD', amount: 58.99,   name: 'CAD Cash' },
+  { ticker: 'CASH·USD', account: 'Investment', ccy: 'USD', amount: 50.71,   name: 'USD Cash' },
+  { ticker: 'CASH·USD', account: 'RRSP',       ccy: 'USD', amount: 7685.47, name: 'USD Cash' },
+];
+
 const TICKER_NAMES = {};
 HOLDINGS_STATIC.forEach(h => { TICKER_NAMES[h.ticker] = h.name; });
 
@@ -1150,17 +1161,13 @@ function updateHeaderKPIs(data) {
   let sumRealized   = 0;
   let sumFX         = 0;
   let sumMktVal     = 0;  // client-side total market value (matches holdings table)
+  let sumCash       = 0;  // cash on hand total (CAD equivalent)
 
   HOLDINGS_STATIC.forEach(h => {
     const fxRate       = h.book_rate || 1;
     const costBasisCAD = h.ccy === 'USD' ? h.cost_total * fxRate : h.cost_total;
 
-    // FX impact: cost_total_usd × (current_usdcad − book_rate) per USD position
-    if (h.ccy === 'USD' && h.book_rate) {
-      sumFX += h.cost_total * (usdcad - h.book_rate);
-    }
-
-    // Market value (for total card — matches what the table displays)
+    // Market value (matches what the table displays)
     const p = hPrices[h.ticker];
     if (p?.price) {
       const mv = p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1);
@@ -1181,6 +1188,18 @@ function updateHeaderKPIs(data) {
     sumRealized += (h.total_pnl || 0) * (h.ccy === 'USD' ? fxRate : 1);
   });
 
+  // Cash positions: add to sumMktVal and track separately for the cash card
+  CASH_POSITIONS.forEach(c => {
+    const cashVal = c.ccy === 'USD' ? c.amount * usdcad : c.amount;
+    sumMktVal += cashVal;
+    sumCash   += cashVal;
+  });
+
+  // FX Impact = Total P&L residual after stripping unrealized and realized
+  // i.e. the portion of P&L attributable to currency translation
+  const totalPnlClient = sumMktVal - 149632;
+  sumFX = Math.round(totalPnlClient - sumUnrealized - sumRealized);
+
   // ── Update the four live cards ────────────────────────────────────────────
   const unrealEl = document.getElementById('cardUnrealized');
   unrealEl.textContent = fmt$(Math.round(sumUnrealized));
@@ -1191,7 +1210,7 @@ function updateHeaderKPIs(data) {
   realEl.className = `card-value ${colorClass(sumRealized)}`;
 
   const fxEl = document.getElementById('cardFX');
-  fxEl.textContent = fmt$(Math.round(sumFX));
+  fxEl.textContent = fmt$(sumFX);
   fxEl.className = `card-value ${colorClass(sumFX)}`;
 
   // Total dividends: open positions stored in CAD; closed positions in native ccy
@@ -1204,9 +1223,13 @@ function updateHeaderKPIs(data) {
   ].reduce((a, b) => a + b, 0);
   document.getElementById('cardDividends').textContent = fmt$(totalDivCAD);
 
-  // Total value = API value (live holdings + cash positions); P&L vs contributions
-  const displayMv  = tv || Math.round(sumMktVal);
-  const displayPnl = displayMv > 0 ? Math.round(displayMv - 149632) : totalPnl;
+  // Total value = client-side (sum of all table rows including cash); P&L vs contributions
+  const displayMv  = Math.round(sumMktVal);
+  const displayPnl = Math.round(totalPnlClient);
+
+  // Cash on Hand card
+  const cashEl = document.getElementById('kpiCashOnHand');
+  if (cashEl) cashEl.textContent = fmt$(Math.round(sumCash));
   document.getElementById('kpiTotalValue').textContent = fmt$(displayMv);
   document.getElementById('kpiTotalPnl').textContent = fmt$(displayPnl);
   document.getElementById('kpiTotalPnl').className = `hkpi-value ${colorClass(displayPnl)}`;
@@ -1325,13 +1348,16 @@ function renderHoldingsTable(liveData) {
   const hPrices = liveData?.holdings || {};
   const tbody = document.getElementById('holdingsBody');
 
-  const totalVal = HOLDINGS_STATIC.reduce((sum, h) => {
-    const p = hPrices[h.ticker];
-    const price = p ? p.price : null;
-    let val = price ? price * h.shares : (h.unrealized + (h.cost_total || 0));
-    if (h.ccy === 'USD') val *= usdcad;
-    return sum + val;
-  }, 0);
+  const totalVal = [
+    ...HOLDINGS_STATIC.map(h => {
+      const p = hPrices[h.ticker];
+      const price = p ? p.price : null;
+      let val = price ? price * h.shares : (h.unrealized + (h.cost_total || 0));
+      if (h.ccy === 'USD') val *= usdcad;
+      return val;
+    }),
+    ...CASH_POSITIONS.map(c => c.ccy === 'USD' ? c.amount * usdcad : c.amount),
+  ].reduce((a, b) => a + b, 0);
 
   const openRows = HOLDINGS_STATIC.map(h => {
     const p = hPrices[h.ticker];
@@ -1423,7 +1449,33 @@ function renderHoldingsTable(liveData) {
     </tr>`;
   }).join('');
 
-  tbody.innerHTML = openRows + closedRows;
+  // Cash rows — shown between open positions and closed positions
+  const cashRows = CASH_POSITIONS.map(c => {
+    const mktVal   = c.ccy === 'USD' ? c.amount * usdcad : c.amount;
+    const weight   = totalVal > 0 ? (mktVal / totalVal * 100).toFixed(1) : '0.0';
+    const widthPx  = Math.max(1, Math.round(parseFloat(weight) * 1.5));
+    const acctBadge = acctBadgeClass(c.account);
+    const priceStr = c.ccy === 'USD' ? `$${c.amount.toFixed(2)} USD` : `$${c.amount.toFixed(2)} CAD`;
+    return `<tr data-account="${c.account}" data-sector="Cash" data-pnl="gain" data-cash="true" data-mv="${mktVal.toFixed(2)}" data-cb="0" data-unreal="0" data-div="0" data-real="0" data-pnlval="0">
+      <td class="mono text2">CASH</td>
+      <td class="text2 small">${c.name}</td>
+      <td><span class="badge ${acctBadge}">${c.account === 'Investment' ? 'NON-REG' : c.account}</span></td>
+      <td class="text2 small">Cash</td>
+      <td class="mono text3">—</td>
+      <td class="mono small text2">${priceStr}</td>
+      <td class="mono small text3">—</td>
+      <td class="mono small text3">—</td>
+      <td class="mono">${fmt$(mktVal)}</td>
+      <td class="mono text3">—</td>
+      <td class="mono text3">—</td>
+      <td class="mono text3">—</td>
+      <td class="mono text3">—</td>
+      <td class="mono text3">—</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.4"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  tbody.innerHTML = openRows + cashRows + closedRows;
 
   // Re-apply any active filters after table rebuild (prevents reset on auto-refresh)
   filterTable();

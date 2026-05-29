@@ -648,8 +648,9 @@ def build_system_prompt(
         # Total P&L in CAD (unrealized + realized gains, no dividends)
         total_cad = _cad(total_pnl, ccy)
 
+        price_str = f"@${price:.2f}{ccy}" if price else "—"
         pos_lines.append(
-            f"  {ticker:<8} {h.get('account',''):<11} {shares:>5}sh | "
+            f"  {ticker:<8} {h.get('account',''):<11} {shares:>5}sh {price_str:<14} | "
             f"cost ${cost_cad:>8,.0f} | mkt ${mkt_cad:>8,.0f} | "
             f"unreal {unreal_cad:>+8,.0f} | today {daily_str} | "
             f"total P&L {total_cad:>+8,.0f} ({pct_ret:+.0f}%)"

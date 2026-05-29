@@ -409,7 +409,10 @@ def main() -> int:
                     "date":         old.get("date", ""),
                     "display_date": old.get("display_date", ""),
                     "duration":     old.get("duration", ""),
+                    "mood":         old.get("mood", "neutral"),
+                    "mood_summary": old.get("mood_summary", ""),
                     "file":         old["file"],
+                    "summary":      old.get("summary", {}),
                 }
                 archive = [prev_entry] + old.get("archive", [])
         except Exception:

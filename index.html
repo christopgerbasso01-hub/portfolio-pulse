@@ -312,33 +312,36 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .pod-fill{height:100%;background:var(--blue-bright);border-radius:3px;width:0%;transition:width .15s linear;pointer-events:none}
 .pod-time{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;min-width:80px;text-align:right}
 .pod-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
-/* Previous episodes archive */
-.pod-archive-wrap{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
-.pod-archive-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
-.pod-archive-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--border);margin-bottom:5px;transition:border-color .15s,background .15s}
-.pod-archive-item:hover{border-color:var(--blue-bright);background:var(--surface)}
-.pod-archive-ep{font-family:var(--mono);font-size:10px;color:var(--blue-bright);min-width:30px;flex-shrink:0}
-.pod-archive-info{flex:1;min-width:0}
-.pod-archive-title{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pod-archive-meta{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:1px}
-.pod-archive-play{font-size:11px;color:var(--text3);flex-shrink:0}
-/* Listened state */
-.badge-listened{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);cursor:pointer;transition:opacity .15s}
+/* Episode list inside player */
+.pod-ep-list{margin-top:10px;border-top:1px solid var(--border);padding-top:8px}
+.pod-ep-list-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.pod-ep-items{overflow-y:auto;max-height:130px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.pod-ep-items::-webkit-scrollbar{width:3px}
+.pod-ep-items::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.pod-ep-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:5px;cursor:pointer;transition:background .15s;border-left:2px solid transparent}
+.pod-ep-item:hover{background:var(--surface)}
+.pod-ep-item.is-current{background:var(--surface);border-left-color:var(--blue-bright)}
+.pod-ep-item-ep{font-family:var(--mono);font-size:10px;color:var(--blue-bright);min-width:32px;flex-shrink:0}
+.pod-ep-item-info{flex:1;min-width:0}
+.pod-ep-item-title{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pod-ep-item-meta{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:1px}
+.pod-ep-item.is-listened .pod-ep-item-ep{color:var(--green)}
+.pod-ep-item.is-listened:not(.is-current){opacity:.6}
+/* Listened badge */
+.badge-listened{cursor:pointer;transition:opacity .15s}
 .badge-listened:hover{opacity:.7}
-.pod-archive-item.is-listened{opacity:.55}
-.pod-archive-item.is-listened .pod-archive-ep{color:var(--green)}
-.pod-archive-item.is-listened .pod-archive-ep::before{content:'✓ '}
-/* Brief sections */
-.brief-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.brief-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+/* Brief cards — horizontal scroll row */
+.brief-grid{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.brief-grid::-webkit-scrollbar{height:3px}
+.brief-grid::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.brief-grid::-webkit-scrollbar-track{background:transparent}
+.brief-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;min-width:200px;flex:0 0 200px}
 .brief-card-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 .brief-list{list-style:none;display:flex;flex-direction:column;gap:5px}
 .brief-list li{font-size:12px;color:var(--text2);line-height:1.45;padding-left:12px;position:relative}
 .brief-list li::before{content:'›';position:absolute;left:0;color:var(--blue-bright)}
 .brief-list li.action::before{content:'→';color:var(--green)}
 .brief-list li.watch::before{content:'◉';color:var(--amber)}
-@media(max-width:900px){.brief-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.brief-grid{grid-template-columns:1fr}}
 
 .chat-fab{position:fixed;bottom:24px;left:24px;width:52px;height:52px;border-radius:50%;background:var(--purple);border:none;color:#fff;font-size:20px;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(139,92,246,.5);transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center}
 .chat-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(139,92,246,.7)}
@@ -608,10 +611,10 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 
       <audio id="podAudio" preload="none"></audio>
 
-      <!-- Previous episodes -->
-      <div class="pod-archive-wrap" id="podArchiveWrap" style="display:none">
-        <div class="pod-archive-label">Previous Episodes</div>
-        <div id="podArchiveList"></div>
+      <!-- Episode list (current + archive, scrollable) -->
+      <div class="pod-ep-list" id="podEpList" style="display:none">
+        <div class="pod-ep-list-label">Episodes</div>
+        <div class="pod-ep-items" id="podEpItems"></div>
       </div>
     </div>
 
@@ -2839,17 +2842,26 @@ async function refreshAll() {
 (function() {
   const MOOD_CLASS = { 'risk-on':'badge-fhsa','risk-off':'badge-closed','neutral':'badge-rrsp','mixed':'badge-inv' };
   const fmt = t => isFinite(t) ? `${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}` : '—:—';
+  const CARD_SECTIONS = [
+    { key:'portfolio_snapshot', label:'Portfolio This Week',  cls:'' },
+    { key:'market_context',     label:'Market Context',       cls:'' },
+    { key:'action_items',       label:'Actions to Consider',  cls:'action' },
+    { key:'watch_list',         label:'Watch List',           cls:'watch' },
+    { key:'key_news',           label:'Key News',             cls:'' },
+    { key:'position_spotlight', label:'Position Spotlight',   cls:'' },
+  ];
 
-  // ── Listened state ────────────────────────────────────────────────────────
-  let listenedEps   = new Set();   // episode numbers the user has heard
-  let currentPodEp  = 0;           // which episode is currently loaded in the player
+  // ── State ─────────────────────────────────────────────────────────────────
+  let listenedEps  = new Set();
+  let currentPodEp = 0;
+  const epData     = new Map();  // ep# → { summary, mood_summary, mood, title, display_date }
 
+  // ── Listened sync ─────────────────────────────────────────────────────────
   async function loadListened() {
     try {
       const r = await fetch('/api/pod_listened');
       if (!r.ok) return;
-      const data = await r.json();
-      listenedEps = new Set(data.listened || []);
+      listenedEps = new Set((await r.json()).listened || []);
     } catch(e) {}
   }
 
@@ -2864,24 +2876,26 @@ async function refreshAll() {
   }
 
   function updateListenedUI() {
-    // Current episode player badge
     const badge = document.getElementById('podListenedBadge');
     if (badge) {
       const heard = currentPodEp > 0 && listenedEps.has(currentPodEp);
-      badge.style.display = (currentPodEp > 0) ? '' : 'none';
-      badge.textContent = heard ? '✓ LISTENED' : '◎ MARK LISTENED';
+      badge.style.display = currentPodEp > 0 ? '' : 'none';
+      badge.textContent   = heard ? '✓ LISTENED' : '◎ MARK LISTENED';
       badge.style.background = heard ? 'rgba(34,197,94,.15)' : 'transparent';
-      badge.style.color = heard ? 'var(--green)' : 'var(--text3)';
-      badge.style.border = heard ? '1px solid rgba(34,197,94,.3)' : '1px solid var(--border)';
+      badge.style.color      = heard ? 'var(--green)' : 'var(--text3)';
+      badge.style.border     = heard ? '1px solid rgba(34,197,94,.3)' : '1px solid var(--border)';
     }
-    // Archive cards — add/remove .is-listened class
-    document.querySelectorAll('.pod-archive-item[data-ep]').forEach(el => {
+    // Episode list rows
+    document.querySelectorAll('.pod-ep-item[data-ep]').forEach(el => {
       const ep = parseInt(el.dataset.ep, 10);
       el.classList.toggle('is-listened', listenedEps.has(ep));
+      el.classList.toggle('is-current',  ep === currentPodEp);
+      const epLabel = el.querySelector('.pod-ep-item-ep');
+      if (epLabel) epLabel.textContent = (listenedEps.has(ep) ? '✓ ' : '') + `EP ${ep}`;
     });
-    // Unread dot on section header — show if latest ep exists and isn't listened
+    // Unread dot
     const dot = document.getElementById('podUnreadDot');
-    if (dot) dot.style.display = (currentPodEp > 0 && !listenedEps.has(currentPodEp)) ? '' : 'none';
+    if (dot) dot.style.display = currentPodEp > 0 && !listenedEps.has(currentPodEp) ? '' : 'none';
   }
 
   function markListened(epNum) {
@@ -2893,96 +2907,24 @@ async function refreshAll() {
 
   window.podToggleListened = function() {
     if (!currentPodEp) return;
-    if (listenedEps.has(currentPodEp)) listenedEps.delete(currentPodEp);
-    else listenedEps.add(currentPodEp);
+    listenedEps.has(currentPodEp) ? listenedEps.delete(currentPodEp) : listenedEps.add(currentPodEp);
     saveListened();
     updateListenedUI();
   };
 
-  // ── Meta + render ─────────────────────────────────────────────────────────
-  async function loadPodcastMeta() {
-    try {
-      const r = await fetch(`data/podcast_meta.json?v=${Date.now()}`);
-      if (!r.ok) return;
-      const m = await r.json();
-      renderPodcast(m);
-    } catch(e) {}
-  }
-
-  function renderPodcast(m) {
-    const hasEp = m.episode > 0 && m.duration_seconds > 0;
-
-    // Title
-    const titleEl = document.getElementById('podTitle');
-    if (titleEl) titleEl.textContent = m.title || 'Portfolio Pulse Weekly';
-
-    // Badges
-    const epBadge = document.getElementById('podEpBadge');
-    const moodBadge = document.getElementById('podMoodBadge');
-    const dateBadge = document.getElementById('podDateBadge');
-    if (epBadge && hasEp) { epBadge.textContent = `EP ${m.episode}`; epBadge.style.display = ''; }
-    if (moodBadge && hasEp) {
-      moodBadge.textContent = (m.mood||'neutral').toUpperCase().replace('-',' ');
-      moodBadge.className = `badge ${MOOD_CLASS[m.mood]||'badge-rrsp'}`;
-      moodBadge.style.display = '';
-    }
-    if (dateBadge) dateBadge.textContent = m.display_date || '';
-
-    // Player vs coming-soon
-    const playerInner = document.getElementById('podPlayerInner');
-    const comingSoon  = document.getElementById('podComingSoon');
-    const playBtn     = document.getElementById('podPlayBtn');
-    if (hasEp) {
-      if (playerInner) playerInner.style.display = '';
-      if (comingSoon)  comingSoon.style.display = 'none';
-      if (playBtn)     playBtn.disabled = false;
-      // Point audio element at the numbered file
-      const audio = document.getElementById('podAudio');
-      if (audio && m.file) { audio.src = `data/${m.file}`; }
-      // Track which episode is loaded
-      currentPodEp = m.episode;
-    } else {
-      if (playerInner) playerInner.style.display = 'none';
-      if (comingSoon)  comingSoon.style.display = '';
-    }
-
-    // Previous episodes archive
-    const archiveWrap = document.getElementById('podArchiveWrap');
-    const archiveList = document.getElementById('podArchiveList');
-    const archive = m.archive || [];
-    if (archiveWrap && archiveList && archive.length > 0) {
-      archiveList.innerHTML = archive.map(ep => `
-        <div class="pod-archive-item" data-ep="${ep.episode}"
-             onclick="podLoadEpisode('${ep.file}','${(ep.title||'').replace(/'/g,"\\'")}',${ep.episode},'${ep.display_date||''}')">
-          <div class="pod-archive-ep">EP ${ep.episode}</div>
-          <div class="pod-archive-info">
-            <div class="pod-archive-title">${ep.title||'Portfolio Pulse Weekly'}</div>
-            <div class="pod-archive-meta">${ep.display_date||''} · ${ep.duration||''}</div>
-          </div>
-          <div class="pod-archive-play">▶</div>
-        </div>`).join('');
-      archiveWrap.style.display = '';
-    }
-
-    // Apply listened state now that DOM is ready
-    updateListenedUI();
-
-    // Summary grid
-    const s = m.summary || {};
+  // ── Brief cards ───────────────────────────────────────────────────────────
+  function renderBriefCards(ep) {
+    const d = epData.get(ep) || {};
+    const s = d.summary || {};
     const grid = document.getElementById('podBriefGrid');
-    const placeholder = document.getElementById('podBriefPlaceholder');
+    const ph   = document.getElementById('podBriefPlaceholder');
     if (!grid) return;
 
-    const sections = [
-      { key:'portfolio_snapshot', label:'Portfolio This Week',   cls:'' },
-      { key:'market_context',     label:'Market Context',        cls:'' },
-      { key:'action_items',       label:'Actions to Consider',   cls:'action' },
-      { key:'watch_list',         label:'Watch List',            cls:'watch' },
-      { key:'key_news',           label:'Key News',              cls:'' },
-      { key:'position_spotlight', label:'Position Spotlight',    cls:'' },
-    ];
+    // Replace mood summary line
+    const prev = document.getElementById('podMoodLine');
+    if (prev) prev.remove();
 
-    const cards = sections
+    const cards = CARD_SECTIONS
       .filter(sec => (s[sec.key]||[]).length > 0)
       .map(sec => `<div class="brief-card">
         <div class="brief-card-label">${sec.label}</div>
@@ -2992,16 +2934,98 @@ async function refreshAll() {
     if (cards) {
       grid.innerHTML = cards;
       grid.style.display = '';
-      if (placeholder) placeholder.style.display = 'none';
+      if (ph) ph.style.display = 'none';
     }
-
-    // Mood summary line
-    if (m.mood_summary && hasEp) {
+    if (d.mood_summary) {
       const ms = document.createElement('div');
-      ms.style.cssText = 'font-size:12px;color:var(--text2);margin-bottom:12px;font-style:italic';
-      ms.textContent = m.mood_summary;
+      ms.id = 'podMoodLine';
+      ms.style.cssText = 'font-size:12px;color:var(--text2);margin-bottom:10px;font-style:italic';
+      ms.textContent = d.mood_summary;
       grid.before(ms);
     }
+  }
+
+  // ── Episode list inside player ────────────────────────────────────────────
+  function renderEpList(episodes) {
+    const wrap  = document.getElementById('podEpList');
+    const items = document.getElementById('podEpItems');
+    if (!wrap || !items || !episodes.length) return;
+    items.innerHTML = episodes.map(ep => `
+      <div class="pod-ep-item ${ep.episode === currentPodEp ? 'is-current' : ''} ${listenedEps.has(ep.episode) ? 'is-listened' : ''}"
+           data-ep="${ep.episode}"
+           onclick="podLoadEpisode('${ep.file}','${(ep.title||'').replace(/'/g,"\\'")}',${ep.episode},'${ep.display_date||''}')">
+        <div class="pod-ep-item-ep">${listenedEps.has(ep.episode)?'✓ ':''}EP ${ep.episode}</div>
+        <div class="pod-ep-item-info">
+          <div class="pod-ep-item-title">${ep.title||'Portfolio Pulse Weekly'}</div>
+          <div class="pod-ep-item-meta">${ep.display_date||''} · ${ep.duration||''}</div>
+        </div>
+      </div>`).join('');
+    wrap.style.display = '';
+  }
+
+  // ── Meta load & render ────────────────────────────────────────────────────
+  async function loadPodcastMeta() {
+    try {
+      const r = await fetch(`data/podcast_meta.json?v=${Date.now()}`);
+      if (!r.ok) return;
+      renderPodcast(await r.json());
+    } catch(e) {}
+  }
+
+  function renderPodcast(m) {
+    const hasEp = m.episode > 0 && m.duration_seconds > 0;
+
+    // Store per-episode data for on-demand card switching
+    if (m.episode > 0) {
+      epData.set(m.episode, { summary: m.summary, mood_summary: m.mood_summary, mood: m.mood,
+                              title: m.title, display_date: m.display_date });
+    }
+    (m.archive || []).forEach(ep => {
+      if (ep.summary) epData.set(ep.episode, { summary: ep.summary, mood_summary: ep.mood_summary||'',
+                                               mood: ep.mood||'neutral', title: ep.title, display_date: ep.display_date });
+    });
+
+    // Title / badges
+    const titleEl   = document.getElementById('podTitle');
+    const epBadge   = document.getElementById('podEpBadge');
+    const moodBadge = document.getElementById('podMoodBadge');
+    const dateBadge = document.getElementById('podDateBadge');
+    if (titleEl) titleEl.textContent = m.title || 'Portfolio Pulse Weekly';
+    if (epBadge && hasEp) { epBadge.textContent = `EP ${m.episode}`; epBadge.style.display = ''; }
+    if (moodBadge && hasEp) {
+      moodBadge.textContent = (m.mood||'neutral').toUpperCase().replace('-',' ');
+      moodBadge.className   = `badge ${MOOD_CLASS[m.mood]||'badge-rrsp'}`;
+      moodBadge.style.display = '';
+    }
+    if (dateBadge) dateBadge.textContent = m.display_date || '';
+
+    // Player controls visibility
+    const playerInner = document.getElementById('podPlayerInner');
+    const comingSoon  = document.getElementById('podComingSoon');
+    const playBtn     = document.getElementById('podPlayBtn');
+    if (hasEp) {
+      if (playerInner) playerInner.style.display = '';
+      if (comingSoon)  comingSoon.style.display   = 'none';
+      if (playBtn)     playBtn.disabled = false;
+      const audio = document.getElementById('podAudio');
+      if (audio && m.file) audio.src = `data/${m.file}`;
+      currentPodEp = m.episode;
+    } else {
+      if (playerInner) playerInner.style.display = 'none';
+      if (comingSoon)  comingSoon.style.display   = '';
+    }
+
+    // Episode list: latest first, then archive
+    if (hasEp) {
+      const allEps = [
+        { episode: m.episode, title: m.title, display_date: m.display_date, duration: m.duration, file: m.file },
+        ...(m.archive || []),
+      ];
+      renderEpList(allEps);
+    }
+
+    updateListenedUI();
+    renderBriefCards(m.episode);
   }
 
   // ── Audio controls ────────────────────────────────────────────────────────
@@ -3026,35 +3050,30 @@ async function refreshAll() {
     const titleEl   = document.getElementById('podTitle');
     const epBadge   = document.getElementById('podEpBadge');
     const dateBadge = document.getElementById('podDateBadge');
-    const fill      = document.getElementById('podFill');
-    const time      = document.getElementById('podTime');
     if (!audio) return;
-    // Stop current playback
     audio.pause();
     if (btn) btn.textContent = '▶';
-    // Update which episode is in the player
     currentPodEp = ep;
-    // Update title / badges
     if (titleEl)   titleEl.textContent   = title;
     if (epBadge)   epBadge.textContent   = `EP ${ep}`;
     if (dateBadge) dateBadge.textContent = date;
-    // Reset progress bar
+    const fill = document.getElementById('podFill');
+    const time = document.getElementById('podTime');
     if (fill) fill.style.width = '0%';
     if (time) time.textContent = '—:— / —:—';
-    // Load the selected episode
     audio.src = `data/${file}`;
     audio.load();
-    // Auto-play
     audio.play().then(() => { if (btn) btn.textContent = '⏸'; }).catch(() => {});
-    // Refresh listened badge for the newly loaded episode
+    // Update episode list highlight + brief cards
     updateListenedUI();
+    renderBriefCards(ep);
   };
 
   document.addEventListener('DOMContentLoaded', () => {
     const audio = document.getElementById('podAudio');
     if (audio) {
       audio.addEventListener('timeupdate', () => {
-        const pct = audio.duration ? (audio.currentTime / audio.duration * 100) : 0;
+        const pct  = audio.duration ? (audio.currentTime / audio.duration * 100) : 0;
         const fill = document.getElementById('podFill');
         const time = document.getElementById('podTime');
         if (fill) fill.style.width = pct + '%';
@@ -3063,11 +3082,9 @@ async function refreshAll() {
       audio.addEventListener('ended', () => {
         const btn = document.getElementById('podPlayBtn');
         if (btn) btn.textContent = '▶';
-        // Auto-mark as listened when episode finishes
         markListened(currentPodEp);
       });
     }
-    // Load listened state first, then meta (so UI renders correctly in one pass)
     loadListened().then(() => loadPodcastMeta());
   });
 })();

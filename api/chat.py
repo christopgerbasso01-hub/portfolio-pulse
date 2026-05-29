@@ -608,27 +608,29 @@ def build_system_prompt(
     cash_total = sum(c.get("amount", 0) for c in cash_positions)
     overall_return = (total_pnl / total_cost * 100) if total_cost else 0
 
-    # Compact positions list (top 20 by weight to keep token count manageable)
-    pos_lines = []
-    sorted_holdings = sorted(holdings_list, key=lambda x: -(x.get("weight") or 0))
-    for h in sorted_holdings[:20]:
-        ticker = h.get("ticker", "")
-        pd = holdings_prices.get(ticker) or {}
-        price = pd.get("price")
-        shares = h.get("shares", 0)
-        cost = h.get("cost_total", 0)
-        unreal = h.get("unrealized", 0)
-        mkt = (price * shares) if (price and shares) else (cost + unreal)
-        pos_lines.append(
-            f"  {ticker:<9} {h.get('account',''):<11} {h.get('name','')[:22]:<22} "
-            f"${mkt:>9,.0f}  {h.get('pct_return',0):>+6.1f}%"
-        )
-    if len(sorted_holdings) > 20:
-        pos_lines.append(f"  ... and {len(sorted_holdings)-20} more — call get_portfolio_data for full list")
+    acct_lines = " | ".join(f"{a}:${v:,.0f}" for a, v in sorted(account_totals.items()))
 
-    acct_lines = "\n".join(
-        f"  {a}: ${v:,.0f}" for a, v in sorted(account_totals.items())
-    )
+    # Positions table: ticker, account, shares, market value, today's % change, total return
+    # Include enough info so the model can answer basic questions without a tool call
+    sorted_holdings = sorted(holdings_list, key=lambda x: -(x.get("weight") or 0))
+    pos_lines = []
+    for h in sorted_holdings[:25]:
+        ticker = h.get("ticker", "")
+        pd     = holdings_prices.get(ticker) or {}
+        price  = pd.get("price")
+        shares = h.get("shares", 0)
+        cost   = h.get("cost_total", 0)
+        unreal = h.get("unrealized", 0)
+        mkt    = (price * shares) if (price and shares) else (cost + unreal)
+        daily  = pd.get("change_pct")
+        total  = h.get("pct_return", 0)
+        daily_str = f"{daily:+.1f}%today" if daily is not None else "n/a today"
+        pos_lines.append(
+            f"  {ticker:<8} {h.get('account',''):<11} {shares:>5}sh  ${mkt:>8,.0f}  {daily_str:<12}  {total:+.0f}%total"
+        )
+    if len(sorted_holdings) > 25:
+        pos_lines.append(f"  (+{len(sorted_holdings)-25} more — call get_portfolio_data for full list)")
+    positions_block = "\n".join(pos_lines)
 
     # Intelligence context
     intel_lines = []
@@ -643,40 +645,21 @@ def build_system_prompt(
         for r in (intelligence.get("risks") or [])[:2]:
             if isinstance(r, dict):
                 intel_lines.append(f"Risk — {r.get('title','')}: {r.get('body','')[:150]}")
-
-    intel_block = ("\n## TODAY'S MARKET CONTEXT\n" + "\n".join(intel_lines)) if intel_lines else ""
-
-    positions_block = "\n".join(pos_lines)
-
-    # Compact 1-line position entries to save tokens
-    pos_str = " | ".join(
-        f"{h.get('ticker','')}({h.get('account','')[:3]} {h.get('pct_return',0):+.0f}%)"
-        for h in sorted_holdings[:25]
-    )
-    if len(sorted_holdings) > 25:
-        pos_str += f" +{len(sorted_holdings)-25} more"
-
-    intel_str = ""
-    if intelligence:
-        parts = []
-        if intelligence.get("market_mood"):
-            parts.append(f"Mood:{intelligence['market_mood']}")
-        if intelligence.get("daily_outlook"):
-            parts.append(intelligence["daily_outlook"][:120])
-        if parts:
-            intel_str = "\nMarket: " + " | ".join(parts)
+    intel_block = ("\nMARKET CONTEXT: " + " | ".join(intel_lines)) if intel_lines else ""
 
     prompt = f"""You are Pulse, an AI portfolio analyst for a Canadian investor. Today: {today}.
 
-TOOLS: Call them directly — don't narrate. Use search_web for any live financial data (earnings dates, prices, news, dividends, analyst targets, tax rates). Use calculate_capital_gains_tax for tax questions. Use get_dividend_forecast for dividend income. Use get_portfolio_data for exact position details. Ask user for tax bracket/province when needed.
+RULES: Answer directly from the positions table below when data is there. Call get_portfolio_data for cost basis, unrealized gains, or detailed P&L. Call search_web for live market data, news, earnings, dividends, analyst targets. Call calculate_capital_gains_tax for tax questions. Call get_dividend_forecast for dividend income. Never invent numbers — if unsure, call the tool.
 
-PORTFOLIO ({today}): ${total_value:,.0f} total | P&L ${total_pnl:+,.0f} ({overall_return:.1f}%) | Cash ${cash_total:,.0f}
-Accounts: {acct_lines.replace(chr(10), ' | ').replace('  ', '')}
-Positions: {pos_str}
-Dividends: {', '.join(dividend_payers[:10]) if dividend_payers else 'none'}{intel_str}
+PORTFOLIO: ${total_value:,.0f} total | P&L ${total_pnl:+,.0f} ({overall_return:.1f}%) | Cash ${cash_total:,.0f}
+Accounts: {acct_lines}
+Dividend payers: {', '.join(dividend_payers[:10]) if dividend_payers else 'none'}
+
+POSITIONS (ticker | account | shares | market value | today's change | total return):
+{positions_block}{intel_block}
 
 TAX: TFSA/FHSA=tax-free | RRSP=full withdrawal taxed as income | Investment=50% cap gains inclusion
-Use tables/bullets. Cite dates from search results. Disclaimer for tax advice."""
+Use tables/bullets. Disclaimer for tax advice."""
 
     return prompt
 

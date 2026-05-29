@@ -553,7 +553,10 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <span class="mono blue" style="font-size:14px;font-weight:700">TFSA</span>
           <span class="badge badge-tfsa">TAX-FREE</span>
         </div>
-        <div class="mono" style="font-size:18px;margin-top:4px" id="acctTFSAValue">$94,076</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px">
+          <div class="mono" style="font-size:18px" id="acctTFSAValue">$94,076</div>
+          <div class="mono small green" id="acctTFSAPnl">—</div>
+        </div>
         <div class="green small mono" id="acctTFSARoi">+120.84% ROI · $44,500 in</div>
       </div>
       <div class="acct-card-body">
@@ -568,7 +571,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <tr><td class="mono blue small">CM.TO</td><td class="mono small text2">45</td><td class="mono small" id="live-CM.TO-TFSA">$6,880</td><td class="mono small green">+142.9%</td></tr>
         </table>
       </div>
-      <div class="acct-card-footer">💡 Leveraged ETF gains are optimally housed here — no capital gains tax on FNGU/SPXL/UDOW compounding. Highest-leverage use of your TFSA contribution room.</div>
+      <div class="acct-card-footer" id="acctTFSAFooter">💡 Loading…</div>
     </div>
     <!-- Investment -->
     <div class="acct-card">
@@ -577,7 +580,10 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <span class="mono" style="font-size:14px;font-weight:700;color:var(--text2)">NON-REG</span>
           <span class="badge badge-inv">TAXABLE</span>
         </div>
-        <div class="mono" style="font-size:18px;margin-top:4px" id="acctInvValue">$89,014</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px">
+          <div class="mono" style="font-size:18px" id="acctInvValue">$89,014</div>
+          <div class="mono small green" id="acctInvPnl">—</div>
+        </div>
         <div class="green small mono" id="acctInvRoi">+45.03% ROI · $65,000 in</div>
       </div>
       <div class="acct-card-body">
@@ -592,7 +598,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <tr><td class="mono blue small">IBKR</td><td class="mono small text2">40</td><td class="mono small" id="live-IBKR-Investment">$4,636</td><td class="mono small green">+45.1%</td></tr>
         </table>
       </div>
-      <div class="acct-card-footer">💡 SPXL and FNGU represent ~62% of this account — your largest future tax liability. Track ACB closely; partial harvesting of smaller losers can offset future dispositions.</div>
+      <div class="acct-card-footer" id="acctInvFooter">💡 Loading…</div>
     </div>
     <!-- FHSA -->
     <div class="acct-card">
@@ -601,7 +607,10 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <span class="mono green" style="font-size:14px;font-weight:700">FHSA</span>
           <span class="badge badge-fhsa">HOME FUND</span>
         </div>
-        <div class="mono" style="font-size:18px;margin-top:4px" id="acctFHSAValue">$50,577</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px">
+          <div class="mono" style="font-size:18px" id="acctFHSAValue">$50,577</div>
+          <div class="mono small green" id="acctFHSAPnl">—</div>
+        </div>
         <div class="green small mono" id="acctFHSARoi">+122.96% ROI · $24,000 in</div>
       </div>
       <div class="acct-card-body">
@@ -614,7 +623,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <tr><td class="mono blue small">ENB.TO</td><td class="mono small text2">82</td><td class="mono small" id="live-ENB.TO-FHSA">$6,166</td><td class="mono small green">+49.1%</td></tr>
         </table>
       </div>
-      <div class="acct-card-footer">💡 Account has grown 2.25× your $24K contribution — all tax-free on a qualifying home purchase. This account closes permanently after use; maximize contributions before withdrawal.</div>
+      <div class="acct-card-footer" id="acctFHSAFooter">💡 Loading…</div>
     </div>
     <!-- RRSP -->
     <div class="acct-card">
@@ -623,7 +632,10 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <span class="mono amber" style="font-size:14px;font-weight:700">RRSP</span>
           <span class="badge badge-rrsp">DEFERRED</span>
         </div>
-        <div class="mono" style="font-size:18px;margin-top:4px" id="acctRRSPValue">$26,642</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px">
+          <div class="mono" style="font-size:18px" id="acctRRSPValue">$26,642</div>
+          <div class="mono small green" id="acctRRSPPnl">—</div>
+        </div>
         <div class="green small mono" id="acctRRSPRoi">+72.15% ROI · $16,132 in</div>
       </div>
       <div class="acct-card-body">
@@ -1242,33 +1254,29 @@ function updateHeaderKPIs(data) {
   const accts = portfolio.accounts;
   const acctCosts = portfolio.account_cost || {};
   [
-    ['acctTFSAValue', 'acctTFSARoi', 'TFSA', 44500],
-    ['acctInvValue', 'acctInvRoi', 'Investment', 65000],
-    ['acctFHSAValue', 'acctFHSARoi', 'FHSA', 24000],
-    ['acctRRSPValue', 'acctRRSPRoi', 'RRSP', 16132],
-  ].forEach(([valId, roiId, key, contrib]) => {
+    ['acctTFSAValue', 'acctTFSARoi', 'acctTFSAPnl', 'TFSA', 44500],
+    ['acctInvValue',  'acctInvRoi',  'acctInvPnl',  'Investment', 65000],
+    ['acctFHSAValue', 'acctFHSARoi', 'acctFHSAPnl', 'FHSA', 24000],
+    ['acctRRSPValue', 'acctRRSPRoi', 'acctRRSPPnl', 'RRSP', 16132],
+  ].forEach(([valId, roiId, pnlId, key, contrib]) => {
     const val = accts[key];
     const cost2 = acctCosts[key] || contrib;
     if (!val) return;
+    const pnl  = val - contrib;
     const roi2 = ((val - cost2) / cost2 * 100).toFixed(2);
     const el = document.getElementById(valId);
     const roiEl = document.getElementById(roiId);
+    const pnlEl = document.getElementById(pnlId);
     if (el) el.textContent = fmt$(val);
     if (roiEl) {
       roiEl.textContent = `${fmtPct(parseFloat(roi2))} ROI · ${fmt$(contrib)} in`;
       roiEl.className = `small mono ${colorClass(parseFloat(roi2))}`;
     }
+    if (pnlEl) {
+      pnlEl.textContent = (pnl >= 0 ? '+' : '') + fmt$(Math.round(pnl));
+      pnlEl.className = `mono small ${colorClass(pnl)}`;
+    }
   });
-
-  // Dynamic RRSP footer — shows live idle cash amount and % of account
-  const rrspCashPos = CASH_POSITIONS.find(c => c.account === 'RRSP');
-  if (rrspCashPos) {
-    const rrspCashCAD = rrspCashPos.ccy === 'USD' ? rrspCashPos.amount * usdcad : rrspCashPos.amount;
-    const rrspVal     = accts?.RRSP || 0;
-    const cashPct     = rrspVal > 0 ? (rrspCashCAD / rrspVal * 100).toFixed(1) : '—';
-    const footerEl    = document.getElementById('acctRRSPFooter');
-    if (footerEl) footerEl.innerHTML = `⚠️ ${fmt$(Math.round(rrspCashCAD))} USD cash (${cashPct}% of account) sitting idle — ZSP.TO in RRSP gets 0% US dividend withholding under the Canada-US treaty, unavailable in any other account.`;
-  }
 
   // Tax section header values
   if (accts.TFSA) document.getElementById('taxTFSAVal').textContent = fmt$(accts.TFSA);
@@ -1348,6 +1356,136 @@ function updateHoldingsCells(hPrices, usdcad) {
     if (s.ccy === 'USD') val *= usdcad;
     el.textContent = fmt$(val);
   });
+}
+
+// ============================================================
+// ACCOUNT CARD DYNAMIC FOOTERS
+// ============================================================
+function updateAccountFooters(data) {
+  const hPrices  = data.holdings || {};
+  const usdcad   = data.usdcad   || 1.37;
+  const accts    = data.portfolio?.accounts || {};
+  const CONTRIBS = { TFSA: 44500, Investment: 65000, FHSA: 24000, RRSP: 16132 };
+  const s = n => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';  // signed pct string
+
+  // Build per-account metrics from live prices
+  function metrics(acctKey) {
+    const hs = HOLDINGS_STATIC.filter(h => h.account === acctKey);
+    let totalMv = 0, totalPrevMv = 0, holdingStats = [];
+
+    hs.forEach(h => {
+      const p = hPrices[h.ticker];
+      if (!p?.price) return;
+      const fx   = h.ccy === 'USD' ? usdcad : 1;
+      const mv   = p.price * h.shares * fx;
+      const prev = (p.prev || p.price) * h.shares * fx;
+      totalMv     += mv;
+      totalPrevMv += prev;
+      holdingStats.push({ ticker: h.ticker, mv, dayPct: p.change_pct || 0, dayChg: mv - prev,
+                          unrealized: mv - (h.book_rate ? h.cost_total * h.book_rate : h.cost_total) });
+    });
+
+    holdingStats.sort((a, b) => b.mv - a.mv);
+    const cashItems = CASH_POSITIONS.filter(c => c.account === acctKey);
+    const cashCAD   = cashItems.reduce((s, c) => s + (c.ccy === 'USD' ? c.amount * usdcad : c.amount), 0);
+    totalMv += cashCAD;
+
+    const acctVal   = accts[acctKey] || totalMv;
+    const dayChgCAD = totalMv - totalPrevMv;
+    const dayChgPct = totalPrevMv > 0 ? (dayChgCAD / totalPrevMv * 100) : 0;
+    const top       = holdingStats[0];
+    const topPct    = top ? (top.mv / acctVal * 100) : 0;
+    const bigMover  = holdingStats.reduce((b, h) => !b || Math.abs(h.dayPct) > Math.abs(b.dayPct) ? h : b, null);
+    const cashPct   = acctVal > 0 ? (cashCAD / acctVal * 100) : 0;
+    const roi       = acctVal > 0 ? ((acctVal - CONTRIBS[acctKey]) / CONTRIBS[acctKey] * 100) : 0;
+
+    return { acctVal, dayChgCAD, dayChgPct, holdingStats, top, topPct, bigMover, cashCAD, cashPct, roi };
+  }
+
+  // ── TFSA ─────────────────────────────────────────────────────────────────
+  {
+    const m = metrics('TFSA');
+    let msg;
+    if (m.bigMover && Math.abs(m.bigMover.dayPct) > 4) {
+      const dir = m.bigMover.dayPct > 0 ? '▲' : '▼';
+      msg = `${dir} ${m.bigMover.ticker} ${s(m.bigMover.dayPct)} today (${fmt$(Math.round(m.bigMover.dayChg))}). ${m.bigMover.dayPct > 0 ? 'Let it run — every dollar of gain here is permanently tax-free.' : 'Leveraged ETFs decay faster on down days; monitor for extended drawdown.'}`;
+    } else if (m.topPct > 28) {
+      msg = `${m.top.ticker} is ${m.topPct.toFixed(0)}% of this account. High 3× ETF concentration is volatile but the risk is correctly placed — a full recovery here costs you nothing in capital gains.`;
+    } else if (m.dayChgPct > 1.5) {
+      msg = `Account up ${s(m.dayChgPct)} today (${fmt$(Math.round(m.dayChgCAD))}). Strong day compounding tax-free. At +${m.roi.toFixed(1)}% ROI this is the portfolio's highest-performing account.`;
+    } else if (m.dayChgPct < -1.5) {
+      msg = `Account down ${s(m.dayChgPct)} today (${fmt$(Math.round(m.dayChgCAD))}). No tax consequence on the dip — losses in TFSA do not create tax credits, but recovery gains are fully sheltered.`;
+    } else {
+      msg = `+${m.roi.toFixed(1)}% ROI on $44,500 contributed. Leveraged ETF compounding in a tax-free account is the single highest-structural-return decision in this portfolio — maintain allocation.`;
+    }
+    const el = document.getElementById('acctTFSAFooter');
+    if (el) el.textContent = msg;
+  }
+
+  // ── Non-Reg ───────────────────────────────────────────────────────────────
+  {
+    const m = metrics('Investment');
+    const spxl = m.holdingStats.find(h => h.ticker === 'SPXL');
+    const fngu = m.holdingStats.find(h => h.ticker === 'FNGU');
+    const top2Pct = ((spxl?.mv || 0) + (fngu?.mv || 0)) / m.acctVal * 100;
+    let msg;
+    if (m.bigMover && m.bigMover.dayPct > 4) {
+      msg = `▲ ${m.bigMover.ticker} ${s(m.bigMover.dayPct)} today — unrealized gains growing. No tax event until disposition, but accrued capital gains liability in this account is rising.`;
+    } else if (m.bigMover && m.bigMover.dayPct < -4) {
+      msg = `▼ ${m.bigMover.ticker} ${s(m.bigMover.dayPct)} today — paper loss may be harvestable. Selling to realize the loss offsets other capital gains; re-entry after 30 days avoids superficial loss rules.`;
+    } else if (top2Pct > 58) {
+      msg = `SPXL + FNGU = ${top2Pct.toFixed(0)}% of Non-Reg. Largest capital gains exposure in the portfolio — every point higher increases future tax on disposition. Track smaller positions for harvesting opportunities.`;
+    } else if (m.dayChgPct > 1.5) {
+      msg = `Account up ${s(m.dayChgPct)} today. Gains here are unrealized — no tax until you sell. Consider whether any losers in this account could be harvested to bank a capital loss credit.`;
+    } else {
+      msg = `+${m.roi.toFixed(1)}% ROI on $65K contributed. SPXL and FNGU are your biggest tax liabilities at disposition — strategic timing of sales vs. lower-income years can meaningfully reduce the tax hit.`;
+    }
+    const el = document.getElementById('acctInvFooter');
+    if (el) el.textContent = msg;
+  }
+
+  // ── FHSA ─────────────────────────────────────────────────────────────────
+  {
+    const m = metrics('FHSA');
+    const growthMult = (m.acctVal / 24000).toFixed(2);
+    const spxl = m.holdingStats.find(h => h.ticker === 'SPXL');
+    const spxlPct = spxl ? (spxl.mv / m.acctVal * 100) : 0;
+    let msg;
+    if (m.bigMover && m.bigMover.dayPct < -4) {
+      msg = `▼ ${m.bigMover.ticker} ${s(m.bigMover.dayPct)} today. This is a goal-based account — a 3× ETF drawdown here directly impacts home purchase purchasing power. Monitor closely.`;
+    } else if (spxlPct > 35) {
+      msg = `SPXL is ${spxlPct.toFixed(0)}% of this home fund — a 50% drawdown on SPXL alone would cut the fund by ${(spxlPct / 2).toFixed(0)}%. Consider shifting to a lower-volatility allocation as your purchase horizon approaches.`;
+    } else if (m.roi > 100) {
+      msg = `Account has more than doubled at ${growthMult}× your $24K — all gains are 100% tax-free on a qualifying home purchase. This account must close within 15 years of your first contribution.`;
+    } else if (m.dayChgPct > 1.5) {
+      msg = `Account up ${s(m.dayChgPct)} today (${fmt$(Math.round(m.dayChgCAD))}). Growing at ${growthMult}× contributions — every dollar here is worth more than a non-reg dollar due to the tax-free home withdrawal.`;
+    } else {
+      msg = `${growthMult}× growth on $24K contributed. All gains withdrawn for a first home purchase are fully tax-free — this dollar is structurally worth more than the same dollar in Non-Reg.`;
+    }
+    const el = document.getElementById('acctFHSAFooter');
+    if (el) el.textContent = msg;
+  }
+
+  // ── RRSP ─────────────────────────────────────────────────────────────────
+  {
+    const m = metrics('RRSP');
+    const rrspCashPos = CASH_POSITIONS.find(c => c.account === 'RRSP');
+    const cashCAD = rrspCashPos ? (rrspCashPos.ccy === 'USD' ? rrspCashPos.amount * usdcad : rrspCashPos.amount) : 0;
+    const cashPct = m.acctVal > 0 ? (cashCAD / m.acctVal * 100) : 0;
+    let msg;
+    if (cashPct > 20) {
+      msg = `⚠️ ${fmt$(Math.round(cashCAD))} USD cash (${cashPct.toFixed(1)}% of account) sitting idle — ZSP.TO in RRSP gets 0% US dividend withholding under Canada-US treaty, unavailable in any other account.`;
+    } else if (m.bigMover && Math.abs(m.bigMover.dayPct) > 4) {
+      const dir = m.bigMover.dayPct > 0 ? '▲' : '▼';
+      msg = `${dir} ${m.bigMover.ticker} ${s(m.bigMover.dayPct)} today. RRSP gains are tax-deferred, not tax-free — long-hold growth assets here to delay the taxable withdrawal as long as possible.`;
+    } else if (m.roi < 50) {
+      msg = `RRSP is the weakest-performing account at +${m.roi.toFixed(1)}% ROI. Cash drag is the primary cause — deploying idle funds into ZSP.TO or a dividend ETF would materially improve compounding.`;
+    } else {
+      msg = `+${m.roi.toFixed(1)}% ROI. Best assets for RRSP: high-dividend US stocks (0% withholding tax under treaty) and long-term growth holds where deferral maximizes compounding.`;
+    }
+    const el = document.getElementById('acctRRSPFooter');
+    if (el) el.textContent = msg;
+  }
 }
 
 // ============================================================
@@ -2321,6 +2459,7 @@ async function fetchMarketData() {
     // Update widgets & KPIs
     if (data.benchmarks) updateMarketWidget(data.benchmarks);
     if (data.portfolio) updateHeaderKPIs(data);
+    if (data.portfolio) updateAccountFooters(data);
     if (data.holdings) {
       updateHoldingsCells(data.holdings, data.usdcad || 1.37);
       buildTickerStrip(data.holdings);

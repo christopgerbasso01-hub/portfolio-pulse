@@ -25,7 +25,8 @@ from http.server import BaseHTTPRequestHandler
 GROQ_API_KEY    = os.environ.get("GROQ_API_KEY", "")
 TAVILY_API_KEY  = os.environ.get("TAVILY_API_KEY", "")
 FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
-GROQ_MODEL      = "llama-3.3-70b-versatile"
+GROQ_MODEL      = "llama-3.3-70b-versatile"   # upgrade model if you have paid tier
+GROQ_MODEL_FAST = "llama-3.1-8b-instant"       # for tool-calling round (higher TPM on free tier)
 GROQ_URL        = "https://api.groq.com/openai/v1/chat/completions"
 MAX_TOOL_ROUNDS = 5  # max back-and-forth tool-call rounds per request
 
@@ -706,12 +707,12 @@ class handler(BaseHTTPRequestHandler):
                         "Content-Type":  "application/json",
                     },
                     json={
-                        "model":       GROQ_MODEL,
+                        "model":       GROQ_MODEL_FAST,  # smaller/faster model for tool decisions
                         "messages":    messages,
                         "tools":       TOOLS,
                         "tool_choice": tool_choice,
-                        "temperature": 0.3,
-                        "max_tokens":  1024,
+                        "temperature": 0.2,
+                        "max_tokens":  512,
                         "stream":      False,
                     },
                     timeout=25,
@@ -724,9 +725,9 @@ class handler(BaseHTTPRequestHandler):
                         resp = requests.post(
                             GROQ_URL,
                             headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                            json={"model": GROQ_MODEL, "messages": messages, "tools": TOOLS,
-                                  "tool_choice": tool_choice, "temperature": 0.3,
-                                  "max_tokens": 1024, "stream": False},
+                            json={"model": GROQ_MODEL_FAST, "messages": messages, "tools": TOOLS,
+                                  "tool_choice": tool_choice, "temperature": 0.2,
+                                  "max_tokens": 512, "stream": False},
                             timeout=25,
                         )
                         if not resp.ok:

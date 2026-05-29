@@ -5,113 +5,314 @@ POST /api/chat  →  { reply: string }
 
 Request body:
   {
-    "message":        string,
-    "portfolio":      object   (live portfolio totals from /api/market),
-    "intelligence":   object   (today's intelligence.json),
-    "history":        array    (last N chat turns: [{role, content}]),
-    "holdings_prices": object  ({ticker: {price, change_pct, ...}}),
-    "holdings_list":  array    ([{ticker, name, account, shares, ccy}])
+    "message":         string,
+    "portfolio":       object   (live portfolio totals from /api/market),
+    "intelligence":    object   (today's intelligence.json — full object),
+    "history":         array    (last N chat turns: [{role, content}]),
+    "holdings_prices": object   ({ticker: {price, change_pct, ...}}),
+    "holdings_list":   array    ([{ticker, name, account, shares, ccy, cost_total, ...}])
   }
 """
 import datetime
 import json
 import os
+import re
 import requests
 from http.server import BaseHTTPRequestHandler
 
 GROQ_URL   = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# ── Search trigger categories ────────────────────────────────────────────────
+# ── Search trigger words ─────────────────────────────────────────────────────
 
-# Factual / calendar lookups — no time cap needed; use text search
-_TRIGGERS_LOOKUP = [
+_TRIGGERS_FINANCIAL = [
     "earnings", "when are", "when is", "when does", "when will",
     "ex-div", "ex div", "ex-dividend", "dividend date", "pay date", "record date",
-    "split", "stock split", "ipo", "merger", "acquisition", "takeover",
-    "guidance", "forecast", "outlook", "eps", "revenue estimate",
+    "split", "stock split", "ipo", "merger", "acquisition",
+    "guidance", "eps", "revenue estimate",
     "price target", "analyst", "upgrade", "downgrade", "rating",
     "quarter", "report date", "next report", "fiscal",
 ]
 
-# Timely / news queries — use news search (1-month window)
 _TRIGGERS_NEWS = [
     "news", "today", "latest", "why", "what happened", "what's happening",
     "whats happening", "inflation", "fed ", "rate ", "rates",
     "market", "nasdaq", "s&p", "tsx", "crypto", "bitcoin", "etf", "sector",
     "tariff", "trade", "geopolit", "oil", "gold", "bond", "yield",
     "moved", "moving", "dropped", "fell", "surged", "rallied", "crashed",
-    "pumped", "dipped", "spiked", "gdp", "jobs", "cpi", "pce",
-    "recession", "interest rate", "bank of canada", "federal reserve",
+    "dipped", "spiked", "gdp", "jobs", "cpi", "pce", "recession",
+    "interest rate", "bank of canada", "federal reserve",
 ]
 
+# Words that look like tickers but aren't
+_STOP_WORDS = {
+    "I", "A", "AN", "THE", "IN", "ON", "AT", "TO", "OF", "AND", "OR",
+    "BUT", "IF", "MY", "BE", "IT", "DO", "GO", "NO", "UP", "SO", "BY",
+    "AS", "US", "AM", "IS", "AI", "CAD", "USD", "ETF", "ADD", "MED",
+    "HIGH", "LOW", "BUY", "SELL", "ASK", "GET", "CAN", "NOW", "HOW",
+    "WHY", "WHO", "FOR", "ALL", "NEW", "NOT", "HAS", "HAD", "WAS", "ARE",
+    "ITS", "WHEN", "NEXT", "WILL", "THAT", "THIS", "WITH", "FROM", "HAVE",
+    "WHAT", "DOES", "WOULD", "COULD", "SHOULD", "THEIR", "ABOUT", "INTO",
+    "ALSO", "JUST", "OVER", "SHOW", "TELL", "GIVE", "EACH", "BOTH",
+}
 
-def classify_search(message: str) -> str | None:
-    """Return 'lookup', 'news', or None based on what the message needs."""
+
+# ── Ticker extraction ────────────────────────────────────────────────────────
+
+def extract_tickers(message: str, holdings_list: list) -> list:
+    """Pull ticker symbols from the message; known portfolio holdings first."""
+    candidates = re.findall(r'\b([A-Z]{2,5}(?:\.[A-Z]{1,3})?)\b', message.upper())
+    known = {h.get("ticker", "").upper() for h in holdings_list if h.get("ticker")}
+
+    seen, result = set(), []
+    for c in candidates:
+        if c not in _STOP_WORDS and c not in seen:
+            seen.add(c)
+            result.append(c)
+
+    # Sort: known portfolio holdings first, then others alphabetically
+    result.sort(key=lambda x: (0 if x in known else 1, x))
+    return result[:4]
+
+
+# ── Yahoo Finance lookup (earnings, analyst targets, dividends) ──────────────
+
+def yf_lookup(tickers: list, message: str) -> str:
+    """Structured financial data from Yahoo Finance — no API key, completely free."""
+    if not tickers:
+        return ""
+    try:
+        import yfinance as yf
+    except ImportError:
+        return ""
+
     msg = message.lower()
-    if any(kw in msg for kw in _TRIGGERS_LOOKUP):
-        return "lookup"
-    if any(kw in msg for kw in _TRIGGERS_NEWS):
-        return "news"
-    return None
+    want_earnings = any(k in msg for k in ["earnings", "when", "report", "quarter", "eps", "fiscal"])
+    want_analyst  = any(k in msg for k in ["target", "analyst", "rating", "upgrade", "downgrade"])
+    want_dividend = any(k in msg for k in ["dividend", "ex-div", "pay date", "record date"])
+    show_all = not (want_earnings or want_analyst or want_dividend)
+
+    sections = []
+    for ts in tickers[:3]:
+        try:
+            t    = yf.Ticker(ts)
+            info = t.info or {}
+            name = info.get("longName") or info.get("shortName") or ts
+            lines = [f"  {ts} — {name}:"]
+
+            # Earnings calendar
+            if want_earnings or show_all:
+                try:
+                    cal = t.calendar
+                    if isinstance(cal, dict):
+                        dates = cal.get("Earnings Date") or []
+                        if not isinstance(dates, list):
+                            dates = [dates]
+                        if dates:
+                            date_str = " to ".join(str(d)[:10] for d in dates[:2])
+                            lines.append(f"    Next Earnings Date: {date_str}")
+                        if cal.get("Earnings Average"):
+                            lo = cal.get("Earnings Low", 0)
+                            hi = cal.get("Earnings High", 0)
+                            lines.append(f"    EPS Estimate: ${cal['Earnings Average']:.2f} avg  (${lo:.2f}–${hi:.2f} range)")
+                        if cal.get("Revenue Average"):
+                            lines.append(f"    Revenue Estimate: ${cal['Revenue Average'] / 1e9:.1f}B")
+                except Exception as e:
+                    print(f"    yf calendar {ts}: {e}")
+
+            # Analyst price targets
+            if want_analyst or show_all:
+                if info.get("targetMeanPrice"):
+                    lo = info.get("targetLowPrice", 0)
+                    hi = info.get("targetHighPrice", 0)
+                    n  = info.get("numberOfAnalystOpinions", "?")
+                    lines.append(f"    Analyst Price Target: ${info['targetMeanPrice']:.2f} mean  (${lo:.2f}–${hi:.2f})  [{n} analysts]")
+                if info.get("recommendationKey"):
+                    lines.append(f"    Consensus Rating: {info['recommendationKey'].upper()}")
+
+            # Dividend info
+            if want_dividend or show_all:
+                if info.get("exDividendDate"):
+                    ex = datetime.datetime.fromtimestamp(info["exDividendDate"]).strftime("%Y-%m-%d")
+                    lines.append(f"    Ex-Dividend Date: {ex}")
+                if info.get("dividendRate"):
+                    lines.append(f"    Annual Dividend: ${info['dividendRate']:.2f}  ({info.get('dividendYield', 0) * 100:.2f}% yield)")
+
+            if len(lines) > 1:
+                sections.extend(lines)
+                sections.append("")
+        except Exception as e:
+            print(f"  yf_lookup {ts}: {e}")
+
+    if not sections:
+        return ""
+    return "YAHOO FINANCE DATA:\n" + "\n".join(sections)
 
 
-def build_search_query(message: str, mode: str) -> str:
-    """Build an optimised DuckDuckGo query for the given search mode."""
-    year = datetime.date.today().year
-    if mode == "lookup":
-        # Append current year so facts are fresh without needing a time cap
-        base = message.strip()
-        if str(year) not in base:
-            base = f"{base} {year}"
-        return base
-    # News mode — ground it in finance/stocks
-    return f"{message} stock market"
+# ── Google News RSS (free, no API key, not blocked by cloud IPs) ─────────────
+
+def google_news_search(query: str, max_results: int = 7) -> str:
+    """Recent news from Google News RSS — works reliably from Vercel/AWS."""
+    import urllib.parse
+    import xml.etree.ElementTree as ET
+
+    encoded = urllib.parse.quote(query[:200])
+    url = f"https://news.google.com/rss/search?q={encoded}&hl=en-US&gl=US&ceid=US:en"
+
+    try:
+        resp = requests.get(
+            url, timeout=8,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; PortfolioPulse/1.0)"},
+        )
+        resp.raise_for_status()
+        root = ET.fromstring(resp.content)
+
+        results = []
+        for item in root.findall(".//item")[:max_results]:
+            title     = item.findtext("title") or ""
+            desc      = item.findtext("description") or ""
+            pub_date  = item.findtext("pubDate") or ""
+            desc_clean = re.sub(r"<[^>]+>", " ", desc).strip()[:320]
+            pub_short  = pub_date[:16]
+            results.append(f"[{pub_short}] {title}: {desc_clean}")
+
+        return "\n\n".join(results)
+    except Exception as exc:
+        print(f"  google_news error: {exc}")
+        return ""
 
 
-def web_search(query: str, mode: str = "news", max_results: int = 6) -> str:
-    """Search via DuckDuckGo. mode='news' for recent events, 'lookup' for facts/dates."""
+def ddg_fallback(query: str, max_results: int = 4) -> str:
+    """DuckDuckGo fallback — may be rate-limited from cloud IPs."""
     try:
         from duckduckgo_search import DDGS
         results = []
         with DDGS() as ddgs:
-            if mode == "news":
-                # 1-month window (was 1 week) — catches recent but not ancient news
-                for r in ddgs.news(query, max_results=max_results, timelimit="m"):
-                    date  = (r.get("date") or "")[:10]
-                    title = r.get("title") or ""
-                    body  = (r.get("body") or "")[:300]
-                    results.append(f"[{date}] {title}: {body}")
-                # Fall back to text search if no news results
-                if not results:
-                    for r in ddgs.text(query, max_results=3):
-                        results.append(f"{r.get('title','')}: {(r.get('body') or '')[:300]}")
-
-            else:  # lookup — text search has no time cap, great for dates/facts
-                for r in ddgs.text(query, max_results=max_results):
-                    title = r.get("title", "")
-                    body  = (r.get("body") or "")[:350]
-                    results.append(f"{title}: {body}")
-                # Supplement with any recent news on the same topic
-                for r in ddgs.news(query, max_results=3, timelimit="m"):
-                    date  = (r.get("date") or "")[:10]
-                    title = r.get("title") or ""
-                    body  = (r.get("body") or "")[:220]
-                    results.append(f"[{date}] {title}: {body}")
-
-        # Deduplicate by leading content
-        seen, deduped = set(), []
-        for r in results:
-            key = r[:80].lower()
-            if key not in seen:
-                seen.add(key)
-                deduped.append(r)
-
-        return "\n\n".join(deduped[:8])
-    except Exception as exc:
-        print(f"  web_search error: {exc}")
+            for r in ddgs.text(query, max_results=max_results):
+                results.append(f"{r.get('title', '')}: {(r.get('body') or '')[:280]}")
+        return "\n\n".join(results)
+    except Exception:
         return ""
 
+
+def get_external_context(message: str, holdings_list: list) -> list:
+    """Orchestrate yfinance + news search based on what the question needs."""
+    ctx   = []
+    msg   = message.lower()
+    tickers = extract_tickers(message, holdings_list)
+
+    needs_financial = any(kw in msg for kw in _TRIGGERS_FINANCIAL)
+    needs_news      = any(kw in msg for kw in _TRIGGERS_NEWS)
+
+    # Financial data via Yahoo Finance (earnings, analyst, dividend)
+    if needs_financial:
+        yf_data = yf_lookup(tickers, message)
+        if yf_data:
+            ctx += ["", yf_data]
+
+    # News search via Google News RSS
+    if needs_news or needs_financial:
+        if tickers:
+            news_query = " ".join(tickers[:2]) + " " + message
+        else:
+            news_query = message + " stock market"
+        news = google_news_search(news_query)
+        if not news:
+            news = ddg_fallback(news_query)   # fallback
+        if news:
+            ctx += ["", "LIVE WEB NEWS:", news]
+
+    return ctx
+
+
+# ── Intelligence context (full — all sections) ───────────────────────────────
+
+def build_intelligence_context(intelligence: dict) -> list:
+    """Serialize the full intelligence.json into context lines for the model."""
+    if not intelligence:
+        return []
+
+    lines = [
+        "",
+        f"TODAY'S INTELLIGENCE BRIEFING  [{intelligence.get('generated_date', '—')}]",
+        "(This is supplementary market analysis — the HOLDINGS LIST above is the authoritative source for portfolio positions.)",
+        f"  Market Mood: {intelligence.get('market_mood', '—')}",
+        f"  Outlook: {intelligence.get('daily_outlook', '—')}",
+    ]
+
+    # Macro themes — full body + bull/bear scenarios
+    for t in intelligence.get("macro", []):
+        lines.append(
+            f"\n  MACRO — {t.get('title', '')}  "
+            f"[Impact: {t.get('impact', '')} | Confidence: {t.get('confidence', '')}%]"
+        )
+        lines.append(f"    {t.get('body', '')}")
+        if t.get("bull"):  lines.append(f"    Bull: {t['bull']}")
+        if t.get("base"):  lines.append(f"    Base: {t['base']}")
+        if t.get("bear"):  lines.append(f"    Bear: {t['bear']}")
+
+    # Portfolio risks
+    for r in intelligence.get("risks", []):
+        lines.append(f"\n  RISK — {r.get('title', '')}  [{r.get('level', '')}]  {r.get('context', '')}")
+        lines.append(f"    {r.get('body', '')}")
+
+    # Key news events with portfolio exposure + outcome scenarios
+    for n in intelligence.get("news", []):
+        lines.append(
+            f"\n  KEY EVENT — {n.get('headline', '')}  "
+            f"[{n.get('impact', '')} impact | {n.get('category', '')}]"
+        )
+        lines.append(f"    {n.get('body', '')}")
+        if n.get("exposure"):
+            lines.append(f"    Portfolio exposure: {n['exposure']}")
+        for o in n.get("outcomes", []):
+            lines.append(
+                f"    {o.get('label', '')} ({o.get('probability', '')}%): "
+                f"{o.get('scenario', '')} → {o.get('estimate', '')}"
+            )
+
+    # Watchlist / picks
+    for p in intelligence.get("picks", []):
+        lines.append(
+            f"\n  PICK — {p.get('ticker', '')}  [{p.get('action', '')} in {p.get('account', '')}]: "
+            f"{p.get('thesis', '')}  |  Entry: {p.get('entry', '')}"
+        )
+
+    # Strengths and concerns — all of them
+    lines.append("\n  PORTFOLIO STRENGTHS:")
+    for s in intelligence.get("strengths", []):
+        lines.append(f"    [{s.get('ticker', '')}] {s.get('text', '')}")
+
+    lines.append("\n  PORTFOLIO CONCERNS:")
+    for c in intelligence.get("concerns", []):
+        lines.append(f"    [{c.get('ticker', '')}] {c.get('text', '')}")
+
+    # Strategy recommendations
+    shorts = intelligence.get("strategy_short", [])
+    mids   = intelligence.get("strategy_mid", [])
+    longs  = intelligence.get("strategy_long", [])
+    if shorts or mids or longs:
+        lines.append("\n  STRATEGY:")
+        for s in shorts:
+            lines.append(f"    Short-term: {s.get('text', '')}")
+        for m in mids:
+            lines.append(f"    Mid-term: {m.get('text', '')}")
+        for lo in longs[:2]:
+            lines.append(f"    Long-term: {lo.get('text', '')}")
+
+    # Tax notes
+    tax = intelligence.get("tax", {})
+    if tax:
+        lines.append("\n  TAX NOTES:")
+        for acct, notes in tax.items():
+            if isinstance(notes, list):
+                for note in notes[:2]:
+                    lines.append(f"    {acct.upper()}: {note.get('text', '')}")
+
+    return lines
+
+
+# ── System prompt ────────────────────────────────────────────────────────────
 
 SYSTEM_INSTRUCTION = """You are "Pulse", an AI portfolio analyst embedded in a personal Canadian investment dashboard.
 
@@ -121,13 +322,18 @@ CRITICAL — DATA AUTHORITY:
   If a holding shows "n/a" for live price it means the market is closed or data is delayed — the position still exists.
   The list includes cost basis, unrealized/realized P&L, dividends, and weight for every position.
 
+EXTERNAL DATA:
+  When YAHOO FINANCE DATA or LIVE WEB NEWS appears in your context, use it to give precise, up-to-date answers.
+  Always cite the date from news results so the user knows how fresh the information is.
+  For earnings dates and analyst targets, quote the exact numbers from Yahoo Finance data.
+
 YOUR ROLE:
-  ✓ Answer questions about any holding in the full list — price, daily gain/loss, cost basis, total P&L, account
+  ✓ Answer questions about any holding — price, daily gain/loss, cost basis, total P&L, account
   ✓ Calculate daily dollar gains: shares × live price × day% (or use the live price data directly)
   ✓ Explain what's happening in the market and why it matters to these specific positions
+  ✓ Answer earnings dates, analyst targets, dividend dates using the Yahoo Finance data provided
   ✓ Summarise news, themes, and sector moves in portfolio context
   ✓ Help understand account structures (TFSA, FHSA, RRSP, non-reg) and Canadian tax rules
-  ✓ Use web search results when provided — for earnings dates, analyst targets, news events, and any factual lookup
 
 STRICT LIMITS:
   ✗ Never predict specific future prices or guaranteed returns
@@ -138,14 +344,14 @@ STYLE:
   - Concise: 2–4 paragraphs unless a detailed breakdown is requested
   - Canadian context: CAD amounts, CRA rules, registered account nuances
   - Reference specific tickers and dollar amounts from the provided data
-  - Be direct and analytical, not vague and hedged
-  - When web search results are provided, cite the specific date or source so the user knows how fresh the information is
+  - Be direct and analytical — cite specific dates, prices, and percentages from the data
   - Never add a regulatory disclaimer to routine portfolio or market questions"""
 
 
+# ── Holdings table ────────────────────────────────────────────────────────────
+
 def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
-    """Build complete per-holding table with live prices + static P&L data.
-    ALL positions are always included — live price shown where available."""
+    """Complete per-holding table — ALL positions, live price where available."""
     if not holdings_list:
         return ""
 
@@ -155,18 +361,16 @@ def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
         ticker = h.get("ticker", "")
         if ticker.startswith("_CASH"):
             continue
-        p         = holdings_prices.get(ticker) or {}
-        price     = p.get("price")
-        day_pct   = p.get("change_pct")
-        day_chg   = p.get("change")
-        shares    = h.get("shares", 0)
-        ccy       = h.get("ccy", "USD")
+        p       = holdings_prices.get(ticker) or {}
+        price   = p.get("price")
+        day_pct = p.get("change_pct")
+        day_chg = p.get("change")
         row = {
             "ticker":     ticker,
             "name":       h.get("name", ""),
             "account":    h.get("account", ""),
-            "shares":     shares,
-            "ccy":        ccy,
+            "shares":     h.get("shares", 0),
+            "ccy":        h.get("ccy", "USD"),
             "price":      price,
             "day_pct":    day_pct,
             "day_chg":    day_chg,
@@ -212,6 +416,8 @@ def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
     return "\n".join(lines)
 
 
+# ── Request handler ───────────────────────────────────────────────────────────
+
 class handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
@@ -230,26 +436,25 @@ class handler(BaseHTTPRequestHandler):
         if not message:
             return self._error(400, "message is required")
 
-        portfolio       = body.get("portfolio")      or {}
-        intelligence    = body.get("intelligence")   or {}
+        portfolio       = body.get("portfolio")       or {}
+        intelligence    = body.get("intelligence")    or {}
         history         = (body.get("history") or [])[-12:]
         holdings_prices = body.get("holdings_prices") or {}
-        holdings_list   = body.get("holdings_list")  or []
+        holdings_list   = body.get("holdings_list")   or []
 
         api_key = os.environ.get("GROQ_API_KEY", "")
         if not api_key:
             return self._error(503, "AI service unavailable — GROQ_API_KEY not configured")
 
         try:
-            # ── 1. Build context — holdings first so model sees full list ──
+            # ── 1. Holdings table — FIRST, definitive source ──────────────
             ctx_lines = [f"[Dashboard context — {intelligence.get('generated_date', 'today')}]"]
 
-            # Full holdings table is the FIRST thing the model sees
             holdings_ctx = build_holdings_context(holdings_list, holdings_prices)
             if holdings_ctx:
                 ctx_lines.append(holdings_ctx)
 
-            # Portfolio-level totals
+            # ── 2. Portfolio-level totals ─────────────────────────────────
             if portfolio:
                 pf = portfolio
                 ctx_lines += [
@@ -264,61 +469,41 @@ class handler(BaseHTTPRequestHandler):
                     f"  Accounts:     {json.dumps(pf.get('accounts', {}))}",
                 ]
 
-            # Intelligence briefing (supplementary market context)
-            if intelligence:
-                mood      = intelligence.get("market_mood", "—")
-                themes    = [t.get("title", "") for t in intelligence.get("macro", [])[:3]]
-                outlook   = intelligence.get("daily_outlook", "")
-                strengths = "; ".join(s.get("text", "") for s in intelligence.get("strengths", [])[:3])
-                concerns  = "; ".join(c.get("text", "") for c in intelligence.get("concerns", [])[:3])
-                ctx_lines += [
-                    "",
-                    "TODAY'S INTELLIGENCE BRIEFING (market context — not the source of holdings data):",
-                    f"  Market Mood:  {mood}",
-                    f"  Top Themes:   {' | '.join(themes)}",
-                    f"  Outlook:      {outlook}",
-                    f"  Strengths:    {strengths}",
-                    f"  Concerns:     {concerns}",
-                ]
+            # ── 3. Full intelligence briefing (all sections) ──────────────
+            ctx_lines += build_intelligence_context(intelligence)
 
-            # ── 2. Web search if question needs external data ─────────────
-            search_mode = classify_search(message)
-            if search_mode:
-                search_query   = build_search_query(message, search_mode)
-                search_results = web_search(search_query, mode=search_mode)
-                if search_results:
-                    label = "LOOKUP" if search_mode == "lookup" else "NEWS"
-                    ctx_lines += [
-                        "",
-                        f"WEB SEARCH RESULTS ({label}):",
-                        search_results,
-                    ]
+            # ── 4. External data — Yahoo Finance + Google News ────────────
+            ctx_lines += get_external_context(message, holdings_list)
 
             ctx_text = "\n".join(ctx_lines)
 
-            # ── 3. Build message array ────────────────────────────────────
+            # ── 5. Build messages array ───────────────────────────────────
             messages = [
                 {"role": "system",    "content": SYSTEM_INSTRUCTION},
                 {"role": "user",      "content": ctx_text},
-                {"role": "assistant", "content": "Understood — I have the complete holdings list with cost basis and live prices, portfolio totals, today's market briefing, and any web search results. Ready to help."},
+                {"role": "assistant", "content": (
+                    "Understood — I have the complete holdings list with cost basis and live prices, "
+                    "portfolio totals, the full intelligence briefing (macro themes, risks, news events, "
+                    "picks, strategy, tax notes), and any live Yahoo Finance or web news data. Ready to help."
+                )},
             ]
             for turn in history:
                 role = "user" if turn.get("role") == "user" else "assistant"
                 messages.append({"role": role, "content": turn.get("content", "")})
             messages.append({"role": "user", "content": message})
 
-            # ── 4. Call Groq ──────────────────────────────────────────────
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            }
-            payload = {
-                "model": GROQ_MODEL,
-                "messages": messages,
-                "temperature": 0.45,
-                "max_tokens": 1024,
-            }
-            resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=30)
+            # ── 6. Call Groq ──────────────────────────────────────────────
+            resp = requests.post(
+                GROQ_URL,
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={
+                    "model":       GROQ_MODEL,
+                    "messages":    messages,
+                    "temperature": 0.4,
+                    "max_tokens":  1500,
+                },
+                timeout=35,
+            )
             resp.raise_for_status()
             reply = resp.json()["choices"][0]["message"]["content"]
 

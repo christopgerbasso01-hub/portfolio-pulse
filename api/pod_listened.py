@@ -6,17 +6,17 @@ GET  /api/pod_listened          → { "listened": [1, 2, 3] }
 POST /api/pod_listened          → body: { "listened": [1, 2, 3] }
                                 → saves list, returns { "listened": [1, 2, 3] }
 
-Environment variables (auto-injected by Vercel when KV is connected):
-  KV_REST_API_URL    — Upstash Redis REST endpoint
-  KV_REST_API_TOKEN  — Upstash Redis bearer token
+Environment variables (auto-injected by Vercel when Upstash for Redis is connected):
+  UPSTASH_REDIS_REST_URL    — Upstash Redis REST endpoint
+  UPSTASH_REDIS_REST_TOKEN  — Upstash Redis bearer token
 """
 import json
 import os
 import requests
 from http.server import BaseHTTPRequestHandler
 
-KV_URL   = os.environ.get("KV_REST_API_URL", "")
-KV_TOKEN = os.environ.get("KV_REST_API_TOKEN", "")
+KV_URL   = os.environ.get("UPSTASH_REDIS_REST_URL", "")
+KV_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
 KV_KEY   = "pod_listened"
 
 

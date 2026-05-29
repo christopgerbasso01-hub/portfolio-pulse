@@ -18,7 +18,6 @@ import asyncio
 import json
 import os
 import re
-import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -349,39 +348,29 @@ async def generate_all_audio(turns: list[tuple[str, str]], tmp_dir: Path) -> lis
     return paths
 
 
-def merge_audio(segment_paths: list[str], output: Path, tmp_dir: Path) -> None:
-    """Concatenate MP3 segments with a brief pause between speaker turns."""
-    # 280ms silence clip
-    silence = str(tmp_dir / "pause.mp3")
-    subprocess.run(
-        ["ffmpeg", "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono",
-         "-t", "0.28", "-acodec", "libmp3lame", "-ar", "24000", "-ac", "1",
-         "-q:a", "9", silence, "-y"],
-        check=True, capture_output=True,
-    )
+def merge_audio(segment_paths: list[str], output: Path, _tmp_dir: Path) -> None:
+    """Concatenate MP3 segments using pure Python — no ffmpeg needed.
 
-    filelist = str(tmp_dir / "filelist.txt")
-    with open(filelist, "w") as f:
+    Browsers handle concatenated MP3 streams perfectly. edge-tts already
+    adds natural trailing silence to each segment, so no explicit pause needed.
+    """
+    with open(output, "wb") as out:
         for path in segment_paths:
-            f.write(f"file '{path}'\n")
-            f.write(f"file '{silence}'\n")
-
-    subprocess.run(
-        ["ffmpeg", "-f", "concat", "-safe", "0", "-i", filelist,
-         "-c", "copy", str(output), "-y"],
-        check=True, capture_output=True,
-    )
+            with open(path, "rb") as seg:
+                out.write(seg.read())
 
 
 def audio_duration(path: Path) -> float:
+    """Return audio duration in seconds using mutagen (pure Python)."""
     try:
-        r = subprocess.run(
-            ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", str(path)],
-            capture_output=True, text=True, check=True,
-        )
-        return float(json.loads(r.stdout)["format"]["duration"])
+        from mutagen.mp3 import MP3
+        return MP3(str(path)).info.length
     except Exception:
-        return 0.0
+        # Fallback: rough estimate from file size assuming ~24kbps
+        try:
+            return path.stat().st_size / (24_000 / 8)
+        except Exception:
+            return 0.0
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────

@@ -24,8 +24,8 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests edge-tts
-        # Note: ffmpeg is pre-installed on ubuntu-latest runners
+        run: pip install requests edge-tts mutagen
+        # Pure Python only — no system dependencies needed
 
       - name: Generate podcast
         env:

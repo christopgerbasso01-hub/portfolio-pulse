@@ -1115,30 +1115,64 @@ function updateMarketWidget(benchmarks) {
 // ============================================================
 // HEADER KPI UPDATES
 // ============================================================
-function updateHeaderKPIs(portfolio) {
-  const tv         = portfolio.total_value;
-  const totalPnl   = portfolio.total_pnl   ?? portfolio.unrealized_gain; // Total P/L
-  const unrealized = portfolio.unrealized_gain;
-  const roi        = portfolio.roi_pct;
-  const dc         = portfolio.daily_change;
-  const dcp        = portfolio.daily_change_pct;
+function updateHeaderKPIs(data) {
+  // Accept full data object; support legacy call with just portfolio object
+  const portfolio = data.portfolio || data;
+  const hPrices   = data.holdings  || {};
+  const usdcad    = data.usdcad    || 1.37;
 
-  // Live FX conversion impact
-  if (portfolio.fx_impact !== undefined) {
-    const fxEl = document.getElementById('cardFX');
-    fxEl.textContent = fmt$(portfolio.fx_impact);
-    fxEl.className = `card-value ${colorClass(portfolio.fx_impact)}`;
-  }
+  const tv       = portfolio.total_value;
+  const totalPnl = portfolio.total_pnl ?? portfolio.unrealized_gain;
+  const roi      = portfolio.roi_pct;
+  const dc       = portfolio.daily_change;
+  const dcp      = portfolio.daily_change_pct;
 
-  // Realized gains — API keeps this consistent with the unrealized formula
-  if (portfolio.realized_gain !== undefined) {
-    const realEl = document.getElementById('cardRealized');
-    realEl.textContent = fmt$(portfolio.realized_gain);
-    realEl.className = `card-value ${colorClass(portfolio.realized_gain)}`;
-  }
+  // ── Per-position aggregates (ACB-based, mirrors holdings table rows) ──────
+  let sumUnrealized = 0;
+  let sumRealized   = 0;
+  let sumFX         = 0;
+
+  HOLDINGS_STATIC.forEach(h => {
+    const fxRate       = h.book_rate || 1;
+    const costBasisCAD = h.ccy === 'USD' ? h.cost_total * fxRate : h.cost_total;
+
+    // FX impact: cost_total_usd × (current_usdcad − book_rate) per USD position
+    if (h.ccy === 'USD' && h.book_rate) {
+      sumFX += h.cost_total * (usdcad - h.book_rate);
+    }
+
+    // Unrealized: live mktVal − CAD cost basis; static fallback if no live price
+    const p = hPrices[h.ticker];
+    if (p?.price) {
+      sumUnrealized += p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1) - costBasisCAD;
+    } else {
+      sumUnrealized += (h.unrealized || 0) * (h.ccy === 'USD' ? fxRate : 1);
+    }
+
+    // Realized: dividends + crystallized gains on open positions
+    sumRealized += (h.realized || 0) * (h.ccy === 'USD' ? fxRate : 1);
+  });
+
+  // Closed positions: add their full realized P&L (total_pnl)
+  CLOSED_POSITIONS_STATIC.forEach(h => {
+    const fxRate = h.book_rate || USD_BOOK_RATE;
+    sumRealized += (h.total_pnl || 0) * (h.ccy === 'USD' ? fxRate : 1);
+  });
+
+  // ── Update the three live cards ───────────────────────────────────────────
+  const unrealEl = document.getElementById('cardUnrealized');
+  unrealEl.textContent = fmt$(Math.round(sumUnrealized));
+  unrealEl.className = `card-value ${colorClass(sumUnrealized)}`;
+
+  const realEl = document.getElementById('cardRealized');
+  realEl.textContent = fmt$(Math.round(sumRealized));
+  realEl.className = `card-value ${colorClass(sumRealized)}`;
+
+  const fxEl = document.getElementById('cardFX');
+  fxEl.textContent = fmt$(Math.round(sumFX));
+  fxEl.className = `card-value ${colorClass(sumFX)}`;
 
   // Total dividends — summed live from HOLDINGS_STATIC + CLOSED_POSITIONS_STATIC
-  // so the card always reflects the arrays without any manual DIVIDENDS_CAD constant.
   const totalDivCAD = [
     ...HOLDINGS_STATIC.map(h => {
       const fx = h.book_rate || 1;
@@ -1152,7 +1186,6 @@ function updateHeaderKPIs(portfolio) {
   document.getElementById('cardDividends').textContent = fmt$(totalDivCAD);
 
   document.getElementById('kpiTotalValue').textContent = fmt$(tv);
-  // Header Total P&L = total gain (unrealized + realized + fx)
   document.getElementById('kpiTotalPnl').textContent = fmt$(totalPnl);
   document.getElementById('kpiTotalPnl').className = `hkpi-value ${colorClass(totalPnl)}`;
   document.getElementById('kpiRoi').textContent = fmtPct(roi);
@@ -1209,7 +1242,6 @@ function updateHeaderKPIs(portfolio) {
     const fhsaR  = roiFor(accts.FHSA,       ac.FHSA);
     const rrspR  = roiFor(accts.RRSP,       ac.RRSP);
     const invR   = roiFor(accts.Investment,  ac.Investment);
-    // chart label order: TFSA, FHSA, RRSP, Investment
     accountRoiChart.data.datasets[0].data = [tfsaR, fhsaR, rrspR, invR];
     accountRoiChart.update();
   }
@@ -1218,9 +1250,6 @@ function updateHeaderKPIs(portfolio) {
   const tv2 = tv || 273825;
   document.getElementById('bmPortfolioLabel').textContent = `${fmt$(tv2)} · +${roi?.toFixed(1)}%`;
   document.getElementById('bmPortfolioBar').textContent = fmt$(tv2);
-
-  // Unrealized card = total P/L minus realized and FX
-  document.getElementById('cardUnrealized').textContent = fmt$(unrealized);
 }
 
 // ============================================================
@@ -2174,7 +2203,7 @@ async function fetchMarketData() {
 
     // Update widgets & KPIs
     if (data.benchmarks) updateMarketWidget(data.benchmarks);
-    if (data.portfolio) updateHeaderKPIs(data.portfolio);
+    if (data.portfolio) updateHeaderKPIs(data);
     if (data.holdings) {
       updateHoldingsCells(data.holdings, data.usdcad || 1.37);
       buildTickerStrip(data.holdings);

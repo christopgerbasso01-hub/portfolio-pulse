@@ -429,7 +429,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     </div>
     <div class="card green-accent">
       <div class="card-label">Realized Gains</div>
-      <div class="card-value green">$22,193</div>
+      <div class="card-value green" id="cardRealized">$22,193</div>
       <div class="card-sub">Booked profits</div>
     </div>
     <div class="card blue-accent">
@@ -1128,6 +1128,13 @@ function updateHeaderKPIs(portfolio) {
     const fxEl = document.getElementById('cardFX');
     fxEl.textContent = fmt$(portfolio.fx_impact);
     fxEl.className = `card-value ${colorClass(portfolio.fx_impact)}`;
+  }
+
+  // Realized gains — API keeps this consistent with the unrealized formula
+  if (portfolio.realized_gain !== undefined) {
+    const realEl = document.getElementById('cardRealized');
+    realEl.textContent = fmt$(portfolio.realized_gain);
+    realEl.className = `card-value ${colorClass(portfolio.realized_gain)}`;
   }
 
   // Total dividends — summed live from HOLDINGS_STATIC + CLOSED_POSITIONS_STATIC

@@ -655,7 +655,7 @@ class handler(BaseHTTPRequestHandler):
             return self._error(400, "Invalid JSON body")
 
         message          = (body.get("message") or "").strip()
-        history          = (body.get("history") or [])[-14:]
+        history          = (body.get("history") or [])[-10:]
         holdings_list    = body.get("holdings_list")    or []
         holdings_prices  = body.get("holdings_prices")  or {}
         closed_positions = body.get("closed_positions") or []
@@ -722,6 +722,27 @@ class handler(BaseHTTPRequestHandler):
                     if resp.status_code == 429:
                         # Rate limit — wait and retry once
                         import time; time.sleep(8)
+                        resp = requests.post(
+                            GROQ_URL,
+                            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                            json={"model": GROQ_MODEL_FAST, "messages": messages, "tools": TOOLS,
+                                  "tool_choice": tool_choice, "temperature": 0.2,
+                                  "max_tokens": 512, "stream": False},
+                            timeout=25,
+                        )
+                        if not resp.ok:
+                            break
+                    elif resp.status_code == 413:
+                        # Payload too large — trim tool results and retry
+                        for m in messages:
+                            if m.get("role") == "tool" and len(m.get("content", "")) > 400:
+                                try:
+                                    obj = json.loads(m["content"])
+                                    if isinstance(obj, dict) and "results" in obj:
+                                        obj["results"] = obj["results"][:2]
+                                        m["content"] = json.dumps(obj)
+                                except Exception:
+                                    m["content"] = m["content"][:400]
                         resp = requests.post(
                             GROQ_URL,
                             headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},

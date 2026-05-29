@@ -2491,11 +2491,38 @@ function renderAISection(analysis) {
 // ============================================================
 // DATA FETCHING
 // ============================================================
+// Returns live prices for any tickers added via transactions that aren't
+// in the base holdings list (and therefore not fetched by /api/market).
+async function fetchExtraTickerPrices() {
+  const baseTickers = new Set(_HOLDINGS_BASE.map(h => h.ticker));
+  const extras = [...new Set(
+    HOLDINGS_STATIC
+      .filter(h => !h.ticker.startsWith('CASH') && !baseTickers.has(h.ticker))
+      .map(h => h.ticker)
+  )];
+  if (!extras.length) return {};
+  try {
+    const r = await fetch(`${CONFIG.API_BASE}/api/quote?tickers=${extras.join(',')}`,
+                          { signal: AbortSignal.timeout(8000) });
+    return r.ok ? await r.json() : {};
+  } catch(e) { return {}; }
+}
+
 async function fetchMarketData() {
   try {
-    const res = await fetch(`${CONFIG.API_BASE}/api/market`, { signal: AbortSignal.timeout(12000) });
+    // Fetch main prices + any extra tickers from new transactions in parallel
+    const [res, extraPrices] = await Promise.all([
+      fetch(`${CONFIG.API_BASE}/api/market`, { signal: AbortSignal.timeout(12000) }),
+      fetchExtraTickerPrices(),
+    ]);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+
+    // Merge extra ticker prices into the holdings price map
+    if (Object.keys(extraPrices).length > 0) {
+      data.holdings = { ...(data.holdings || {}), ...extraPrices };
+    }
+
     currentMarketData = data;
 
     // Update live bar
@@ -2534,7 +2561,6 @@ async function fetchMarketData() {
     console.warn('Market data fetch failed:', err.message);
     document.getElementById('liveDot').className = 'live-dot offline';
     document.getElementById('liveStatus').textContent = 'Offline — configure API_BASE in index.html';
-    // Still render table with static data
     renderHoldingsTable(null);
     return null;
   }
@@ -2726,10 +2752,10 @@ function saveTransaction(tx) {
   txs.push(tx);
   localStorage.setItem('pp_transactions', JSON.stringify(txs));
 }
-function deleteTransaction(id) {
+async function deleteTransaction(id) {
   localStorage.setItem('pp_transactions', JSON.stringify(getTransactions().filter(t => t.id !== id)));
   applyAllTransactions();
-  refreshAfterTx();
+  await refreshAfterTx();
   renderTxHistory();
 }
 
@@ -2806,7 +2832,15 @@ function applyAllTransactions() {
   txs.forEach(tx => applyOneTx(HOLDINGS_STATIC, CLOSED_POSITIONS_STATIC, CONTRIB_STATE, CASH_POSITIONS, tx));
 }
 
-function refreshAfterTx() {
+async function refreshAfterTx() {
+  // Fetch live prices for any brand-new tickers added by this transaction
+  const extraPrices = await fetchExtraTickerPrices();
+  if (_lastLiveData && Object.keys(extraPrices).length > 0) {
+    _lastLiveData = {
+      ..._lastLiveData,
+      holdings: { ...(_lastLiveData.holdings || {}), ...extraPrices },
+    };
+  }
   renderHoldingsTable(_lastLiveData);
   if (_lastLiveData?.portfolio) {
     updateHeaderKPIs(_lastLiveData);
@@ -2940,7 +2974,7 @@ function renderPreview() {
   } catch(e) { el.textContent = ''; }
 }
 
-function submitTx() {
+async function submitTx() {
   const date = document.getElementById('txDate').value;
   const acct = document.getElementById('txAcct').value;
   const rate = parseFloat(document.getElementById('txRate').value) || _liveUsdcad;
@@ -2982,7 +3016,7 @@ function submitTx() {
 
   saveTransaction(tx);
   applyAllTransactions();
-  refreshAfterTx();
+  await refreshAfterTx();
   renderTxHistory();
 
   // Clear inputs

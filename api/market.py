@@ -75,7 +75,7 @@ USD_COST_BASIS = sum(
 # Update REALIZED_GAINS_CAD whenever you close a position.
 # Update DIVIDENDS_CAD whenever you receive a dividend payment.
 REALIZED_GAINS_CAD = 22193
-DIVIDENDS_CAD      = 7259
+DIVIDENDS_CAD      = 7399
 
 BENCHMARKS = {
     "sp500":        "^GSPC",

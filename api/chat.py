@@ -690,6 +690,14 @@ class handler(BaseHTTPRequestHandler):
         self._cors()
         self.end_headers()
 
+    @staticmethod
+    def _retry_wait(resp) -> int:
+        """Return seconds to wait based on Groq's retry-after header, capped at 20s."""
+        try:
+            return min(int(resp.headers.get("retry-after", 8)), 20)
+        except (ValueError, TypeError):
+            return 8
+
     def do_POST(self):
         # ── Parse request ──────────────────────────────────────────────────────
         try:
@@ -764,8 +772,10 @@ class handler(BaseHTTPRequestHandler):
                 if not resp.ok:
                     print(f"  Groq round-{round_num} error {resp.status_code}: {resp.text[:300]}")
                     if resp.status_code == 429:
-                        # Rate limit — wait and retry once
-                        import time; time.sleep(8)
+                        import time
+                        wait = self._retry_wait(resp)
+                        send_event({"status": f"⏳ Rate limited — retrying in {wait}s..."})
+                        time.sleep(wait)
                         resp = requests.post(
                             GROQ_URL,
                             headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
@@ -774,6 +784,19 @@ class handler(BaseHTTPRequestHandler):
                                   "max_tokens": 512, "stream": False},
                             timeout=25,
                         )
+                        if not resp.ok and resp.status_code == 429:
+                            # Still limited — wait again and try 8B
+                            wait2 = self._retry_wait(resp)
+                            send_event({"status": f"⏳ Still limited — waiting {wait2}s more..."})
+                            time.sleep(wait2)
+                            resp = requests.post(
+                                GROQ_URL,
+                                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                                json={"model": GROQ_MODEL_FAST, "messages": messages, "tools": TOOLS,
+                                      "tool_choice": tool_choice, "temperature": 0.2,
+                                      "max_tokens": 512, "stream": False},
+                                timeout=25,
+                            )
                         if not resp.ok:
                             break
                     elif resp.status_code == 413:
@@ -871,14 +894,27 @@ class handler(BaseHTTPRequestHandler):
             )
 
             if not stream_resp.ok and stream_resp.status_code == 429:
-                # 70B rate-limited → fall back to 8B model (higher TPM budget)
-                import time; time.sleep(3)
+                import time
+                # 70B rate-limited → wait (header-guided) then fall back to 8B
+                wait = self._retry_wait(stream_resp)
+                send_event({"status": f"⏳ Rate limited — switching models, retrying in {wait}s..."})
+                time.sleep(wait)
                 stream_payload["model"] = GROQ_MODEL_FAST
                 stream_resp = requests.post(
                     GROQ_URL,
                     headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
                     json=stream_payload, timeout=35, stream=True,
                 )
+                if not stream_resp.ok and stream_resp.status_code == 429:
+                    # 8B also limited — wait once more
+                    wait2 = self._retry_wait(stream_resp)
+                    send_event({"status": f"⏳ Still rate limited — final retry in {wait2}s..."})
+                    time.sleep(wait2)
+                    stream_resp = requests.post(
+                        GROQ_URL,
+                        headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                        json=stream_payload, timeout=35, stream=True,
+                    )
 
             if not stream_resp.ok:
                 err = stream_resp.text[:400]

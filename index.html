@@ -434,7 +434,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     </div>
     <div class="card blue-accent">
       <div class="card-label">Total Dividends</div>
-      <div class="card-value blue">$7,259</div>
+      <div class="card-value blue" id="cardDividends">—</div>
       <div class="card-sub">Income collected</div>
     </div>
     <div class="card red-accent">
@@ -1129,6 +1129,20 @@ function updateHeaderKPIs(portfolio) {
     fxEl.textContent = fmt$(portfolio.fx_impact);
     fxEl.className = `card-value ${colorClass(portfolio.fx_impact)}`;
   }
+
+  // Total dividends — summed live from HOLDINGS_STATIC + CLOSED_POSITIONS_STATIC
+  // so the card always reflects the arrays without any manual DIVIDENDS_CAD constant.
+  const totalDivCAD = [
+    ...HOLDINGS_STATIC.map(h => {
+      const fx = h.book_rate || 1;
+      return (h.dividends || 0) * (h.ccy === 'USD' ? fx : 1);
+    }),
+    ...CLOSED_POSITIONS_STATIC.map(h => {
+      const fx = h.book_rate || USD_BOOK_RATE;
+      return (h.dividends || 0) * (h.ccy === 'USD' ? fx : 1);
+    }),
+  ].reduce((a, b) => a + b, 0);
+  document.getElementById('cardDividends').textContent = fmt$(totalDivCAD);
 
   document.getElementById('kpiTotalValue').textContent = fmt$(tv);
   // Header Total P&L = total gain (unrealized + realized + fx)

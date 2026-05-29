@@ -322,6 +322,12 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .pod-archive-title{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pod-archive-meta{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:1px}
 .pod-archive-play{font-size:11px;color:var(--text3);flex-shrink:0}
+/* Listened state */
+.badge-listened{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);cursor:pointer;transition:opacity .15s}
+.badge-listened:hover{opacity:.7}
+.pod-archive-item.is-listened{opacity:.55}
+.pod-archive-item.is-listened .pod-archive-ep{color:var(--green)}
+.pod-archive-item.is-listened .pod-archive-ep::before{content:'✓ '}
 /* Brief sections */
 .brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .brief-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
@@ -563,6 +569,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   <div class="section-header">
     <span class="section-num" style="background:rgba(139,92,246,.2);color:var(--purple)">WK</span>
     <span class="section-title">WEEKLY BRIEF &amp; PODCAST</span>
+    <span id="podUnreadDot" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--green);margin-left:6px;flex-shrink:0" title="New unheard episode"></span>
     <span class="mono" style="font-size:10px;color:var(--text3);margin-left:auto" id="podNextUpdate">New episode every Monday 8:00 AM Geneva</span>
   </div>
 
@@ -590,6 +597,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <span class="badge" id="podEpBadge" style="display:none"></span>
           <span class="badge" id="podMoodBadge" style="display:none"></span>
           <span class="mono" style="font-size:10px;color:var(--text3)" id="podDateBadge"></span>
+          <span class="badge badge-listened" id="podListenedBadge" style="display:none" onclick="podToggleListened()" title="Click to mark as unlistened">✓ LISTENED</span>
         </div>
       </div>
 
@@ -2827,6 +2835,66 @@ async function refreshAll() {
   const MOOD_CLASS = { 'risk-on':'badge-fhsa','risk-off':'badge-closed','neutral':'badge-rrsp','mixed':'badge-inv' };
   const fmt = t => isFinite(t) ? `${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}` : '—:—';
 
+  // ── Listened state ────────────────────────────────────────────────────────
+  let listenedEps   = new Set();   // episode numbers the user has heard
+  let currentPodEp  = 0;           // which episode is currently loaded in the player
+
+  async function loadListened() {
+    try {
+      const r = await fetch('/api/pod_listened');
+      if (!r.ok) return;
+      const data = await r.json();
+      listenedEps = new Set(data.listened || []);
+    } catch(e) {}
+  }
+
+  async function saveListened() {
+    try {
+      await fetch('/api/pod_listened', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listened: [...listenedEps] }),
+      });
+    } catch(e) {}
+  }
+
+  function updateListenedUI() {
+    // Current episode player badge
+    const badge = document.getElementById('podListenedBadge');
+    if (badge) {
+      const heard = currentPodEp > 0 && listenedEps.has(currentPodEp);
+      badge.style.display = (currentPodEp > 0) ? '' : 'none';
+      badge.textContent = heard ? '✓ LISTENED' : '◎ MARK LISTENED';
+      badge.style.background = heard ? 'rgba(34,197,94,.15)' : 'transparent';
+      badge.style.color = heard ? 'var(--green)' : 'var(--text3)';
+      badge.style.border = heard ? '1px solid rgba(34,197,94,.3)' : '1px solid var(--border)';
+    }
+    // Archive cards — add/remove .is-listened class
+    document.querySelectorAll('.pod-archive-item[data-ep]').forEach(el => {
+      const ep = parseInt(el.dataset.ep, 10);
+      el.classList.toggle('is-listened', listenedEps.has(ep));
+    });
+    // Unread dot on section header — show if latest ep exists and isn't listened
+    const dot = document.getElementById('podUnreadDot');
+    if (dot) dot.style.display = (currentPodEp > 0 && !listenedEps.has(currentPodEp)) ? '' : 'none';
+  }
+
+  function markListened(epNum) {
+    if (!epNum) return;
+    listenedEps.add(epNum);
+    saveListened();
+    updateListenedUI();
+  }
+
+  window.podToggleListened = function() {
+    if (!currentPodEp) return;
+    if (listenedEps.has(currentPodEp)) listenedEps.delete(currentPodEp);
+    else listenedEps.add(currentPodEp);
+    saveListened();
+    updateListenedUI();
+  };
+
+  // ── Meta + render ─────────────────────────────────────────────────────────
   async function loadPodcastMeta() {
     try {
       const r = await fetch(`data/podcast_meta.json?v=${Date.now()}`);
@@ -2866,6 +2934,8 @@ async function refreshAll() {
       // Point audio element at the numbered file
       const audio = document.getElementById('podAudio');
       if (audio && m.file) { audio.src = `data/${m.file}`; }
+      // Track which episode is loaded
+      currentPodEp = m.episode;
     } else {
       if (playerInner) playerInner.style.display = 'none';
       if (comingSoon)  comingSoon.style.display = '';
@@ -2877,7 +2947,8 @@ async function refreshAll() {
     const archive = m.archive || [];
     if (archiveWrap && archiveList && archive.length > 0) {
       archiveList.innerHTML = archive.map(ep => `
-        <div class="pod-archive-item" onclick="podLoadEpisode('${ep.file}','${(ep.title||'').replace(/'/g,"\\'")}',${ep.episode},'${ep.display_date||''}')">
+        <div class="pod-archive-item" data-ep="${ep.episode}"
+             onclick="podLoadEpisode('${ep.file}','${(ep.title||'').replace(/'/g,"\\'")}',${ep.episode},'${ep.display_date||''}')">
           <div class="pod-archive-ep">EP ${ep.episode}</div>
           <div class="pod-archive-info">
             <div class="pod-archive-title">${ep.title||'Portfolio Pulse Weekly'}</div>
@@ -2887,6 +2958,9 @@ async function refreshAll() {
         </div>`).join('');
       archiveWrap.style.display = '';
     }
+
+    // Apply listened state now that DOM is ready
+    updateListenedUI();
 
     // Summary grid
     const s = m.summary || {};
@@ -2942,20 +3016,22 @@ async function refreshAll() {
   };
 
   window.podLoadEpisode = function(file, title, ep, date) {
-    const audio   = document.getElementById('podAudio');
-    const btn     = document.getElementById('podPlayBtn');
-    const titleEl = document.getElementById('podTitle');
-    const epBadge = document.getElementById('podEpBadge');
+    const audio     = document.getElementById('podAudio');
+    const btn       = document.getElementById('podPlayBtn');
+    const titleEl   = document.getElementById('podTitle');
+    const epBadge   = document.getElementById('podEpBadge');
     const dateBadge = document.getElementById('podDateBadge');
-    const fill    = document.getElementById('podFill');
-    const time    = document.getElementById('podTime');
+    const fill      = document.getElementById('podFill');
+    const time      = document.getElementById('podTime');
     if (!audio) return;
     // Stop current playback
     audio.pause();
     if (btn) btn.textContent = '▶';
+    // Update which episode is in the player
+    currentPodEp = ep;
     // Update title / badges
-    if (titleEl)  titleEl.textContent  = title;
-    if (epBadge)  epBadge.textContent  = `EP ${ep}`;
+    if (titleEl)   titleEl.textContent   = title;
+    if (epBadge)   epBadge.textContent   = `EP ${ep}`;
     if (dateBadge) dateBadge.textContent = date;
     // Reset progress bar
     if (fill) fill.style.width = '0%';
@@ -2965,6 +3041,8 @@ async function refreshAll() {
     audio.load();
     // Auto-play
     audio.play().then(() => { if (btn) btn.textContent = '⏸'; }).catch(() => {});
+    // Refresh listened badge for the newly loaded episode
+    updateListenedUI();
   };
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -2980,9 +3058,12 @@ async function refreshAll() {
       audio.addEventListener('ended', () => {
         const btn = document.getElementById('podPlayBtn');
         if (btn) btn.textContent = '▶';
+        // Auto-mark as listened when episode finishes
+        markListened(currentPodEp);
       });
     }
-    loadPodcastMeta();
+    // Load listened state first, then meta (so UI renders correctly in one pass)
+    loadListened().then(() => loadPodcastMeta());
   });
 })();
 

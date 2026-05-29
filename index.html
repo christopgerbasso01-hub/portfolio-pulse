@@ -618,8 +618,13 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
       </div>
     </div>
 
-    <!-- ── Text summary ── -->
-    <div id="podBriefContent" style="overflow:hidden">
+    <!-- ── Brief toggle button ── -->
+    <button id="podBriefToggle" onclick="podToggleBrief()" style="display:none;align-self:flex-start;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text3);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:5px 12px;cursor:pointer;transition:border-color .15s,color .15s" onmouseover="this.style.borderColor='var(--blue-bright)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
+      SHOW BRIEF ▾
+    </button>
+
+    <!-- ── Text summary (hidden by default) ── -->
+    <div id="podBriefContent" style="overflow:hidden;display:none">
       <div class="brief-grid" id="podBriefGrid" style="display:none"></div>
       <div id="podBriefPlaceholder" style="color:var(--text3);font-family:var(--mono);font-size:12px;padding:20px 0">
         Summary will appear here after the first episode is generated.
@@ -3010,6 +3015,9 @@ async function refreshAll() {
       const audio = document.getElementById('podAudio');
       if (audio && m.file) audio.src = `data/${m.file}`;
       currentPodEp = m.episode;
+      // Show the brief toggle button now that there's an episode
+      const toggleBtn = document.getElementById('podBriefToggle');
+      if (toggleBtn) toggleBtn.style.display = '';
     } else {
       if (playerInner) playerInner.style.display = 'none';
       if (comingSoon)  comingSoon.style.display   = '';
@@ -3029,6 +3037,15 @@ async function refreshAll() {
   }
 
   // ── Audio controls ────────────────────────────────────────────────────────
+  window.podToggleBrief = function() {
+    const content = document.getElementById('podBriefContent');
+    const btn     = document.getElementById('podBriefToggle');
+    if (!content || !btn) return;
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? '' : 'none';
+    btn.textContent = isHidden ? 'HIDE BRIEF ▴' : 'SHOW BRIEF ▾';
+  };
+
   window.podToggle = function() {
     const audio = document.getElementById('podAudio');
     const btn   = document.getElementById('podPlayBtn');

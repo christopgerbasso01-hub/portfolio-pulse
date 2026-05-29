@@ -22,13 +22,13 @@ from datetime import date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler
 
 # ── Config ────────────────────────────────────────────────────────────────────
-CEREBRAS_API_KEY = os.environ.get("CEREBRAS_API_KEY", "")
-TAVILY_API_KEY   = os.environ.get("TAVILY_API_KEY", "")
-FINNHUB_API_KEY  = os.environ.get("FINNHUB_API_KEY", "")
-LLM_MODEL        = "gpt-oss-120b"    # Cerebras production model (120B)
-LLM_MODEL_FAST   = "gpt-oss-120b"    # same model — no smaller option currently listed
-LLM_URL          = "https://api.cerebras.ai/v1/chat/completions"
-MAX_TOOL_ROUNDS  = 5  # max back-and-forth tool-call rounds per request
+GROQ_API_KEY    = os.environ.get("GROQ_API_KEY", "")
+TAVILY_API_KEY  = os.environ.get("TAVILY_API_KEY", "")
+FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
+GROQ_MODEL       = "llama-3.3-70b-versatile"  # Groq 70B — best quality (6k TPM free)
+GROQ_MODEL_FAST  = "llama-3.1-8b-instant"     # Groq 8B — tool rounds (20k TPM free)
+GROQ_URL         = "https://api.groq.com/openai/v1/chat/completions"
+MAX_TOOL_ROUNDS = 5
 
 # ── Tool status labels (shown in UI while tools run) ──────────────────────────
 _TOOL_STATUS = {
@@ -651,12 +651,11 @@ def build_system_prompt(
         # Total P&L in CAD (unrealized + realized gains, no dividends)
         total_cad = _cad(total_pnl, ccy)
 
-        price_str = f"@${price:.2f}{ccy}" if price else "—"
+        price_str = f"@${price:.2f}{ccy}" if price else ""
         pos_lines.append(
-            f"  {ticker:<8} {h.get('account',''):<11} {shares:>5}sh {price_str:<14} | "
-            f"cost ${cost_cad:>8,.0f} | mkt ${mkt_cad:>8,.0f} | "
-            f"unreal {unreal_cad:>+8,.0f} | today {daily_str} | "
-            f"total P&L {total_cad:>+8,.0f} ({pct_ret:+.0f}%)"
+            f"  {ticker:<7}{h.get('account','')[:3]} {shares}sh{price_str} "
+            f"cost${cost_cad:,.0f} mkt${mkt_cad:,.0f} "
+            f"unreal{unreal_cad:+,.0f} day{daily_str} totalpnl{total_cad:+,.0f}({pct_ret:+.0f}%)"
         )
     positions_block = "\n".join(pos_lines)
 
@@ -718,7 +717,7 @@ class handler(BaseHTTPRequestHandler):
             return self._error(400, "Invalid JSON body")
 
         message          = (body.get("message") or "").strip()
-        history          = (body.get("history") or [])[-10:]
+        history          = (body.get("history") or [])[-8:]
         holdings_list    = body.get("holdings_list")    or []
         holdings_prices  = body.get("holdings_prices")  or {}
         closed_positions = body.get("closed_positions") or []
@@ -727,8 +726,8 @@ class handler(BaseHTTPRequestHandler):
 
         if not message:
             return self._error(400, "message is required")
-        if not CEREBRAS_API_KEY:
-            return self._error(503, "CEREBRAS_API_KEY not configured")
+        if not GROQ_API_KEY:
+            return self._error(503, "GROQ_API_KEY not configured")
 
         # ── Build system prompt + message history ──────────────────────────────
         system_prompt = build_system_prompt(
@@ -764,13 +763,13 @@ class handler(BaseHTTPRequestHandler):
             for round_num in range(MAX_TOOL_ROUNDS):
                 tool_choice = "auto"
                 resp = requests.post(
-                    LLM_URL,
+                    GROQ_URL,
                     headers={
-                        "Authorization": f"Bearer {CEREBRAS_API_KEY}",
+                        "Authorization": f"Bearer {GROQ_API_KEY}",
                         "Content-Type":  "application/json",
                     },
                     json={
-                        "model":       LLM_MODEL_FAST,  # smaller/faster model for tool decisions
+                        "model":       GROQ_MODEL_FAST,  # smaller/faster model for tool decisions
                         "messages":    messages,
                         "tools":       TOOLS,
                         "tool_choice": tool_choice,
@@ -788,9 +787,9 @@ class handler(BaseHTTPRequestHandler):
                         send_event({"status": f"⏳ Rate limited — retrying in {wait}s..."})
                         time.sleep(wait)
                         resp = requests.post(
-                            LLM_URL,
-                            headers={"Authorization": f"Bearer {CEREBRAS_API_KEY}", "Content-Type": "application/json"},
-                            json={"model": LLM_MODEL_FAST, "messages": messages, "tools": TOOLS,
+                            GROQ_URL,
+                            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                            json={"model": GROQ_MODEL_FAST, "messages": messages, "tools": TOOLS,
                                   "tool_choice": tool_choice, "temperature": 0.2,
                                   "max_tokens": 512, "stream": False},
                             timeout=25,
@@ -801,9 +800,9 @@ class handler(BaseHTTPRequestHandler):
                             send_event({"status": f"⏳ Still limited — waiting {wait2}s more..."})
                             time.sleep(wait2)
                             resp = requests.post(
-                                LLM_URL,
-                                headers={"Authorization": f"Bearer {CEREBRAS_API_KEY}", "Content-Type": "application/json"},
-                                json={"model": LLM_MODEL_FAST, "messages": messages, "tools": TOOLS,
+                                GROQ_URL,
+                                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                                json={"model": GROQ_MODEL_FAST, "messages": messages, "tools": TOOLS,
                                       "tool_choice": tool_choice, "temperature": 0.2,
                                       "max_tokens": 512, "stream": False},
                                 timeout=25,
@@ -822,9 +821,9 @@ class handler(BaseHTTPRequestHandler):
                                 except Exception:
                                     m["content"] = m["content"][:400]
                         resp = requests.post(
-                            LLM_URL,
-                            headers={"Authorization": f"Bearer {CEREBRAS_API_KEY}", "Content-Type": "application/json"},
-                            json={"model": LLM_MODEL_FAST, "messages": messages, "tools": TOOLS,
+                            GROQ_URL,
+                            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                            json={"model": GROQ_MODEL_FAST, "messages": messages, "tools": TOOLS,
                                   "tool_choice": tool_choice, "temperature": 0.2,
                                   "max_tokens": 512, "stream": False},
                             timeout=25,
@@ -883,7 +882,7 @@ class handler(BaseHTTPRequestHandler):
             # messages — Groq requires the tools schema to be present in that case.
             has_tool_context = any(m.get("role") == "tool" for m in messages)
             stream_payload = {
-                "model":       LLM_MODEL,
+                "model":       GROQ_MODEL,
                 "messages":    messages,
                 "temperature": 0.3,
                 "max_tokens":  2048,
@@ -894,9 +893,9 @@ class handler(BaseHTTPRequestHandler):
                 stream_payload["tool_choice"] = "none"
 
             stream_resp = requests.post(
-                LLM_URL,
+                GROQ_URL,
                 headers={
-                    "Authorization": f"Bearer {CEREBRAS_API_KEY}",
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
                     "Content-Type":  "application/json",
                 },
                 json=stream_payload,
@@ -910,10 +909,10 @@ class handler(BaseHTTPRequestHandler):
                 wait = self._retry_wait(stream_resp)
                 send_event({"status": f"⏳ Rate limited — switching models, retrying in {wait}s..."})
                 time.sleep(wait)
-                stream_payload["model"] = LLM_MODEL_FAST
+                stream_payload["model"] = GROQ_MODEL_FAST
                 stream_resp = requests.post(
-                    LLM_URL,
-                    headers={"Authorization": f"Bearer {CEREBRAS_API_KEY}", "Content-Type": "application/json"},
+                    GROQ_URL,
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
                     json=stream_payload, timeout=35, stream=True,
                 )
                 if not stream_resp.ok and stream_resp.status_code == 429:
@@ -922,8 +921,8 @@ class handler(BaseHTTPRequestHandler):
                     send_event({"status": f"⏳ Still rate limited — final retry in {wait2}s..."})
                     time.sleep(wait2)
                     stream_resp = requests.post(
-                        LLM_URL,
-                        headers={"Authorization": f"Bearer {CEREBRAS_API_KEY}", "Content-Type": "application/json"},
+                        GROQ_URL,
+                        headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
                         json=stream_payload, timeout=35, stream=True,
                     )
 

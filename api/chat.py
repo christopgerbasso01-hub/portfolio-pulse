@@ -149,16 +149,54 @@ def yf_lookup(tickers: list, message: str) -> str:
     return "YAHOO FINANCE DATA:\n" + "\n".join(sections)
 
 
-# ── Google News RSS (free, no API key, not blocked by cloud IPs) ─────────────
+# ── Tavily AI Search (primary — works from cloud IPs, free 1k/month) ─────────
 
-def google_news_search(query: str, max_results: int = 7) -> str:
-    """Recent news from Google News RSS — works reliably from Vercel/AWS."""
+def tavily_search(query: str, search_depth: str = "basic", max_results: int = 7) -> str:
+    """Search via Tavily AI — reliable from Vercel/AWS, built for AI agents."""
+    api_key = os.environ.get("TAVILY_API_KEY", "")
+    if not api_key:
+        return ""
+    try:
+        resp = requests.post(
+            "https://api.tavily.com/search",
+            headers={"Content-Type": "application/json"},
+            json={
+                "api_key":      api_key,
+                "query":        query,
+                "search_depth": search_depth,
+                "max_results":  max_results,
+                "include_answer": True,
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        results = []
+        # Include Tavily's direct answer if present (often very precise for dates)
+        if data.get("answer"):
+            results.append(f"Summary: {data['answer']}")
+        for r in data.get("results", []):
+            title   = r.get("title", "")
+            content = (r.get("content") or "")[:350]
+            url     = r.get("url", "")
+            results.append(f"{title} ({url}): {content}")
+
+        return "\n\n".join(results)
+    except Exception as exc:
+        print(f"  tavily_search error: {exc}")
+        return ""
+
+
+# ── Google News RSS (fallback if no Tavily key) ───────────────────────────────
+
+def google_news_search(query: str, max_results: int = 6) -> str:
+    """Google News RSS — fallback when Tavily is unavailable."""
     import urllib.parse
     import xml.etree.ElementTree as ET
 
     encoded = urllib.parse.quote(query[:200])
     url = f"https://news.google.com/rss/search?q={encoded}&hl=en-US&gl=US&ceid=US:en"
-
     try:
         resp = requests.get(
             url, timeout=8,
@@ -166,61 +204,52 @@ def google_news_search(query: str, max_results: int = 7) -> str:
         )
         resp.raise_for_status()
         root = ET.fromstring(resp.content)
-
         results = []
         for item in root.findall(".//item")[:max_results]:
             title     = item.findtext("title") or ""
-            desc      = item.findtext("description") or ""
-            pub_date  = item.findtext("pubDate") or ""
-            desc_clean = re.sub(r"<[^>]+>", " ", desc).strip()[:320]
-            pub_short  = pub_date[:16]
-            results.append(f"[{pub_short}] {title}: {desc_clean}")
-
+            desc      = re.sub(r"<[^>]+>", " ", item.findtext("description") or "").strip()[:300]
+            pub_date  = (item.findtext("pubDate") or "")[:16]
+            results.append(f"[{pub_date}] {title}: {desc}")
         return "\n\n".join(results)
     except Exception as exc:
         print(f"  google_news error: {exc}")
         return ""
 
 
-def ddg_fallback(query: str, max_results: int = 4) -> str:
-    """DuckDuckGo fallback — may be rate-limited from cloud IPs."""
-    try:
-        from duckduckgo_search import DDGS
-        results = []
-        with DDGS() as ddgs:
-            for r in ddgs.text(query, max_results=max_results):
-                results.append(f"{r.get('title', '')}: {(r.get('body') or '')[:280]}")
-        return "\n\n".join(results)
-    except Exception:
-        return ""
-
-
 def get_external_context(message: str, holdings_list: list) -> list:
-    """Orchestrate yfinance + news search based on what the question needs."""
-    ctx   = []
-    msg   = message.lower()
+    """Fetch live financial data and news for the question."""
+    ctx     = []
+    msg     = message.lower()
     tickers = extract_tickers(message, holdings_list)
 
     needs_financial = any(kw in msg for kw in _TRIGGERS_FINANCIAL)
     needs_news      = any(kw in msg for kw in _TRIGGERS_NEWS)
 
-    # Financial data via Yahoo Finance (earnings, analyst, dividend)
-    if needs_financial:
-        yf_data = yf_lookup(tickers, message)
-        if yf_data:
-            ctx += ["", yf_data]
+    has_tavily = bool(os.environ.get("TAVILY_API_KEY", ""))
 
-    # News search via Google News RSS
-    if needs_news or needs_financial:
+    if needs_financial or needs_news:
+        # Build a focused query
         if tickers:
-            news_query = " ".join(tickers[:2]) + " " + message
+            base_query = " ".join(tickers[:2]) + " " + message
         else:
-            news_query = message + " stock market"
-        news = google_news_search(news_query)
-        if not news:
-            news = ddg_fallback(news_query)   # fallback
-        if news:
-            ctx += ["", "LIVE WEB NEWS:", news]
+            base_query = message + " stock market"
+
+        # Tavily: handles both financial lookups AND news in one call
+        if has_tavily:
+            depth = "advanced" if needs_financial else "basic"
+            results = tavily_search(base_query[:300], search_depth=depth)
+            if results:
+                ctx += ["", "LIVE WEB SEARCH RESULTS:", results]
+        else:
+            # Fallback chain: yfinance for financial data, Google News for news
+            if needs_financial:
+                yf_data = yf_lookup(tickers, message)
+                if yf_data:
+                    ctx += ["", yf_data]
+            news_query = base_query + (" earnings date" if needs_financial else "")
+            news = google_news_search(news_query)
+            if news:
+                ctx += ["", "WEB NEWS:", news]
 
     return ctx
 

@@ -1,13 +1,15 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import time
+import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
-try:
-    import yfinance as yf
-    HAS_YF = True
-except ImportError:
-    HAS_YF = False
+_YF_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Referer": "https://finance.yahoo.com",
+}
 
 # =============================================================================
 # PORTFOLIO HOLDINGS — last snapshot 2026-05-12
@@ -104,70 +106,55 @@ def _safe_float(val, default=None):
         return default
 
 
+def _fetch_one(session, ticker):
+    """Fetch current price + previous close from Yahoo Finance chart API."""
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
+    try:
+        r = session.get(url, headers=_YF_HEADERS, timeout=8)
+        if not r.ok:
+            return ticker, None
+        data = r.json()
+        result = data["chart"]["result"][0]
+        meta = result["meta"]
+        closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
+        closes = [c for c in closes if c is not None]
+        curr = _safe_float(meta.get("regularMarketPrice") or (closes[-1] if closes else None))
+        prev = _safe_float(
+            (closes[-2] if len(closes) >= 2 else None)
+            or meta.get("chartPreviousClose")
+            or meta.get("previousClose")
+        )
+        if not curr:
+            return ticker, None
+        prev = prev or curr
+        return ticker, {
+            "price": round(curr, 2),
+            "prev": round(prev, 2),
+            "change": round(curr - prev, 2),
+            "change_pct": round((curr - prev) / prev * 100, 2),
+        }
+    except Exception:
+        return ticker, None
+
+
 def fetch_prices():
     global _cache, _cache_ts
     now = time.time()
     if _cache and (now - _cache_ts) < CACHE_TTL:
         return _cache
 
-    if not HAS_YF:
-        return {}
-
     portfolio_tickers = list({h["ticker"] for h in HOLDINGS if not h.get("cash")})
     bench_tickers = list(BENCHMARKS.values())
     all_tickers = portfolio_tickers + bench_tickers
 
     prices = {}
-    try:
-        raw = yf.download(
-            tickers=" ".join(all_tickers),
-            period="5d",
-            interval="1d",
-            group_by="ticker",
-            auto_adjust=True,
-            progress=False,
-            threads=True,
-        )
-
-        for ticker in all_tickers:
-            try:
-                if len(all_tickers) == 1:
-                    df = raw["Close"].dropna()
-                else:
-                    df = raw[ticker]["Close"].dropna()
-                if len(df) >= 2:
-                    curr = _safe_float(df.iloc[-1])
-                    prev = _safe_float(df.iloc[-2])
-                    if curr and prev:
-                        prices[ticker] = {
-                            "price": round(curr, 2),
-                            "prev": round(prev, 2),
-                            "change": round(curr - prev, 2),
-                            "change_pct": round((curr - prev) / prev * 100, 2),
-                        }
-                elif len(df) == 1:
-                    curr = _safe_float(df.iloc[-1])
-                    if curr:
-                        prices[ticker] = {"price": round(curr, 2), "prev": None, "change": None, "change_pct": None}
-            except Exception:
-                pass
-    except Exception:
-        # Fallback: individual ticker calls (slower but more resilient)
-        for ticker in all_tickers[:15]:
-            try:
-                t = yf.Ticker(ticker)
-                fi = t.fast_info
-                curr = _safe_float(fi.last_price)
-                prev = _safe_float(fi.previous_close)
-                if curr:
-                    prices[ticker] = {
-                        "price": round(curr, 2),
-                        "prev": round(prev, 2) if prev else None,
-                        "change": round(curr - prev, 2) if prev else None,
-                        "change_pct": round((curr - prev) / prev * 100, 2) if prev else None,
-                    }
-            except Exception:
-                pass
+    session = requests.Session()
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = {executor.submit(_fetch_one, session, t): t for t in all_tickers}
+        for future in as_completed(futures):
+            ticker, data = future.result()
+            if data:
+                prices[ticker] = data
 
     _cache = prices
     _cache_ts = now

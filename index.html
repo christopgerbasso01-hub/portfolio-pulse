@@ -345,7 +345,11 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .tx-cancel{padding:10px 20px;background:var(--surface2);border:1px solid var(--border2);color:var(--text2);border-radius:6px;cursor:pointer;font-family:var(--mono);font-size:12px;transition:border-color .15s}
 .tx-cancel:hover{border-color:var(--border)}
 .tx-history{margin-top:20px;border-top:1px solid var(--border);padding-top:16px}
-.tx-history-title{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.tx-history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.tx-history-title{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.tx-undo{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#fbbf24;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;transition:all .15s}
+.tx-undo:hover{background:rgba(245,158,11,.2);border-color:#fbbf24}
+.tx-undo:disabled{opacity:.3;cursor:not-allowed}
 .tx-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:11px}
 .tx-item:last-child{border-bottom:none}
 .tx-item-date{color:var(--text3);min-width:80px}
@@ -700,6 +704,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   <div class="filter-bar">
     <input type="text" id="searchInput" placeholder="Search ticker or name..." oninput="filterTable()" style="width:200px">
     <select id="acctFilter" onchange="filterTable()">
+      <option value="_summary" selected>Summary</option>
       <option value="">All Accounts</option>
       <option value="TFSA">TFSA</option>
       <option value="FHSA">FHSA</option>
@@ -1548,6 +1553,120 @@ function updateAccountFooters(data) {
 // ============================================================
 // HOLDINGS TABLE
 // ============================================================
+// ============================================================
+// SUMMARY VIEW — one row per ticker, aggregated across accounts
+// ============================================================
+function buildSummaryRows(hPrices, usdcad, totalVal) {
+  // Group open holdings by ticker
+  const groups = {};
+  HOLDINGS_STATIC.forEach(h => {
+    if (!groups[h.ticker]) {
+      groups[h.ticker] = {
+        ticker: h.ticker, name: h.name, sector: h.sector, ccy: h.ccy,
+        accounts: [], shares: 0, costBasisCAD: 0,
+        mktVal: 0, prevMktVal: 0, unrealizedCAD: 0,
+        dividends: 0, realized: 0,
+        hasLive: false, livePrice: null, dayChgPct: null,
+      };
+    }
+    const g = groups[h.ticker];
+    const p = hPrices[h.ticker];
+    const fxRate = h.book_rate || null;
+    const costBasisCAD = fxRate ? h.cost_total * fxRate : h.cost_total;
+    let mktVal, prevMktVal;
+    if (p?.price) {
+      const prevPrice = p.prev || p.price;
+      mktVal     = p.price    * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      prevMktVal = prevPrice  * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      g.hasLive = true; g.livePrice = p.price; g.dayChgPct = p.change_pct;
+    } else {
+      mktVal = ((h.unrealized || 0) + (h.cost_total || 0)) * (h.ccy === 'USD' ? usdcad : 1);
+      prevMktVal = mktVal;
+    }
+    const unrealizedCAD = p?.price ? mktVal - costBasisCAD : (h.unrealized || 0) * (fxRate || 1);
+    if (!g.accounts.includes(h.account)) g.accounts.push(h.account);
+    g.shares       += h.shares;
+    g.costBasisCAD += costBasisCAD;
+    g.mktVal       += mktVal;
+    g.prevMktVal   += prevMktVal;
+    g.unrealizedCAD+= unrealizedCAD;
+    g.dividends    += h.dividends || 0;
+    g.realized     += h.realized  || 0;
+  });
+
+  const openSummaryRows = Object.values(groups).map(g => {
+    const totalPnlCAD  = g.unrealizedCAD + g.realized;
+    const weight       = totalVal > 0 ? (g.mktVal / totalVal * 100).toFixed(1) : '0.0';
+    const widthPx      = Math.max(1, Math.round(parseFloat(weight) * 1.5));
+    const unrealColor  = g.unrealizedCAD >= 0 ? 'green' : 'red';
+    const realColor    = g.realized > 0 ? 'green' : (g.realized < 0 ? 'red' : 'text2');
+    const pnlColor     = totalPnlCAD >= 0 ? 'green' : 'red';
+    const pnlAttr      = totalPnlCAD >= 0 ? 'gain' : 'loss';
+    const dayDollarCAD = g.mktVal - g.prevMktVal;
+    const dayColor     = !g.hasLive ? '' : (dayDollarCAD >= 0 ? 'green' : 'red');
+    const liveStr      = g.hasLive ? `$${g.livePrice.toFixed(2)} ${g.ccy}` : '—';
+    const dayStr       = (g.hasLive && g.dayChgPct != null) ? fmtPct(g.dayChgPct) : '—';
+    const dayDollarStr = g.hasLive ? ((dayDollarCAD >= 0 ? '+' : '') + fmt$(dayDollarCAD)) : '—';
+    const sharesStr    = Number.isInteger(g.shares) ? g.shares.toString() : g.shares.toFixed(4);
+    const acctBadgesHtml = g.accounts.map(a =>
+      `<span class="badge ${acctBadgeClass(a)}" style="font-size:8px;padding:1px 4px">${a === 'Investment' ? 'NON-REG' : a}</span>`
+    ).join(' ');
+    return `<tr data-rowtype="summary" data-account="${g.accounts[0]}" data-sector="${g.sector}" data-pnl="${pnlAttr}" data-mv="${g.mktVal.toFixed(2)}" data-cb="${g.costBasisCAD.toFixed(2)}" data-unreal="${g.unrealizedCAD.toFixed(2)}" data-div="${g.dividends.toFixed(2)}" data-real="${g.realized.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
+      <td class="mono blue">${g.ticker}</td>
+      <td class="text2">${g.name}</td>
+      <td><div style="display:flex;flex-wrap:wrap;gap:3px">${acctBadgesHtml}</div></td>
+      <td class="text2 small">${g.sector}</td>
+      <td class="mono">${sharesStr}</td>
+      <td class="mono small ${dayColor}">${liveStr}</td>
+      <td class="mono small ${dayColor}">${dayStr}</td>
+      <td class="mono small ${dayColor}">${dayDollarStr}</td>
+      <td class="mono">${fmt$(g.mktVal)}</td>
+      <td class="mono text2">${fmt$(g.costBasisCAD)}</td>
+      <td class="mono ${unrealColor}">${fmt$(g.unrealizedCAD)}</td>
+      <td class="mono small text2">${g.dividends > 0 ? fmt$(g.dividends) : '—'}</td>
+      <td class="mono small ${realColor}">${g.realized !== 0 ? fmt$(g.realized) : '—'}</td>
+      <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  // Aggregate cash by currency
+  const cashByCcy = {};
+  CASH_POSITIONS.forEach(c => {
+    if (!cashByCcy[c.ccy]) cashByCcy[c.ccy] = { ccy: c.ccy, totalNative: 0, accounts: [] };
+    cashByCcy[c.ccy].totalNative += c.amount;
+    if (!cashByCcy[c.ccy].accounts.includes(c.account)) cashByCcy[c.ccy].accounts.push(c.account);
+  });
+  const cashSummaryRows = Object.values(cashByCcy).map(c => {
+    const mktVal = c.ccy === 'USD' ? c.totalNative * usdcad : c.totalNative;
+    const weight = totalVal > 0 ? (mktVal / totalVal * 100).toFixed(1) : '0.0';
+    const widthPx = Math.max(1, Math.round(parseFloat(weight) * 1.5));
+    const priceStr = `$${c.totalNative.toFixed(2)} ${c.ccy}`;
+    const acctBadgesHtml = c.accounts.map(a =>
+      `<span class="badge ${acctBadgeClass(a)}" style="font-size:8px;padding:1px 4px">${a === 'Investment' ? 'NON-REG' : a}</span>`
+    ).join(' ');
+    return `<tr data-rowtype="summary" data-account="" data-sector="Cash" data-pnl="gain" data-cash="true" data-mv="${mktVal.toFixed(2)}" data-cb="0" data-unreal="0" data-div="0" data-real="0" data-pnlval="0">
+      <td class="mono text2">CASH·${c.ccy}</td>
+      <td class="text2 small">${c.ccy} Cash</td>
+      <td><div style="display:flex;flex-wrap:wrap;gap:3px">${acctBadgesHtml}</div></td>
+      <td class="text2 small">Cash</td>
+      <td class="mono text3">—</td>
+      <td class="mono small text2">${priceStr}</td>
+      <td class="mono small text3">—</td>
+      <td class="mono small text3">—</td>
+      <td class="mono">${fmt$(mktVal)}</td>
+      <td class="mono text3">—</td>
+      <td class="mono text3">—</td>
+      <td class="mono text3">—</td>
+      <td class="mono text3">—</td>
+      <td class="mono text3">—</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.4"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  return openSummaryRows + cashSummaryRows;
+}
+
 function renderHoldingsTable(liveData) {
   const usdcad = liveData?.usdcad || 1.37;
   const hPrices = liveData?.holdings || {};
@@ -1606,7 +1725,7 @@ function renderHoldingsTable(liveData) {
     const pnlColor     = totalPnlCAD   >= 0 ? 'green' : 'red';
     const pnlAttr      = totalPnlCAD   >= 0 ? 'gain'  : 'loss';
 
-    return `<tr data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-mv="${mktVal.toFixed(2)}" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="${unrealizedCAD.toFixed(2)}" data-div="${divCAD.toFixed(2)}" data-real="${realizedCAD.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
+    return `<tr data-rowtype="normal" data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-mv="${mktVal.toFixed(2)}" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="${unrealizedCAD.toFixed(2)}" data-div="${divCAD.toFixed(2)}" data-real="${realizedCAD.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
       <td class="mono blue">${h.ticker}</td>
       <td class="text2">${h.name}</td>
       <td><span class="badge ${acctBadge}">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
@@ -1635,7 +1754,7 @@ function renderHoldingsTable(liveData) {
     const divTotal = h.dividends || 0;
     const divCAD   = divTotal * (h.ccy === 'USD' ? fxRate : 1);
     const acctBadge = acctBadgeClass(h.account);
-    return `<tr data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-closed="true" data-mv="0" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="0" data-div="${divCAD.toFixed(2)}" data-real="${pnlCAD.toFixed(2)}" data-pnlval="${pnlCAD.toFixed(2)}">
+    return `<tr data-rowtype="closed" data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-closed="true" data-mv="0" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="0" data-div="${divCAD.toFixed(2)}" data-real="${pnlCAD.toFixed(2)}" data-pnlval="${pnlCAD.toFixed(2)}">
       <td class="mono text3">${h.ticker}</td>
       <td class="text3 small">${h.name}</td>
       <td><span class="badge badge-closed">CLOSED</span><span class="mono" style="font-size:9px;color:var(--text3);margin-left:4px">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
@@ -1661,7 +1780,7 @@ function renderHoldingsTable(liveData) {
     const widthPx  = Math.max(1, Math.round(parseFloat(weight) * 1.5));
     const acctBadge = acctBadgeClass(c.account);
     const priceStr = c.ccy === 'USD' ? `$${c.amount.toFixed(2)} USD` : `$${c.amount.toFixed(2)} CAD`;
-    return `<tr data-account="${c.account}" data-sector="Cash" data-pnl="gain" data-cash="true" data-mv="${mktVal.toFixed(2)}" data-cb="0" data-unreal="0" data-div="0" data-real="0" data-pnlval="0">
+    return `<tr data-rowtype="cash" data-account="${c.account}" data-sector="Cash" data-pnl="gain" data-cash="true" data-mv="${mktVal.toFixed(2)}" data-cb="0" data-unreal="0" data-div="0" data-real="0" data-pnlval="0">
       <td class="mono text2">CASH</td>
       <td class="text2 small">${c.name}</td>
       <td><span class="badge ${acctBadge}">${c.account === 'Investment' ? 'NON-REG' : c.account}</span></td>
@@ -1680,7 +1799,8 @@ function renderHoldingsTable(liveData) {
     </tr>`;
   }).join('');
 
-  tbody.innerHTML = openRows + cashRows + closedRows;
+  const summaryRows = buildSummaryRows(hPrices, usdcad, totalVal);
+  tbody.innerHTML = openRows + cashRows + closedRows + summaryRows;
 
   // Re-apply any active filters after table rebuild (prevents reset on auto-refresh)
   filterTable();
@@ -1694,21 +1814,27 @@ function filterTable() {
   const acct = document.getElementById('acctFilter').value;
   const sector = document.getElementById('sectorFilter').value;
   const pnl = document.getElementById('pnlFilter').value;
+  const isSummaryMode = acct === '_summary';
   const rows = document.querySelectorAll('#holdingsBody tr');
   rows.forEach(r => {
-    const isClosed = r.getAttribute('data-closed') === 'true';
-    // Hide closed rows if toggle is off (skip filter logic)
-    if (isClosed && !showClosedPositions) {
-      r.style.display = 'none';
-      return;
-    }
-    const ticker = r.cells[0]?.textContent.toLowerCase() || '';
-    const name = r.cells[1]?.textContent.toLowerCase() || '';
-    const rowAcct = r.getAttribute('data-account') || '';
+    const rowType = r.getAttribute('data-rowtype') || 'normal';
+    const isSummaryRow = rowType === 'summary';
+    const isClosed = rowType === 'closed';
+
+    // Mode gate: summary rows only visible in summary mode, normal/cash/closed only in other modes
+    if (isSummaryMode && !isSummaryRow) { r.style.display = 'none'; return; }
+    if (!isSummaryMode && isSummaryRow) { r.style.display = 'none'; return; }
+
+    // Hide closed rows if toggle is off
+    if (isClosed && !showClosedPositions) { r.style.display = 'none'; return; }
+
+    const ticker  = r.cells[0]?.textContent.toLowerCase() || '';
+    const name    = r.cells[1]?.textContent.toLowerCase() || '';
+    const rowAcct   = r.getAttribute('data-account') || '';
     const rowSector = r.getAttribute('data-sector') || '';
-    const rowPnl = r.getAttribute('data-pnl') || '';
+    const rowPnl    = r.getAttribute('data-pnl') || '';
     const show = (!search || ticker.includes(search) || name.includes(search))
-      && (!acct || rowAcct === acct)
+      && (isSummaryMode || !acct || rowAcct === acct)
       && (!sector || rowSector === sector)
       && (!pnl || rowPnl === pnl);
     r.style.display = show ? '' : 'none';
@@ -1719,7 +1845,7 @@ function filterTable() {
 
 function clearFilters() {
   document.getElementById('searchInput').value = '';
-  document.getElementById('acctFilter').value = '';
+  document.getElementById('acctFilter').value = '_summary';
   document.getElementById('sectorFilter').value = '';
   document.getElementById('pnlFilter').value = '';
   filterTable();
@@ -1734,11 +1860,18 @@ function toggleClosedPositions() {
 }
 
 function updateRowCount() {
-  const openTotal   = document.querySelectorAll('#holdingsBody tr:not([data-closed="true"])').length;
-  const openVisible = document.querySelectorAll('#holdingsBody tr:not([data-closed="true"]):not([style*="display: none"]):not([style*="display:none"])').length;
+  const acct = document.getElementById('acctFilter').value;
+  if (acct === '_summary') {
+    const vis = document.querySelectorAll('#holdingsBody tr[data-rowtype="summary"]:not([style*="display: none"]):not([style*="display:none"])').length;
+    const tot = document.querySelectorAll('#holdingsBody tr[data-rowtype="summary"]').length;
+    document.getElementById('rowCount').textContent = `${vis} / ${tot} tickers`;
+    return;
+  }
+  const openTotal   = document.querySelectorAll('#holdingsBody tr[data-rowtype="normal"],#holdingsBody tr[data-rowtype="cash"]').length;
+  const openVisible = document.querySelectorAll('#holdingsBody tr[data-rowtype="normal"]:not([style*="display: none"]):not([style*="display:none"]),#holdingsBody tr[data-rowtype="cash"]:not([style*="display: none"]):not([style*="display:none"])').length;
   let text = `${openVisible} / ${openTotal} holdings`;
   if (showClosedPositions) {
-    const closedVisible = document.querySelectorAll('#holdingsBody tr[data-closed="true"]:not([style*="display: none"]):not([style*="display:none"])').length;
+    const closedVisible = document.querySelectorAll('#holdingsBody tr[data-rowtype="closed"]:not([style*="display: none"]):not([style*="display:none"])').length;
     const closedTotal = CLOSED_POSITIONS_STATIC.length;
     text += ` + ${closedVisible} / ${closedTotal} closed`;
   }
@@ -3026,10 +3159,22 @@ async function submitTx() {
   document.getElementById('txPreview').textContent = '✅ Transaction saved.';
 }
 
+async function undoLastTx() {
+  const txs = getTransactions();
+  if (!txs.length) return;
+  const last = txs[txs.length - 1];
+  const btn = document.getElementById('txUndoBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '↩ UNDOING…'; }
+  await deleteTransaction(last.id);
+}
+
 function renderTxHistory() {
-  const txs = getTransactions().slice().reverse().slice(0, 15);
+  const allTxs = getTransactions();
+  const txs = allTxs.slice().reverse().slice(0, 15);
   const el  = document.getElementById('txHistoryList');
   if (!el) return;
+  const undoBtn = document.getElementById('txUndoBtn');
+  if (undoBtn) undoBtn.disabled = allTxs.length === 0;
   if (!txs.length) { el.innerHTML = '<div style="color:var(--text3);font-family:var(--mono);font-size:11px">No transactions yet.</div>'; return; }
   el.innerHTML = txs.map(tx => {
     const labels = { BUY:'BUY', SELL:'SELL', DIVIDEND:'DIV', SPLIT:'SPLIT', CONTRIBUTION:'CONTRIB' };
@@ -3174,7 +3319,10 @@ function renderTxHistory() {
 
     <!-- Recent history -->
     <div class="tx-history">
-      <div class="tx-history-title">Recent Transactions</div>
+      <div class="tx-history-header">
+        <div class="tx-history-title">Recent Transactions</div>
+        <button class="tx-undo" id="txUndoBtn" onclick="undoLastTx()" disabled>↩ UNDO LAST</button>
+      </div>
       <div id="txHistoryList"></div>
     </div>
   </div>

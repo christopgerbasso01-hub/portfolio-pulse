@@ -25,9 +25,8 @@ from http.server import BaseHTTPRequestHandler
 GROQ_API_KEY    = os.environ.get("GROQ_API_KEY", "")
 TAVILY_API_KEY  = os.environ.get("TAVILY_API_KEY", "")
 FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
-GROQ_MODEL      = "llama-3.1-8b-instant"       # primary model (20k TPM free tier)
-GROQ_MODEL_FAST = "llama-3.1-8b-instant"       # tool-calling round (same budget)
-# Upgrade to llama-3.3-70b-versatile for better quality once Groq paid tier is active
+GROQ_MODEL      = "llama-3.3-70b-versatile"   # high quality responses (6k TPM free tier)
+GROQ_MODEL_FAST = "llama-3.1-8b-instant"       # tool-calling round + 70B fallback (20k TPM)
 GROQ_URL        = "https://api.groq.com/openai/v1/chat/completions"
 MAX_TOOL_ROUNDS = 5  # max back-and-forth tool-call rounds per request
 

@@ -8,7 +8,7 @@ Pipeline:
   2. Groq (Llama 3.3 70B) → two-host podcast script (~1,800 words)
   3. Groq → structured text summary JSON
   4. edge-tts → MP3 segments per speaker turn (two distinct voices)
-  5. ffmpeg → merge segments into data/podcast.mp3
+  5. Pure-Python bytes concat → data/podcast_ep{N:03d}.mp3
   6. Save episode metadata to data/podcast_meta.json
 
 No API keys required beyond GROQ_API_KEY (already configured).
@@ -36,9 +36,14 @@ VOICE_SAM  = "en-US-AvaMultilingualNeural"      # Female — the questioner, lis
 SPEECH_RATE = "+8%"   # Slightly faster = more energetic podcast feel
 
 DATA_DIR     = Path("data")
-PODCAST_MP3  = DATA_DIR / "podcast.mp3"
 PODCAST_META = DATA_DIR / "podcast_meta.json"
 INTEL_FILE   = DATA_DIR / "intelligence.json"
+MAX_EPISODES = 4   # Keep current + this many in archive
+
+
+def podcast_file(ep: int) -> Path:
+    """Return the Path for a numbered episode MP3."""
+    return DATA_DIR / f"podcast_ep{ep:03d}.mp3"
 
 # ── Portfolio context (kept in sync with market.py) ───────────────────────────
 PORTFOLIO_CONTEXT = """
@@ -389,13 +394,31 @@ def main() -> int:
     intel = json.loads(INTEL_FILE.read_text())
     print(f"  Intelligence from: {intel.get('generated_date','?')}\n")
 
-    # Determine episode number
+    # ── Determine episode number and build archive from existing meta ─────────
     episode_num = 1
+    archive: list[dict] = []
     if PODCAST_META.exists():
         try:
-            episode_num = json.loads(PODCAST_META.read_text()).get("episode", 0) + 1
+            old = json.loads(PODCAST_META.read_text())
+            episode_num = old.get("episode", 0) + 1
+            # If there was a real previous episode, push it onto the archive
+            if old.get("episode", 0) > 0 and old.get("file"):
+                prev_entry = {
+                    "episode":      old["episode"],
+                    "title":        old.get("title", ""),
+                    "date":         old.get("date", ""),
+                    "display_date": old.get("display_date", ""),
+                    "duration":     old.get("duration", ""),
+                    "file":         old["file"],
+                }
+                archive = [prev_entry] + old.get("archive", [])
         except Exception:
             pass
+
+    # Keep only the last (MAX_EPISODES - 1) archive entries so total = MAX_EPISODES
+    archive = archive[: MAX_EPISODES - 1]
+    new_filename = f"podcast_ep{episode_num:03d}.mp3"
+    output_mp3   = DATA_DIR / new_filename
 
     # ── Step 1: Script ───────────────────────────────────────────────────────
     script = generate_script(intel)
@@ -419,16 +442,24 @@ def main() -> int:
         tmp_path = Path(tmp)
         seg_paths = asyncio.run(generate_all_audio(turns, tmp_path))
         print(f"     → {len(seg_paths)} audio segments generated")
-        merge_audio(seg_paths, PODCAST_MP3, tmp_path)
+        merge_audio(seg_paths, output_mp3, tmp_path)
 
-    secs     = audio_duration(PODCAST_MP3)
-    dur_str  = f"{int(secs//60)}:{int(secs%60):02d}"
-    size_kb  = PODCAST_MP3.stat().st_size // 1024
-    print(f"     → {dur_str}  ({size_kb} KB)  saved to {PODCAST_MP3}")
+    secs    = audio_duration(output_mp3)
+    dur_str = f"{int(secs//60)}:{int(secs%60):02d}"
+    size_kb = output_mp3.stat().st_size // 1024
+    print(f"     → {dur_str}  ({size_kb} KB)  saved to {output_mp3}")
 
-    # ── Step 4: Metadata ─────────────────────────────────────────────────────
+    # ── Step 4: Prune old episode files ─────────────────────────────────────
+    keep = {new_filename} | {a["file"] for a in archive if a.get("file")}
+    for old_mp3 in DATA_DIR.glob("podcast_ep*.mp3"):
+        if old_mp3.name not in keep:
+            old_mp3.unlink()
+            print(f"     → Deleted old episode: {old_mp3.name}")
+
+    # ── Step 5: Metadata ─────────────────────────────────────────────────────
     meta = {
         "episode":          episode_num,
+        "file":             new_filename,
         "date":             now.strftime("%Y-%m-%d"),
         "display_date":     now.strftime("%B %d, %Y"),
         "title":            summary.get("episode_title", f"Week of {now.strftime('%B %d')}"),
@@ -437,10 +468,12 @@ def main() -> int:
         "duration":         dur_str,
         "duration_seconds": int(secs),
         "generated_at":     now.isoformat(),
+        "archive":          archive,
         "summary":          summary,
     }
     PODCAST_META.write_text(json.dumps(meta, indent=2, ensure_ascii=False))
-    print(f"\n  ✓ Episode #{episode_num}: \"{meta['title']}\" ({dur_str})\n")
+    print(f"\n  ✓ Episode #{episode_num}: \"{meta['title']}\" ({dur_str})")
+    print(f"  ✓ Archive: {len(archive)} previous episode(s) kept\n")
     return 0
 
 

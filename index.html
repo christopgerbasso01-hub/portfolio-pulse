@@ -312,6 +312,16 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .pod-fill{height:100%;background:var(--blue-bright);border-radius:3px;width:0%;transition:width .15s linear;pointer-events:none}
 .pod-time{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;min-width:80px;text-align:right}
 .pod-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+/* Previous episodes archive */
+.pod-archive-wrap{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
+.pod-archive-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.pod-archive-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--border);margin-bottom:5px;transition:border-color .15s,background .15s}
+.pod-archive-item:hover{border-color:var(--blue-bright);background:var(--surface)}
+.pod-archive-ep{font-family:var(--mono);font-size:10px;color:var(--blue-bright);min-width:30px;flex-shrink:0}
+.pod-archive-info{flex:1;min-width:0}
+.pod-archive-title{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pod-archive-meta{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:1px}
+.pod-archive-play{font-size:11px;color:var(--text3);flex-shrink:0}
 /* Brief sections */
 .brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .brief-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
@@ -587,9 +597,13 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
         First episode generates automatically<br>this Monday at 8:00 AM Geneva.
       </div>
 
-      <audio id="podAudio" preload="none">
-        <source src="data/podcast.mp3" type="audio/mpeg">
-      </audio>
+      <audio id="podAudio" preload="none"></audio>
+
+      <!-- Previous episodes -->
+      <div class="pod-archive-wrap" id="podArchiveWrap" style="display:none">
+        <div class="pod-archive-label">Previous Episodes</div>
+        <div id="podArchiveList"></div>
+      </div>
     </div>
 
     <!-- ── Text summary ── -->
@@ -2849,9 +2863,29 @@ async function refreshAll() {
       if (playerInner) playerInner.style.display = '';
       if (comingSoon)  comingSoon.style.display = 'none';
       if (playBtn)     playBtn.disabled = false;
+      // Point audio element at the numbered file
+      const audio = document.getElementById('podAudio');
+      if (audio && m.file) { audio.src = `data/${m.file}`; }
     } else {
       if (playerInner) playerInner.style.display = 'none';
       if (comingSoon)  comingSoon.style.display = '';
+    }
+
+    // Previous episodes archive
+    const archiveWrap = document.getElementById('podArchiveWrap');
+    const archiveList = document.getElementById('podArchiveList');
+    const archive = m.archive || [];
+    if (archiveWrap && archiveList && archive.length > 0) {
+      archiveList.innerHTML = archive.map(ep => `
+        <div class="pod-archive-item" onclick="podLoadEpisode('${ep.file}','${(ep.title||'').replace(/'/g,"\\'")}',${ep.episode},'${ep.display_date||''}')">
+          <div class="pod-archive-ep">EP ${ep.episode}</div>
+          <div class="pod-archive-info">
+            <div class="pod-archive-title">${ep.title||'Portfolio Pulse Weekly'}</div>
+            <div class="pod-archive-meta">${ep.display_date||''} · ${ep.duration||''}</div>
+          </div>
+          <div class="pod-archive-play">▶</div>
+        </div>`).join('');
+      archiveWrap.style.display = '';
     }
 
     // Summary grid
@@ -2905,6 +2939,32 @@ async function refreshAll() {
     const track = document.getElementById('podTrack');
     if (!audio || !track || !audio.duration) return;
     audio.currentTime = (e.offsetX / track.offsetWidth) * audio.duration;
+  };
+
+  window.podLoadEpisode = function(file, title, ep, date) {
+    const audio   = document.getElementById('podAudio');
+    const btn     = document.getElementById('podPlayBtn');
+    const titleEl = document.getElementById('podTitle');
+    const epBadge = document.getElementById('podEpBadge');
+    const dateBadge = document.getElementById('podDateBadge');
+    const fill    = document.getElementById('podFill');
+    const time    = document.getElementById('podTime');
+    if (!audio) return;
+    // Stop current playback
+    audio.pause();
+    if (btn) btn.textContent = '▶';
+    // Update title / badges
+    if (titleEl)  titleEl.textContent  = title;
+    if (epBadge)  epBadge.textContent  = `EP ${ep}`;
+    if (dateBadge) dateBadge.textContent = date;
+    // Reset progress bar
+    if (fill) fill.style.width = '0%';
+    if (time) time.textContent = '—:— / —:—';
+    // Load the selected episode
+    audio.src = `data/${file}`;
+    audio.load();
+    // Auto-play
+    audio.play().then(() => { if (btn) btn.textContent = '⏸'; }).catch(() => {});
   };
 
   document.addEventListener('DOMContentLoaded', () => {

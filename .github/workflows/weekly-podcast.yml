@@ -25,9 +25,7 @@ jobs:
 
       - name: Install dependencies
         run: pip install requests edge-tts
-
-      - name: Install ffmpeg
-        run: sudo apt-get install -y ffmpeg
+        # Note: ffmpeg is pre-installed on ubuntu-latest runners
 
       - name: Generate podcast
         env:

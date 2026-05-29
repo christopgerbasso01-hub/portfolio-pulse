@@ -350,11 +350,42 @@ def tool_calculate_capital_gains_tax(
     return result
 
 
+_YF_DIV_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Accept": "*/*",
+    "Referer": "https://finance.yahoo.com",
+}
+
+
+def _yahoo_dividends(ticker: str) -> list:
+    """Fetch dividend history from Yahoo Finance chart API. Returns [{date, amount}] sorted newest first."""
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?events=dividends&range=2y&interval=3mo"
+    try:
+        r = requests.get(url, headers=_YF_DIV_HEADERS, timeout=8)
+        if not r.ok:
+            return []
+        data = r.json()
+        result = data["chart"]["result"][0]
+        divs = result.get("events", {}).get("dividends", {})
+        if not divs:
+            return []
+        records = []
+        for ts, d in divs.items():
+            amt = float(d.get("amount") or 0)
+            if amt > 0:
+                records.append({
+                    "date":   datetime.fromtimestamp(int(ts)).strftime("%Y-%m-%d"),
+                    "amount": round(amt, 4),
+                })
+        return sorted(records, key=lambda x: x["date"], reverse=True)[:12]
+    except Exception:
+        return []
+
+
 def _finnhub_dividends(symbol: str) -> list:
-    """Try Finnhub for structured dividend history. Returns [] on failure."""
+    """Try Finnhub for structured dividend history. Returns [{date, amount}] or []."""
     if not FINNHUB_API_KEY:
         return []
-    # Finnhub uses bare symbol for TSX stocks (no .TO suffix)
     for sym in [symbol, symbol.replace(".TO", "")]:
         try:
             r = requests.get(
@@ -364,8 +395,12 @@ def _finnhub_dividends(symbol: str) -> list:
             )
             if r.ok:
                 data = r.json().get("data") or []
-                if data:
-                    return data
+                records = [
+                    {"date": d.get("date", ""), "amount": round(float(d.get("amount") or 0), 4)}
+                    for d in data if (d.get("amount") or 0) > 0
+                ]
+                if records:
+                    return sorted(records, key=lambda x: x["date"], reverse=True)[:12]
         except Exception:
             pass
     return []
@@ -377,7 +412,10 @@ def tool_get_dividend_forecast(
     months: int = 3,
     tickers=None,
 ) -> dict:
-    """Fetch dividend data via Finnhub + Tavily for held positions."""
+    """Fetch dividend forecasts using Yahoo Finance historical data — all math done in Python."""
+    today      = date.today()
+    end_date   = today + timedelta(days=months * 31)
+
     if tickers:
         up = {t.upper() for t in tickers}
         candidates = [h for h in holdings_list if h.get("ticker", "").upper() in up]
@@ -385,101 +423,107 @@ def tool_get_dividend_forecast(
         candidates = [h for h in holdings_list if (h.get("dividends") or 0) > 0]
 
     if not candidates:
-        return {
-            "message": "No dividend-paying holdings found in the specified criteria.",
-            "results": [],
-        }
+        return {"message": "No dividend-paying holdings found.", "results": []}
 
-    def process(h):
-        ticker = h.get("ticker", "")
-        shares = h.get("shares", 0)
-        ccy    = h.get("ccy", "USD")
-        entry = {
-            "ticker":       ticker,
-            "name":         h.get("name", ""),
-            "account":      h.get("account", ""),
-            "shares":       shares,
-            "currency":     ccy,
-            "total_divs_received_historically": round(h.get("dividends", 0), 2),
-            "source": None,
-            "dividend_records": None,
-        }
+    # Deduplicate tickers across accounts so we only fetch each ticker once
+    ticker_data: dict = {}
 
-        # Try Finnhub first
-        records = _finnhub_dividends(ticker)
-        if records:
-            recent = sorted(records, key=lambda x: x.get("date", ""), reverse=True)[:8]
-            processed = []
-            for d in recent:
-                amt = d.get("amount") or 0
-                if amt > 0:
-                    processed.append({
-                        "ex_date":           d.get("date", ""),
-                        "pay_date":          d.get("payDate", ""),
-                        "declaration_date":  d.get("declarationDate", ""),
-                        "amount_per_share":  amt,
-                        "estimated_total":   round(amt * shares, 2),
-                        "currency":          d.get("currency", ccy),
-                    })
-            if processed:
-                entry["dividend_records"] = processed
-                entry["source"] = "Finnhub (structured data)"
-                # Estimate frequency and upcoming amount
-                if len(processed) >= 2:
-                    avg_amount = sum(r["amount_per_share"] for r in processed[:4]) / min(4, len(processed))
-                    entry["avg_dividend_per_share"] = round(avg_amount, 4)
-                    entry["forecast_note"] = (
-                        f"Based on recent history, estimated {months}-month income: "
-                        f"~${round(avg_amount * shares * (months / 3), 2)} {ccy} "
-                        f"(assuming quarterly payments)"
-                    )
-                return entry
+    def fetch_ticker(ticker):
+        records = _yahoo_dividends(ticker) or _finnhub_dividends(ticker)
+        ticker_data[ticker] = records
 
-        # Tavily fallback
-        if TAVILY_API_KEY:
-            try:
-                q = f"{ticker} next dividend ex-date payment amount per share 2025 2026"
-                r = requests.post(
-                    "https://api.tavily.com/search",
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {TAVILY_API_KEY}",
-                    },
-                    json={
-                        "query":        q,
-                        "search_depth": "advanced",
-                        "max_results":  5,
-                        "include_answer": True,
-                    },
-                    timeout=10,
-                )
-                if r.ok:
-                    d = r.json()
-                    raw = d.get("answer", "")
-                    for rec in d.get("results", [])[:3]:
-                        raw += f"\n\n{rec.get('title','')}: {(rec.get('content') or '')[:400]}"
-                    entry["dividend_records"] = raw
-                    entry["source"] = "Tavily web search (interpret dates and amounts from text)"
-            except Exception:
-                entry["source"] = "search unavailable"
+    unique_tickers = list({h["ticker"] for h in candidates})
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        list(as_completed([ex.submit(fetch_ticker, t) for t in unique_tickers]))
 
-        return entry
+    results = []
+    for h in candidates:
+        ticker  = h.get("ticker", "")
+        shares  = h.get("shares", 0)
+        account = h.get("account", "")
+        ccy     = h.get("ccy", "USD")
+        records = ticker_data.get(ticker, [])
 
-    with ThreadPoolExecutor(max_workers=6) as ex:
-        futures = [ex.submit(process, h) for h in candidates]
-        results = [f.result() for f in as_completed(futures)]
+        if not records:
+            results.append({
+                "ticker": ticker, "account": account, "shares": shares,
+                "no_data": True,
+                "note": f"No dividend history found — use search_web('{ticker} next dividend ex-date 2025 2026') for current data",
+            })
+            continue
+
+        # ── Detect payment frequency from inter-payment intervals ──────────
+        if len(records) >= 2:
+            dates = sorted(
+                [datetime.strptime(r["date"], "%Y-%m-%d") for r in records],
+                reverse=True,
+            )
+            intervals = [(dates[i] - dates[i + 1]).days for i in range(min(5, len(dates) - 1))]
+            avg_interval = sum(intervals) / len(intervals)
+        else:
+            avg_interval = 91
+
+        if avg_interval < 40:
+            freq_label, freq_days = "monthly",    30
+        elif avg_interval < 75:
+            freq_label, freq_days = "bi-monthly", 60
+        elif avg_interval < 135:
+            freq_label, freq_days = "quarterly",  91
+        elif avg_interval < 270:
+            freq_label, freq_days = "semi-annual", 183
+        else:
+            freq_label, freq_days = "annual",     365
+
+        # Use average of last 4 payments as forecast amount
+        avg_amount = sum(r["amount"] for r in records[:4]) / min(4, len(records))
+        last_paid  = datetime.strptime(records[0]["date"], "%Y-%m-%d")
+
+        # ── Project upcoming payments inside the forecast window ──────────
+        upcoming = []
+        next_dt = last_paid + timedelta(days=freq_days)
+        while next_dt.date() <= end_date:
+            if next_dt.date() >= today:
+                upcoming.append({
+                    "estimated_ex_date":  next_dt.strftime("%Y-%m-%d"),
+                    "month":              next_dt.strftime("%B %Y"),
+                    "amount_per_share":   round(avg_amount, 4),
+                    "shares":             shares,
+                    "estimated_total":    round(avg_amount * shares, 2),
+                    "currency":           ccy,
+                    "account":            account,
+                })
+            next_dt += timedelta(days=freq_days)
+
+        results.append({
+            "ticker":                  ticker,
+            "account":                 account,
+            "shares":                  shares,
+            "currency":                ccy,
+            "frequency":               freq_label,
+            "last_payment_date":       records[0]["date"],
+            "last_amount_per_share":   records[0]["amount"],
+            "avg_amount_per_share":    round(avg_amount, 4),
+            "upcoming_payments":       upcoming,
+            "subtotal_forecast":       round(sum(p["estimated_total"] for p in upcoming), 2),
+        })
 
     results.sort(key=lambda x: x.get("ticker", ""))
-    print(f"  [get_dividend_forecast] {len(results)} holdings processed")
+    grand_total_usd = round(sum(
+        r["subtotal_forecast"] for r in results
+        if not r.get("no_data") and r.get("currency") == "USD"
+    ), 2)
+    grand_total_cad = round(sum(
+        r["subtotal_forecast"] for r in results
+        if not r.get("no_data") and r.get("currency") == "CAD"
+    ), 2)
+
+    print(f"  [get_dividend_forecast] {len(results)} holdings | USD ${grand_total_usd} + CAD ${grand_total_cad}")
     return {
-        "forecast_months":         months,
-        "forecast_end":            (datetime.now() + timedelta(days=months * 31)).strftime("%Y-%m-%d"),
-        "dividend_holding_results": results,
-        "instructions": (
-            "For Finnhub results: sum 'estimated_total' values for upcoming ex-dates. "
-            "For Tavily results: interpret dates, amounts, and shares from the raw text. "
-            "Present a clear table to the user showing ticker, ex-date, $/share, total, account."
-        ),
+        "forecast_period":  f"{today} to {end_date}",
+        "grand_total_usd":  grand_total_usd,
+        "grand_total_cad":  grand_total_cad,
+        "results":          results,
+        "note": "All amounts are in native currency. Convert USD totals at current USD/CAD rate for combined CAD figure.",
     }
 
 

@@ -568,7 +568,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <tr><td class="mono blue small">CM.TO</td><td class="mono small text2">45</td><td class="mono small" id="live-CM.TO-TFSA">$6,880</td><td class="mono small green">+142.9%</td></tr>
         </table>
       </div>
-      <div class="acct-card-footer">✅ Tax-free · All gains permanently sheltered</div>
+      <div class="acct-card-footer">💡 Leveraged ETF gains are optimally housed here — no capital gains tax on FNGU/SPXL/UDOW compounding. Highest-leverage use of your TFSA contribution room.</div>
     </div>
     <!-- Investment -->
     <div class="acct-card">
@@ -592,7 +592,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <tr><td class="mono blue small">IBKR</td><td class="mono small text2">40</td><td class="mono small" id="live-IBKR-Investment">$4,636</td><td class="mono small green">+45.1%</td></tr>
         </table>
       </div>
-      <div class="acct-card-footer">⚠️ Gains taxable — 50% inclusion rate applies</div>
+      <div class="acct-card-footer">💡 SPXL and FNGU represent ~62% of this account — your largest future tax liability. Track ACB closely; partial harvesting of smaller losers can offset future dispositions.</div>
     </div>
     <!-- FHSA -->
     <div class="acct-card">
@@ -614,7 +614,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <tr><td class="mono blue small">ENB.TO</td><td class="mono small text2">82</td><td class="mono small" id="live-ENB.TO-FHSA">$6,166</td><td class="mono small green">+49.1%</td></tr>
         </table>
       </div>
-      <div class="acct-card-footer">✅ Tax-deductible in, tax-free out · Home purchase fund</div>
+      <div class="acct-card-footer">💡 Account has grown 2.25× your $24K contribution — all tax-free on a qualifying home purchase. This account closes permanently after use; maximize contributions before withdrawal.</div>
     </div>
     <!-- RRSP -->
     <div class="acct-card">
@@ -635,7 +635,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <tr><td class="mono blue small">FNGU</td><td class="mono small text2">56</td><td class="mono small" id="live-FNGU-RRSP">$2,213</td><td class="mono small green">+42.0%</td></tr>
         </table>
       </div>
-      <div class="acct-card-footer">⚠️ $10,531 idle cash — deploy into ZSP.TO or IVV now</div>
+      <div class="acct-card-footer" id="acctRRSPFooter">⚠️ Calculating idle cash…</div>
     </div>
   </div>
 </div>
@@ -1259,6 +1259,16 @@ function updateHeaderKPIs(data) {
       roiEl.className = `small mono ${colorClass(parseFloat(roi2))}`;
     }
   });
+
+  // Dynamic RRSP footer — shows live idle cash amount and % of account
+  const rrspCashPos = CASH_POSITIONS.find(c => c.account === 'RRSP');
+  if (rrspCashPos) {
+    const rrspCashCAD = rrspCashPos.ccy === 'USD' ? rrspCashPos.amount * usdcad : rrspCashPos.amount;
+    const rrspVal     = accts?.RRSP || 0;
+    const cashPct     = rrspVal > 0 ? (rrspCashCAD / rrspVal * 100).toFixed(1) : '—';
+    const footerEl    = document.getElementById('acctRRSPFooter');
+    if (footerEl) footerEl.innerHTML = `⚠️ ${fmt$(Math.round(rrspCashCAD))} USD cash (${cashPct}% of account) sitting idle — ZSP.TO in RRSP gets 0% US dividend withholding under the Canada-US treaty, unavailable in any other account.`;
+  }
 
   // Tax section header values
   if (accts.TFSA) document.getElementById('taxTFSAVal').textContent = fmt$(accts.TFSA);

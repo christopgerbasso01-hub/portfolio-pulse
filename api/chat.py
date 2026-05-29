@@ -32,25 +32,29 @@ _SEARCH_TRIGGERS = [
 
 SYSTEM_INSTRUCTION = """You are "Pulse", an AI portfolio analyst embedded in a personal Canadian investment dashboard.
 
-You have access to the user's live portfolio data — including individual holding prices and today's performance — along with today's intelligence briefing and, when relevant, live web search results.
+CRITICAL — DATA AUTHORITY:
+  The FULL HOLDINGS LIST provided in your context is the definitive, complete list of every position in this portfolio.
+  NEVER say a ticker is not held unless it is genuinely absent from that list.
+  If a holding shows "n/a" for live price it means the market is closed or data is delayed — the position still exists.
+  The list includes cost basis, unrealized/realized P&L, dividends, and weight for every position.
 
 YOUR ROLE:
-  ✓ Answer questions about this specific portfolio — holdings, P&L, daily winners/losers, account balances
-  ✓ Explain what's happening in the market and why it matters to these positions
+  ✓ Answer questions about any holding in the full list — price, daily gain/loss, cost basis, total P&L, account
+  ✓ Calculate daily dollar gains: shares × live price × day% (or use the live price data directly)
+  ✓ Explain what's happening in the market and why it matters to these specific positions
   ✓ Summarise news, themes, and sector moves in portfolio context
   ✓ Help understand account structures (TFSA, FHSA, RRSP, non-reg) and Canadian tax rules
-  ✓ Use web search results when provided to answer questions about external market events
+  ✓ Use web search results when provided to answer questions about current market events
 
 STRICT LIMITS:
   ✗ Never predict specific future prices or guaranteed returns
   ✗ Never recommend selling core positions (especially NVDA, FNGU, SPXL)
-  ✗ Never claim data you don't have — say so if you're unsure
-  ✗ Only mention consulting a financial professional if the user is explicitly asking for personalised investment advice on a major decision
+  ✗ Only mention consulting a financial professional if the user is explicitly asking for personalised advice on a major decision
 
 STYLE:
   - Concise: 2–4 paragraphs unless a detailed breakdown is requested
   - Canadian context: CAD amounts, CRA rules, registered account nuances
-  - Reference specific tickers and dollar amounts from the provided context
+  - Reference specific tickers and dollar amounts from the provided data
   - Be direct and analytical, not vague and hedged
   - Never add a regulatory disclaimer to routine portfolio or market questions"""
 
@@ -83,54 +87,69 @@ def should_search(message: str) -> bool:
 
 
 def build_holdings_context(holdings_list: list, holdings_prices: dict) -> str:
-    """Build a per-holding table. ALL holdings are included — live price shown
-    where available, 'n/a' where market data is missing (e.g. Canadian close)."""
+    """Build complete per-holding table with live prices + static P&L data.
+    ALL positions are always included — live price shown where available."""
     if not holdings_list:
         return ""
 
-    live_rows = []
-    no_price_rows = []
+    live_rows, no_price_rows = [], []
 
     for h in holdings_list:
         ticker = h.get("ticker", "")
         if ticker.startswith("_CASH"):
             continue
-        p       = holdings_prices.get(ticker) or {}
-        price   = p.get("price")
-        day_pct = p.get("change_pct")
-        shares  = h.get("shares", 0)
-        ccy     = h.get("ccy", "USD")
+        p         = holdings_prices.get(ticker) or {}
+        price     = p.get("price")
+        day_pct   = p.get("change_pct")
+        day_chg   = p.get("change")
+        shares    = h.get("shares", 0)
+        ccy       = h.get("ccy", "USD")
         row = {
-            "ticker":  ticker,
-            "name":    h.get("name", ""),
-            "account": h.get("account", ""),
-            "shares":  shares,
-            "ccy":     ccy,
-            "price":   price,
-            "day_pct": day_pct if day_pct is not None else None,
+            "ticker":     ticker,
+            "name":       h.get("name", ""),
+            "account":    h.get("account", ""),
+            "shares":     shares,
+            "ccy":        ccy,
+            "price":      price,
+            "day_pct":    day_pct,
+            "day_chg":    day_chg,
+            "cost_total": h.get("cost_total", 0),
+            "unrealized": h.get("unrealized", 0),
+            "realized":   h.get("realized", 0),
+            "dividends":  h.get("dividends", 0),
+            "pct_return": h.get("pct_return", 0),
+            "weight":     h.get("weight", 0),
         }
         if price is not None:
             live_rows.append(row)
         else:
             no_price_rows.append(row)
 
-    # Sort live rows best → worst; no-price rows alphabetically
     live_rows.sort(key=lambda x: x["day_pct"] if x["day_pct"] is not None else 0.0, reverse=True)
     no_price_rows.sort(key=lambda x: x["ticker"])
+    all_rows = live_rows + no_price_rows
 
-    lines = ["", "FULL HOLDINGS LIST (all positions):"]
-    lines.append(f"  {'TICKER':<8}  {'ACCOUNT':<12}  {'SHARES':>6}  {'PRICE':>9}  {'DAY %':>7}")
-    lines.append("  " + "-" * 54)
+    lines = ["", "FULL HOLDINGS LIST — ALL POSITIONS (live price where available):"]
+    lines.append(
+        f"  {'TICKER':<8}  {'NAME':<20}  {'ACCT':<10}  {'SHS':>5}  "
+        f"{'PRICE':>10}  {'DAY%':>6}  {'DAY $':>7}  {'COST':>8}  {'UNREAL':>8}  {'RTN%':>6}"
+    )
+    lines.append("  " + "-" * 110)
 
-    for r in live_rows + no_price_rows:
+    for r in all_rows:
         if r["price"] is not None:
-            pct_str = (("+" if r["day_pct"] >= 0 else "") + f"{r['day_pct']:.2f}%") if r["day_pct"] is not None else "  n/a"
-            price_str = f"${r['price']:>8.2f} {r['ccy']}"
+            price_s = f"${r['price']:.2f}{r['ccy']}"
+            pct_s   = (("+" if r["day_pct"] >= 0 else "") + f"{r['day_pct']:.2f}%") if r["day_pct"] is not None else "n/a"
+            chg_s   = (("+" if (r["day_chg"] or 0) >= 0 else "") + f"${abs(r['day_chg'] or 0):.0f}") if r["day_chg"] is not None else "n/a"
         else:
-            pct_str   = "  n/a"
-            price_str = f"{'n/a':>12}"
+            price_s = "n/a"
+            pct_s   = "n/a"
+            chg_s   = "n/a"
+
         lines.append(
-            f"  {r['ticker']:<8}  {r['account']:<12}  {r['shares']:>6}  {price_str}  {pct_str}"
+            f"  {r['ticker']:<8}  {r['name'][:20]:<20}  {r['account']:<10}  {r['shares']:>5}  "
+            f"  {price_s:>10}  {pct_s:>6}  {chg_s:>7}  "
+            f"${r['cost_total']:>7,.0f}  ${r['unrealized']:>7,.0f}  {r['pct_return']:>5.1f}%"
         )
 
     return "\n".join(lines)
@@ -165,14 +184,20 @@ class handler(BaseHTTPRequestHandler):
             return self._error(503, "AI service unavailable — GROQ_API_KEY not configured")
 
         try:
-            # ── 1. Build portfolio context ────────────────────────────
-            ctx_lines = [f"[Session context — {intelligence.get('generated_date', 'today')}]"]
+            # ── 1. Build context — holdings first so model sees full list ──
+            ctx_lines = [f"[Dashboard context — {intelligence.get('generated_date', 'today')}]"]
 
+            # Full holdings table is the FIRST thing the model sees
+            holdings_ctx = build_holdings_context(holdings_list, holdings_prices)
+            if holdings_ctx:
+                ctx_lines.append(holdings_ctx)
+
+            # Portfolio-level totals
             if portfolio:
                 pf = portfolio
                 ctx_lines += [
                     "",
-                    "LIVE PORTFOLIO SNAPSHOT:",
+                    "PORTFOLIO TOTALS (live):",
                     f"  Total Value:  CAD ${pf.get('total_value', 0):,.0f}",
                     f"  Total P&L:    CAD ${pf.get('total_pnl', 0):,.0f}  ({pf.get('roi_pct', 0):.2f}% ROI)",
                     f"  Daily Δ:      CAD ${pf.get('daily_change', 0):,.0f}  ({pf.get('daily_change_pct', 0):.2f}%)",
@@ -182,20 +207,16 @@ class handler(BaseHTTPRequestHandler):
                     f"  Accounts:     {json.dumps(pf.get('accounts', {}))}",
                 ]
 
-            # Per-holding performance table
-            holdings_ctx = build_holdings_context(holdings_list, holdings_prices)
-            if holdings_ctx:
-                ctx_lines.append(holdings_ctx)
-
+            # Intelligence briefing (supplementary market context)
             if intelligence:
-                mood     = intelligence.get("market_mood", "—")
-                themes   = [t.get("title", "") for t in intelligence.get("macro", [])[:3]]
-                outlook  = intelligence.get("daily_outlook", "")
+                mood      = intelligence.get("market_mood", "—")
+                themes    = [t.get("title", "") for t in intelligence.get("macro", [])[:3]]
+                outlook   = intelligence.get("daily_outlook", "")
                 strengths = "; ".join(s.get("text", "") for s in intelligence.get("strengths", [])[:3])
                 concerns  = "; ".join(c.get("text", "") for c in intelligence.get("concerns", [])[:3])
                 ctx_lines += [
                     "",
-                    "TODAY'S INTELLIGENCE BRIEFING:",
+                    "TODAY'S INTELLIGENCE BRIEFING (market context — not the source of holdings data):",
                     f"  Market Mood:  {mood}",
                     f"  Top Themes:   {' | '.join(themes)}",
                     f"  Outlook:      {outlook}",
@@ -210,7 +231,7 @@ class handler(BaseHTTPRequestHandler):
                 if search_results:
                     ctx_lines += [
                         "",
-                        "WEB SEARCH RESULTS (use to answer questions about current events):",
+                        "WEB SEARCH RESULTS:",
                         search_results,
                     ]
 
@@ -220,7 +241,7 @@ class handler(BaseHTTPRequestHandler):
             messages = [
                 {"role": "system",    "content": SYSTEM_INSTRUCTION},
                 {"role": "user",      "content": ctx_text},
-                {"role": "assistant", "content": "Understood — I have the live portfolio data, individual holding performance, and today's briefing. Ready to help."},
+                {"role": "assistant", "content": "Understood — I have the complete holdings list with cost basis and live prices, portfolio totals, and today's market briefing. Ready to help."},
             ]
             for turn in history:
                 role = "user" if turn.get("role") == "user" else "assistant"

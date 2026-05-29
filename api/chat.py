@@ -610,26 +610,50 @@ def build_system_prompt(
 
     acct_lines = " | ".join(f"{a}:${v:,.0f}" for a, v in sorted(account_totals.items()))
 
-    # Positions table: ticker, account, shares, market value, today's % change, total return
-    # Include enough info so the model can answer basic questions without a tool call
+    # USD/CAD rate for conversions
+    usdcad = _safe_float((holdings_prices.get("USDCAD=X") or {}).get("price")) or 1.37
+
+    def _cad(val, ccy, rate=None):
+        """Convert native-currency value to CAD."""
+        return val * (rate or usdcad) if ccy == "USD" else val
+
+    # Full positions table — every column the holdings table shows, in CAD
     sorted_holdings = sorted(holdings_list, key=lambda x: -(x.get("weight") or 0))
     pos_lines = []
-    for h in sorted_holdings[:25]:
-        ticker = h.get("ticker", "")
-        pd     = holdings_prices.get(ticker) or {}
-        price  = pd.get("price")
-        shares = h.get("shares", 0)
-        cost   = h.get("cost_total", 0)
-        unreal = h.get("unrealized", 0)
-        mkt    = (price * shares) if (price and shares) else (cost + unreal)
-        daily  = pd.get("change_pct")
-        total  = h.get("pct_return", 0)
-        daily_str = f"{daily:+.1f}%today" if daily is not None else "n/a today"
+    for h in sorted_holdings:
+        ticker    = h.get("ticker", "")
+        pd_       = holdings_prices.get(ticker) or {}
+        price     = pd_.get("price")
+        shares    = h.get("shares", 0)
+        ccy       = h.get("ccy", "USD")
+        book_rate = h.get("book_rate") or (usdcad if ccy == "USD" else 1.0)
+        cost      = h.get("cost_total", 0)
+        unreal    = h.get("unrealized", 0)
+        realized  = h.get("realized", 0)
+        divs      = h.get("dividends", 0)
+        total_pnl = h.get("total_pnl", 0)
+        pct_ret   = h.get("pct_return", 0)
+
+        # Market value in CAD
+        mkt_cad   = _cad(price * shares, ccy) if (price and shares) else _cad(cost + unreal, ccy)
+        # Cost (book value) in CAD — use purchase FX rate
+        cost_cad  = cost * book_rate if ccy == "USD" else cost
+        # Unrealized gain in CAD
+        unreal_cad = _cad(unreal, ccy)
+        # Today's change in CAD
+        chg       = pd_.get("change")
+        chg_pct   = pd_.get("change_pct")
+        daily_cad = _cad(chg * shares, ccy) if chg is not None else None
+        daily_str = (f"{daily_cad:+,.0f} ({chg_pct:+.1f}%)" if daily_cad is not None else "—")
+        # Total P&L in CAD (unrealized + realized gains, no dividends)
+        total_cad = _cad(total_pnl, ccy)
+
         pos_lines.append(
-            f"  {ticker:<8} {h.get('account',''):<11} {shares:>5}sh  ${mkt:>8,.0f}  {daily_str:<12}  {total:+.0f}%total"
+            f"  {ticker:<8} {h.get('account',''):<11} {shares:>5}sh | "
+            f"cost ${cost_cad:>8,.0f} | mkt ${mkt_cad:>8,.0f} | "
+            f"unreal {unreal_cad:>+8,.0f} | today {daily_str} | "
+            f"total P&L {total_cad:>+8,.0f} ({pct_ret:+.0f}%)"
         )
-    if len(sorted_holdings) > 25:
-        pos_lines.append(f"  (+{len(sorted_holdings)-25} more — call get_portfolio_data for full list)")
     positions_block = "\n".join(pos_lines)
 
     # Intelligence context
@@ -655,7 +679,7 @@ PORTFOLIO: ${total_value:,.0f} total | P&L ${total_pnl:+,.0f} ({overall_return:.
 Accounts: {acct_lines}
 Dividend payers: {', '.join(dividend_payers[:10]) if dividend_payers else 'none'}
 
-POSITIONS (ticker | account | shares | market value | today's change | total return):
+POSITIONS (all values in CAD | cols: ticker · account · shares · cost · mkt value · unrealized gain · today's $ change · total P&L):
 {positions_block}{intel_block}
 
 TAX: TFSA/FHSA=tax-free | RRSP=full withdrawal taxed as income | Investment=50% cap gains inclusion

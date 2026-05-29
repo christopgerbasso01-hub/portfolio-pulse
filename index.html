@@ -143,6 +143,8 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .holdings-table tr[data-closed="true"] td{opacity:.45}
 .holdings-table tr[data-closed="true"]:hover td{background:rgba(100,116,139,.05);opacity:.7}
 .holdings-table tr[data-closed="true"] .mono{text-decoration:none}
+.holdings-table tfoot td{padding:8px;border-top:2px solid var(--blue-bright);background:rgba(96,165,250,.07);font-family:var(--mono);font-size:12px;font-weight:600;white-space:nowrap;color:var(--text)}
+.holdings-table tfoot tr:hover td{background:rgba(96,165,250,.07)}
 
 .bm-bar-wrap{margin-bottom:12px}
 .bm-bar-label{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px}
@@ -695,6 +697,22 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
         </tr>
       </thead>
       <tbody id="holdingsBody"></tbody>
+      <tfoot id="holdingsFoot">
+        <tr>
+          <td colspan="4" style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Subtotal</td>
+          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3)">—</td>
+          <td id="stMv">—</td>
+          <td id="stCb">—</td>
+          <td id="stUnreal">—</td>
+          <td id="stDiv">—</td>
+          <td id="stReal">—</td>
+          <td id="stPnl">—</td>
+          <td style="color:var(--text3)">—</td>
+        </tr>
+      </tfoot>
     </table>
   </div>
 </div>
@@ -1357,7 +1375,7 @@ function renderHoldingsTable(liveData) {
     const pnlColor     = totalPnlCAD   >= 0 ? 'green' : 'red';
     const pnlAttr      = totalPnlCAD   >= 0 ? 'gain'  : 'loss';
 
-    return `<tr data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}">
+    return `<tr data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-mv="${mktVal.toFixed(2)}" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="${unrealizedCAD.toFixed(2)}" data-div="${divCAD.toFixed(2)}" data-real="${realizedCAD.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
       <td class="mono blue">${h.ticker}</td>
       <td class="text2">${h.name}</td>
       <td><span class="badge ${acctBadge}">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
@@ -1386,7 +1404,7 @@ function renderHoldingsTable(liveData) {
     const divTotal = h.dividends || 0;
     const divCAD   = divTotal * (h.ccy === 'USD' ? fxRate : 1);
     const acctBadge = acctBadgeClass(h.account);
-    return `<tr data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-closed="true">
+    return `<tr data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-closed="true" data-mv="0" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="0" data-div="${divCAD.toFixed(2)}" data-real="${pnlCAD.toFixed(2)}" data-pnlval="${pnlCAD.toFixed(2)}">
       <td class="mono text3">${h.ticker}</td>
       <td class="text3 small">${h.name}</td>
       <td><span class="badge badge-closed">CLOSED</span><span class="mono" style="font-size:9px;color:var(--text3);margin-left:4px">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
@@ -1439,6 +1457,7 @@ function filterTable() {
     r.style.display = show ? '' : 'none';
   });
   updateRowCount();
+  updateSubtotals();
 }
 
 function clearFilters() {
@@ -1467,6 +1486,36 @@ function updateRowCount() {
     text += ` + ${closedVisible} / ${closedTotal} closed`;
   }
   document.getElementById('rowCount').textContent = text;
+}
+
+function updateSubtotals() {
+  const rows = document.querySelectorAll('#holdingsBody tr');
+  let mv = 0, cb = 0, unreal = 0, div = 0, real = 0, pnl = 0, count = 0;
+  rows.forEach(r => {
+    if (r.style.display === 'none') return;
+    mv    += parseFloat(r.dataset.mv     || 0);
+    cb    += parseFloat(r.dataset.cb     || 0);
+    unreal+= parseFloat(r.dataset.unreal || 0);
+    div   += parseFloat(r.dataset.div    || 0);
+    real  += parseFloat(r.dataset.real   || 0);
+    pnl   += parseFloat(r.dataset.pnlval || 0);
+    count++;
+  });
+
+  const setCell = (id, val, neutral) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (count === 0) { el.textContent = '—'; el.className = 'mono text3'; return; }
+    el.textContent = fmt$(Math.round(val));
+    el.className = neutral ? 'mono text2' : `mono ${colorClass(val)}`;
+  };
+
+  setCell('stMv',     mv,     true);
+  setCell('stCb',     cb,     true);
+  setCell('stUnreal', unreal, false);
+  setCell('stDiv',    div,    true);
+  setCell('stReal',   real,   false);
+  setCell('stPnl',    pnl,    false);
 }
 
 function sortTable(col) {

@@ -361,21 +361,54 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   #intelBanner                    { display: none !important; }
   .footer                         { margin-bottom: 8px; }
 
-  /* ── Holdings table: show only key columns ────────────────────────────── */
-  /* Visible: Ticker(1) Account(3) Day%(7) Mkt Value(9) Total P/L(14)       */
-  /* Hidden : Name(2) Sector(4) Shares(5) Price(6) Day$(8) Cost(10)         */
-  /*          Unrealized(11) Divs(12) Realized(13) Weight%(15)              */
+  /* ── Charts on mobile ────────────────────────────────────────────────── */
+  /* Line/area charts: reduce height */
+  .chart-container { height: 180px; }
+  #roiChart, #portfolioValueChart { height: 170px !important; }
+  #contribChart { height: 160px !important; }
+  /* Doughnut charts: square aspect ratio so they stay circular */
+  .chart-container:has(#acctChart),
+  .chart-container:has(#sectorChart),
+  .chart-container:has(#geoChart),
+  .chart-container:has(#assetChart) {
+    height: auto !important;
+    aspect-ratio: 1.3;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  /* ── Floating chat FAB: hide on mobile (Chat is in tab bar) ──────────── */
+  .chat-fab { display: none !important; }
+
+  /* ── LOG TRADE: icon-only compact button on mobile ───────────────────── */
+  .tx-fab {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    font-size: 0 !important;   /* hide text */
+  }
+  .tx-fab::before {
+    content: '＋';
+    font-size: 22px;
+    color: #fff;
+  }
+
+  /* ── Holdings table: Ticker(1) Day%(7) Day$(8) Total P/L(14) Return%(16) */
+  /* Hidden: Name(2) Account(3) Sector(4) Shares(5) Price(6) MktVal(9)      */
+  /*         Cost(10) Unrealized(11) Divs(12) Realized(13) Weight%(15)      */
   .holdings-table th:nth-child(2),  .holdings-table td:nth-child(2),
+  .holdings-table th:nth-child(3),  .holdings-table td:nth-child(3),
   .holdings-table th:nth-child(4),  .holdings-table td:nth-child(4),
   .holdings-table th:nth-child(5),  .holdings-table td:nth-child(5),
   .holdings-table th:nth-child(6),  .holdings-table td:nth-child(6),
-  .holdings-table th:nth-child(8),  .holdings-table td:nth-child(8),
+  .holdings-table th:nth-child(9),  .holdings-table td:nth-child(9),
   .holdings-table th:nth-child(10), .holdings-table td:nth-child(10),
   .holdings-table th:nth-child(11), .holdings-table td:nth-child(11),
   .holdings-table th:nth-child(12), .holdings-table td:nth-child(12),
   .holdings-table th:nth-child(13), .holdings-table td:nth-child(13),
   .holdings-table th:nth-child(15), .holdings-table td:nth-child(15) { display: none; }
-  .holdings-table { min-width: 0; font-size: 11px; }
+  .holdings-table { min-width: 0; font-size: 12px; }
   .holdings-table tfoot { display: none; }
 }
 
@@ -967,6 +1000,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <th onclick="sortTable(12)">Realized ↕</th>
           <th onclick="sortTable(13)">Total P/L ↕</th>
           <th onclick="sortTable(14)">Weight% ↕</th>
+          <th onclick="sortTable(15)">Return % ↕</th>
         </tr>
       </thead>
       <tbody id="holdingsBody"></tbody>
@@ -983,6 +1017,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <td id="stDiv">—</td>
           <td id="stReal">—</td>
           <td id="stPnl">—</td>
+          <td style="color:var(--text3)">—</td>
           <td style="color:var(--text3)">—</td>
         </tr>
       </tfoot>
@@ -1944,6 +1979,7 @@ function renderHoldingsTable(liveData) {
       <td class="mono small ${realColor}">${realizedCAD !== 0 ? fmt$(realizedCAD) : '—'}</td>
       <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+      <td class="mono ${pnlColor}">${h.pct_return != null ? (h.pct_return >= 0 ? '+' : '') + h.pct_return.toFixed(1) + '%' : '—'}</td>
     </tr>`;
   }).join('');
 
@@ -1973,6 +2009,7 @@ function renderHoldingsTable(liveData) {
       <td class="mono small ${pnlCAD >= 0 ? 'green' : 'red'}">${pnlCAD !== 0 ? fmt$(pnlCAD) : '—'}</td>
       <td class="mono ${pnlColor}">${(pnlCAD >= 0 ? '+' : '') + fmt$(pnlCAD)}</td>
       <td class="mono text3">—</td>
+      <td class="mono ${pnlColor}">${h.pct_return != null ? (h.pct_return >= 0 ? '+' : '') + h.pct_return.toFixed(1) + '%' : '—'}</td>
     </tr>`;
   }).join('');
 
@@ -1999,6 +2036,7 @@ function renderHoldingsTable(liveData) {
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.4"></div></div></td>
+      <td class="mono text3">—</td>
     </tr>`;
   }).join('');
 
@@ -2225,6 +2263,70 @@ let currentFilter = 'all';
 const roiByAcct = { all: dataAllTime, tfsa: dataTFSAd, inv: dataInvd, fhsa: dataFHSAd, rrsp: dataRRSPd };
 const acctColors = { all: '#3b82f6', tfsa: '#10b981', inv: '#94a3b8', fhsa: '#a78bfa', rrsp: '#fbbf24' };
 const acctLabels = { all: 'All Accounts', tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' };
+
+// ============================================================
+// KV SNAPSHOT → CHART MERGE
+// Fetches daily portfolio snapshots stored by the nightly cron job
+// and appends them to the portfolio value + ROI charts so they stay
+// current without manual code updates.
+// ============================================================
+async function mergeKvChartData() {
+  try {
+    const r = await fetch('/api/snapshot');
+    if (!r.ok) return;
+    const data = await r.json();
+    const pts = data.chart_points || [];
+    if (!pts.length) return;
+
+    // The static data ends at "2026-05" (monthly labels).
+    // KV data uses "YYYY-MM-DD" daily labels — just append after last static point.
+    const existingMvLabels = new Set(portfolioValueChart.data.labels);
+    const existingRoiLabels = new Set(roiChart.data.labels.map ? roiChart.data.labels : []);
+
+    let addedMv = 0, addedRoi = 0;
+    pts.forEach(pt => {
+      if (!pt.date) return;
+      // Skip if a point for this day (or its month) already exists in static data
+      const monthKey = pt.date.slice(0, 7);      // "2026-05"
+      if (existingMvLabels.has(monthKey)) {
+        // Replace the monthly point with the more-recent daily value
+        const idx = portfolioValueChart.data.labels.indexOf(monthKey);
+        if (idx >= 0 && pt.total_value) {
+          portfolioValueChart.data.datasets[0].data[idx] = pt.total_value;
+          addedMv++;
+        }
+        return;
+      }
+      if (existingMvLabels.has(pt.date)) return;   // already added
+
+      // Append new daily point to portfolio value chart
+      if (pt.total_value) {
+        portfolioValueChart.data.labels.push(pt.date);
+        portfolioValueChart.data.datasets[0].data.push(pt.total_value);
+        // Contributions line: hold last known value (no new contributions assumed)
+        const lastC = portfolioValueChart.data.datasets[1].data.slice(-1)[0] || 0;
+        portfolioValueChart.data.datasets[1].data.push(lastC);
+        existingMvLabels.add(pt.date);
+        addedMv++;
+      }
+
+      // Append to ROI chart (all-accounts dataset, index 0)
+      if (pt.roi_pct != null && !existingRoiLabels.has(pt.date)) {
+        roiChart.data.labels.push(pt.date);
+        roiChart.data.datasets.forEach(ds => ds.data.push(null));  // null for per-account lines
+        roiChart.data.datasets[0].data[roiChart.data.datasets[0].data.length - 1] = pt.roi_pct;
+        existingRoiLabels.add(pt.date);
+        addedRoi++;
+      }
+    });
+
+    if (addedMv > 0) portfolioValueChart.update('none');
+    if (addedRoi > 0) roiChart.update('none');
+    console.log(`[KV charts] merged ${addedMv} mv pts, ${addedRoi} roi pts`);
+  } catch (e) {
+    console.log('[KV charts] fetch failed:', e.message);
+  }
+}
 
 function initCharts() {
   // ROI Line
@@ -3232,6 +3334,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderHoldingsTable(null);
   updateRowCount();
   initCharts();
+  mergeKvChartData();   // append recent daily snapshots from KV
 
   document.getElementById('headerDate').textContent = `As of ${new Date().toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}`;
   document.getElementById('footerTimestamp').textContent = `Dashboard last loaded: ${new Date().toLocaleString('en-CA', { dateStyle: 'full', timeStyle: 'medium' })}`;
@@ -3928,6 +4031,10 @@ function renderTxHistory() {
     <span class="tab-icon">🎙️</span>
     <span>Podcast</span>
   </button>
+  <button class="tab-btn" data-tab="chat" onclick="activateTab('chat')" aria-label="AI chat">
+    <span class="tab-icon">💬</span>
+    <span>Chat</span>
+  </button>
 </nav>
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 
@@ -3940,6 +4047,35 @@ function renderTxHistory() {
 
   window.activateTab = function (name) {
     if (!isMobile()) return;
+
+    // Chat tab: toggle the chat panel without changing section visibility
+    if (name === 'chat') {
+      var chatPanel = document.getElementById('chatPanel');
+      if (chatPanel) {
+        var isOpen = chatPanel.classList.contains('open');
+        if (!isOpen) {
+          chatPanel.classList.add('open');
+          chatPanel.style.display = 'flex';
+          var inp = document.getElementById('chatInput');
+          if (inp) setTimeout(function () { inp.focus(); }, 50);
+        } else {
+          chatPanel.classList.remove('open');
+          chatPanel.style.display = 'none';
+        }
+      }
+      // Mark chat tab active/inactive but don't change sections
+      document.querySelectorAll('.tab-btn').forEach(function (btn) {
+        btn.classList.toggle('active', btn.dataset.tab === 'chat' && chatPanel && chatPanel.classList.contains('open'));
+      });
+      return;
+    }
+
+    // Close chat panel if switching away
+    var chatPanel = document.getElementById('chatPanel');
+    if (chatPanel && chatPanel.classList.contains('open')) {
+      chatPanel.classList.remove('open');
+      chatPanel.style.display = 'none';
+    }
 
     // Update button active states
     document.querySelectorAll('.tab-btn').forEach(function (btn) {

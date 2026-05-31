@@ -180,16 +180,27 @@ class handler(BaseHTTPRequestHandler):
             self._respond(500, {"error": str(exc)})
 
     def do_GET(self):
-        """Return recent snapshots + weekly summary — used by podcast + notifications."""
-        if not self._auth():
-            return
+        """Return recent snapshots for charts — public, no auth required.
+        Returns up to 90 days of daily data for the portfolio value/ROI charts.
+        """
         try:
-            snaps   = get_recent_snapshots(days=8)
+            snaps   = get_recent_snapshots(days=90)
             summary = compute_weekly_summary(snaps)
+            # Compact chart-ready array sorted oldest→newest
+            chart_points = [
+                {
+                    "date":         d,
+                    "total_value":  snaps[d].get("total_value"),
+                    "roi_pct":      snaps[d].get("roi_pct"),
+                    "daily_change": snaps[d].get("daily_change"),
+                }
+                for d in sorted(snaps.keys())
+            ]
             self._respond(200, {
                 "snapshots":      snaps,
                 "count":          len(snaps),
                 "weekly_summary": summary,
+                "chart_points":   chart_points,
             })
         except Exception as exc:
             print(f"  [snapshot] GET error: {exc}")

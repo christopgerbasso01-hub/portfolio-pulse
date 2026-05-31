@@ -78,6 +78,20 @@ def get_subs() -> list:
     return kv_get("push:subs") or []
 
 
+KEY_HISTORY = "notify:history"
+MAX_HISTORY = 15
+
+def _append_history(notifs: list, timestamp: str):
+    try:
+        history   = kv_get(KEY_HISTORY) or []
+        new_items = [{"title": n["title"], "body": n.get("body", ""),
+                      "tag": n.get("tag", ""), "timestamp": timestamp}
+                     for n in notifs]
+        kv_set(KEY_HISTORY, (new_items + history)[:MAX_HISTORY], ttl=365 * 86400)
+    except Exception as exc:
+        print(f"  [intraday] history write error: {exc}")
+
+
 def get_fired(date_str: str) -> list:
     return kv_get(f"notify:intraday:{date_str}") or []
 
@@ -200,9 +214,29 @@ def check_alerts(today_str: str, holdings: dict, subs: list) -> list:
             newly_fired.append(alert_id)
             print(f"  [intraday] index drop: {', '.join(down_indices)}")
 
-    # Persist updated dedup list
+    # Persist dedup list and history
     if newly_fired:
         mark_fired(today_str, fired_today + newly_fired)
+        # Collect payloads that fired for history storage
+        fired_payloads = []
+        for fid in newly_fired:
+            if fid.startswith("crash_"):
+                t = fid[6:]
+                d = holdings.get(t, {})
+                fired_payloads.append({"title": f"📉 {t} Crash",
+                    "body": f"{t} down {d.get('change_pct',0):+.1f}% today · ${d.get('price',0):.2f}",
+                    "tag": f"stock-crash-{t}"})
+            elif fid.startswith("spike_"):
+                t = fid[6:]
+                d = holdings.get(t, {})
+                fired_payloads.append({"title": f"🚀 {t} Spiking!",
+                    "body": f"{t} up {d.get('change_pct',0):+.1f}% today · ${d.get('price',0):.2f}",
+                    "tag": f"stock-spike-{t}"})
+            elif fid == "index_drop":
+                fired_payloads.append({"title": "⚠️ Market Selloff",
+                    "body": "Major index(es) down >2%", "tag": "index-drop"})
+        if fired_payloads:
+            _append_history(fired_payloads, datetime.now(timezone.utc).isoformat())
 
     return newly_fired
 

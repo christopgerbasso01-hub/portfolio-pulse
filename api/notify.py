@@ -88,6 +88,21 @@ def get_subs() -> list:
     return kv_get("push:subs") or []
 
 
+KEY_HISTORY  = "notify:history"
+MAX_HISTORY  = 15
+
+def _append_history(notifs: list, timestamp: str):
+    """Prepend fired notifications to the shared history list (max 15)."""
+    try:
+        history   = kv_get(KEY_HISTORY) or []
+        new_items = [{"title": n["title"], "body": n.get("body", ""),
+                      "tag": n.get("tag", ""), "timestamp": timestamp}
+                     for n in notifs]
+        kv_set(KEY_HISTORY, (new_items + history)[:MAX_HISTORY], ttl=365 * 86400)
+    except Exception as exc:
+        print(f"  [notify] history write error: {exc}")
+
+
 def get_snapshot(date_str: str):
     return kv_get(f"snapshot:{date_str}")
 
@@ -343,6 +358,7 @@ class handler(BaseHTTPRequestHandler):
 
             notifs  = build_notifications(snap, now, week_snap, prev_month_snap)
             results = broadcast(notifs, subs)
+            _append_history(notifs, now.isoformat())
 
             print(f"  [notify] {today_str} — {len(notifs)} notif(s), "
                   f"sent={results['sent']} failed={results['failed']}")

@@ -113,10 +113,11 @@ class handler(BaseHTTPRequestHandler):
             self._respond(500, {"error": str(exc)})
 
     def do_GET(self):
-        """Return subscription count — used by frontend to sync bell state."""
+        """Return subscription count + notification history for the panel."""
         try:
-            subs = get_subs()
-            self._respond(200, {"count": len(subs)})
+            subs    = get_subs()
+            history = kv_get("notify:history") or []
+            self._respond(200, {"count": len(subs), "history": history})
         except Exception as exc:
             self._respond(500, {"error": str(exc)})
 

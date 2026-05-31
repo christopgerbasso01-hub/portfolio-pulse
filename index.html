@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Portfolio Pulse — Live Dashboard</title>
 
 <!-- ═══ PWA ═══════════════════════════════════════════════════════════════ -->
@@ -36,7 +36,7 @@
   --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;position:relative}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;position:relative;touch-action:manipulation}
 body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(59,130,246,0.03) 39px,rgba(59,130,246,0.03) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(59,130,246,0.03) 39px,rgba(59,130,246,0.03) 40px);pointer-events:none;z-index:0}
 
 /* ============================  LIVE BAR  ============================ */
@@ -587,6 +587,40 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .tx-item-desc{flex:1;color:var(--text2)}
 .tx-del{background:none;border:none;color:var(--text3);cursor:pointer;padding:2px 5px;font-size:12px;border-radius:3px;transition:all .15s}
 .tx-del:hover{color:#f87171;background:rgba(239,68,68,.1)}
+
+/* ── Notification Panel ──────────────────────────────────────────────────── */
+.notif-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;opacity:0;pointer-events:none;transition:opacity .25s}
+.notif-overlay.active{opacity:1;pointer-events:all}
+.notif-panel{display:none;position:fixed;left:50%;bottom:0;width:min(440px,100%);max-height:75vh;transform:translateX(-50%) translateY(24px);opacity:0;background:#0d1f35;border:1px solid var(--border);border-bottom:none;border-radius:16px 16px 0 0;z-index:10001;flex-direction:column;transition:transform .28s cubic-bezier(.32,.72,0,1),opacity .22s ease;overflow:hidden}
+.notif-panel.open{transform:translateX(-50%) translateY(0);opacity:1}
+@media(max-width:768px){
+  .notif-panel{width:100%;border-radius:14px 14px 0 0;bottom:calc(62px + env(safe-area-inset-bottom,0px));max-height:calc(72vh - 62px - env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(40px)}
+}
+.notif-drag{padding:10px 0 4px;display:flex;justify-content:center;flex-shrink:0;cursor:pointer}
+.notif-drag-bar{width:36px;height:4px;background:var(--border);border-radius:2px}
+.notif-panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:2px 18px 12px;flex-shrink:0}
+.notif-panel-title{font-size:16px;font-weight:600;color:var(--text1);letter-spacing:.02em}
+.notif-close-btn{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px 6px;line-height:1;border-radius:4px;transition:color .15s}
+.notif-close-btn:hover{color:var(--text1)}
+.notif-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-shrink:0;gap:12px}
+.notif-toggle-label{font-size:14px;color:var(--text1);font-weight:500}
+.notif-toggle-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.notif-switch{position:relative;display:inline-block;width:44px;height:26px;flex-shrink:0;cursor:pointer}
+.notif-switch input{opacity:0;width:0;height:0;position:absolute}
+.notif-slider{position:absolute;inset:0;background:#1e3a5f;border-radius:26px;transition:background .2s}
+.notif-slider::before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.notif-switch input:checked + .notif-slider{background:#3b82f6}
+.notif-switch input:checked + .notif-slider::before{transform:translateX(18px)}
+.notif-switch input:disabled + .notif-slider{opacity:.4;cursor:not-allowed}
+.notif-list-label{padding:10px 18px 4px;font-size:10px;letter-spacing:.08em;color:var(--text3);font-family:var(--mono);text-transform:uppercase;flex-shrink:0}
+.notif-list{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.notif-item{padding:12px 18px}
+.notif-item+.notif-item{border-top:1px solid rgba(255,255,255,.05)}
+.notif-item-title{font-size:13px;font-weight:600;color:var(--text1);margin-bottom:3px}
+.notif-item-body{font-size:12px;color:var(--text2);line-height:1.5}
+.notif-item-time{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:4px}
+.notif-empty{padding:32px 18px;text-align:center;font-size:13px;color:var(--text3);line-height:1.7}
+.notif-loading{padding:24px 18px;font-size:12px;color:var(--text3);text-align:center}
 </style>
 </head>
 <body>
@@ -602,7 +636,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     <span id="usdcadRate" class="mono" style="font-size:11px">USD/CAD —</span>
     <span id="lastUpdated">—</span>
     <button class="refresh-btn" onclick="refreshAll()">↻ REFRESH</button>
-    <button class="notif-btn" id="notifBtn" onclick="toggleNotifications()" title="Enable notifications" aria-label="Toggle push notifications">🔕</button>
+    <button class="notif-btn" id="notifBtn" onclick="openNotifPanel()" title="Notifications" aria-label="Open notifications">🔕</button>
   </div>
 </div>
 
@@ -2311,6 +2345,9 @@ const chartOpts = (ylabel, format = 'pct') => ({
 // ============================================================
 // CHARTS INIT
 // ============================================================
+// Explicitly register the datalabels plugin (required for Chart.js 4.x)
+if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
+
 Chart.defaults.color = '#94a3b8';
 Chart.defaults.borderColor = '#1a2e4a';
 Chart.defaults.font.family = "'DM Sans', sans-serif";
@@ -3430,7 +3467,48 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================================
-// PUSH NOTIFICATIONS
+// PULL-TO-REFRESH
+// ============================================================
+(function() {
+  let startY = 0, pulling = false;
+  const THRESHOLD = 72;
+
+  const ind = document.createElement('div');
+  ind.id = 'pullIndicator';
+  ind.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;transform:translateX(-50%);background:#1e3a5f;color:#94a3b8;font-size:11px;font-family:var(--mono);padding:5px 14px;border-radius:20px;opacity:0;transition:opacity .15s;z-index:9997;pointer-events:none;white-space:nowrap';
+  ind.textContent = '↓  Pull to refresh';
+  document.body.appendChild(ind);
+
+  document.addEventListener('touchstart', e => {
+    if (window.scrollY <= 0) startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!startY) return;
+    const delta = e.touches[0].clientY - startY;
+    if (delta > 8) {
+      pulling = true;
+      const ratio = Math.min(delta / THRESHOLD, 1);
+      ind.style.opacity = ratio.toFixed(2);
+      ind.textContent   = delta >= THRESHOLD ? '↑  Release to refresh' : '↓  Pull to refresh';
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (pulling && parseFloat(ind.style.opacity) >= 0.99) {
+      ind.textContent   = '↻  Refreshing…';
+      ind.style.opacity = '1';
+      refreshAll();
+      setTimeout(() => { ind.style.opacity = '0'; ind.textContent = '↓  Pull to refresh'; }, 1200);
+    } else {
+      ind.style.opacity = '0';
+    }
+    pulling = false; startY = 0;
+  }, { passive: true });
+})();
+
+// ============================================================
+// PUSH NOTIFICATIONS + NOTIFICATION PANEL
 // ============================================================
 
 const VAPID_PUBLIC_KEY = 'BCia9iP8ENc18anoiVsDogZVoOQKFRI_zwG0Q2g6xYCJZkspcbIq--b-SPecUIt6hyKfbDEK4x_FT5We01PvJq4';
@@ -3444,16 +3522,13 @@ function _urlB64ToUint8(b64) {
 function _updateNotifBtn(subscribed) {
   const btn = document.getElementById('notifBtn');
   if (!btn) return;
-  btn.textContent  = subscribed ? '🔔' : '🔕';
-  btn.title        = subscribed ? 'Notifications on — tap to disable' : 'Enable daily close notifications';
+  btn.textContent = subscribed ? '🔔' : '🔕';
+  btn.title       = subscribed ? 'Notifications — tap to manage' : 'Notifications — tap to enable';
   btn.classList.toggle('active', subscribed);
 }
 
 async function checkNotifStatus() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    document.getElementById('notifBtn')?.style.setProperty('display', 'none');
-    return;
-  }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
@@ -3461,57 +3536,140 @@ async function checkNotifStatus() {
   } catch {}
 }
 
-async function toggleNotifications() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    alert('Push notifications are not supported in this browser.\nInstall the app on your iPhone home screen to enable them.');
-    return;
+// ── Panel open / close ────────────────────────────────────────────────────────
+
+async function openNotifPanel() {
+  const panel   = document.getElementById('notifPanel');
+  const btn     = document.getElementById('notifBtn');
+
+  // Desktop: position as a dropdown anchored to the bell button
+  if (window.innerWidth > 768) {
+    const rect = btn.getBoundingClientRect();
+    panel.style.left         = 'auto';
+    panel.style.bottom       = 'auto';
+    panel.style.right        = Math.max(8, window.innerWidth - rect.right) + 'px';
+    panel.style.top          = (rect.bottom + 6) + 'px';
+    panel.style.width        = '360px';
+    panel.style.maxHeight    = '70vh';
+    panel.style.borderRadius = '12px';
+    panel.style.transform    = 'none';   // disable the translateX(-50%) mobile shift
+  } else {
+    // Reset any desktop inline styles when switching to mobile orientation
+    panel.style.left = panel.style.right = panel.style.top =
+    panel.style.width = panel.style.maxHeight = panel.style.borderRadius =
+    panel.style.transform = '';
   }
 
-  const reg = await navigator.serviceWorker.ready;
-  const existing = await reg.pushManager.getSubscription();
+  panel.style.display = 'flex';
+  // Two rAF frames so the browser registers display:flex before animating opacity
+  requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.add('open')));
+  document.getElementById('notifOverlay').classList.add('active');
 
-  if (existing) {
-    // ── Unsubscribe ──
-    await existing.unsubscribe();
-    await fetch('/api/push', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: existing.endpoint }),
-    }).catch(() => {});
-    _updateNotifBtn(false);
-    return;
+  // Sync toggle state
+  const toggle   = document.getElementById('notifToggle');
+  const subLabel = document.getElementById('notifToggleSub');
+  const supported = 'serviceWorker' in navigator && 'PushManager' in window;
+
+  if (!supported) {
+    toggle.checked = false; toggle.disabled = true;
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    subLabel.textContent = isMobile ? 'Install app to home screen to enable' : 'Enable on your iPhone — history shown below';
+  } else if (Notification.permission === 'denied') {
+    toggle.checked = false; toggle.disabled = true;
+    subLabel.textContent = 'Blocked — enable in Settings → Safari';
+  } else {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      toggle.checked  = !!sub;
+      toggle.disabled = false;
+      subLabel.textContent = sub ? 'Receiving notifications' : 'Tap to enable';
+      toggle.onchange = () => handleNotifToggle(toggle);
+    } catch { toggle.disabled = true; subLabel.textContent = 'Unavailable'; }
   }
 
-  // ── Subscribe ──
-  if (Notification.permission === 'denied') {
-    alert('Notifications are blocked. Please enable them in:\nSettings → Safari → Notifications → Portfolio Pulse');
-    return;
-  }
-
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') return;
-
+  // Fetch history
+  document.getElementById('notifList').innerHTML = '<div class="notif-loading">Loading…</div>';
   try {
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: _urlB64ToUint8(VAPID_PUBLIC_KEY),
-    });
+    const r = await fetch('/api/push');
+    if (r.ok) { const d = await r.json(); renderNotifHistory(d.history || []); }
+    else renderNotifHistory([]);
+  } catch { renderNotifHistory([]); }
+}
 
-    const res = await fetch('/api/push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sub.toJSON()),
-    });
-
-    if (res.ok) {
-      _updateNotifBtn(true);
-    } else {
-      console.warn('[push] subscribe failed', res.status);
-      await sub.unsubscribe();
+function closeNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  panel.classList.remove('open');
+  document.getElementById('notifOverlay').classList.remove('active');
+  setTimeout(() => {
+    if (!panel.classList.contains('open')) {
+      panel.style.display = 'none';
+      // Clear any desktop inline positioning so next open recalculates
+      panel.style.left = panel.style.right = panel.style.top =
+      panel.style.bottom = panel.style.width = panel.style.maxHeight =
+      panel.style.borderRadius = panel.style.transform = '';
     }
-  } catch (err) {
-    console.error('[push] subscribe error', err);
+  }, 300);
+}
+
+// ── Toggle handler (inside panel) ────────────────────────────────────────────
+
+async function handleNotifToggle(checkbox) {
+  const subLabel = document.getElementById('notifToggleSub');
+  if (checkbox.checked) {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { checkbox.checked = false; return; }
+    const reg = await navigator.serviceWorker.ready;
+    try {
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _urlB64ToUint8(VAPID_PUBLIC_KEY),
+      });
+      const res = await fetch('/api/push', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub.toJSON()),
+      });
+      if (res.ok) {
+        subLabel.textContent = 'Receiving notifications';
+        _updateNotifBtn(true);
+      } else { checkbox.checked = false; await sub.unsubscribe(); }
+    } catch (e) { console.error('[push]', e); checkbox.checked = false; }
+  } else {
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      await existing.unsubscribe();
+      await fetch('/api/push', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: existing.endpoint }),
+      }).catch(() => {});
+    }
+    subLabel.textContent = 'Tap to enable';
+    _updateNotifBtn(false);
   }
+}
+
+// ── History renderer ──────────────────────────────────────────────────────────
+
+function renderNotifHistory(history) {
+  const list = document.getElementById('notifList');
+  if (!history.length) {
+    list.innerHTML = '<div class="notif-empty">No notifications yet.<br>You\'ll receive your first at market close today (5:30 PM ET).</div>';
+    return;
+  }
+  list.innerHTML = history.map(n => {
+    let timeStr = '';
+    try {
+      timeStr = new Date(n.timestamp).toLocaleString('en-CA', {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
+      });
+    } catch {}
+    return `<div class="notif-item">
+      <div class="notif-item-title">${n.title || ''}</div>
+      <div class="notif-item-body">${(n.body || '').replace(/\n/g, '<br>')}</div>
+      ${timeStr ? `<div class="notif-item-time">${timeStr}</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 // ============================================================
@@ -4252,15 +4410,42 @@ function renderTxHistory() {
 </script>
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 
+<!-- ═══ Notification Panel ═══════════════════════════════════════════════ -->
+<div class="notif-overlay" id="notifOverlay" onclick="closeNotifPanel()"></div>
+<div class="notif-panel" id="notifPanel" role="dialog" aria-modal="true" aria-label="Notifications">
+  <div class="notif-drag" onclick="closeNotifPanel()"><div class="notif-drag-bar"></div></div>
+  <div class="notif-panel-hdr">
+    <span class="notif-panel-title">Notifications</span>
+    <button class="notif-close-btn" onclick="closeNotifPanel()" aria-label="Close">✕</button>
+  </div>
+  <div class="notif-toggle-row">
+    <div>
+      <div class="notif-toggle-label">Daily push alerts</div>
+      <div class="notif-toggle-sub" id="notifToggleSub">Checking…</div>
+    </div>
+    <label class="notif-switch" aria-label="Toggle notifications">
+      <input type="checkbox" id="notifToggle">
+      <span class="notif-slider"></span>
+    </label>
+  </div>
+  <div class="notif-list-label">Recent</div>
+  <div class="notif-list" id="notifList"><div class="notif-loading">Loading…</div></div>
+</div>
+
 <!-- ═══ Service Worker Registration ═══════════════════════════════════════ -->
 <script>
 if ('serviceWorker' in navigator) {
+  // Auto-reload when a new service worker takes control (ensures fresh code after deploy)
+  let swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!swRefreshing) { swRefreshing = true; window.location.reload(); }
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(reg => {
         console.log('[PWA] Service worker registered, scope:', reg.scope);
-        // Check for updates every time the page loads
-        reg.update();
+        reg.update();   // Check for a newer SW on every load
       })
       .catch(err => console.warn('[PWA] Service worker registration failed:', err));
   });

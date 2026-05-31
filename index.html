@@ -18,10 +18,11 @@
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked@13/marked.min.js"></script>
+<!-- marked.js is lazy-loaded on first chat open — not needed for initial render -->
 <style>
 /* ============================  TOKENS  ============================ */
 :root{
@@ -238,6 +239,13 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .skeleton-line.h3{height:18px;width:60%}
 .skeleton-line.short{width:40%}
 .skeleton-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px}
+
+/* ============================  FLASH ANIMATIONS  ============================ */
+@keyframes flash-up{0%{background-color:rgba(16,185,129,.28)}100%{background-color:transparent}}
+@keyframes flash-dn{0%{background-color:rgba(239,68,68,.28)}100%{background-color:transparent}}
+td.flash-up,td.flash-dn,.mw-value.flash-up,.mw-value.flash-dn{animation-duration:.85s;animation-timing-function:ease-out;animation-fill-mode:forwards;border-radius:3px}
+td.flash-up,.mw-value.flash-up{animation-name:flash-up}
+td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 
 .ai-section-wrap{position:relative;transition:opacity .4s}
 .ai-section-wrap.loading{opacity:.6;pointer-events:none}
@@ -662,19 +670,19 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   <div class="header-kpis">
     <div class="hkpi">
       <div class="hkpi-label">Total Market Value</div>
-      <div class="hkpi-value blue" id="kpiTotalValue">$273,825</div>
+      <div class="hkpi-value blue skeleton" id="kpiTotalValue" style="min-height:20px;border-radius:4px"></div>
     </div>
     <div class="hkpi">
       <div class="hkpi-label">Total Contributions</div>
-      <div class="hkpi-value" id="kpiContributions">$149,632</div>
+      <div class="hkpi-value skeleton" id="kpiContributions" style="min-height:20px;border-radius:4px"></div>
     </div>
     <div class="hkpi">
       <div class="hkpi-label">Total P&amp;L</div>
-      <div class="hkpi-value green" id="kpiTotalPnl">$124,193</div>
+      <div class="hkpi-value green skeleton" id="kpiTotalPnl" style="min-height:20px;border-radius:4px"></div>
     </div>
     <div class="hkpi">
       <div class="hkpi-label">Total ROI</div>
-      <div class="hkpi-value green" id="kpiRoi">+83.00%</div>
+      <div class="hkpi-value green skeleton" id="kpiRoi" style="min-height:20px;border-radius:4px"></div>
     </div>
     <div class="hkpi">
       <div class="hkpi-label">Daily Change</div>
@@ -1434,6 +1442,13 @@ const CONTRIB_TOTAL         = () => Object.values(CONTRIB_STATE).reduce((a, b) =
 let _lastLiveData  = null;
 let _liveUsdcad    = 1.37;
 
+// Previous benchmark prices — used for market widget flash animations
+let _prevBenchmarks = {};
+
+// AbortController for in-flight market data fetch — cancels stale requests
+let _activeCtrl = null;
+let _ctrlTimer  = null;
+
 const TICKER_NAMES = {};
 HOLDINGS_STATIC.forEach(h => { TICKER_NAMES[h.ticker] = h.name; });
 
@@ -1516,12 +1531,21 @@ function updateMarketWidget(benchmarks) {
   pairs.forEach(([valId, chgId, key]) => {
     const d = benchmarks[key];
     if (!d) return;
-    const el = document.getElementById(valId);
+    const el    = document.getElementById(valId);
     const chgEl = document.getElementById(chgId);
     if (el) {
-      if (key === 'treasury_10y') el.textContent = `${d.price?.toFixed(2)}%`;
-      else el.textContent = d.price?.toLocaleString('en-CA', {maximumFractionDigits:0});
+      const newVal = d.price;
+      const oldVal = _prevBenchmarks[key];
+      if (key === 'treasury_10y') el.textContent = `${newVal?.toFixed(2)}%`;
+      else el.textContent = newVal?.toLocaleString('en-CA', {maximumFractionDigits:0});
       el.className = `mw-value ${colorClass(d.change_pct)}`;
+      // Flash green/red when price changed since last update
+      if (oldVal !== undefined && newVal != null && newVal !== oldVal) {
+        void el.offsetWidth; // force reflow to restart animation
+        el.classList.add(newVal > oldVal ? 'flash-up' : 'flash-dn');
+        setTimeout(() => el.classList.remove('flash-up', 'flash-dn'), 900);
+      }
+      _prevBenchmarks[key] = newVal;
     }
     if (chgEl) {
       chgEl.textContent = fmtPct(d.change_pct);
@@ -1619,6 +1643,13 @@ function updateHeaderKPIs(data) {
   // Cash on Hand card
   const cashEl = document.getElementById('kpiCashOnHand');
   if (cashEl) cashEl.textContent = fmt$(Math.round(sumCash));
+
+  // Remove skeleton loaders on first live data arrival (G)
+  ['kpiTotalValue','kpiContributions','kpiTotalPnl','kpiRoi'].forEach(id => {
+    document.getElementById(id)?.classList.remove('skeleton');
+    document.getElementById(id)?.removeAttribute('style');
+  });
+
   document.getElementById('kpiTotalValue').textContent = fmt$(displayMv);
   document.getElementById('kpiTotalPnl').textContent = fmt$(displayPnl);
   document.getElementById('kpiTotalPnl').className = `hkpi-value ${colorClass(displayPnl)}`;
@@ -2043,7 +2074,7 @@ function renderHoldingsTable(liveData) {
     const retColor = retPct != null ? (retPct >= 0 ? 'green' : 'red') : '';
     const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
 
-    return `<tr data-rowtype="normal" data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-mv="${mktVal.toFixed(2)}" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="${unrealizedCAD.toFixed(2)}" data-div="${divCAD.toFixed(2)}" data-real="${realizedCAD.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
+    return `<tr data-rowtype="normal" data-ticker="${h.ticker}" data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-mv="${mktVal.toFixed(2)}" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="${unrealizedCAD.toFixed(2)}" data-div="${divCAD.toFixed(2)}" data-real="${realizedCAD.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
       <td class="mono blue">${h.ticker}</td>
       <td class="text2">${h.name}</td>
       <td><span class="badge ${acctBadge}">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
@@ -2125,6 +2156,120 @@ function renderHoldingsTable(liveData) {
 
   // Re-apply any active filters after table rebuild (prevents reset on auto-refresh)
   filterTable();
+}
+
+// ============================================================
+// IN-PLACE PRICE REFRESH  (N — replaces full re-render on 60s tick)
+// ============================================================
+// Flashes a table cell green/red when its displayed value changes.
+function _flashCell(cell, newStr, oldStr) {
+  if (!cell || !oldStr || newStr === oldStr || oldStr === '—') return;
+  const clean = s => parseFloat(s.replace(/[$,+%\s]/g, ''));
+  const oldN = clean(oldStr), newN = clean(newStr);
+  if (isNaN(oldN) || isNaN(newN) || oldN === newN) return;
+  cell.classList.remove('flash-up', 'flash-dn');
+  void cell.offsetWidth; // force reflow to restart animation
+  cell.classList.add(newN > oldN ? 'flash-up' : 'flash-dn');
+  setTimeout(() => cell.classList.remove('flash-up', 'flash-dn'), 900);
+}
+
+// Updates only the price-dependent cells in each open-position row.
+// Called on every 60-second market data refresh instead of a full tbody rebuild.
+// Static cells (ticker, name, account, sector, shares, cost, dividends, realized)
+// are untouched, eliminating all DOM churn for those columns.
+function refreshTablePrices(liveData) {
+  if (!liveData) return;
+  const usdcad  = liveData.usdcad  || 1.37;
+  const hPrices = liveData.holdings || {};
+  const tbody   = document.getElementById('holdingsBody');
+  if (!tbody) return;
+
+  // Recalculate portfolio total for weight% (mirrors renderHoldingsTable logic)
+  const totalVal = [
+    ...HOLDINGS_STATIC.map(h => {
+      const p = hPrices[h.ticker];
+      let val = p?.price ? p.price * h.shares : (h.unrealized + (h.cost_total || 0));
+      if (h.ccy === 'USD') val *= usdcad;
+      return val;
+    }),
+    ...CASH_POSITIONS.map(c => c.ccy === 'USD' ? c.amount * usdcad : c.amount),
+  ].reduce((a, b) => a + b, 0);
+
+  HOLDINGS_STATIC.forEach(h => {
+    const row = tbody.querySelector(`tr[data-ticker="${h.ticker}"][data-account="${h.account}"]`);
+    if (!row) return;
+
+    const p         = hPrices[h.ticker];
+    const livePrice = p?.price;
+    const dayChg    = p?.change_pct;
+
+    let mktVal, dayStr, dayDollarStr, liveStr;
+    if (livePrice) {
+      const prevPrice  = p?.prev || livePrice;
+      mktVal           = livePrice * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      const prevMktVal = prevPrice  * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      liveStr          = h.ccy === 'USD' ? `$${livePrice.toFixed(2)} USD` : `$${livePrice.toFixed(2)} CAD`;
+      dayStr           = fmtPct(dayChg);
+      dayDollarStr     = ((mktVal - prevMktVal) >= 0 ? '+' : '') + fmt$(mktVal - prevMktVal);
+    } else {
+      mktVal       = (h.unrealized + h.cost_total) * (h.ccy === 'USD' ? usdcad : 1);
+      liveStr      = '—'; dayStr = '—'; dayDollarStr = '—';
+    }
+
+    const fxRate        = h.book_rate || null;
+    const costBasisCAD  = fxRate ? h.cost_total * fxRate : h.cost_total;
+    const unrealizedCAD = livePrice ? mktVal - costBasisCAD : (h.unrealized || 0) * (fxRate || 1);
+    const realizedCAD   = h.realized || 0;
+    const totalPnlCAD   = unrealizedCAD + realizedCAD;
+    const weight        = totalVal > 0 ? (mktVal / totalVal * 100).toFixed(1) : h.weight.toFixed(1);
+    const widthPx       = Math.max(1, Math.round(parseFloat(weight) * 1.5));
+    const retPct        = costBasisCAD > 0 ? (mktVal - costBasisCAD) / costBasisCAD * 100 : null;
+    const retStr        = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
+    const dayColor      = dayChg == null ? '' : (dayChg >= 0 ? 'green' : 'red');
+
+    const cells = row.cells;
+
+    // Cell 5: Live Price
+    _flashCell(cells[5], liveStr, cells[5].textContent);
+    cells[5].textContent = liveStr;
+    cells[5].className   = `mono small ${dayColor}`;
+    // Cell 6: Day %
+    _flashCell(cells[6], dayStr, cells[6].textContent);
+    cells[6].textContent = dayStr;
+    cells[6].className   = `mono small ${dayColor}`;
+    // Cell 7: Day $
+    _flashCell(cells[7], dayDollarStr, cells[7].textContent);
+    cells[7].textContent = dayDollarStr;
+    cells[7].className   = `mono small ${dayColor}`;
+    // Cell 8: Mkt Value
+    _flashCell(cells[8], fmt$(mktVal), cells[8].textContent);
+    cells[8].textContent = fmt$(mktVal);
+    // Cell 10: Unrealized
+    _flashCell(cells[10], fmt$(unrealizedCAD), cells[10].textContent);
+    cells[10].textContent = fmt$(unrealizedCAD);
+    cells[10].className   = `mono ${unrealizedCAD >= 0 ? 'green' : 'red'}`;
+    // Cell 13: Total P&L
+    _flashCell(cells[13], fmt$(totalPnlCAD), cells[13].textContent);
+    cells[13].textContent = fmt$(totalPnlCAD);
+    cells[13].className   = `mono ${totalPnlCAD >= 0 ? 'green' : 'red'}`;
+    // Cell 14: Weight% (complex cell — update span text + bar width)
+    const wSpan = cells[14].querySelector('span');
+    const wBar  = cells[14].querySelector('div');
+    if (wSpan) wSpan.textContent = `${weight}%`;
+    if (wBar)  wBar.style.width  = `${widthPx}px`;
+    // Cell 15: Return %
+    _flashCell(cells[15], retStr, cells[15].textContent);
+    cells[15].textContent = retStr;
+    cells[15].className   = `mono ${retPct != null ? (retPct >= 0 ? 'green' : 'red') : ''}`;
+
+    // Update data-* attributes so filterTable/updateSubtotals use fresh values
+    row.dataset.mv     = mktVal.toFixed(2);
+    row.dataset.unreal = unrealizedCAD.toFixed(2);
+    row.dataset.pnlval = totalPnlCAD.toFixed(2);
+    row.dataset.pnl    = totalPnlCAD >= 0 ? 'gain' : 'loss';
+  });
+
+  filterTable(); // re-runs subtotals with updated data attributes
 }
 
 // ============================================================
@@ -3032,12 +3177,19 @@ async function fetchExtraTickerPrices() {
 }
 
 async function fetchMarketData() {
+  // Cancel any in-flight request to prevent stale responses overwriting fresh ones (O)
+  if (_activeCtrl) _activeCtrl.abort();
+  clearTimeout(_ctrlTimer);
+  _activeCtrl = new AbortController();
+  _ctrlTimer  = setTimeout(() => _activeCtrl?.abort(), 12000);
+
   try {
     // Fetch main prices + any extra tickers from new transactions in parallel
     const [res, extraPrices] = await Promise.all([
-      fetch(`${CONFIG.API_BASE}/api/market`, { signal: AbortSignal.timeout(12000) }),
+      fetch(`${CONFIG.API_BASE}/api/market`, { signal: _activeCtrl.signal }),
       fetchExtraTickerPrices(),
     ]);
+    clearTimeout(_ctrlTimer);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
@@ -3076,14 +3228,15 @@ async function fetchMarketData() {
       buildTickerStrip(data.holdings);
     }
 
-    // Re-render table with live prices
-    renderHoldingsTable(data);
+    // In-place price refresh — updates only changed cells, no DOM rebuild (C + N)
+    refreshTablePrices(data);
 
     return data;
   } catch (err) {
+    clearTimeout(_ctrlTimer);
+    if (err.name === 'AbortError') return null; // silently discard cancelled requests
     console.warn('Market data fetch failed:', err.message);
     _showOffline();
-    renderHoldingsTable(null);
     return null;
   }
 }
@@ -3494,6 +3647,73 @@ window.addEventListener('online',  () => { _hideOffline(); fetchMarketData(); })
 if (!navigator.onLine) _showOffline();
 
 // ============================================================
+// ADD TO HOME SCREEN PROMPT  (M)
+// ============================================================
+let _deferredInstall = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstall = e;
+  // Show after 4 s — don't interrupt the initial data load
+  setTimeout(_showInstallBanner, 4000);
+});
+
+function _showInstallBanner() {
+  if (!_deferredInstall) return;
+  if (localStorage.getItem('pp_install_dismissed')) return;
+  if (document.getElementById('installBanner')) return; // already shown
+  const banner = document.createElement('div');
+  banner.id = 'installBanner';
+  banner.style.cssText = [
+    'position:fixed',
+    'bottom:calc(62px + env(safe-area-inset-bottom,0px) + 10px)',
+    'left:50%',
+    'transform:translateX(-50%)',
+    'background:#1e3a5f',
+    'border:1px solid var(--blue-bright)',
+    'border-radius:10px',
+    'padding:11px 14px',
+    'font-size:12px',
+    'color:var(--text)',
+    'z-index:9990',
+    'display:flex',
+    'align-items:center',
+    'gap:10px',
+    'box-shadow:0 4px 20px rgba(0,0,0,.55)',
+    'max-width:calc(100vw - 32px)',
+  ].join(';');
+  banner.innerHTML = [
+    '<span style="font-size:18px;flex-shrink:0">⚡</span>',
+    '<span style="flex:1;line-height:1.4">Install Portfolio Pulse for push notifications &amp; offline access</span>',
+    '<button onclick="_installApp()" style="background:var(--blue-bright);color:#fff;border:none;border-radius:6px;padding:6px 11px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;letter-spacing:.04em">INSTALL</button>',
+    '<button onclick="_dismissInstall()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0 2px;flex-shrink:0;line-height:1">×</button>',
+  ].join('');
+  document.body.appendChild(banner);
+}
+
+function _installApp() {
+  if (!_deferredInstall) return;
+  _deferredInstall.prompt();
+  _deferredInstall.userChoice.then(() => {
+    _deferredInstall = null;
+    _dismissInstall();
+  });
+}
+
+function _dismissInstall() {
+  localStorage.setItem('pp_install_dismissed', '1');
+  const b = document.getElementById('installBanner');
+  if (b) b.remove();
+}
+
+window.addEventListener('appinstalled', () => {
+  _deferredInstall = null;
+  localStorage.removeItem('pp_install_dismissed');
+  const b = document.getElementById('installBanner');
+  if (b) b.remove();
+});
+
+// ============================================================
 // APP BADGE
 // ============================================================
 function _clearBadge() {
@@ -3543,6 +3763,40 @@ document.addEventListener('visibilitychange', () => {
       ind.style.opacity = '0';
     }
     pulling = false; startY = 0;
+  }, { passive: true });
+})();
+
+// ============================================================
+// SWIPE LEFT/RIGHT TAB NAVIGATION  (I)
+// ============================================================
+(function () {
+  // Tab order for left/right swipe cycling
+  const SWIPE_TABS = ['portfolio', 'holdings', 'intelligence', 'podcast', 'chat'];
+  const SWIPE_THRESHOLD = 55; // min horizontal distance (px) to trigger a tab switch
+  let swipeX0 = 0, swipeY0 = 0;
+
+  document.addEventListener('touchstart', e => {
+    swipeX0 = e.touches[0].clientX;
+    swipeY0 = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (window.innerWidth > 768) return; // desktop — no tab bar
+    const dx = e.changedTouches[0].clientX - swipeX0;
+    const dy = e.changedTouches[0].clientY - swipeY0;
+    // Ignore mostly-vertical swipes (pull-to-refresh territory)
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dy) > Math.abs(dx)) return;
+
+    const activeBtn = document.querySelector('.tab-btn.active');
+    if (!activeBtn) return;
+    const curIdx = SWIPE_TABS.indexOf(activeBtn.dataset.tab);
+    if (curIdx < 0) return;
+
+    // Swipe left → next tab; swipe right → previous tab
+    const nextIdx = dx < 0
+      ? Math.min(curIdx + 1, SWIPE_TABS.length - 1)
+      : Math.max(curIdx - 1, 0);
+    if (nextIdx !== curIdx) activateTab(SWIPE_TABS[nextIdx]);
   }, { passive: true });
 })();
 
@@ -3690,25 +3944,51 @@ async function handleNotifToggle(checkbox) {
 
 // ── History renderer ──────────────────────────────────────────────────────────
 
+// ── History renderer — groups notifications by date (H) ──────────────────────
 function renderNotifHistory(history) {
   const list = document.getElementById('notifList');
   if (!history.length) {
     list.innerHTML = '<div class="notif-empty">No notifications yet.<br>You\'ll receive your first at market close today (5:30 PM ET).</div>';
     return;
   }
-  list.innerHTML = history.map(n => {
-    let timeStr = '';
-    try {
-      timeStr = new Date(n.timestamp).toLocaleString('en-CA', {
-        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
-      });
-    } catch {}
-    return `<div class="notif-item">
-      <div class="notif-item-title">${n.title || ''}</div>
-      <div class="notif-item-body">${(n.body || '').replace(/\n/g, '<br>')}</div>
-      ${timeStr ? `<div class="notif-item-time">${timeStr}</div>` : ''}
-    </div>`;
-  }).join('');
+
+  // Build date-boundary anchors
+  const now       = new Date();
+  const todayMs   = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const yestMs    = todayMs - 86400000;
+  const weekMs    = todayMs - 6 * 86400000;
+  const groups    = { Today: [], Yesterday: [], 'This Week': [], Earlier: [] };
+
+  history.forEach(n => {
+    let d = null;
+    try { d = new Date(n.timestamp); } catch {}
+    const dayMs = d ? new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() : null;
+    if (dayMs === null)       groups['Earlier'].push(n);
+    else if (dayMs >= todayMs) groups['Today'].push(n);
+    else if (dayMs >= yestMs)  groups['Yesterday'].push(n);
+    else if (dayMs >= weekMs)  groups['This Week'].push(n);
+    else                       groups['Earlier'].push(n);
+  });
+
+  let html = '';
+  ['Today', 'Yesterday', 'This Week', 'Earlier'].forEach(label => {
+    if (!groups[label].length) return;
+    html += `<div style="padding:8px 18px 4px;font-size:10px;letter-spacing:.08em;color:var(--text3);font-family:var(--mono);text-transform:uppercase;position:sticky;top:0;background:#0d1f35;border-bottom:1px solid rgba(255,255,255,.04)">${label}</div>`;
+    groups[label].forEach(n => {
+      let timeStr = '';
+      try {
+        timeStr = new Date(n.timestamp).toLocaleString('en-CA', {
+          month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
+        });
+      } catch {}
+      html += `<div class="notif-item">
+        <div class="notif-item-title">${n.title || ''}</div>
+        <div class="notif-item-body">${(n.body || '').replace(/\n/g, '<br>')}</div>
+        ${timeStr ? `<div class="notif-item-time">${timeStr}</div>` : ''}
+      </div>`;
+    });
+  });
+  list.innerHTML = html;
 }
 
 // ============================================================
@@ -3716,17 +3996,30 @@ function renderNotifHistory(history) {
 // ============================================================
 let chatHistory = [];
 
+// ── Lazy marked.js loader (E) ─────────────────────────────────────────────────
+// marked.js (~50 KB) is only needed for AI chat — load it on first panel open,
+// not as a blocking <script> on every page load.
+let _markedPromise = null;
+function ensureMarked() {
+  if (_markedPromise) return _markedPromise;
+  if (typeof marked !== 'undefined') return Promise.resolve();
+  _markedPromise = new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src     = 'https://cdn.jsdelivr.net/npm/marked@13/marked.min.js';
+    s.onload  = () => { marked.setOptions({ breaks: true, gfm: true }); resolve(); };
+    s.onerror = () => resolve(); // graceful degradation — plain text fallback remains
+    document.head.appendChild(s);
+  });
+  return _markedPromise;
+}
+
 function toggleChat() {
   const panel = document.getElementById('chatPanel');
   panel.classList.toggle('open');
   if (panel.classList.contains('open')) {
     document.getElementById('chatInput').focus();
+    ensureMarked(); // start loading marked.js eagerly the moment the panel opens
   }
-}
-
-// Configure marked.js
-if (typeof marked !== 'undefined') {
-  marked.setOptions({ breaks: true, gfm: true });
 }
 
 function renderMarkdown(text) {
@@ -3737,6 +4030,7 @@ function renderMarkdown(text) {
 }
 
 async function sendChat() {
+  await ensureMarked(); // ensure markdown lib is ready before the response arrives
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
   if (!msg) return;
@@ -4395,6 +4689,7 @@ function renderTxHistory() {
 
     // ── Chat tab: show as full-screen panel ──────────────────────────────
     if (name === 'chat') {
+      if (typeof ensureMarked === 'function') ensureMarked(); // lazy-load marked.js (E)
       if (cp) {
         cp.classList.remove('open');
         cp.classList.add('tab-mode');

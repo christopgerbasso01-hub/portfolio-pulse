@@ -405,18 +405,17 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 
   /* ── Chat tab: full-screen panel (replaces popup overlay on mobile) ───── */
 
-  /* Lock the page entirely when the chat tab is open.
-     Prevents iOS from scrolling the underlying page when the keyboard
-     appears/disappears, which caused other-tab content to bleed through.
-     scrollTop is forced to 0 before this class is removed (see activateTab)
-     so the page is already at the top when the lock releases. */
-  body.chat-tab-open {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    overflow: hidden !important;
+  /* Full-screen backdrop when chat tab is open.
+     Sits below the chat panel (z-index 490) and tab bar (9999) but above
+     all page content. Covers any underlying sections so scroll/keyboard
+     bounce can never reveal them — no body lock needed, tab bar unaffected. */
+  body.chat-tab-open::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 488;
+    pointer-events: none;
   }
 
   .chat-panel.tab-mode {
@@ -4696,10 +4695,6 @@ function renderTxHistory() {
     }
 
     // ── Switching away — close chat, restore FAB ─────────────────────────
-    // Scroll to 0 BEFORE removing the body lock so iOS reveals the page
-    // already at the top rather than at the pre-chat scroll position.
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
     document.body.classList.remove('chat-tab-open');
     if (cp) {
       cp.classList.remove('tab-mode', 'open');

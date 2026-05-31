@@ -631,7 +631,20 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .rsrch-fit-acct{margin-top:10px;font-size:12px;color:var(--text3);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 12px}
 .rsrch-own-notice{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:14px}
 .rsrch-skeleton{border-radius:4px;background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;height:14px;margin-bottom:8px}
+/* Chart period gain/loss strip */
+.rsrch-chart-gain{font-family:var(--mono);font-size:13px;font-weight:600;text-align:right;padding:2px 0 8px;min-height:22px}
+/* Search autocomplete dropdown */
+.rsrch-suggest-wrap{position:relative}
+.rsrch-suggestions{position:absolute;top:100%;left:0;right:0;background:#0d1f35;border:1px solid var(--border2);border-radius:0 0 8px 8px;z-index:200;overflow:hidden;display:none;max-height:280px;overflow-y:auto}
+.rsrch-suggestions.open{display:block}
+.rsrch-suggest-item{padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .12s}
+.rsrch-suggest-item:hover,.rsrch-suggest-item.active{background:var(--blue-glow)}
+.rsrch-suggest-ticker{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--blue-bright);min-width:60px}
+.rsrch-suggest-name{font-size:12px;color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rsrch-suggest-exch{font-size:10px;color:var(--text3);font-family:var(--mono)}
 @media(max-width:768px){
+  /* Hide portfolio header/KPIs when Research tab is active */
+  body.research-active .header { display: none !important; }
   .rsrch-stats-grid{grid-template-columns:repeat(2,1fr)}
   .rsrch-stat:nth-child(2n){border-right:none}
   .rsrch-stat:nth-child(3n){border-right:1px solid var(--border)}
@@ -1296,12 +1309,17 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     <span class="section-title">STOCK RESEARCH</span>
   </div>
 
-  <!-- Search bar -->
-  <div class="rsrch-search-wrap">
-    <input class="rsrch-search-input" id="rsrchInput" type="text"
-           placeholder="Search ticker or company name… (e.g. AAPL, Broadcom)"
-           onkeydown="if(event.key==='Enter'){event.preventDefault();runResearch()}"/>
-    <button class="rsrch-search-btn" onclick="runResearch()">Search</button>
+  <!-- Search bar with autocomplete -->
+  <div class="rsrch-suggest-wrap">
+    <div class="rsrch-search-wrap">
+      <input class="rsrch-search-input" id="rsrchInput" type="text"
+             placeholder="Search ticker or company name… (e.g. AAPL, Micron)"
+             autocomplete="off"
+             oninput="onRsrchInput(this.value)"
+             onkeydown="onRsrchKeydown(event)"/>
+      <button class="rsrch-search-btn" onclick="runResearch()">Search</button>
+    </div>
+    <div class="rsrch-suggestions" id="rsrchSuggestions"></div>
   </div>
 
   <!-- Watchlist strip -->
@@ -1348,6 +1366,9 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       <button class="rsrch-range-btn" data-range="10y" onclick="loadChart('10y',this)">10Y</button>
       <button class="rsrch-range-btn" data-range="all" onclick="loadChart('all',this)">All</button>
     </div>
+
+    <!-- Period gain/loss strip -->
+    <div class="rsrch-chart-gain" id="rsrchChartGain"></div>
 
     <!-- Price chart -->
     <div class="rsrch-chart-wrap card" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:20px">
@@ -4239,19 +4260,14 @@ function renderResearch(d) {
   if (d.employees) meta.push(`${d.employees.toLocaleString()} employees`);
   document.getElementById('rsrchMeta').innerHTML = meta.map(m => `<span class="rsrch-summary-tag">${m}</span>`).join('');
 
-  // News
-  const nl = document.getElementById('rsrchNewsList');
-  if (d.news && d.news.length) {
-    nl.innerHTML = d.news.map(n => {
-      const ts = n.published ? new Date(typeof n.published === 'number' ? n.published * 1000 : n.published) : null;
-      const age = ts ? _rsrchRelTime(ts) : '';
-      return `<div class="rsrch-news-item">
-        <div class="rsrch-news-title">${n.title}</div>
-        <div class="rsrch-news-meta">${n.publisher || ''}${age ? ' · ' + age : ''}</div>
-      </div>`;
-    }).join('');
-  } else {
-    nl.innerHTML = '<div style="color:var(--text3);font-size:12px">No recent news found.</div>';
+  // News — with clickable links when available
+  renderResearchNews(d.news || [], document.getElementById('rsrchNewsList'));
+  // Fetch fresh headlines in the background (cached quote may have stale news)
+  if (d.ticker) {
+    fetch(`${API_BASE_R}/api/research?ticker=${d.ticker}&type=news`)
+      .then(r => r.ok ? r.json() : null)
+      .then(nd => { if (nd?.news?.length) renderResearchNews(nd.news, document.getElementById('rsrchNewsList')); })
+      .catch(() => {});
   }
 
   // Analyst consensus
@@ -4298,6 +4314,106 @@ function renderResearch(d) {
 }
 
 // ── Price display ─────────────────────────────────────────────────────────
+// ── News renderer (with clickable links) ─────────────────────────────────
+function renderResearchNews(news, el) {
+  if (!el) return;
+  if (!news || !news.length) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:12px">No recent news found.</div>';
+    return;
+  }
+  el.innerHTML = news.map(n => {
+    const ts  = n.published ? new Date(typeof n.published === 'number' ? n.published * 1000 : n.published) : null;
+    const age = ts && !isNaN(ts) ? _rsrchRelTime(ts) : '';
+    const link = n.link || '';
+    const titleHtml = link
+      ? `<a href="${link}" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none" onmouseover="this.style.color='var(--blue-bright)'" onmouseout="this.style.color='var(--text)'">${n.title}</a>`
+      : n.title;
+    return `<div class="rsrch-news-item">
+      <div class="rsrch-news-title">${titleHtml}</div>
+      <div class="rsrch-news-meta">${n.publisher || ''}${age ? ' · ' + age : ''}${link ? ' ↗' : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Search autocomplete ───────────────────────────────────────────────────
+let _rsrchSuggestTimer = null;
+let _rsrchSuggestIdx   = -1;
+
+function onRsrchInput(val) {
+  const q = val.trim();
+  clearTimeout(_rsrchSuggestTimer);
+  if (q.length < 2) { hideRsrchSuggestions(); return; }
+  // Immediate if looks like a ticker (all caps, short)
+  const delay = /^[A-Z0-9.]{1,5}$/.test(q) ? 100 : 300;
+  _rsrchSuggestTimer = setTimeout(() => fetchRsrchSuggestions(q), delay);
+}
+
+async function fetchRsrchSuggestions(q) {
+  try {
+    const r = await fetch(`${API_BASE_R}/api/research?type=search&q=${encodeURIComponent(q)}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    showRsrchSuggestions(data.results || []);
+  } catch {}
+}
+
+function showRsrchSuggestions(results) {
+  const el = document.getElementById('rsrchSuggestions');
+  if (!results.length) { hideRsrchSuggestions(); return; }
+  _rsrchSuggestIdx = -1;
+  el.innerHTML = results.map((r, i) => `
+    <div class="rsrch-suggest-item" data-ticker="${r.ticker}" data-idx="${i}"
+         onmousedown="selectRsrchSuggestion('${r.ticker}')">
+      <span class="rsrch-suggest-ticker">${r.ticker}</span>
+      <span class="rsrch-suggest-name">${r.name}</span>
+      <span class="rsrch-suggest-exch">${r.exchange}</span>
+    </div>`).join('');
+  el.classList.add('open');
+}
+
+function hideRsrchSuggestions() {
+  const el = document.getElementById('rsrchSuggestions');
+  el.classList.remove('open');
+  el.innerHTML = '';
+  _rsrchSuggestIdx = -1;
+}
+
+function selectRsrchSuggestion(ticker) {
+  document.getElementById('rsrchInput').value = ticker;
+  hideRsrchSuggestions();
+  runResearch();
+}
+
+function onRsrchKeydown(e) {
+  const el   = document.getElementById('rsrchSuggestions');
+  const items = el.querySelectorAll('.rsrch-suggest-item');
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (_rsrchSuggestIdx >= 0 && items[_rsrchSuggestIdx]) {
+      selectRsrchSuggestion(items[_rsrchSuggestIdx].dataset.ticker);
+    } else {
+      hideRsrchSuggestions();
+      runResearch();
+    }
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _rsrchSuggestIdx = Math.min(_rsrchSuggestIdx + 1, items.length - 1);
+    items.forEach((it, i) => it.classList.toggle('active', i === _rsrchSuggestIdx));
+    if (items[_rsrchSuggestIdx]) document.getElementById('rsrchInput').value = items[_rsrchSuggestIdx].dataset.ticker;
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _rsrchSuggestIdx = Math.max(_rsrchSuggestIdx - 1, -1);
+    items.forEach((it, i) => it.classList.toggle('active', i === _rsrchSuggestIdx));
+  } else if (e.key === 'Escape') {
+    hideRsrchSuggestions();
+  }
+}
+
+// Close suggestions when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.rsrch-suggest-wrap')) hideRsrchSuggestions();
+});
+
 function updatePriceDisplay(price, change, changePct) {
   const priceEl  = document.getElementById('rsrchPrice');
   const changeEl = document.getElementById('rsrchPriceChange');
@@ -4369,6 +4485,19 @@ async function loadChart(range, btn) {
     const last   = closes[closes.length - 1];
     const up     = last >= (first || last);
     const color  = up ? '#10b981' : '#ef4444';
+
+    // Period gain/loss strip
+    const gainEl = document.getElementById('rsrchChartGain');
+    if (gainEl && first != null && last != null) {
+      const diff    = last - first;
+      const diffPct = (diff / first) * 100;
+      const sign    = diff >= 0 ? '+' : '';
+      const rangeLabel = { '1d':'Today','1w':'1 Week','1m':'1 Month','3m':'3 Months','ytd':'YTD','1y':'1 Year','5y':'5 Years','10y':'10 Years','all':'All Time' }[range] || range;
+      gainEl.textContent = `${rangeLabel}: ${sign}$${Math.abs(diff).toFixed(2)} (${sign}${diffPct.toFixed(2)}%)`;
+      gainEl.style.color = color;
+    } else if (gainEl) {
+      gainEl.textContent = '';
+    }
 
     loadEl.style.display = 'none';
     canvas.style.display = '';
@@ -5108,10 +5237,12 @@ function renderTxHistory() {
   window.activateTab = function (name) {
     if (!isMobile()) return;
 
-    // Pause/resume research price timer based on active tab
+    // Pause/resume research price timer + hide/show portfolio header
     if (name === 'research') {
+      document.body.classList.add('research-active');
       if (typeof onResearchTabOpen === 'function') onResearchTabOpen();
     } else {
+      document.body.classList.remove('research-active');
       if (typeof onResearchTabClose === 'function') onResearchTabClose();
     }
 

@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import requests
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from urllib.parse import urlparse, parse_qs
 
@@ -193,6 +194,56 @@ def fmp_news(ticker: str) -> list:
     ]
 
 
+def rss_news(ticker: str) -> list:
+    """
+    News via Yahoo Finance RSS — no auth required, returns real article links.
+    URL: https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}
+    """
+    url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US"
+    try:
+        r = requests.get(url, headers=_YF_API_HEADERS, timeout=8)
+        if not r.ok:
+            return []
+        root = ET.fromstring(r.content)
+        ns   = {"dc": "http://purl.org/dc/elements/1.1/"}
+        news = []
+        for item in root.findall(".//item")[:6]:
+            title = item.findtext("title", "").strip()
+            link  = item.findtext("link", "").strip()
+            pub   = item.findtext("pubDate", "").strip()
+            source = item.findtext("dc:creator", "", ns) or item.findtext("source", "")
+            if title and link:
+                news.append({
+                    "title":     title,
+                    "link":      link,
+                    "publisher": source or "Yahoo Finance",
+                    "published": pub,
+                })
+        return news
+    except Exception as e:
+        print(f"  [research] RSS news error: {e}")
+        return []
+
+
+def fmp_search(query: str) -> list:
+    """
+    Search tickers by company name or symbol via FMP.
+    Returns list of {ticker, name, exchange}.
+    """
+    data = _fmp_get("search", {"query": query, "limit": 8})
+    if not data or not isinstance(data, list):
+        return []
+    return [
+        {
+            "ticker":   d.get("symbol", ""),
+            "name":     d.get("name", ""),
+            "exchange": d.get("exchangeShortName", ""),
+        }
+        for d in data[:8]
+        if d.get("symbol") and d.get("name")
+    ]
+
+
 # ── Yahoo Finance helpers (chart only) ────────────────────────────────────────
 
 def yf_quote_summary(ticker: str) -> dict | None:
@@ -218,7 +269,12 @@ def yf_quote_summary(ticker: str) -> dict | None:
 
 
 def yf_news(ticker: str) -> list:
-    """News headlines from Yahoo Finance."""
+    """News headlines — RSS first (includes links), API fallback."""
+    # Try RSS first — works without auth and includes real article links
+    rss = rss_news(ticker)
+    if rss:
+        return rss
+    # Fallback to YF API
     try:
         session = _yf_session or requests.Session()
         r = session.get(
@@ -670,12 +726,31 @@ class handler(BaseHTTPRequestHandler):
         ticker    = (params.get("ticker",  [""])[0] or "").upper().strip()
         req_type  = (params.get("type",    ["quote"])[0])
         range_key = (params.get("range",   ["1y"])[0])
+        query     = (params.get("q",       [""])[0] or "").strip()
+
+        # ── Company name / ticker search (no ticker param needed) ─────────────
+        if req_type == "search":
+            if not query:
+                self._respond(400, {"error": "q parameter required"})
+                return
+            try:
+                results = fmp_search(query)
+                self._respond(200, {"results": results})
+            except Exception as e:
+                self._respond(500, {"error": str(e)})
+            return
 
         if not ticker:
             self._respond(400, {"error": "ticker parameter required"})
             return
 
         try:
+            if req_type == "news":
+                # Fresh news fetch — no KV cache so headlines stay current
+                news = rss_news(ticker) or fmp_news(ticker)
+                self._respond(200, {"news": news})
+                return
+
             if req_type == "price":
                 # Fast live-price update every 15s (Yahoo Finance chart API — works from Vercel)
                 data = yf_live_price(ticker)

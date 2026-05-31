@@ -22,7 +22,6 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<!-- marked.js is lazy-loaded on first chat open — not needed for initial render -->
 <style>
 /* ============================  TOKENS  ============================ */
 :root{
@@ -358,17 +357,8 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   body { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 8px); }
 
   /* ── Floating buttons: lift above tab bar ─────────────────────────────── */
-  .chat-fab {
-    bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 14px) !important;
-  }
   .tx-fab {
     bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 14px) !important;
-  }
-  .chat-panel {
-    bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 68px) !important;
-    left: 12px !important;
-    right: 12px !important;
-    width: auto !important;
   }
 
   /* ── Section visibility ───────────────────────────────────────────────── */
@@ -393,9 +383,6 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     margin: 0 auto;
   }
 
-  /* ── Chat FAB: hidden on mobile (Chat lives in the tab bar) ─────────── */
-  .chat-fab { display: none !important; }
-
   /* ── LOG TRADE: compact icon-only circle on mobile ───────────────────── */
   .tx-fab {
     width: 48px !important;
@@ -405,45 +392,6 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     font-size: 0 !important;
   }
   .tx-fab::before { content: '＋'; font-size: 22px; color: #fff; }
-
-  /* ── Chat tab: full-screen panel (replaces popup overlay on mobile) ───── */
-
-  /* ── Chat tab: full-screen panel (replaces popup overlay on mobile) ───── */
-  .chat-panel.tab-mode {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: calc(62px + env(safe-area-inset-bottom, 0px)) !important;
-    width: 100% !important;
-    max-height: none !important;
-    border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-top: none !important;
-    padding-top: env(safe-area-inset-top, 0px);
-    display: flex !important;
-    flex-direction: column;
-    z-index: 490 !important;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-  }
-  .chat-panel.tab-mode .chat-msgs {
-    flex: 1;
-    min-height: 0;
-    max-height: none !important;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .chat-panel.tab-mode .chat-input-row {
-    border-radius: 0 !important;
-    flex-shrink: 0;
-  }
-  /* Hide × close button — switching tabs is how you leave chat */
-  .chat-panel.tab-mode .chat-close { display: none !important; }
-
-  /* Hide + LOG TRADE FAB when chat is open — it overlaps the send button */
-  body.chat-tab-open .tx-fab { display: none !important; }
 
   /* Holdings table mobile columns:
      SHOW: Ticker(1) Day%(7) Day$(8) Mkt Value(9) Total P/L(14) Return%(16)
@@ -479,7 +427,6 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .intel-banner-date{font-family:var(--mono);font-size:10px;color:var(--text3)}
 .intel-banner-outlook{font-size:12px;color:var(--text2);margin-top:6px;padding:0 16px 10px;display:none}
 
-/* ============================  CHAT PANEL  ============================ */
 /* ============================  PODCAST PLAYER  ============================ */
 .pod-player-wrap{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px}
 .pod-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -524,45 +471,6 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .brief-list li::before{content:'›';position:absolute;left:0;color:var(--blue-bright)}
 .brief-list li.action::before{content:'→';color:var(--green)}
 .brief-list li.watch::before{content:'◉';color:var(--amber)}
-
-.chat-fab{position:fixed;bottom:24px;left:24px;width:52px;height:52px;border-radius:50%;background:var(--purple);border:none;color:#fff;font-size:20px;cursor:pointer;z-index:200;box-shadow:0 4px 20px rgba(139,92,246,.5);transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center}
-.chat-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(139,92,246,.7)}
-.chat-panel{position:fixed;bottom:88px;left:24px;width:380px;max-height:540px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;display:none;flex-direction:column;z-index:199;box-shadow:0 8px 40px rgba(0,0,0,.5)}
-.chat-panel.open{display:flex}
-.chat-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);border-radius:12px 12px 0 0}
-.chat-hdr-title{font-family:var(--mono);font-size:12px;color:var(--purple);display:flex;align-items:center;gap:8px}
-.chat-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0 4px;line-height:1}
-.chat-close:hover{color:var(--text)}
-.chat-msgs{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;min-height:0}
-.chat-msg{max-width:88%;padding:9px 12px;border-radius:10px;font-size:13px;line-height:1.55;word-break:break-word}
-.chat-msg.bot{background:var(--surface2);border:1px solid var(--border);color:var(--text);align-self:flex-start;border-radius:4px 10px 10px 10px}
-.chat-msg.user{background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:var(--text);align-self:flex-end;border-radius:10px 4px 10px 10px}
-.chat-msg.typing{color:var(--text3);font-style:italic}
-.chat-input-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);background:var(--surface2);border-radius:0 0 12px 12px}
-.chat-input{flex:1;background:var(--surface);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--sans);outline:none;transition:border-color .2s}
-.chat-input:focus{border-color:var(--purple)}
-.chat-send{background:var(--purple);border:none;color:#fff;width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .2s}
-.chat-send:hover{opacity:.85}
-.chat-send:disabled{opacity:.4;cursor:not-allowed}
-@media(max-width:480px){.chat-panel{width:calc(100vw - 32px);left:16px}}
-/* Markdown rendering inside bot messages */
-.chat-msg.bot p{margin:0 0 6px 0}
-.chat-msg.bot p:last-child{margin-bottom:0}
-.chat-msg.bot ul,.chat-msg.bot ol{margin:4px 0 6px 16px;padding:0}
-.chat-msg.bot li{margin-bottom:2px}
-.chat-msg.bot h1,.chat-msg.bot h2,.chat-msg.bot h3{font-size:13px;font-weight:700;margin:8px 0 4px 0;color:var(--text)}
-.chat-msg.bot strong{font-weight:700;color:var(--text)}
-.chat-msg.bot em{font-style:italic;color:var(--text2)}
-.chat-msg.bot code{background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:1px 4px;font-family:var(--mono);font-size:11px}
-.chat-msg.bot pre{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px;overflow-x:auto;margin:6px 0}
-.chat-msg.bot pre code{background:none;border:none;padding:0}
-.chat-msg.bot blockquote{border-left:3px solid var(--purple);margin:4px 0 4px 0;padding-left:8px;color:var(--text2)}
-.chat-msg.bot table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
-.chat-msg.bot th{background:var(--surface);border:1px solid var(--border2);padding:4px 8px;text-align:left;font-weight:700}
-.chat-msg.bot td{border:1px solid var(--border);padding:3px 8px}
-.chat-msg.bot tr:nth-child(even) td{background:rgba(255,255,255,.02)}
-.chat-msg.bot a{color:var(--blue-bright);text-decoration:none}
-.chat-msg.bot a:hover{text-decoration:underline}
 
 /* ── Transaction Modal ─────────────────────────────────────── */
 .tx-fab{position:fixed;bottom:24px;right:24px;z-index:998;background:var(--blue-bright);color:#fff;border:none;border-radius:8px;padding:10px 16px;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.05em;box-shadow:0 4px 20px rgba(96,165,250,.35);transition:all .2s}
@@ -1301,27 +1209,6 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 </div>
 
 </div><!-- end container -->
-
-<!-- ================================================================  CHAT UI (floating) -->
-<button class="chat-fab" id="chatFab" onclick="toggleChat()" title="Ask Pulse AI">💬</button>
-
-<div class="chat-panel" id="chatPanel">
-  <div class="chat-hdr">
-    <span class="chat-hdr-title">
-      <span style="color:var(--purple)">⚡</span> PULSE AI
-      <span style="font-size:10px;color:var(--text3);font-family:var(--sans);font-weight:400">Portfolio Copilot</span>
-    </span>
-    <button class="chat-close" onclick="toggleChat()">×</button>
-  </div>
-  <div class="chat-msgs" id="chatMsgs">
-    <div class="chat-msg bot">Hi! I'm Pulse — your portfolio AI. Ask me about your holdings, today's market themes, account breakdowns, or FX impact.</div>
-  </div>
-  <div class="chat-input-row">
-    <input class="chat-input" id="chatInput" placeholder="Ask about your portfolio…"
-           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"/>
-    <button class="chat-send" id="chatSendBtn" onclick="sendChat()">↑</button>
-  </div>
-</div>
 
 <!-- ================================================================  SCRIPTS -->
 <script>
@@ -3972,209 +3859,6 @@ function renderNotifHistory(history) {
 }
 
 // ============================================================
-// CHAT
-// ============================================================
-let chatHistory = [];
-
-// ── Lazy marked.js loader (E) ─────────────────────────────────────────────────
-// marked.js (~50 KB) is only needed for AI chat — load it on first panel open,
-// not as a blocking <script> on every page load.
-let _markedPromise = null;
-function ensureMarked() {
-  if (_markedPromise) return _markedPromise;
-  if (typeof marked !== 'undefined') return Promise.resolve();
-  _markedPromise = new Promise(resolve => {
-    const s = document.createElement('script');
-    s.src     = 'https://cdn.jsdelivr.net/npm/marked@13/marked.min.js';
-    s.onload  = () => { marked.setOptions({ breaks: true, gfm: true }); resolve(); };
-    s.onerror = () => resolve(); // graceful degradation — plain text fallback remains
-    document.head.appendChild(s);
-  });
-  return _markedPromise;
-}
-
-function toggleChat() {
-  const panel = document.getElementById('chatPanel');
-  panel.classList.toggle('open');
-  if (panel.classList.contains('open')) {
-    document.getElementById('chatInput').focus();
-    ensureMarked(); // start loading marked.js eagerly the moment the panel opens
-  }
-}
-
-function renderMarkdown(text) {
-  if (typeof marked !== 'undefined') {
-    try { return marked.parse(text); } catch(e) {}
-  }
-  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-}
-
-async function sendChat() {
-  await ensureMarked(); // ensure markdown lib is ready before the response arrives
-  const input = document.getElementById('chatInput');
-  const msg = input.value.trim();
-  if (!msg) return;
-
-  const sendBtn = document.getElementById('chatSendBtn');
-  input.value = '';
-  sendBtn.disabled = true;
-
-  appendChat('user', msg);
-  chatHistory.push({ role: 'user', content: msg });
-
-  // Typing indicator
-  const typingId = 'typing_' + Date.now();
-  appendChat('bot', '⏳ Thinking…', typingId, true);
-  const typingEl = document.getElementById(typingId);
-
-  const payload = {
-    message:         msg,
-    portfolio:       currentMarketData?.portfolio || {},
-    intelligence:    intelligenceData || {},
-    history:         chatHistory.slice(-14),
-    holdings_prices: currentMarketData?.holdings || {},
-    holdings_list: HOLDINGS_STATIC.map(h => ({
-      ticker:      h.ticker,
-      name:        h.name,
-      account:     h.account,
-      sector:      h.sector      || '',
-      shares:      h.shares,
-      ccy:         h.ccy,
-      cost_total:  h.cost_total  || 0,
-      unrealized:  h.unrealized  || 0,
-      realized:    h.realized    || 0,
-      dividends:   h.dividends   || 0,
-      total_pnl:   h.total_pnl   || 0,
-      pct_return:  h.pct_return  || 0,
-      weight:      h.weight      || 0,
-      book_rate:   h.book_rate   || null,
-    })),
-    closed_positions: CLOSED_POSITIONS_STATIC.map(h => ({
-      ticker:     h.ticker,
-      name:       h.name,
-      account:    h.account,
-      sector:     h.sector    || '',
-      ccy:        h.ccy,
-      cost_total: h.cost_total || 0,
-      total_pnl:  h.total_pnl  || 0,
-      dividends:  h.dividends  || 0,
-    })),
-    cash_positions: CASH_POSITIONS.map(c => ({
-      account: c.account,
-      ccy:     c.ccy,
-      amount:  c.amount,
-    })),
-  };
-
-  try {
-    const res = await fetch(`${CONFIG.API_BASE}/api/chat`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload),
-      signal:  AbortSignal.timeout(90000),
-    });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const contentType = res.headers.get('content-type') || '';
-
-    // ── SSE streaming response ─────────────────────────────────────────────
-    if (contentType.includes('text/event-stream')) {
-      const reader  = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer   = '';
-      let fullText = '';
-      const msgs   = document.getElementById('chatMsgs');
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const raw = line.slice(6).trim();
-          if (raw === '[DONE]') {
-            chatHistory.push({ role: 'assistant', content: fullText });
-            return;
-          }
-          try {
-            const parsed = JSON.parse(raw);
-
-            if (parsed.status && typingEl && !fullText) {
-              // Still in tool-calling phase — show status
-              typingEl.className = 'chat-msg bot typing';
-              typingEl.textContent = parsed.status;
-
-            } else if (parsed.content && typingEl) {
-              // First content chunk — switch from typing to streaming
-              if (!fullText) {
-                typingEl.className = 'chat-msg bot';
-                typingEl.innerHTML = '';
-              }
-              fullText += parsed.content;
-              typingEl.innerHTML = renderMarkdown(fullText);
-              msgs.scrollTop = msgs.scrollHeight;
-
-            } else if (parsed.error && typingEl) {
-              typingEl.className = 'chat-msg bot';
-              typingEl.textContent = parsed.error;
-              chatHistory.push({ role: 'assistant', content: parsed.error });
-              return;
-            }
-          } catch (_) {}
-        }
-      }
-      // Stream ended without [DONE] — finalise
-      if (fullText) chatHistory.push({ role: 'assistant', content: fullText });
-
-    // ── Fallback: non-streaming JSON ───────────────────────────────────────
-    } else {
-      const data  = await res.json();
-      const reply = data.reply || data.error || 'No response from AI.';
-      if (typingEl) {
-        typingEl.className = 'chat-msg bot';
-        typingEl.innerHTML = renderMarkdown(reply);
-      } else {
-        appendChat('bot', reply);
-      }
-      chatHistory.push({ role: 'assistant', content: reply });
-    }
-
-  } catch (err) {
-    const errMsg = err.name === 'TimeoutError'
-      ? 'Request timed out (90s). The AI may be doing deep research — try a more focused question.'
-      : 'Connection error. Please try again.';
-    if (typingEl) {
-      typingEl.className = 'chat-msg bot';
-      typingEl.textContent = errMsg;
-    } else {
-      appendChat('bot', errMsg);
-    }
-  } finally {
-    sendBtn.disabled = false;
-    document.getElementById('chatInput').focus();
-  }
-}
-
-function appendChat(role, text, id, isTyping) {
-  const div = document.createElement('div');
-  div.className = `chat-msg ${role === 'user' ? 'user' : 'bot'}${isTyping ? ' typing' : ''}`;
-  if (role === 'user') {
-    div.textContent = text;
-  } else {
-    div.textContent = text; // plain text for initial state; SSE updates use innerHTML
-  }
-  if (id) div.id = id;
-  const msgs = document.getElementById('chatMsgs');
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-// ============================================================
 // TRANSACTION ENGINE
 // ============================================================
 function getTransactions() {
@@ -4648,10 +4332,6 @@ function renderTxHistory() {
     <span class="tab-icon">🎙️</span>
     <span>Podcast</span>
   </button>
-  <button class="tab-btn" data-tab="chat" onclick="activateTab('chat')" aria-label="AI chat">
-    <span class="tab-icon">💬</span>
-    <span>Chat</span>
-  </button>
 </nav>
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 
@@ -4665,33 +4345,6 @@ function renderTxHistory() {
   window.activateTab = function (name) {
     if (!isMobile()) return;
 
-    var cp = document.getElementById('chatPanel');
-
-    // ── Chat tab: show as full-screen panel ──────────────────────────────
-    if (name === 'chat') {
-      if (typeof ensureMarked === 'function') ensureMarked();
-      document.body.classList.add('chat-tab-open');    // hides + FAB via CSS
-      if (cp) {
-        cp.classList.remove('open');
-        cp.classList.add('tab-mode');
-        cp.style.display = 'flex';
-        var inp = document.getElementById('chatInput');
-        if (inp) setTimeout(function () { inp.focus(); }, 80);
-      }
-      document.querySelectorAll('.tab-btn').forEach(function (btn) {
-        btn.classList.toggle('active', btn.dataset.tab === 'chat');
-      });
-      return;
-    }
-
-    // ── Switching away from chat ──────────────────────────────────────────
-    document.body.classList.remove('chat-tab-open');
-    if (cp) {
-      cp.classList.remove('tab-mode', 'open');
-      cp.style.display = 'none';
-    }
-
-    // ── Normal section tab switch ────────────────────────────────────────
     document.querySelectorAll('.tab-btn').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.tab === name);
     });
@@ -4720,6 +4373,8 @@ function renderTxHistory() {
   if (isMobile()) {
     var saved;
     try { saved = localStorage.getItem('pp_tab'); } catch (e) {}
+    // 'chat' tab no longer exists — fall back to portfolio
+    if (saved === 'chat') saved = 'portfolio';
     activateTab(saved || 'portfolio');
   }
 })();

@@ -323,6 +323,26 @@ class handler(BaseHTTPRequestHandler):
         if not self._auth():
             return
         try:
+            # ── Podcast-ready notification ────────────────────────────────────
+            length = int(self.headers.get("Content-Length", 0))
+            body   = json.loads(self.rfile.read(length) or b"{}") if length else {}
+
+            if body.get("type") == "podcast":
+                ep_num = body.get("episode", "?")
+                title  = body.get("title", f"Episode #{ep_num}")
+                notif  = {
+                    "title": "Portfolio Pulse 🎙️",
+                    "body":  f"Ep #{ep_num} ready: {title}",
+                    "tag":   "podcast-ready",
+                }
+                subs = get_subs()
+                now  = datetime.now(timezone.utc)
+                _append_history([notif], now.isoformat())
+                results = broadcast([notif], subs)
+                print(f"  [notify] podcast ep#{ep_num} — sent={results['sent']}")
+                self._respond(200, {"ok": True, "type": "podcast", **results})
+                return
+
             now       = datetime.now(timezone.utc)
             today_str = now.strftime("%Y-%m-%d")
 

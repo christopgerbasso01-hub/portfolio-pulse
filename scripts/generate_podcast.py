@@ -26,8 +26,11 @@ from pathlib import Path
 import requests
 
 # ── Config ───────────────────────────────────────────────────────────────────
-GROQ_URL   = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_URL      = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL    = "llama-3.3-70b-versatile"
+SNAPSHOT_API  = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
+NOTIFY_API    = "https://portfolio-pulse-dun.vercel.app/api/notify"
+CRON_SECRET   = os.environ.get("CRON_SECRET", "")
 
 # Two distinct Microsoft neural voices — genuinely different character
 VOICE_ALEX = "en-US-AndrewMultilingualNeural"   # Male — the analyst, cites numbers
@@ -82,6 +85,189 @@ KEY SENSITIVITIES:
 """
 
 
+# ── Live portfolio data ───────────────────────────────────────────────────────
+
+def fetch_snapshot_data() -> dict:
+    """Fetch the last 90 days of KV snapshots from the Vercel API."""
+    try:
+        r = requests.get(SNAPSHOT_API, timeout=15)
+        r.raise_for_status()
+        return r.json()
+    except Exception as exc:
+        print(f"  ⚠  Could not fetch live snapshot data: {exc}")
+        return {}
+
+
+def _fmt(v: float) -> str:
+    sign = "+" if v >= 0 else "-"
+    return f"{sign}${abs(v):,.0f}"
+
+
+def compute_weekly_movers(snapshots: dict) -> tuple[list, list]:
+    """
+    Compare oldest vs newest snapshot prices to get weekly % move per ticker.
+    Returns (top_winners, top_losers) as [(ticker, pct), ...].
+    """
+    dates = sorted(snapshots.keys())
+    if len(dates) < 2:
+        return [], []
+    old_prices = snapshots[dates[0]].get("holdings_prices", {})
+    new_prices = snapshots[dates[-1]].get("holdings_prices", {})
+    movers = {}
+    for ticker, data in new_prices.items():
+        if ticker in old_prices:
+            old_p = old_prices[ticker].get("price") or 0
+            new_p = data.get("price") or 0
+            if old_p and new_p:
+                movers[ticker] = round((new_p - old_p) / old_p * 100, 2)
+    ranked = sorted(movers.items(), key=lambda x: x[1], reverse=True)
+    return ranked[:4], ranked[-4:]
+
+
+def build_live_portfolio_context(snapshot_data: dict) -> str:
+    """
+    Build a rich live-data context string from the /api/snapshot response.
+    Covers: weekly P&L, daily breakdown, top movers, account deltas.
+    Falls back to empty string if data unavailable.
+    """
+    if not snapshot_data:
+        return ""
+    weekly    = snapshot_data.get("weekly_summary", {})
+    snapshots = snapshot_data.get("snapshots", {})
+    if not weekly or not snapshots:
+        return ""
+
+    start_val  = weekly.get("start_value")  or 0
+    end_val    = weekly.get("end_value")    or 0
+    week_gain  = weekly.get("week_gain_cad") or 0
+    week_pct   = weekly.get("week_gain_pct") or 0
+    period_start = weekly.get("period_start", "")
+    period_end   = weekly.get("period_end", "")
+
+    # Day-by-day (last 5 trading days in the snapshot window)
+    recent_dates = sorted(snapshots.keys())[-5:]
+    daily_lines = []
+    best_day = worst_day = None
+    for d in recent_dates:
+        snap = snapshots[d]
+        dc = snap.get("daily_change") or 0
+        dp = snap.get("daily_change_pct") or 0
+        try:
+            label = datetime.fromisoformat(d).strftime("%a %b %d")
+        except Exception:
+            label = d
+        daily_lines.append(f"    {label}: {_fmt(dc)} ({'+' if dp>=0 else ''}{dp:.2f}%)")
+        if best_day is None or dc > best_day[1]:
+            best_day = (label, dc, dp)
+        if worst_day is None or dc < worst_day[1]:
+            worst_day = (label, dc, dp)
+
+    # Weekly movers
+    winners, losers = compute_weekly_movers(
+        {d: snapshots[d] for d in recent_dates if d in snapshots}
+    )
+    winners_str = ", ".join(f"{t} {p:+.1f}%" for t, p in winners if p > 0) or "none"
+    losers_str  = ", ".join(f"{t} {p:+.1f}%" for t, p in reversed(losers) if p < 0) or "none"
+
+    # Account deltas
+    acct_deltas = weekly.get("account_deltas", {})
+    acct_parts  = []
+    for acct in ("TFSA", "Investment", "FHSA", "RRSP"):
+        v = acct_deltas.get(acct)
+        if v is not None:
+            acct_parts.append(f"{acct}: {_fmt(v)}")
+    acct_str = " | ".join(acct_parts)
+
+    lines = [
+        f"ACTUAL WEEKLY PORTFOLIO DATA ({period_start} → {period_end}):",
+        f"  Open:  ${start_val:,.0f} CAD",
+        f"  Close: ${end_val:,.0f} CAD",
+        f"  Week P&L: {_fmt(week_gain)} ({'+' if week_pct>=0 else ''}{week_pct:.2f}%)",
+        "",
+        "  Day-by-day:",
+    ]
+    lines.extend(daily_lines)
+    if best_day and best_day[1] > 0:
+        lines.append(f"  Best day:  {best_day[0]} {_fmt(best_day[1])} ({best_day[2]:+.2f}%)")
+    if worst_day and worst_day[1] < 0:
+        lines.append(f"  Worst day: {worst_day[0]} {_fmt(worst_day[1])} ({worst_day[2]:+.2f}%)")
+    lines += [
+        "",
+        f"  Best performers this week:  {winners_str}",
+        f"  Worst performers this week: {losers_str}",
+    ]
+    if acct_str:
+        lines += ["", f"  Account deltas: {acct_str}"]
+
+    return "\n".join(lines)
+
+
+def build_previous_episode_context(meta: dict) -> str:
+    """
+    Build a brief continuity note from the previous episode's summary.
+    Alex & Sam can reference it once or twice — not dwell on it.
+    """
+    if not meta:
+        return ""
+    archive = meta.get("archive", [])
+    prev    = archive[0] if archive else None
+    if not prev:
+        # No archive yet — use the current episode as the baseline
+        if meta.get("episode", 0) < 2:
+            return ""
+        prev = meta
+
+    title        = prev.get("title", "")
+    display_date = prev.get("display_date", "")
+    summary      = prev.get("summary", {})
+
+    themes = []
+    for field in ("market_context", "position_spotlight"):
+        for item in (summary.get(field) or [])[:2]:
+            themes.append(f"  • {str(item)[:130]}")
+    actions = [
+        f"  • {str(a)[:130]}"
+        for a in (summary.get("action_items") or [])[:3]
+    ]
+
+    if not themes:
+        return ""
+
+    lines = [
+        f"PREVIOUS EPISODE (for narrative continuity — reference once naturally, don't recap):",
+        f"  Title: \"{title}\"  ({display_date})",
+        "  Key themes:",
+    ]
+    lines.extend(themes[:4])
+    if actions:
+        lines.append("  Action items Alex & Sam set last week:")
+        lines.extend(actions)
+    return "\n".join(lines)
+
+
+# ── Podcast-ready push notification ──────────────────────────────────────────
+
+def send_podcast_notification(episode_num: int, title: str) -> None:
+    """Tell the Vercel notify endpoint to push a 'new episode ready' alert."""
+    if not CRON_SECRET:
+        print("  ⚠  CRON_SECRET not set — skipping podcast notification")
+        return
+    try:
+        r = requests.post(
+            NOTIFY_API,
+            headers={
+                "Authorization": f"Bearer {CRON_SECRET}",
+                "Content-Type":  "application/json",
+            },
+            json={"type": "podcast", "episode": episode_num, "title": title},
+            timeout=15,
+        )
+        r.raise_for_status()
+        print(f"  ✓  Podcast notification sent: {r.json()}")
+    except Exception as exc:
+        print(f"  ⚠  Podcast notification failed: {exc}")
+
+
 # ── Groq helper ──────────────────────────────────────────────────────────────
 def call_groq(prompt: str, max_tokens: int = 4096, temperature: float = 0.55) -> str:
     api_key = os.environ.get("GROQ_API_KEY", "")
@@ -108,7 +294,11 @@ SCRIPT_PROMPT_TEMPLATE = """You are writing a podcast script for "Portfolio Puls
 TODAY: {today}
 MARKET MOOD THIS WEEK: {mood}
 
-PORTFOLIO:
+{live_portfolio}
+
+{prev_episode}
+
+PORTFOLIO STRUCTURE (accounts, holdings, sensitivities):
 {portfolio}
 
 THIS WEEK'S INTELLIGENCE:
@@ -194,7 +384,7 @@ Quick forward look for next week. Warm close.
 Write the full script now:"""
 
 
-def build_script_prompt(intel: dict) -> str:
+def build_script_prompt(intel: dict, snapshot_data: dict = None, old_meta: dict = None) -> str:
     today   = datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
     mood    = intel.get("market_mood", "neutral").upper()
     outlook = intel.get("daily_outlook", "No outlook available.")
@@ -214,22 +404,27 @@ def build_script_prompt(intel: dict) -> str:
     concerns  = "\n".join(f"• {c['text'][:180]}" for c in intel.get("concerns", [])[:4])
     strategy  = "\n".join(f"• {s['text'][:180]}" for s in intel.get("strategy_short", [])[:4])
 
+    live_portfolio = build_live_portfolio_context(snapshot_data or {})
+    prev_episode   = build_previous_episode_context(old_meta or {})
+
     return SCRIPT_PROMPT_TEMPLATE.format(
         today=today, mood=mood, portfolio=PORTFOLIO_CONTEXT,
+        live_portfolio=live_portfolio, prev_episode=prev_episode,
         outlook=outlook, macro=macro, news=news, picks=picks,
         strengths=strengths, concerns=concerns, strategy=strategy,
     )
 
 
-def generate_script(intel: dict) -> str:
+def generate_script(intel: dict, snapshot_data: dict = None, old_meta: dict = None) -> str:
     print("1/3  Generating podcast script with Groq...")
-    script = call_groq(build_script_prompt(intel), max_tokens=4096, temperature=0.6)
+    prompt = build_script_prompt(intel, snapshot_data, old_meta)
+    script = call_groq(prompt, max_tokens=4096, temperature=0.6)
     # Validate it has enough turns
     turns = [l for l in script.split('\n') if l.strip().startswith(('ALEX:', 'SAM:'))]
     print(f"     → {len(turns)} speaker turns, ~{len(script.split()):,} words")
     if len(turns) < 15:
         print("     ⚠ Script seems sparse — retrying with higher temperature")
-        script = call_groq(build_script_prompt(intel), max_tokens=4096, temperature=0.75)
+        script = call_groq(prompt, max_tokens=4096, temperature=0.75)
     return script
 
 
@@ -394,6 +589,17 @@ def main() -> int:
     intel = json.loads(INTEL_FILE.read_text())
     print(f"  Intelligence from: {intel.get('generated_date','?')}\n")
 
+    # ── Fetch live portfolio snapshot data from Vercel KV ─────────────────────
+    print("  Fetching live portfolio data from KV snapshots...")
+    snapshot_data = fetch_snapshot_data()
+    if snapshot_data.get("count", 0) > 0:
+        weekly = snapshot_data.get("weekly_summary", {})
+        print(f"  → {snapshot_data['count']} snapshots | "
+              f"Week P&L: {_fmt(weekly.get('week_gain_cad', 0))} "
+              f"({weekly.get('week_gain_pct', 0):+.2f}%)\n")
+    else:
+        print("  → No snapshot data available — using static context\n")
+
     # ── Determine episode number and build archive from existing meta ─────────
     episode_num = 1
     archive: list[dict] = []
@@ -424,8 +630,9 @@ def main() -> int:
     output_mp3   = DATA_DIR / new_filename
 
     # ── Step 1: Script ───────────────────────────────────────────────────────
-    script = generate_script(intel)
-    turns  = parse_script(script)
+    old_meta = json.loads(PODCAST_META.read_text()) if PODCAST_META.exists() else {}
+    script   = generate_script(intel, snapshot_data, old_meta)
+    turns    = parse_script(script)
     if not turns:
         print("ERROR: Could not parse any speaker turns from script")
         return 1
@@ -477,6 +684,10 @@ def main() -> int:
     PODCAST_META.write_text(json.dumps(meta, indent=2, ensure_ascii=False))
     print(f"\n  ✓ Episode #{episode_num}: \"{meta['title']}\" ({dur_str})")
     print(f"  ✓ Archive: {len(archive)} previous episode(s) kept\n")
+
+    # ── Step 6: Push notification ─────────────────────────────────────────────
+    send_podcast_notification(episode_num, meta["title"])
+
     return 0
 
 

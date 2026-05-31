@@ -92,6 +92,14 @@ def take_snapshot() -> dict:
     # Keep a "latest" pointer (expires in 2 days — refreshed daily)
     kv_set("snapshot:latest", {"date": today}, ttl_seconds=2 * 86400)
 
+    # On Fridays: store a permanent weekly rollup (no TTL) so the historical
+    # chart survives beyond the 90-day daily TTL
+    dt = datetime.now(timezone.utc)
+    if dt.weekday() == 4:   # Friday
+        iso_week = dt.isocalendar()
+        week_key = f"snapshot:weekly:{iso_week[0]}-W{iso_week[1]:02d}"
+        kv_set(week_key, snapshot, ttl_seconds=10 * 365 * 86400)  # ~10 years
+
     print(
         f"  [snapshot] snapshot:{today} | "
         f"total=${portfolio.get('total_value', 0):,.0f} | "

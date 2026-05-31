@@ -29,7 +29,8 @@ jobs:
 
       - name: Generate podcast
         env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY:  ${{ secrets.GROQ_API_KEY }}
+          CRON_SECRET:   ${{ secrets.CRON_SECRET }}
         run: python scripts/generate_podcast.py
 
       - name: Commit and push

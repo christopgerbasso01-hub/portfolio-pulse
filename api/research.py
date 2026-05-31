@@ -311,13 +311,14 @@ def build_quote(ticker: str) -> dict:
     All calls run in parallel.
     """
     # Kick off parallel fetches
-    with ThreadPoolExecutor(max_workers=6) as ex:
+    with ThreadPoolExecutor(max_workers=7) as ex:
         f_yf_qs    = ex.submit(yf_quote_summary,     ticker)       # YF primary
         f_earnings = ex.submit(fmp_earnings_history, ticker)       # FMP EPS
         f_analyst  = ex.submit(fmp_analyst_recs,     ticker)       # FMP analyst
         f_targets  = ex.submit(fmp_price_targets,    ticker)       # FMP targets
         f_fmp_q    = ex.submit(fmp_quote,            ticker)       # FMP price fallback
         f_fmp_p    = ex.submit(fmp_profile,          ticker)       # FMP profile fallback
+        f_news     = ex.submit(fmp_news,             ticker)       # FMP news
 
     qs       = f_yf_qs.result()    # Yahoo Finance quoteSummary
     eps_hist = f_earnings.result() or []
@@ -325,6 +326,7 @@ def build_quote(ticker: str) -> dict:
     targets  = f_targets.result()  or {}
     fmp_q    = f_fmp_q.result()    or {}
     fmp_p    = f_fmp_p.result()    or {}
+    _fmp_news= f_news.result()     or []
 
     # If Yahoo Finance succeeded, use it as primary
     # If not, fall back to FMP
@@ -338,10 +340,10 @@ def build_quote(ticker: str) -> dict:
 
     # ── Build result from Yahoo Finance data ──────────────────────────────
     if using_yf:
-        return _build_from_yf(ticker, qs, eps_hist, analyst, targets)
+        return _build_from_yf(ticker, qs, eps_hist, analyst, targets, _fmp_news)
     else:
         # FMP fallback path
-        return _build_from_fmp(ticker, fmp_q, fmp_p, eps_hist, analyst, targets)
+        return _build_from_fmp(ticker, fmp_q, fmp_p, eps_hist, analyst, targets, _fmp_news)
 
 
 def _raw(obj, *keys, default=None):
@@ -370,7 +372,7 @@ def _analyst_breakdown(analyst: dict) -> dict:
     return {"strongBuy": sb, "buy": b, "hold": h, "sell": s, "strongSell": ss, "total": tot}
 
 
-def _build_from_yf(ticker: str, qs: dict, eps_hist: list, analyst: dict, targets: dict) -> dict:
+def _build_from_yf(ticker: str, qs: dict, eps_hist: list, analyst: dict, targets: dict, fmp_news_list: list = None) -> dict:
     """Build response dict from Yahoo Finance quoteSummary data."""
     price    = qs.get("price",                {})
     summary  = qs.get("summaryDetail",        {})
@@ -426,8 +428,8 @@ def _build_from_yf(ticker: str, qs: dict, eps_hist: list, analyst: dict, targets
         for q in (earnings.get("earningsChart", {}).get("quarterly") or [])[-8:]:
             eps_hist.append({"date": _val(q, "date"), "actual": _raw(q, "actual"), "estimate": _raw(q, "estimate")})
 
-    # News (try YF)
-    news = yf_news(ticker)
+    # News — YF first, FMP as fallback
+    news = yf_news(ticker) or fmp_news_list or []
 
     return {
         "ticker":   ticker,
@@ -479,7 +481,7 @@ def _build_from_yf(ticker: str, qs: dict, eps_hist: list, analyst: dict, targets
     }
 
 
-def _build_from_fmp(ticker: str, fmp_q: dict, fmp_p: dict, eps_hist: list, analyst: dict, targets: dict) -> dict:
+def _build_from_fmp(ticker: str, fmp_q: dict, fmp_p: dict, eps_hist: list, analyst: dict, targets: dict, fmp_news_list: list = None) -> dict:
     """Build response dict from FMP data (fallback when YF crumb fails)."""
     div_rate  = fmp_p.get("lastDiv") or 0
     price_now = fmp_q.get("price") or fmp_p.get("price") or 1
@@ -497,7 +499,7 @@ def _build_from_fmp(ticker: str, fmp_q: dict, fmp_p: dict, eps_hist: list, analy
     ab  = _analyst_breakdown(analyst)
     rec = (analyst.get("analystRatingsConsensus") or "hold").lower().replace(" ", "_")
 
-    news = yf_news(ticker)  # try YF news even in FMP path
+    news = yf_news(ticker) or fmp_news_list or []
 
     return {
         "ticker":   ticker,

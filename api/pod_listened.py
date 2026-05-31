@@ -15,8 +15,10 @@ import os
 import requests
 from http.server import BaseHTTPRequestHandler
 
-KV_URL   = os.environ.get("UPSTASH_REDIS_REST_URL", "")
-KV_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
+# Support both Vercel KV naming conventions (KV_REST_API_* is the Vercel/Upstash integration name;
+# UPSTASH_REDIS_REST_* is the legacy direct-integration name)
+KV_URL   = os.environ.get("KV_REST_API_URL") or os.environ.get("UPSTASH_REDIS_REST_URL", "")
+KV_TOKEN = os.environ.get("KV_REST_API_TOKEN") or os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
 KV_KEY   = "pod_listened"
 
 

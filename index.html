@@ -394,19 +394,19 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .tx-fab::before { content: '＋'; font-size: 22px; color: #fff; }
 
   /* Holdings table mobile columns:
-     SHOW: Ticker(1) Day%(7) Day$(8) Mkt Value(9) Total P/L(14) Return%(16)
-     HIDE: Name(2) Account(3) Sector(4) Shares(5) Price(6) Cost(10)
-           Unrealized(11) Divs(12) Realized(13) Weight%(15)               */
-  .holdings-table th:nth-child(2),  .holdings-table td:nth-child(2),
-  .holdings-table th:nth-child(3),  .holdings-table td:nth-child(3),
-  .holdings-table th:nth-child(4),  .holdings-table td:nth-child(4),
-  .holdings-table th:nth-child(5),  .holdings-table td:nth-child(5),
-  .holdings-table th:nth-child(6),  .holdings-table td:nth-child(6),
+     SHOW: Ticker(1) Mkt Value(2) Day$(3) Day%(4) Total P/L(5) Return%(6)
+     HIDE: Name(7) Account(8) Sector(9) Shares(10) Price(11) Cost(12)
+           Unrealized(13) Divs(14) Realized(15) Weight%(16)              */
+  .holdings-table th:nth-child(7),  .holdings-table td:nth-child(7),
+  .holdings-table th:nth-child(8),  .holdings-table td:nth-child(8),
+  .holdings-table th:nth-child(9),  .holdings-table td:nth-child(9),
   .holdings-table th:nth-child(10), .holdings-table td:nth-child(10),
   .holdings-table th:nth-child(11), .holdings-table td:nth-child(11),
   .holdings-table th:nth-child(12), .holdings-table td:nth-child(12),
   .holdings-table th:nth-child(13), .holdings-table td:nth-child(13),
-  .holdings-table th:nth-child(15), .holdings-table td:nth-child(15) { display: none; }
+  .holdings-table th:nth-child(14), .holdings-table td:nth-child(14),
+  .holdings-table th:nth-child(15), .holdings-table td:nth-child(15),
+  .holdings-table th:nth-child(16), .holdings-table td:nth-child(16) { display: none; }
   .holdings-table { min-width: 0; font-size: 12px; }
 }
 
@@ -984,42 +984,42 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       <thead>
         <tr>
           <th onclick="sortTable(0)">Ticker ↕</th>
-          <th onclick="sortTable(1)">Name ↕</th>
-          <th onclick="sortTable(2)">Account ↕</th>
-          <th onclick="sortTable(3)">Sector ↕</th>
-          <th onclick="sortTable(4)">Shares ↕</th>
-          <th onclick="sortTable(5)">Live Price ↕</th>
-          <th onclick="sortTable(6)">Day % ↕</th>
-          <th onclick="sortTable(7)">Day $ ↕</th>
-          <th onclick="sortTable(8)">Mkt Value ↕</th>
-          <th onclick="sortTable(9)">Cost Basis ↕</th>
-          <th onclick="sortTable(10)">Unrealized ↕</th>
-          <th onclick="sortTable(11)">Dividends ↕</th>
-          <th onclick="sortTable(12)">Realized ↕</th>
-          <th onclick="sortTable(13)">Total P/L ↕</th>
-          <th onclick="sortTable(14)">Weight% ↕</th>
-          <th onclick="sortTable(15)">Return % ↕</th>
+          <th onclick="sortTable(1)">Mkt Value ↕</th>
+          <th onclick="sortTable(2)">Day $ ↕</th>
+          <th onclick="sortTable(3)">Day % ↕</th>
+          <th onclick="sortTable(4)">Total P/L ↕</th>
+          <th onclick="sortTable(5)">Return % ↕</th>
+          <th onclick="sortTable(6)">Name ↕</th>
+          <th onclick="sortTable(7)">Account ↕</th>
+          <th onclick="sortTable(8)">Sector ↕</th>
+          <th onclick="sortTable(9)">Shares ↕</th>
+          <th onclick="sortTable(10)">Live Price ↕</th>
+          <th onclick="sortTable(11)">Cost Basis ↕</th>
+          <th onclick="sortTable(12)">Unrealized ↕</th>
+          <th onclick="sortTable(13)">Dividends ↕</th>
+          <th onclick="sortTable(14)">Realized ↕</th>
+          <th onclick="sortTable(15)">Weight% ↕</th>
         </tr>
       </thead>
       <tbody id="holdingsBody"></tbody>
       <tfoot id="holdingsFoot">
         <tr>
           <td style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Subtotal</td>
-          <td style="color:var(--text3)">—</td>
-          <td style="color:var(--text3)">—</td>
-          <td style="color:var(--text3)">—</td>
-          <td style="color:var(--text3)">—</td>
-          <td style="color:var(--text3)">—</td>
-          <td style="color:var(--text3)">—</td>
-          <td style="color:var(--text3)">—</td>
           <td id="stMv">—</td>
+          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3)">—</td>
+          <td id="stPnl">—</td>
+          <td id="stRet">—</td>
+          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3)">—</td>
           <td id="stCb">—</td>
           <td id="stUnreal">—</td>
           <td id="stDiv">—</td>
           <td id="stReal">—</td>
-          <td id="stPnl">—</td>
           <td style="color:var(--text3)">—</td>
-          <td id="stRet">—</td>
         </tr>
       </tfoot>
     </table>
@@ -1340,8 +1340,9 @@ let CONTRIB_STATE           = { ..._CONTRIB_BASE };
 const CONTRIB_TOTAL         = () => Object.values(CONTRIB_STATE).reduce((a, b) => a + b, 0);
 
 // Cache of last API response — used to re-render after a transaction is logged
-let _lastLiveData  = null;
-let _liveUsdcad    = 1.37;
+let _lastLiveData       = null;
+let _liveUsdcad         = 1.37;
+let _holdingsFirstRender = false; // true after first live data rebuilds summary rows
 
 // Previous benchmark prices — used for market widget flash animations
 let _prevBenchmarks = {};
@@ -1857,21 +1858,21 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
     const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
     return `<tr data-rowtype="summary" data-account="${g.accounts[0]}" data-sector="${g.sector}" data-pnl="${pnlAttr}" data-mv="${g.mktVal.toFixed(2)}" data-cb="${g.costBasisCAD.toFixed(2)}" data-unreal="${g.unrealizedCAD.toFixed(2)}" data-div="${g.dividends.toFixed(2)}" data-real="${g.realized.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
       <td class="mono blue">${g.ticker}</td>
+      <td class="mono">${fmt$(g.mktVal)}</td>
+      <td class="mono small ${dayColor}">${dayDollarStr}</td>
+      <td class="mono small ${dayColor}">${dayStr}</td>
+      <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
+      <td class="mono ${retColor}">${retStr}</td>
       <td class="text2">${g.name}</td>
       <td><div style="display:flex;flex-wrap:wrap;gap:3px">${acctBadgesHtml}</div></td>
       <td class="text2 small">${g.sector}</td>
       <td class="mono">${sharesStr}</td>
       <td class="mono small ${dayColor}">${liveStr}</td>
-      <td class="mono small ${dayColor}">${dayStr}</td>
-      <td class="mono small ${dayColor}">${dayDollarStr}</td>
-      <td class="mono">${fmt$(g.mktVal)}</td>
       <td class="mono text2">${fmt$(g.costBasisCAD)}</td>
       <td class="mono ${unrealColor}">${fmt$(g.unrealizedCAD)}</td>
       <td class="mono small text2">${g.dividends > 0 ? fmt$(g.dividends) : '—'}</td>
       <td class="mono small ${realColor}">${g.realized !== 0 ? fmt$(g.realized) : '—'}</td>
-      <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
-      <td class="mono ${retColor}">${retStr}</td>
     </tr>`;
   }).join('');
 
@@ -1892,21 +1893,21 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
     ).join(' ');
     return `<tr data-rowtype="summary" data-account="" data-sector="Cash" data-pnl="gain" data-cash="true" data-mv="${mktVal.toFixed(2)}" data-cb="0" data-unreal="0" data-div="0" data-real="0" data-pnlval="0">
       <td class="mono text2">CASH·${c.ccy}</td>
+      <td class="mono">${fmt$(mktVal)}</td>
+      <td class="mono small text3">—</td>
+      <td class="mono small text3">—</td>
+      <td class="mono text3">—</td>
+      <td class="mono text3">—</td>
       <td class="text2 small">${c.ccy} Cash</td>
       <td><div style="display:flex;flex-wrap:wrap;gap:3px">${acctBadgesHtml}</div></td>
       <td class="text2 small">Cash</td>
       <td class="mono text3">—</td>
       <td class="mono small text2">${priceStr}</td>
-      <td class="mono small text3">—</td>
-      <td class="mono small text3">—</td>
-      <td class="mono">${fmt$(mktVal)}</td>
-      <td class="mono text3">—</td>
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.4"></div></div></td>
-      <td class="mono text3">—</td>
     </tr>`;
   }).join('');
 
@@ -1977,21 +1978,21 @@ function renderHoldingsTable(liveData) {
 
     return `<tr data-rowtype="normal" data-ticker="${h.ticker}" data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-mv="${mktVal.toFixed(2)}" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="${unrealizedCAD.toFixed(2)}" data-div="${divCAD.toFixed(2)}" data-real="${realizedCAD.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
       <td class="mono blue">${h.ticker}</td>
+      <td class="mono">${fmt$(mktVal)}</td>
+      <td class="mono small ${dayColor}">${dayDollarStr}</td>
+      <td class="mono small ${dayColor}">${dayStr}</td>
+      <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
+      <td class="mono ${retColor}">${retStr}</td>
       <td class="text2">${h.name}</td>
       <td><span class="badge ${acctBadge}">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
       <td class="text2 small">${h.sector}</td>
       <td class="mono">${h.shares}</td>
       <td class="mono small ${dayColor}">${liveStr}</td>
-      <td class="mono small ${dayColor}">${dayStr}</td>
-      <td class="mono small ${dayColor}">${dayDollarStr}</td>
-      <td class="mono">${fmt$(mktVal)}</td>
       <td class="mono text2">${fmt$(costBasisCAD)}</td>
       <td class="mono ${unrealColor}">${fmt$(unrealizedCAD)}</td>
       <td class="mono small text2">${divCAD > 0 ? fmt$(divCAD) : '—'}</td>
       <td class="mono small ${realColor}">${realizedCAD !== 0 ? fmt$(realizedCAD) : '—'}</td>
-      <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
-      <td class="mono ${retColor}">${retStr}</td>
     </tr>`;
   }).join('');
 
@@ -2007,21 +2008,21 @@ function renderHoldingsTable(liveData) {
     const acctBadge = acctBadgeClass(h.account);
     return `<tr data-rowtype="closed" data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-closed="true" data-mv="0" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="0" data-div="${divCAD.toFixed(2)}" data-real="${pnlCAD.toFixed(2)}" data-pnlval="${pnlCAD.toFixed(2)}">
       <td class="mono text3">${h.ticker}</td>
+      <td class="mono text3">—</td>
+      <td class="mono small text3">—</td>
+      <td class="mono small text3">—</td>
+      <td class="mono ${pnlColor}">${(pnlCAD >= 0 ? '+' : '') + fmt$(pnlCAD)}</td>
+      <td class="mono ${pnlColor}">${h.pct_return != null ? (h.pct_return >= 0 ? '+' : '') + h.pct_return.toFixed(1) + '%' : '—'}</td>
       <td class="text3 small">${h.name}</td>
       <td><span class="badge badge-closed">CLOSED</span><span class="mono" style="font-size:9px;color:var(--text3);margin-left:4px">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
       <td class="text3 small">${h.sector}</td>
       <td class="mono text3">—</td>
       <td class="mono small text3">—</td>
-      <td class="mono small text3">—</td>
-      <td class="mono small text3">—</td>
-      <td class="mono text3">—</td>
       <td class="mono text3">${costBasisCAD > 0 ? fmt$(costBasisCAD) : '—'}</td>
       <td class="mono text3">—</td>
       <td class="mono small text3">${divCAD > 0 ? fmt$(divCAD) : '—'}</td>
       <td class="mono small ${pnlCAD >= 0 ? 'green' : 'red'}">${pnlCAD !== 0 ? fmt$(pnlCAD) : '—'}</td>
-      <td class="mono ${pnlColor}">${(pnlCAD >= 0 ? '+' : '') + fmt$(pnlCAD)}</td>
       <td class="mono text3">—</td>
-      <td class="mono ${pnlColor}">${h.pct_return != null ? (h.pct_return >= 0 ? '+' : '') + h.pct_return.toFixed(1) + '%' : '—'}</td>
     </tr>`;
   }).join('');
 
@@ -2034,21 +2035,21 @@ function renderHoldingsTable(liveData) {
     const priceStr = c.ccy === 'USD' ? `$${c.amount.toFixed(2)} USD` : `$${c.amount.toFixed(2)} CAD`;
     return `<tr data-rowtype="cash" data-account="${c.account}" data-sector="Cash" data-pnl="gain" data-cash="true" data-mv="${mktVal.toFixed(2)}" data-cb="0" data-unreal="0" data-div="0" data-real="0" data-pnlval="0">
       <td class="mono text2">CASH</td>
+      <td class="mono">${fmt$(mktVal)}</td>
+      <td class="mono small text3">—</td>
+      <td class="mono small text3">—</td>
+      <td class="mono text3">—</td>
+      <td class="mono text3">—</td>
       <td class="text2 small">${c.name}</td>
       <td><span class="badge ${acctBadge}">${c.account === 'Investment' ? 'NON-REG' : c.account}</span></td>
       <td class="text2 small">Cash</td>
       <td class="mono text3">—</td>
       <td class="mono small text2">${priceStr}</td>
-      <td class="mono small text3">—</td>
-      <td class="mono small text3">—</td>
-      <td class="mono">${fmt$(mktVal)}</td>
-      <td class="mono text3">—</td>
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.4"></div></div></td>
-      <td class="mono text3">—</td>
     </tr>`;
   }).join('');
 
@@ -2130,38 +2131,38 @@ function refreshTablePrices(liveData) {
 
     const cells = row.cells;
 
-    // Cell 5: Live Price
-    _flashCell(cells[5], liveStr, cells[5].textContent);
-    cells[5].textContent = liveStr;
-    cells[5].className   = `mono small ${dayColor}`;
-    // Cell 6: Day %
-    _flashCell(cells[6], dayStr, cells[6].textContent);
-    cells[6].textContent = dayStr;
-    cells[6].className   = `mono small ${dayColor}`;
-    // Cell 7: Day $
-    _flashCell(cells[7], dayDollarStr, cells[7].textContent);
-    cells[7].textContent = dayDollarStr;
-    cells[7].className   = `mono small ${dayColor}`;
-    // Cell 8: Mkt Value
-    _flashCell(cells[8], fmt$(mktVal), cells[8].textContent);
-    cells[8].textContent = fmt$(mktVal);
-    // Cell 10: Unrealized
-    _flashCell(cells[10], fmt$(unrealizedCAD), cells[10].textContent);
-    cells[10].textContent = fmt$(unrealizedCAD);
-    cells[10].className   = `mono ${unrealizedCAD >= 0 ? 'green' : 'red'}`;
-    // Cell 13: Total P&L
-    _flashCell(cells[13], fmt$(totalPnlCAD), cells[13].textContent);
-    cells[13].textContent = fmt$(totalPnlCAD);
-    cells[13].className   = `mono ${totalPnlCAD >= 0 ? 'green' : 'red'}`;
-    // Cell 14: Weight% (complex cell — update span text + bar width)
-    const wSpan = cells[14].querySelector('span');
-    const wBar  = cells[14].querySelector('div');
+    // Cell 1: Mkt Value
+    _flashCell(cells[1], fmt$(mktVal), cells[1].textContent);
+    cells[1].textContent = fmt$(mktVal);
+    // Cell 2: Day $
+    _flashCell(cells[2], dayDollarStr, cells[2].textContent);
+    cells[2].textContent = dayDollarStr;
+    cells[2].className   = `mono small ${dayColor}`;
+    // Cell 3: Day %
+    _flashCell(cells[3], dayStr, cells[3].textContent);
+    cells[3].textContent = dayStr;
+    cells[3].className   = `mono small ${dayColor}`;
+    // Cell 4: Total P&L
+    _flashCell(cells[4], fmt$(totalPnlCAD), cells[4].textContent);
+    cells[4].textContent = fmt$(totalPnlCAD);
+    cells[4].className   = `mono ${totalPnlCAD >= 0 ? 'green' : 'red'}`;
+    // Cell 5: Return %
+    _flashCell(cells[5], retStr, cells[5].textContent);
+    cells[5].textContent = retStr;
+    cells[5].className   = `mono ${retPct != null ? (retPct >= 0 ? 'green' : 'red') : ''}`;
+    // Cell 10: Live Price
+    _flashCell(cells[10], liveStr, cells[10].textContent);
+    cells[10].textContent = liveStr;
+    cells[10].className   = `mono small ${dayColor}`;
+    // Cell 12: Unrealized
+    _flashCell(cells[12], fmt$(unrealizedCAD), cells[12].textContent);
+    cells[12].textContent = fmt$(unrealizedCAD);
+    cells[12].className   = `mono ${unrealizedCAD >= 0 ? 'green' : 'red'}`;
+    // Cell 15: Weight% (complex cell — update span text + bar width)
+    const wSpan = cells[15].querySelector('span');
+    const wBar  = cells[15].querySelector('div');
     if (wSpan) wSpan.textContent = `${weight}%`;
     if (wBar)  wBar.style.width  = `${widthPx}px`;
-    // Cell 15: Return %
-    _flashCell(cells[15], retStr, cells[15].textContent);
-    cells[15].textContent = retStr;
-    cells[15].className   = `mono ${retPct != null ? (retPct >= 0 ? 'green' : 'red') : ''}`;
 
     // Update data-* attributes so filterTable/updateSubtotals use fresh values
     row.dataset.mv     = mktVal.toFixed(2);
@@ -2931,6 +2932,17 @@ function generateAnalysis(data) {
 function renderAISection(analysis) {
   if (!analysis || analysis.error) return;
 
+  // Badge label: shows when the AI content was actually generated, not when the page refreshed
+  const _aiBadgeLabel = (() => {
+    if (analysis.generated_at) {
+      const d = new Date(analysis.generated_at);
+      const date = d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+      const time = d.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
+      return `✦ GEMINI · ${date} ${time}`;
+    }
+    return `⚡ LIVE · ${new Date().toLocaleTimeString()}`;
+  })();
+
   // Section 05: Macro
   if (analysis.macro) {
     document.getElementById('macroThemes').innerHTML = analysis.macro.map(m => `
@@ -2962,7 +2974,7 @@ function renderAISection(analysis) {
       </div>`).join('');
   }
   document.getElementById('aiSec05').classList.remove('loading');
-  document.getElementById('ai05badge').textContent = `⚡ AI · ${new Date().toLocaleTimeString()}`;
+  document.getElementById('ai05badge').textContent = _aiBadgeLabel;
 
   // Section 06: News
   if (analysis.news) {
@@ -3001,7 +3013,7 @@ function renderAISection(analysis) {
     document.getElementById('newsSector').innerHTML = sector.map(newsCard).join('') || '<div class="error-state">No sector news available.</div>';
   }
   document.getElementById('aiSec06').classList.remove('loading');
-  document.getElementById('ai06badge').textContent = `⚡ AI · ${new Date().toLocaleTimeString()}`;
+  document.getElementById('ai06badge').textContent = _aiBadgeLabel;
 
   // Section 07: Picks
   if (analysis.picks) {
@@ -3017,7 +3029,7 @@ function renderAISection(analysis) {
       </div>`).join('');
   }
   document.getElementById('aiSec07').classList.remove('loading');
-  document.getElementById('ai07badge').textContent = `⚡ AI · ${new Date().toLocaleTimeString()}`;
+  document.getElementById('ai07badge').textContent = _aiBadgeLabel;
 
   // Section 08: SWOT
   if (analysis.strengths) {
@@ -3035,7 +3047,7 @@ function renderAISection(analysis) {
       </div>`).join('');
   }
   document.getElementById('aiSec08').classList.remove('loading');
-  document.getElementById('ai08badge').textContent = `⚡ AI · ${new Date().toLocaleTimeString()}`;
+  document.getElementById('ai08badge').textContent = _aiBadgeLabel;
 
   // Section 09: Strategy
   const stratItem = (i) => `<div class="strat-item"><div class="strat-num">${i.num}</div><div>${i.text}</div></div>`;
@@ -3043,7 +3055,7 @@ function renderAISection(analysis) {
   if (analysis.strategy_mid) document.getElementById('stratMid').innerHTML = analysis.strategy_mid.map(stratItem).join('');
   if (analysis.strategy_long) document.getElementById('stratLong').innerHTML = analysis.strategy_long.map(stratItem).join('');
   document.getElementById('aiSec09').classList.remove('loading');
-  document.getElementById('ai09badge').textContent = `⚡ AI · ${new Date().toLocaleTimeString()}`;
+  document.getElementById('ai09badge').textContent = _aiBadgeLabel;
 
   // Section 10: Tax
   const taxItem = (t) => `<div class="tax-item">${t.icon} ${t.text}</div>`;
@@ -3054,7 +3066,7 @@ function renderAISection(analysis) {
     if (analysis.tax.investment) document.getElementById('taxInvItems').innerHTML = analysis.tax.investment.map(taxItem).join('');
   }
   document.getElementById('aiSec10').classList.remove('loading');
-  document.getElementById('ai10badge').textContent = `⚡ AI · ${new Date().toLocaleTimeString()}`;
+  document.getElementById('ai10badge').textContent = _aiBadgeLabel;
 }
 
 // ============================================================
@@ -3129,8 +3141,14 @@ async function fetchMarketData() {
       buildTickerStrip(data.holdings);
     }
 
-    // In-place price refresh — updates only changed cells, no DOM rebuild (C + N)
-    refreshTablePrices(data);
+    // First live data: full rebuild so summary rows get day $ / % values populated.
+    // Subsequent 60-second ticks: in-place update only (no DOM churn).
+    if (!_holdingsFirstRender) {
+      _holdingsFirstRender = true;
+      renderHoldingsTable(data);
+    } else {
+      refreshTablePrices(data);
+    }
 
     return data;
   } catch (err) {
@@ -3230,15 +3248,30 @@ async function refreshAll() {
   const epData     = new Map();  // ep# → { summary, mood_summary, mood, title, display_date }
 
   // ── Listened sync ─────────────────────────────────────────────────────────
+  const LS_KEY = 'pp_listened';
+
   async function loadListened() {
+    // Load from localStorage immediately (instant, no flash of "MARK LISTENED")
+    try {
+      const local = localStorage.getItem(LS_KEY);
+      if (local) listenedEps = new Set(JSON.parse(local));
+    } catch(e) {}
+    // Then sync from server (authoritative source; overwrites local if available)
     try {
       const r = await fetch('/api/pod_listened');
-      if (!r.ok) return;
-      listenedEps = new Set((await r.json()).listened || []);
+      if (r.ok) {
+        const data = await r.json();
+        listenedEps = new Set(data.listened || []);
+        // Keep localStorage in sync with server
+        try { localStorage.setItem(LS_KEY, JSON.stringify([...listenedEps])); } catch(e) {}
+      }
     } catch(e) {}
   }
 
   async function saveListened() {
+    // Write to localStorage immediately (survives refresh even if API fails)
+    try { localStorage.setItem(LS_KEY, JSON.stringify([...listenedEps])); } catch(e) {}
+    // Sync to server in the background
     try {
       await fetch('/api/pod_listened', {
         method: 'POST',

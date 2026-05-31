@@ -589,6 +589,10 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .tx-del:hover{color:#f87171;background:rgba(239,68,68,.1)}
 
 /* ── Notification Panel ──────────────────────────────────────────────────── */
+/* ── Offline banner ──────────────────────────────────────────────────────── */
+#offlineBanner{display:none;background:rgba(245,158,11,.1);border-bottom:1px solid rgba(245,158,11,.2);padding:5px 24px;font-size:11px;font-family:var(--mono);color:var(--amber);text-align:center;letter-spacing:.03em}
+
+/* ── Notification Panel ──────────────────────────────────────────────────── */
 .notif-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;opacity:0;pointer-events:none;transition:opacity .25s}
 .notif-overlay.active{opacity:1;pointer-events:all}
 .notif-panel{display:none;position:fixed;left:50%;bottom:0;width:min(440px,100%);max-height:75vh;transform:translateX(-50%) translateY(24px);opacity:0;background:#0d1f35;border:1px solid var(--border);border-bottom:none;border-radius:16px 16px 0 0;z-index:10001;flex-direction:column;transition:transform .28s cubic-bezier(.32,.72,0,1),opacity .22s ease;overflow:hidden}
@@ -646,6 +650,8 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     <!-- Populated by JS -->
   </div>
 </div>
+
+<div id="offlineBanner">📡 Offline &nbsp;·&nbsp; Showing last cached data from <span id="offlineTimestamp">—</span></div>
 
 <div class="container">
 
@@ -3082,8 +3088,7 @@ async function fetchMarketData() {
     return data;
   } catch (err) {
     console.warn('Market data fetch failed:', err.message);
-    document.getElementById('liveDot').className = 'live-dot offline';
-    document.getElementById('liveStatus').textContent = 'Offline — configure API_BASE in index.html';
+    _showOffline();
     renderHoldingsTable(null);
     return null;
   }
@@ -3453,6 +3458,9 @@ window.addEventListener('DOMContentLoaded', () => {
   // Sync notification bell state on load
   checkNotifStatus();
 
+  // Clear app icon badge when the app is opened
+  _clearBadge();
+
   // Pause refresh when app is backgrounded (saves API calls on iPhone)
   // Resume immediately when app comes back to foreground
   document.addEventListener('visibilitychange', () => {
@@ -3464,6 +3472,43 @@ window.addEventListener('DOMContentLoaded', () => {
       refreshTimer = setInterval(fetchMarketData, CONFIG.MARKET_REFRESH_MS);
     }
   });
+});
+
+// ============================================================
+// OFFLINE MODE
+// ============================================================
+function _showOffline() {
+  const banner = document.getElementById('offlineBanner');
+  const ts     = document.getElementById('offlineTimestamp');
+  if (banner) banner.style.display = 'block';
+  if (ts)     ts.textContent = document.getElementById('lastUpdated')?.textContent || '—';
+  document.getElementById('liveDot').className  = 'live-dot offline';
+  document.getElementById('liveStatus').textContent = 'OFFLINE';
+}
+
+function _hideOffline() {
+  const banner = document.getElementById('offlineBanner');
+  if (banner) banner.style.display = 'none';
+  document.getElementById('liveDot').className  = 'live-dot';
+  document.getElementById('liveStatus').textContent = 'LIVE';
+}
+
+window.addEventListener('offline', _showOffline);
+window.addEventListener('online',  () => { _hideOffline(); fetchMarketData(); });
+
+// Check immediately in case the app loaded while already offline
+if (!navigator.onLine) _showOffline();
+
+// ============================================================
+// APP BADGE
+// ============================================================
+function _clearBadge() {
+  if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
+}
+
+// Clear badge whenever the app becomes visible or is first loaded
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) _clearBadge();
 });
 
 // ============================================================

@@ -6,8 +6,8 @@
  *   Icons / manifest → Cache-first
  */
 
-const CACHE     = 'portfolio-pulse-v15';
-const API_CACHE = 'portfolio-pulse-api-v15';
+const CACHE     = 'portfolio-pulse-v16';
+const API_CACHE = 'portfolio-pulse-api-v16';
 
 const APP_SHELL = [
   '/',
@@ -98,6 +98,7 @@ self.addEventListener('push', e => {
   }
 
   e.waitUntil(
+    // Show the notification
     self.registration.showNotification(payload.title || 'Portfolio Pulse', {
       body:    payload.body  || '',
       icon:    '/icon-192.png',
@@ -105,15 +106,28 @@ self.addEventListener('push', e => {
       tag:     payload.tag   || 'portfolio-pulse',
       data:    payload.data  || {},
       vibrate: [100, 50, 100],
+    }).then(() => {
+      // Set app icon badge — only if the app isn't currently in the foreground
+      return clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then(wins => {
+          const appOpen = wins.some(w => w.visibilityState === 'visible');
+          if (!appOpen && 'setAppBadge' in self.registration) {
+            return self.registration.setAppBadge(1);
+          }
+        });
     })
   );
 });
 
-// ── Notification click: open/focus the app ───────────────────────────────────
+// ── Notification click: open/focus the app + clear badge ────────────────────
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(wins => {
+      // Clear badge when user taps the notification
+      if ('clearAppBadge' in self.registration) {
+        self.registration.clearAppBadge().catch(() => {});
+      }
       const existing = wins.find(w => w.url.includes(self.location.origin));
       if (existing) return existing.focus();
       return clients.openWindow('/');

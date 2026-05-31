@@ -1,25 +1,15 @@
 """
 Portfolio Pulse — Stock Research Endpoint
 ==========================================
-Yahoo Finance v10/quoteSummary is blocked from Vercel cloud IPs (requires
-crumb/cookie auth). This version uses FMP as the primary data source for
-fundamentals, and Yahoo Finance v8/chart (proven to work) for price charts.
-
 GET /api/research?ticker=MU            → full research data (KV-cached 15 min)
 GET /api/research?ticker=MU&type=chart&range=1y → OHLC chart (KV-cached 5 min)
 GET /api/research?ticker=MU&type=price → live price only (no cache, 15s updates)
 
-Data sources:
-  FMP (parallel, all cached):
-    /v3/quote/{ticker}                      → live price, volume, 52W range, PE, EPS
-    /v3/profile/{ticker}                    → description, sector, industry, beta, divs
-    /v3/analyst-stock-recommendations/{t}  → strong buy / buy / hold / sell counts
-    /v3/price-target-consensus/{t}          → mean / high / low analyst price targets
-    /v3/earnings-surprises/{t}              → EPS actual vs estimate history
-    /v3/stock_news?tickers={t}              → recent news headlines
-  Yahoo Finance v8/chart (proven reliable from Vercel):
-    chart/{ticker}?interval=…&range=…      → OHLCV for all time ranges
-    chart/{ticker}?interval=1m&range=1d    → fast live-price update
+Primary: Yahoo Finance quoteSummary with cookie+crumb auth
+         (resolves the "blocked from cloud IPs" issue)
+Fallback: FMP for fundamentals when YF crumb fails
+          FMP always used for: EPS history, analyst breakdown, price targets
+Charts:   Yahoo Finance v8/chart (proven reliable from Vercel)
 """
 from http.server import BaseHTTPRequestHandler
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -39,9 +29,43 @@ CACHE_CHART = 5  * 60   # 5 min for chart data
 
 _YF_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept":     "*/*",
+    "Accept":     "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
     "Referer":    "https://finance.yahoo.com",
 }
+
+_YF_API_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept":     "*/*",
+    "Referer":    "https://finance.yahoo.com",
+    "Origin":     "https://finance.yahoo.com",
+}
+
+# Cached crumb/session so we don't re-authenticate every call
+_yf_session = None
+_yf_crumb   = None
+
+def _get_yf_crumb():
+    """Obtain a Yahoo Finance crumb via cookie auth. Works from server IPs."""
+    global _yf_session, _yf_crumb
+    if _yf_session and _yf_crumb:
+        return _yf_session, _yf_crumb
+    try:
+        s = requests.Session()
+        s.headers.update(_YF_HEADERS)
+        # Step 1: get cookies from Yahoo Finance
+        s.get("https://finance.yahoo.com/", timeout=8)
+        # Step 2: exchange cookies for a crumb
+        cr = s.get("https://query1.finance.yahoo.com/v1/test/getcrumb",
+                   headers={**_YF_API_HEADERS, "Accept": "text/plain"}, timeout=8)
+        if cr.ok and cr.text and cr.text != "":
+            _yf_session = s
+            _yf_crumb   = cr.text.strip()
+            print(f"  [research] YF crumb obtained (len={len(_yf_crumb)})")
+            return _yf_session, _yf_crumb
+    except Exception as e:
+        print(f"  [research] crumb error: {e}")
+    return None, None
 
 # chart range → (yf_range, yf_interval)
 CHART_RANGES = {
@@ -93,6 +117,7 @@ def _fmp_sym(ticker: str) -> str:
 def _fmp_get(path: str, params: dict, timeout: int = 8):
     """Make a GET request to FMP, return parsed JSON or None."""
     if not FMP_API_KEY:
+        print(f"  [research] FMP_API_KEY is empty — cannot call {path}")
         return None
     try:
         r = requests.get(
@@ -100,8 +125,17 @@ def _fmp_get(path: str, params: dict, timeout: int = 8):
             params={**params, "apikey": FMP_API_KEY},
             timeout=timeout,
         )
-        return r.json() if r.ok else None
-    except Exception:
+        if not r.ok:
+            print(f"  [research] FMP {path} HTTP {r.status_code}: {r.text[:200]}")
+            return None
+        data = r.json()
+        # Detect FMP error response (e.g. rate limit, invalid key)
+        if isinstance(data, dict) and ("Error Message" in data or "message" in data):
+            print(f"  [research] FMP {path} error: {data}")
+            return None
+        return data
+    except Exception as e:
+        print(f"  [research] FMP {path} exception: {e}")
         return None
 
 
@@ -160,6 +194,49 @@ def fmp_news(ticker: str) -> list:
 
 
 # ── Yahoo Finance helpers (chart only) ────────────────────────────────────────
+
+def yf_quote_summary(ticker: str) -> dict | None:
+    """Fetch fundamentals from Yahoo Finance using cookie+crumb auth."""
+    session, crumb = _get_yf_crumb()
+    if not session:
+        return None
+    mods   = "price,summaryDetail,defaultKeyStatistics,financialData,recommendationTrend,assetProfile,calendarEvents,earnings"
+    params = {"modules": mods, "crumb": crumb} if crumb else {"modules": mods}
+    try:
+        r = session.get(
+            f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}",
+            params=params, headers=_YF_API_HEADERS, timeout=12,
+        )
+        if not r.ok:
+            print(f"  [research] YF quoteSummary HTTP {r.status_code} for {ticker}")
+            return None
+        result = r.json().get("quoteSummary", {}).get("result")
+        return result[0] if result else None
+    except Exception as e:
+        print(f"  [research] YF quoteSummary error: {e}")
+        return None
+
+
+def yf_news(ticker: str) -> list:
+    """News headlines from Yahoo Finance."""
+    try:
+        session = _yf_session or requests.Session()
+        r = session.get(
+            f"https://query2.finance.yahoo.com/v2/finance/news?symbols={ticker}&count=5",
+            headers=_YF_API_HEADERS, timeout=8,
+        )
+        if not r.ok:
+            return []
+        data  = r.json()
+        items = data.get("items", {}).get("result", []) or data.get("news", [])
+        return [
+            {"title": n.get("title", ""), "publisher": n.get("publisher") or n.get("source", {}).get("label", ""),
+             "published": n.get("providerPublishTime") or n.get("pubDate"), "link": n.get("link") or n.get("url", "")}
+            for n in items[:5] if n.get("title")
+        ]
+    except Exception:
+        return []
+
 
 def yf_chart(ticker: str, yf_range: str, interval: str) -> dict | None:
     """Fetch OHLCV chart data from Yahoo Finance (works from Vercel)."""
@@ -226,30 +303,250 @@ def yf_live_price(ticker: str) -> dict | None:
 
 def build_quote(ticker: str) -> dict:
     """
-    Fetch all research data in parallel from FMP.
-    All calls are parallel via ThreadPoolExecutor.
+    Fetch research data.
+    Strategy:
+      1. Yahoo Finance quoteSummary (crumb auth) — primary for all fundamentals
+      2. FMP — primary for EPS history + analyst breakdown (if key is valid)
+         FMP is also used as fallback if YF fails
+    All calls run in parallel.
     """
-    if not FMP_API_KEY:
-        return {"error": "FMP_API_KEY not configured. Add it in Vercel environment variables.", "ticker": ticker}
-
-    # Parallel fetch — all 6 calls fire simultaneously
+    # Kick off parallel fetches
     with ThreadPoolExecutor(max_workers=6) as ex:
-        f_quote    = ex.submit(fmp_quote,          ticker)
-        f_profile  = ex.submit(fmp_profile,        ticker)
-        f_analyst  = ex.submit(fmp_analyst_recs,   ticker)
-        f_targets  = ex.submit(fmp_price_targets,  ticker)
-        f_earnings = ex.submit(fmp_earnings_history, ticker)
-        f_news     = ex.submit(fmp_news,           ticker)
+        f_yf_qs    = ex.submit(yf_quote_summary,     ticker)       # YF primary
+        f_earnings = ex.submit(fmp_earnings_history, ticker)       # FMP EPS
+        f_analyst  = ex.submit(fmp_analyst_recs,     ticker)       # FMP analyst
+        f_targets  = ex.submit(fmp_price_targets,    ticker)       # FMP targets
+        f_fmp_q    = ex.submit(fmp_quote,            ticker)       # FMP price fallback
+        f_fmp_p    = ex.submit(fmp_profile,          ticker)       # FMP profile fallback
 
-    quote    = f_quote.result()    or {}
-    profile  = f_profile.result()  or {}
+    qs       = f_yf_qs.result()    # Yahoo Finance quoteSummary
+    eps_hist = f_earnings.result() or []
     analyst  = f_analyst.result()  or {}
     targets  = f_targets.result()  or {}
-    eps_hist = f_earnings.result() or []
-    news     = f_news.result()     or []
+    fmp_q    = f_fmp_q.result()    or {}
+    fmp_p    = f_fmp_p.result()    or {}
 
-    if not quote and not profile:
-        return {"error": f"'{ticker}' not found. Check the ticker symbol and try again.", "ticker": ticker}
+    # If Yahoo Finance succeeded, use it as primary
+    # If not, fall back to FMP
+    using_yf = qs is not None
+
+    if not using_yf and not fmp_q and not fmp_p:
+        return {
+            "error": f"'{ticker}' not found or data temporarily unavailable. Try again shortly.",
+            "ticker": ticker,
+        }
+
+    # ── Build result from Yahoo Finance data ──────────────────────────────
+    if using_yf:
+        return _build_from_yf(ticker, qs, eps_hist, analyst, targets)
+    else:
+        # FMP fallback path
+        return _build_from_fmp(ticker, fmp_q, fmp_p, eps_hist, analyst, targets)
+
+
+def _raw(obj, *keys, default=None):
+    for k in keys:
+        obj = obj.get(k) if isinstance(obj, dict) else None
+    return (obj.get("raw") if isinstance(obj, dict) else obj) if obj is not None else default
+
+def _fmt(obj, *keys, default=None):
+    for k in keys:
+        obj = obj.get(k) if isinstance(obj, dict) else None
+    return (obj.get("fmt") if isinstance(obj, dict) else obj) if obj is not None else default
+
+def _val(obj, *keys, default=None):
+    for k in keys:
+        obj = obj.get(k) if isinstance(obj, dict) else None
+    return obj if obj is not None else default
+
+
+def _analyst_breakdown(analyst: dict) -> dict:
+    sb  = analyst.get("analystRatingsStrongBuy",  0)
+    b   = analyst.get("analystRatingsBuy",        0)
+    h   = analyst.get("analystRatingsHold",       0)
+    s   = analyst.get("analystRatingsSell",       0)
+    ss  = analyst.get("analystRatingsStrongSell", 0)
+    tot = sb + b + h + s + ss
+    return {"strongBuy": sb, "buy": b, "hold": h, "sell": s, "strongSell": ss, "total": tot}
+
+
+def _build_from_yf(ticker: str, qs: dict, eps_hist: list, analyst: dict, targets: dict) -> dict:
+    """Build response dict from Yahoo Finance quoteSummary data."""
+    price    = qs.get("price",                {})
+    summary  = qs.get("summaryDetail",        {})
+    keystats = qs.get("defaultKeyStatistics", {})
+    findata  = qs.get("financialData",        {})
+    rectrd   = qs.get("recommendationTrend",  {})
+    profile  = qs.get("assetProfile",         {})
+    calendar = qs.get("calendarEvents",       {})
+    earnings = qs.get("earnings",             {})
+
+    # Analyst from Yahoo (more complete than FMP for rec trend)
+    rec_periods = rectrd.get("trend", [])
+    rec_now     = rec_periods[0] if rec_periods else {}
+    yf_ab = {
+        "strongBuy":  rec_now.get("strongBuy",  0),
+        "buy":        rec_now.get("buy",        0),
+        "hold":       rec_now.get("hold",       0),
+        "sell":       rec_now.get("sell",       0),
+        "strongSell": rec_now.get("strongSell", 0),
+    }
+    yf_ab["total"] = sum(yf_ab.values())
+
+    # Use FMP analyst if YF has no data
+    ab = yf_ab if yf_ab["total"] > 0 else _analyst_breakdown(analyst)
+
+    # Analyst targets — prefer FMP price-target-consensus, fallback to YF
+    t_mean = targets.get("targetConsensus") or _raw(findata, "targetMeanPrice")
+    t_high = targets.get("targetHigh")      or _raw(findata, "targetHighPrice")
+    t_low  = targets.get("targetLow")       or _raw(findata, "targetLowPrice")
+
+    # Recommendation key
+    rec_key = _val(findata, "recommendationKey") or ""
+
+    # Earnings date
+    earn_dates = _val(calendar, "earnings", "earningsDate") or []
+    earn_date  = None
+    for ed in earn_dates[:2]:
+        ts = ed.get("raw") if isinstance(ed, dict) else ed
+        if ts:
+            earn_date = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%b %d, %Y")
+            break
+
+    # Ex-dividend
+    ex_div_ts   = _raw(summary, "exDividendDate")
+    ex_div_date = datetime.fromtimestamp(ex_div_ts, tz=timezone.utc).strftime("%b %d, %Y") if ex_div_ts and isinstance(ex_div_ts, (int, float)) else None
+
+    div_rate  = _raw(summary, "dividendRate")
+    div_yield = _raw(summary, "dividendYield")
+    div_str   = f"${div_rate:.2f} ({div_yield*100:.2f}%)" if div_rate and div_yield else "N/A"
+
+    # EPS history — prefer FMP, fall back to YF earnings chart
+    if not eps_hist:
+        for q in (earnings.get("earningsChart", {}).get("quarterly") or [])[-8:]:
+            eps_hist.append({"date": _val(q, "date"), "actual": _raw(q, "actual"), "estimate": _raw(q, "estimate")})
+
+    # News (try YF)
+    news = yf_news(ticker)
+
+    return {
+        "ticker":   ticker,
+        "name":     _val(price, "longName") or _val(price, "shortName") or ticker,
+        "exchange": _val(price, "exchangeName") or "—",
+        "currency": _val(price, "currency") or "USD",
+        "quoteType": "EQUITY",
+        "price":          _raw(price, "regularMarketPrice"),
+        "priceChange":    _raw(price, "regularMarketChange"),
+        "priceChangePct": _raw(price, "regularMarketChangePercent"),
+        "previousClose":  _raw(price, "regularMarketPreviousClose"),
+        "open":           _raw(price, "regularMarketOpen"),
+        "dayHigh":        _raw(price, "regularMarketDayHigh"),
+        "dayLow":         _raw(price, "regularMarketDayLow"),
+        "volume":         _raw(price, "regularMarketVolume"),
+        "volumeFmt":      _fmt(price, "regularMarketVolume"),
+        "marketCap":      _raw(price, "marketCap"),
+        "marketCapFmt":   _fmt(price, "marketCap"),
+        "fiftyTwoWeekHigh": _raw(summary, "fiftyTwoWeekHigh"),
+        "fiftyTwoWeekLow":  _raw(summary, "fiftyTwoWeekLow"),
+        "avgVolume":      _raw(summary, "averageVolume"),
+        "avgVolumeFmt":   _fmt(summary, "averageVolume"),
+        "beta":           _raw(summary, "beta"),
+        "trailingPE":     _raw(summary, "trailingPE"),
+        "forwardPE":      _raw(keystats, "forwardPE"),
+        "trailingEps":    _raw(keystats, "trailingEps"),
+        "priceToBook":    _raw(keystats, "priceToBook"),
+        "dividendStr":    div_str,
+        "exDividendDate": ex_div_date,
+        "earningsDate":   earn_date,
+        "targetHigh":     t_high,
+        "targetLow":      t_low,
+        "targetMean":     t_mean,
+        "targetMedian":   targets.get("targetMedian"),
+        "recommendationKey": rec_key,
+        "numAnalysts":    _raw(findata, "numberOfAnalystOpinions") or ab["total"] or None,
+        "analystBreakdown": ab,
+        "grossMargins":   _raw(findata, "grossMargins"),
+        "profitMargins":  _raw(findata, "profitMargins"),
+        "description":    (_val(profile, "longBusinessSummary") or "")[:800],
+        "industry":       _val(profile, "industry")  or "",
+        "sector":         _val(profile, "sector")    or "",
+        "website":        _val(profile, "website")   or "",
+        "employees":      _val(profile, "fullTimeEmployees"),
+        "country":        _val(profile, "country")   or "",
+        "epsHistory":     eps_hist,
+        "news":           news,
+        "fetchedAt":      datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _build_from_fmp(ticker: str, fmp_q: dict, fmp_p: dict, eps_hist: list, analyst: dict, targets: dict) -> dict:
+    """Build response dict from FMP data (fallback when YF crumb fails)."""
+    div_rate  = fmp_p.get("lastDiv") or 0
+    price_now = fmp_q.get("price") or fmp_p.get("price") or 1
+    div_yield = (div_rate / price_now) if div_rate and price_now else 0
+    div_str   = f"${div_rate:.2f} ({div_yield*100:.2f}%)" if div_rate else "N/A"
+
+    earn_raw  = fmp_q.get("earningsAnnouncement", "")
+    earn_date = None
+    if earn_raw:
+        try:
+            earn_date = datetime.fromisoformat(earn_raw[:10]).strftime("%b %d, %Y")
+        except Exception:
+            pass
+
+    ab  = _analyst_breakdown(analyst)
+    rec = (analyst.get("analystRatingsConsensus") or "hold").lower().replace(" ", "_")
+
+    news = yf_news(ticker)  # try YF news even in FMP path
+
+    return {
+        "ticker":   ticker,
+        "name":     fmp_p.get("companyName") or fmp_q.get("name") or ticker,
+        "exchange": fmp_p.get("exchangeShortName") or fmp_p.get("exchange") or "—",
+        "currency": fmp_p.get("currency") or "USD",
+        "quoteType": "EQUITY",
+        "price":          fmp_q.get("price"),
+        "priceChange":    fmp_q.get("change"),
+        "priceChangePct": fmp_q.get("changesPercentage"),
+        "previousClose":  fmp_q.get("previousClose"),
+        "open":           fmp_q.get("open"),
+        "dayHigh":        fmp_q.get("dayHigh"),
+        "dayLow":         fmp_q.get("dayLow"),
+        "volume":         fmp_q.get("volume"),
+        "volumeFmt":      None,
+        "marketCap":      fmp_q.get("marketCap"),
+        "marketCapFmt":   None,
+        "fiftyTwoWeekHigh": fmp_q.get("yearHigh"),
+        "fiftyTwoWeekLow":  fmp_q.get("yearLow"),
+        "avgVolume":      fmp_q.get("avgVolume"),
+        "avgVolumeFmt":   None,
+        "beta":           fmp_p.get("beta"),
+        "trailingPE":     fmp_q.get("pe"),
+        "forwardPE":      None,
+        "trailingEps":    fmp_q.get("eps"),
+        "priceToBook":    None,
+        "dividendStr":    div_str,
+        "exDividendDate": None,
+        "earningsDate":   earn_date,
+        "targetHigh":     targets.get("targetHigh"),
+        "targetLow":      targets.get("targetLow"),
+        "targetMean":     targets.get("targetConsensus"),
+        "targetMedian":   targets.get("targetMedian"),
+        "recommendationKey": rec,
+        "numAnalysts":    ab["total"] or None,
+        "analystBreakdown": ab,
+        "grossMargins":   None,
+        "profitMargins":  None,
+        "description":    (fmp_p.get("description") or "")[:800],
+        "industry":       fmp_p.get("industry")  or "",
+        "sector":         fmp_p.get("sector")    or "",
+        "website":        fmp_p.get("website")   or "",
+        "employees":      fmp_p.get("fullTimeEmployees"),
+        "country":        fmp_p.get("country")   or "",
+        "epsHistory":     eps_hist,
+        "news":           news,
+        "fetchedAt":      datetime.now(timezone.utc).isoformat(),
+    }
 
     # ── Normalise analyst consensus key ──────────────────────────────────────
     rec_raw = (analyst.get("analystRatingsConsensus") or "").lower().replace(" ", "_")

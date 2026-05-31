@@ -1879,6 +1879,10 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
     const acctBadgesHtml = g.accounts.map(a =>
       `<span class="badge ${acctBadgeClass(a)}" style="font-size:8px;padding:1px 4px">${a === 'Investment' ? 'NON-REG' : a}</span>`
     ).join(' ');
+    // Live return %: (total market value across accounts − total cost basis) / cost basis
+    const retPct  = g.costBasisCAD > 0 ? (g.mktVal - g.costBasisCAD) / g.costBasisCAD * 100 : null;
+    const retColor = retPct != null ? (retPct >= 0 ? 'green' : 'red') : '';
+    const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
     return `<tr data-rowtype="summary" data-account="${g.accounts[0]}" data-sector="${g.sector}" data-pnl="${pnlAttr}" data-mv="${g.mktVal.toFixed(2)}" data-cb="${g.costBasisCAD.toFixed(2)}" data-unreal="${g.unrealizedCAD.toFixed(2)}" data-div="${g.dividends.toFixed(2)}" data-real="${g.realized.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
       <td class="mono blue">${g.ticker}</td>
       <td class="text2">${g.name}</td>
@@ -1895,6 +1899,7 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
       <td class="mono small ${realColor}">${g.realized !== 0 ? fmt$(g.realized) : '—'}</td>
       <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
+      <td class="mono ${retColor}">${retStr}</td>
     </tr>`;
   }).join('');
 
@@ -1929,6 +1934,7 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.4"></div></div></td>
+      <td class="mono text3">—</td>
     </tr>`;
   }).join('');
 
@@ -2403,7 +2409,7 @@ function initCharts() {
       labels: ['TFSA', 'Investment', 'FHSA', 'RRSP'],
       datasets: [{ data: [98273, 94272, 53509, 27771], backgroundColor: ['#3b82f6', '#94a3b8', '#10b981', '#fbbf24'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.5, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } } } }
   });
 
   // Sector Pie
@@ -2413,7 +2419,7 @@ function initCharts() {
       labels: ['Leveraged ETF', 'Technology', 'Financials', 'Energy', 'Consumer', 'Other'],
       datasets: [{ data: [126652, 65928, 28852, 9454, 13849, 15574], backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.5, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 8 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } } } }
   });
 
   // Geo Pie
@@ -2423,7 +2429,7 @@ function initCharts() {
       labels: ['USA', 'Canada', 'Taiwan', 'Other'],
       datasets: [{ data: [178927, 53316, 8165, 19901], backgroundColor: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.5, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 8 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } } } }
   });
 
   // Asset Pie
@@ -2433,7 +2439,7 @@ function initCharts() {
       labels: ['Leveraged ETF', 'Equities', 'Covered Call ETF', 'Crypto'],
       datasets: [{ data: [126652, 119205, 33716, 3162], backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.5, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 8 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } } } }
   });
 
   // Contributions Area

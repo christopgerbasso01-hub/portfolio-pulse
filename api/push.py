@@ -9,7 +9,6 @@ from http.server import BaseHTTPRequestHandler
 import json
 import os
 import requests
-import hashlib
 
 KV_URL   = os.environ.get("KV_REST_API_URL", "")
 KV_TOKEN = os.environ.get("KV_REST_API_TOKEN", "")

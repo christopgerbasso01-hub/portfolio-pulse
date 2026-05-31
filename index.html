@@ -2,8 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Portfolio Pulse — Live Dashboard</title>
+
+<!-- ═══ PWA ═══════════════════════════════════════════════════════════════ -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#060b14">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- Apple-specific (required for iOS home screen install) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pulse">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -3798,6 +3811,22 @@ function renderTxHistory() {
     </div>
   </div>
 </div>
+
+<!-- ═══ Service Worker Registration ═══════════════════════════════════════ -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(reg => {
+        console.log('[PWA] Service worker registered, scope:', reg.scope);
+        // Check for updates every time the page loads
+        reg.update();
+      })
+      .catch(err => console.warn('[PWA] Service worker registration failed:', err));
+  });
+}
+</script>
+<!-- ════════════════════════════════════════════════════════════════════════ -->
 
 </body>
 </html>

@@ -294,6 +294,77 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   .refresh-btn { padding: 5px 12px; font-size: 10px; }
 }
 
+/* ============================  MOBILE TABS  ============================ */
+.mobile-tabs { display: none }
+
+@media (max-width: 768px) {
+  /* Tab bar — fixed at bottom, above iPhone home indicator */
+  .mobile-tabs {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 56px;
+    background: #0a1628;
+    border-top: 1px solid var(--border);
+    z-index: 500;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    font-family: var(--sans);
+    font-size: 9px;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    transition: color .2s;
+    padding: 6px 0;
+  }
+  .tab-btn.active { color: var(--blue-bright); }
+  .tab-icon { font-size: 19px; line-height: 1; }
+
+  /* Add space at bottom so content isn't hidden behind tab bar */
+  body { padding-bottom: 72px; }
+
+  /* Hide all tabbed sections by default */
+  .section[data-tab] { display: none; }
+
+  /* Show sections for the active tab */
+  .section[data-tab].tab-visible { display: block; }
+
+  /* Intelligence banner: hide until portfolio tab shown (JS handles it) */
+  #intelBanner { display: none !important; }
+
+  /* Lift chat FAB above the tab bar */
+  .chat-fab { bottom: 72px !important; }
+
+  /* Holdings table on mobile — show only essential columns */
+  /* Hide: Name(2), Sector(4), Shares(5), Live Price(6), Day$(8),
+           Cost Basis(10), Unrealized(11), Dividends(12), Realized(13), Weight%(15) */
+  .holdings-table th:nth-child(2), .holdings-table td:nth-child(2),
+  .holdings-table th:nth-child(4), .holdings-table td:nth-child(4),
+  .holdings-table th:nth-child(5), .holdings-table td:nth-child(5),
+  .holdings-table th:nth-child(6), .holdings-table td:nth-child(6),
+  .holdings-table th:nth-child(8), .holdings-table td:nth-child(8),
+  .holdings-table th:nth-child(10), .holdings-table td:nth-child(10),
+  .holdings-table th:nth-child(11), .holdings-table td:nth-child(11),
+  .holdings-table th:nth-child(12), .holdings-table td:nth-child(12),
+  .holdings-table th:nth-child(13), .holdings-table td:nth-child(13),
+  .holdings-table th:nth-child(15), .holdings-table td:nth-child(15) { display: none; }
+  .holdings-table { min-width: 0; font-size: 11px; }
+  .holdings-table tfoot { display: none; }
+
+  /* Footer margin */
+  .footer { margin-bottom: 8px; }
+}
+
 @media (max-width: 480px) {
   .header-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
   .grid-4, .acct-grid, .tax-grid { grid-template-columns: 1fr; }
@@ -502,7 +573,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  01: OVERVIEW -->
-<div class="section" id="sec01">
+<div class="section" id="sec01" data-tab="portfolio">
   <div class="section-header">
     <span class="section-num">01</span>
     <span class="section-title">TOTAL PORTFOLIO OVERVIEW</span>
@@ -601,7 +672,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  WEEKLY BRIEF -->
-<div class="section" id="secBrief">
+<div class="section" id="secBrief" data-tab="podcast">
   <div class="section-header">
     <span class="section-num" style="background:rgba(139,92,246,.2);color:var(--purple)">WK</span>
     <span class="section-title">WEEKLY BRIEF &amp; PODCAST</span>
@@ -667,7 +738,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  02: BENCHMARK -->
-<div class="section" id="sec02">
+<div class="section" id="sec02" data-tab="portfolio">
   <div class="section-header">
     <span class="section-num">02</span>
     <span class="section-title">CONTRIBUTION-WEIGHTED BENCHMARK</span>
@@ -714,7 +785,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  03: ACCOUNTS -->
-<div class="section" id="sec03">
+<div class="section" id="sec03" data-tab="portfolio">
   <div class="section-header">
     <span class="section-num">03</span>
     <span class="section-title">ACCOUNT-LEVEL BREAKDOWN</span>
@@ -827,7 +898,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  04: HOLDINGS TABLE -->
-<div class="section" id="sec04">
+<div class="section" id="sec04" data-tab="holdings">
   <div class="section-header">
     <span class="section-num">04</span>
     <span class="section-title">FULL HOLDINGS TABLE</span>
@@ -919,7 +990,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  05: MACRO (AI) -->
-<div class="section" id="sec05">
+<div class="section" id="sec05" data-tab="insights">
   <div class="section-header">
     <span class="section-num">05</span>
     <span class="section-title">MACRO &amp; MARKET INTELLIGENCE</span>
@@ -942,7 +1013,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  06: NEWS (AI) -->
-<div class="section" id="sec06">
+<div class="section" id="sec06" data-tab="insights">
   <div class="section-header">
     <span class="section-num">06</span>
     <span class="section-title">RECENT MARKET NEWS &amp; PORTFOLIO IMPACT</span>
@@ -969,7 +1040,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  07: PICKS (AI) -->
-<div class="section" id="sec07">
+<div class="section" id="sec07" data-tab="insights">
   <div class="section-header">
     <span class="section-num">07</span>
     <span class="section-title">STOCKS TO WATCH &amp; POTENTIAL BUYS</span>
@@ -985,7 +1056,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  08: SWOT (AI) -->
-<div class="section" id="sec08">
+<div class="section" id="sec08" data-tab="insights">
   <div class="section-header">
     <span class="section-num">08</span>
     <span class="section-title">PORTFOLIO STRENGTHS &amp; CONCERNS</span>
@@ -1014,7 +1085,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  09: STRATEGY (AI) -->
-<div class="section" id="sec09">
+<div class="section" id="sec09" data-tab="insights">
   <div class="section-header">
     <span class="section-num">09</span>
     <span class="section-title">STRATEGY RECOMMENDATIONS</span>
@@ -1051,7 +1122,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 </div>
 
 <!-- ================================================================  10: TAX (AI) -->
-<div class="section" id="sec10">
+<div class="section" id="sec10" data-tab="insights">
   <div class="section-header">
     <span class="section-num">10</span>
     <span class="section-title">TAX &amp; ACCOUNT OPTIMIZATION</span>
@@ -3824,6 +3895,77 @@ function renderTxHistory() {
     </div>
   </div>
 </div>
+
+<!-- ═══ Mobile Tab Bar ════════════════════════════════════════════════════ -->
+<nav class="mobile-tabs" id="mobileTabs" role="navigation" aria-label="Main navigation">
+  <button class="tab-btn active" data-tab="portfolio" onclick="activateTab('portfolio')" aria-label="Portfolio overview">
+    <span class="tab-icon">📈</span>
+    <span>Portfolio</span>
+  </button>
+  <button class="tab-btn" data-tab="holdings" onclick="activateTab('holdings')" aria-label="Holdings table">
+    <span class="tab-icon">📊</span>
+    <span>Holdings</span>
+  </button>
+  <button class="tab-btn" data-tab="insights" onclick="activateTab('insights')" aria-label="AI insights">
+    <span class="tab-icon">💡</span>
+    <span>Insights</span>
+  </button>
+  <button class="tab-btn" data-tab="podcast" onclick="activateTab('podcast')" aria-label="Weekly podcast">
+    <span class="tab-icon">🎙️</span>
+    <span>Podcast</span>
+  </button>
+</nav>
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+
+<!-- ═══ Mobile Tab Logic ═════════════════════════════════════════════════ -->
+<script>
+(function () {
+  var MOBILE_BP = 768;
+
+  function isMobile() { return window.innerWidth <= MOBILE_BP; }
+
+  window.activateTab = function (name) {
+    if (!isMobile()) return;
+
+    // Update button active states
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.tab === name);
+    });
+
+    // Show/hide sections
+    document.querySelectorAll('.section[data-tab]').forEach(function (sec) {
+      sec.classList.toggle('tab-visible', sec.dataset.tab === name);
+    });
+
+    // Persist active tab
+    try { localStorage.setItem('pp_tab', name); } catch (e) {}
+
+    // Scroll to top of page on tab switch
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  // On resize: if switching to desktop, remove all tab hiding
+  window.addEventListener('resize', function () {
+    if (!isMobile()) {
+      document.querySelectorAll('.section[data-tab]').forEach(function (sec) {
+        sec.classList.add('tab-visible'); // show everything on desktop
+      });
+    } else {
+      // Re-apply current tab on mobile
+      var cur = (function () { try { return localStorage.getItem('pp_tab'); } catch (e) { return null; } })();
+      activateTab(cur || 'portfolio');
+    }
+  });
+
+  // Initialise on page load
+  if (isMobile()) {
+    var saved;
+    try { saved = localStorage.getItem('pp_tab'); } catch (e) {}
+    activateTab(saved || 'portfolio');
+  }
+})();
+</script>
+<!-- ════════════════════════════════════════════════════════════════════════ -->
 
 <!-- ═══ Service Worker Registration ═══════════════════════════════════════ -->
 <script>

@@ -20,6 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@13/marked.min.js"></script>
 <style>
 /* ============================  TOKENS  ============================ */
@@ -69,6 +70,9 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .header-date{font-family:var(--mono);font-size:11px;color:var(--text3)}
 .refresh-btn{font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);padding:3px 8px;border-radius:4px;cursor:pointer;transition:all .2s}
 .refresh-btn:hover{border-color:var(--blue-bright);color:var(--blue-bright)}
+.notif-btn{font-size:14px;background:none;border:none;cursor:pointer;padding:2px 4px;opacity:0.5;transition:opacity .2s;line-height:1}
+.notif-btn:hover{opacity:1}
+.notif-btn.active{opacity:1}
 .header-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
 .hkpi{text-align:center}
 .hkpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
@@ -598,6 +602,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     <span id="usdcadRate" class="mono" style="font-size:11px">USD/CAD —</span>
     <span id="lastUpdated">—</span>
     <button class="refresh-btn" onclick="refreshAll()">↻ REFRESH</button>
+    <button class="notif-btn" id="notifBtn" onclick="toggleNotifications()" title="Enable notifications" aria-label="Toggle push notifications">🔕</button>
   </div>
 </div>
 
@@ -2285,6 +2290,7 @@ const chartOpts = (ylabel, format = 'pct') => ({
   interaction: { mode: 'index', intersect: false },
   plugins: {
     legend: { labels: { font: { size: 11 }, boxWidth: 12 } },
+    datalabels: { display: false },
     tooltip: {
       callbacks: {
         label: ctx => format === 'pct' ? `${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}%` : `${ctx.dataset.label}: ${fmt$(ctx.parsed.y, 0)}`
@@ -2409,7 +2415,7 @@ function initCharts() {
       labels: ['TFSA', 'Investment', 'FHSA', 'RRSP'],
       datasets: [{ data: [98273, 94272, 53509, 27771], backgroundColor: ['#3b82f6', '#94a3b8', '#10b981', '#fbbf24'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } }, datalabels: { formatter: (v,ctx) => { const t=ctx.dataset.data.reduce((a,b)=>a+b,0); const p=v/t*100; return p>=5 ? p.toFixed(1)+'%' : ''; }, color:'#fff', font:{ size:10, weight:'bold' } } } }
   });
 
   // Sector Pie
@@ -2419,7 +2425,7 @@ function initCharts() {
       labels: ['Leveraged ETF', 'Technology', 'Financials', 'Energy', 'Consumer', 'Other'],
       datasets: [{ data: [126652, 65928, 28852, 9454, 13849, 15574], backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } }, datalabels: { formatter: (v,ctx) => { const t=ctx.dataset.data.reduce((a,b)=>a+b,0); const p=v/t*100; return p>=5 ? p.toFixed(1)+'%' : ''; }, color:'#fff', font:{ size:10, weight:'bold' } } } }
   });
 
   // Geo Pie
@@ -2429,7 +2435,7 @@ function initCharts() {
       labels: ['USA', 'Canada', 'Taiwan', 'Other'],
       datasets: [{ data: [178927, 53316, 8165, 19901], backgroundColor: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } }, datalabels: { formatter: (v,ctx) => { const t=ctx.dataset.data.reduce((a,b)=>a+b,0); const p=v/t*100; return p>=5 ? p.toFixed(1)+'%' : ''; }, color:'#fff', font:{ size:10, weight:'bold' } } } }
   });
 
   // Asset Pie
@@ -2439,7 +2445,7 @@ function initCharts() {
       labels: ['Leveraged ETF', 'Equities', 'Covered Call ETF', 'Crypto'],
       datasets: [{ data: [126652, 119205, 33716, 3162], backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } }, datalabels: { formatter: (v,ctx) => { const t=ctx.dataset.data.reduce((a,b)=>a+b,0); const p=v/t*100; return p>=5 ? p.toFixed(1)+'%' : ''; }, color:'#fff', font:{ size:10, weight:'bold' } } } }
   });
 
   // Contributions Area
@@ -3407,6 +3413,9 @@ window.addEventListener('DOMContentLoaded', () => {
   // Live prices auto-refresh; intelligence does NOT re-fetch on interval
   refreshTimer = setInterval(fetchMarketData, CONFIG.MARKET_REFRESH_MS);
 
+  // Sync notification bell state on load
+  checkNotifStatus();
+
   // Pause refresh when app is backgrounded (saves API calls on iPhone)
   // Resume immediately when app comes back to foreground
   document.addEventListener('visibilitychange', () => {
@@ -3419,6 +3428,91 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// ============================================================
+// PUSH NOTIFICATIONS
+// ============================================================
+
+const VAPID_PUBLIC_KEY = 'BCia9iP8ENc18anoiVsDogZVoOQKFRI_zwG0Q2g6xYCJZkspcbIq--b-SPecUIt6hyKfbDEK4x_FT5We01PvJq4';
+
+function _urlB64ToUint8(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return new Uint8Array([...raw].map(c => c.charCodeAt(0)));
+}
+
+function _updateNotifBtn(subscribed) {
+  const btn = document.getElementById('notifBtn');
+  if (!btn) return;
+  btn.textContent  = subscribed ? '🔔' : '🔕';
+  btn.title        = subscribed ? 'Notifications on — tap to disable' : 'Enable daily close notifications';
+  btn.classList.toggle('active', subscribed);
+}
+
+async function checkNotifStatus() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    document.getElementById('notifBtn')?.style.setProperty('display', 'none');
+    return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    _updateNotifBtn(!!sub);
+  } catch {}
+}
+
+async function toggleNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('Push notifications are not supported in this browser.\nInstall the app on your iPhone home screen to enable them.');
+    return;
+  }
+
+  const reg = await navigator.serviceWorker.ready;
+  const existing = await reg.pushManager.getSubscription();
+
+  if (existing) {
+    // ── Unsubscribe ──
+    await existing.unsubscribe();
+    await fetch('/api/push', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: existing.endpoint }),
+    }).catch(() => {});
+    _updateNotifBtn(false);
+    return;
+  }
+
+  // ── Subscribe ──
+  if (Notification.permission === 'denied') {
+    alert('Notifications are blocked. Please enable them in:\nSettings → Safari → Notifications → Portfolio Pulse');
+    return;
+  }
+
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') return;
+
+  try {
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _urlB64ToUint8(VAPID_PUBLIC_KEY),
+    });
+
+    const res = await fetch('/api/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON()),
+    });
+
+    if (res.ok) {
+      _updateNotifBtn(true);
+    } else {
+      console.warn('[push] subscribe failed', res.status);
+      await sub.unsubscribe();
+    }
+  } catch (err) {
+    console.error('[push] subscribe error', err);
+  }
+}
 
 // ============================================================
 // CHAT

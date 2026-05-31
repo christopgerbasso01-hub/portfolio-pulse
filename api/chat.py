@@ -1,12 +1,12 @@
 """
 Portfolio Pulse — AI Chat Endpoint
-Architecture: Groq Llama 3.3 70B with tool calling + SSE streaming
+Architecture: Gemini 2.0 Flash with tool calling + SSE streaming
 
 Tools available to the model:
   search_web                — Tavily AI real-time search
   get_portfolio_data        — structured holdings retrieval
   calculate_capital_gains_tax — deterministic Canadian tax calculator
-  get_dividend_forecast     — Finnhub + Tavily dividend lookup
+  get_dividend_forecast     — FMP (primary) + Yahoo Finance (fallback) dividend lookup
 
 SSE event format:
   data: {"status": "..."}   — tool-call progress (shown in typing indicator)
@@ -17,6 +17,7 @@ import json
 import os
 import re
 import requests
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler
@@ -24,10 +25,19 @@ from http.server import BaseHTTPRequestHandler
 # ── Config ────────────────────────────────────────────────────────────────────
 GROQ_API_KEY    = os.environ.get("GROQ_API_KEY", "")
 TAVILY_API_KEY  = os.environ.get("TAVILY_API_KEY", "")
-FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
-GROQ_MODEL       = "llama-3.3-70b-versatile"  # Groq 70B — best quality (6k TPM free)
-GROQ_MODEL_FAST  = "llama-3.1-8b-instant"     # Groq 8B — tool rounds (20k TPM free)
-GROQ_URL         = "https://api.groq.com/openai/v1/chat/completions"
+FMP_API_KEY     = os.environ.get("FMP_API_KEY", "")
+
+GROQ_URL        = "https://api.groq.com/openai/v1/chat/completions"
+# 8B model: 20K TPM free — used for tool-calling rounds (just needs to pick tools)
+GROQ_MODEL_FAST = "llama-3.1-8b-instant"
+# 70B model: 6K TPM free — used for final response only (best quality for the answer)
+GROQ_MODEL      = "llama-3.3-70b-versatile"
+
+# Leveraged exchange-traded NOTES — structured products that rarely/never pay
+# reliable dividends. True leveraged ETFs (SPXL, UDOW) DO pay quarterly dividends
+# and are intentionally NOT in this list.
+_LEVERAGED_ETFS = {"FNGU", "FNGO", "FNGA", "TQQQ", "SOXL", "TECL", "NAIL",
+                   "LABU", "DPST", "CURE", "BULZ"}
 MAX_TOOL_ROUNDS = 5
 
 # ── Tool status labels (shown in UI while tools run) ──────────────────────────
@@ -91,7 +101,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "get_dividend_forecast",
-            "description": "Fetch upcoming dividend dates and amounts from Finnhub/Tavily for held positions.",
+            "description": "Forecast upcoming dividend income from held positions using market data APIs. Excludes leveraged ETFs. Call for any dividend-related questions.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -350,60 +360,176 @@ def tool_calculate_capital_gains_tax(
     return result
 
 
-_YF_DIV_HEADERS = {
+_YF_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     "Accept": "*/*",
     "Referer": "https://finance.yahoo.com",
 }
 
 
-def _yahoo_dividends(ticker: str) -> list:
-    """Fetch dividend history from Yahoo Finance chart API. Returns [{date, amount}] sorted newest first."""
-    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?events=dividends&range=2y&interval=3mo"
+def _clean_dividend_records(records: list) -> list:
+    """
+    Clean raw dividend records before using them for forecasting:
+    1. Merge same-date entries (e.g. regular + capital-gains distributions paid same day).
+    2. Remove extreme outliers — anything >5× the median regular payment.
+       This strips large one-off distributions (SPXL 2020 $19/sh, etc.) that would
+       wreck the frequency-detection and amount average.
+    3. Return up to 12 records, newest first.
+    """
+    if not records:
+        return []
+    # Merge same-date payments
+    by_date: dict = {}
+    for r in records:
+        by_date[r["date"]] = round(by_date.get(r["date"], 0.0) + r["amount"], 4)
+    merged = sorted(
+        [{"date": dt, "amount": amt} for dt, amt in by_date.items() if amt > 0],
+        key=lambda x: x["date"],
+        reverse=True,
+    )
+    if len(merged) < 3:
+        return merged[:12]
+    # Compute median and drop outliers > 5× median
+    amounts = sorted(r["amount"] for r in merged)
+    median  = amounts[len(amounts) // 2]
+    if median > 0:
+        merged = [r for r in merged if r["amount"] <= median * 5]
+    return merged[:12]
+
+
+def _fmp_dividend_calendar(us_tickers_upper: set, from_date: str, to_date: str) -> dict:
+    """
+    Single FMP call: fetch ALL dividend events in the date range, filter to our US tickers.
+    Returns {TICKER_UPPER: [{date, amount}]}.
+    This gives *actual* upcoming ex-dates rather than projected ones.
+    """
+    if not FMP_API_KEY or not us_tickers_upper:
+        return {}
+    url = "https://financialmodelingprep.com/api/v3/stock_dividend_calendar"
     try:
-        r = requests.get(url, headers=_YF_DIV_HEADERS, timeout=8)
+        r = requests.get(
+            url,
+            params={"from": from_date, "to": to_date, "apikey": FMP_API_KEY},
+            timeout=12,
+        )
+        if not r.ok:
+            return {}
+        data = r.json()
+        if not isinstance(data, list):
+            return {}
+        result: dict = {}
+        for event in data:
+            sym = (event.get("symbol") or "").upper()
+            if sym not in us_tickers_upper:
+                continue
+            amt = float(event.get("dividend") or event.get("adjDividend") or 0)
+            dt  = (event.get("date") or "")[:10]
+            if amt > 0 and dt:
+                result.setdefault(sym, []).append({"date": dt, "amount": round(amt, 4)})
+        return result
+    except Exception:
+        return {}
+
+
+def _fmp_dividend_history(ticker: str) -> list:
+    """FMP historical dividend data (fallback for US tickers not in the calendar).
+    Strips .TO suffix — FMP uses plain NYSE symbols.
+    Returns cleaned [{date, amount}] newest-first, or [].
+    """
+    if not FMP_API_KEY:
+        return []
+    fmp_ticker = ticker.replace(".TO", "")
+    url = f"https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/{fmp_ticker}"
+    try:
+        r = requests.get(url, params={"apikey": FMP_API_KEY}, timeout=8)
         if not r.ok:
             return []
         data = r.json()
-        result = data["chart"]["result"][0]
-        divs = result.get("events", {}).get("dividends", {})
-        if not divs:
-            return []
-        records = []
-        for ts, d in divs.items():
-            amt = float(d.get("amount") or 0)
-            if amt > 0:
-                records.append({
-                    "date":   datetime.fromtimestamp(int(ts)).strftime("%Y-%m-%d"),
-                    "amount": round(amt, 4),
-                })
-        return sorted(records, key=lambda x: x["date"], reverse=True)[:12]
+        historical = data.get("historical") or []
+        raw = []
+        for d in historical:
+            amt = float(d.get("dividend") or d.get("adjDividend") or 0)
+            dt  = (d.get("date") or d.get("paymentDate") or "")[:10]
+            if amt > 0 and dt:
+                raw.append({"date": dt, "amount": round(amt, 4)})
+        return _clean_dividend_records(raw)
     except Exception:
         return []
 
 
-def _finnhub_dividends(symbol: str) -> list:
-    """Try Finnhub for structured dividend history. Returns [{date, amount}] or []."""
-    if not FINNHUB_API_KEY:
+def _yahoo_dividends_fallback(ticker: str) -> list:
+    """Yahoo Finance dividend history — primary for .TO tickers (returns native CAD).
+    Returns cleaned [{date, amount}] newest-first, or [].
+    """
+    url = (
+        f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}"
+        f"?events=dividends&range=2y&interval=3mo"
+    )
+    try:
+        r = requests.get(url, headers=_YF_HEADERS, timeout=8)
+        if not r.ok:
+            return []
+        data   = r.json()
+        result = data["chart"]["result"][0]
+        divs   = result.get("events", {}).get("dividends", {})
+        if not divs:
+            return []
+        raw = []
+        for ts, d in divs.items():
+            amt = float(d.get("amount") or 0)
+            if amt > 0:
+                raw.append({
+                    "date":   datetime.fromtimestamp(int(ts)).strftime("%Y-%m-%d"),
+                    "amount": round(amt, 4),
+                })
+        return _clean_dividend_records(raw)
+    except Exception:
         return []
-    for sym in [symbol, symbol.replace(".TO", "")]:
-        try:
-            r = requests.get(
-                "https://finnhub.io/api/v1/stock/dividend2",
-                params={"symbol": sym, "token": FINNHUB_API_KEY},
-                timeout=8,
-            )
-            if r.ok:
-                data = r.json().get("data") or []
-                records = [
-                    {"date": d.get("date", ""), "amount": round(float(d.get("amount") or 0), 4)}
-                    for d in data if (d.get("amount") or 0) > 0
-                ]
-                if records:
-                    return sorted(records, key=lambda x: x["date"], reverse=True)[:12]
-        except Exception:
-            pass
-    return []
+
+
+def _project_from_history(records: list, shares: int, account: str, ccy: str,
+                           today: date, end_date: date) -> list:
+    """
+    Given cleaned historical dividend records, project upcoming payments
+    into [today, end_date] using detected payment frequency.
+    Returns a list of upcoming-payment dicts (may be empty).
+    """
+    if not records:
+        return []
+    # Frequency detection
+    if len(records) >= 2:
+        dates = sorted(
+            [datetime.strptime(r["date"], "%Y-%m-%d") for r in records], reverse=True
+        )
+        intervals = [(dates[i] - dates[i + 1]).days for i in range(min(5, len(dates) - 1))]
+        avg_interval = sum(intervals) / len(intervals)
+    else:
+        avg_interval = 91
+
+    if   avg_interval < 40:  freq_days = 30
+    elif avg_interval < 75:  freq_days = 60
+    elif avg_interval < 135: freq_days = 91
+    elif avg_interval < 270: freq_days = 183
+    else:                    freq_days = 365
+
+    avg_amount = sum(r["amount"] for r in records[:4]) / min(4, len(records))
+    last_paid  = datetime.strptime(records[0]["date"], "%Y-%m-%d")
+
+    upcoming = []
+    next_dt  = last_paid + timedelta(days=freq_days)
+    while next_dt.date() <= end_date:
+        if next_dt.date() >= today:
+            upcoming.append({
+                "estimated_ex_date": next_dt.strftime("%Y-%m-%d"),
+                "month":             next_dt.strftime("%B %Y"),
+                "amount_per_share":  round(avg_amount, 4),
+                "shares":            shares,
+                "estimated_total":   round(avg_amount * shares, 2),
+                "currency":          ccy,
+                "account":           account,
+            })
+        next_dt += timedelta(days=freq_days)
+    return upcoming
 
 
 def tool_get_dividend_forecast(
@@ -412,118 +538,130 @@ def tool_get_dividend_forecast(
     months: int = 3,
     tickers=None,
 ) -> dict:
-    """Fetch dividend forecasts using Yahoo Finance historical data — all math done in Python."""
-    today      = date.today()
-    end_date   = today + timedelta(days=months * 31)
+    """
+    Forecast upcoming dividends.
+    US tickers  → FMP dividend calendar (actual upcoming dates) first, then historical projection.
+    CAD .TO     → Yahoo Finance historical projection (native CAD amounts).
+    Leveraged ETNs (FNGU etc.) always excluded.
+    """
+    today    = date.today()
+    end_date = today + timedelta(days=months * 31)
 
+    # Build candidates — exclude leveraged ETNs and cash
     if tickers:
         up = {t.upper() for t in tickers}
-        candidates = [h for h in holdings_list if h.get("ticker", "").upper() in up]
+        candidates = [
+            h for h in holdings_list
+            if h.get("ticker", "").upper() in up
+            and h.get("ticker", "").upper() not in _LEVERAGED_ETFS
+            and not h.get("cash")
+        ]
     else:
-        candidates = [h for h in holdings_list if (h.get("dividends") or 0) > 0]
+        candidates = [
+            h for h in holdings_list
+            if h.get("ticker", "").upper() not in _LEVERAGED_ETFS
+            and not h.get("cash")
+        ]
 
     if not candidates:
-        return {"message": "No dividend-paying holdings found.", "results": []}
+        return {"message": "No eligible holdings found.", "results": []}
 
-    # Deduplicate tickers across accounts so we only fetch each ticker once
-    ticker_data: dict = {}
+    # Split US vs Canadian
+    us_unique  = {h["ticker"] for h in candidates if not h["ticker"].endswith(".TO")}
+    ca_unique  = {h["ticker"] for h in candidates if h["ticker"].endswith(".TO")}
 
-    def fetch_ticker(ticker):
-        records = _yahoo_dividends(ticker) or _finnhub_dividends(ticker)
-        ticker_data[ticker] = records
+    # ── 1. FMP dividend calendar — one call for all US tickers ───────────────
+    calendar_map = _fmp_dividend_calendar(
+        {t.upper() for t in us_unique},
+        today.isoformat(),
+        end_date.isoformat(),
+    )
+    # Which US tickers had NO calendar entry → need historical projection
+    no_calendar = {t for t in us_unique if t.upper() not in calendar_map}
 
-    unique_tickers = list({h["ticker"] for h in candidates})
+    # ── 2. Historical data for .TO tickers + US fallbacks ───────────────────
+    hist_records: dict = {}
+
+    def fetch_hist(ticker):
+        if ticker.endswith(".TO"):
+            recs = _yahoo_dividends_fallback(ticker) or _fmp_dividend_history(ticker)
+        else:  # US fallback
+            recs = _fmp_dividend_history(ticker) or _yahoo_dividends_fallback(ticker)
+        hist_records[ticker] = recs
+
+    tickers_needing_history = ca_unique | no_calendar
     with ThreadPoolExecutor(max_workers=8) as ex:
-        list(as_completed([ex.submit(fetch_ticker, t) for t in unique_tickers]))
+        list(as_completed([ex.submit(fetch_hist, t) for t in tickers_needing_history]))
 
+    # ── 3. Build per-holding results ──────────────────────────────────────────
     results = []
     for h in candidates:
         ticker  = h.get("ticker", "")
         shares  = h.get("shares", 0)
         account = h.get("account", "")
         ccy     = h.get("ccy", "USD")
-        records = ticker_data.get(ticker, [])
+        upcoming = []
 
-        if not records:
-            results.append({
-                "ticker": ticker, "account": account, "shares": shares,
-                "no_data": True,
-                "note": f"No dividend history found — use search_web('{ticker} next dividend ex-date 2025 2026') for current data",
-            })
+        if not ticker.endswith(".TO") and ticker.upper() in calendar_map:
+            # Actual upcoming dates from FMP calendar
+            for event in sorted(calendar_map[ticker.upper()], key=lambda x: x["date"]):
+                dt = datetime.strptime(event["date"], "%Y-%m-%d")
+                if today <= dt.date() <= end_date:
+                    upcoming.append({
+                        "estimated_ex_date": event["date"],
+                        "month":             dt.strftime("%B %Y"),
+                        "amount_per_share":  event["amount"],
+                        "shares":            shares,
+                        "estimated_total":   round(event["amount"] * shares, 2),
+                        "currency":          ccy,
+                        "account":           account,
+                        "source":            "fmp_calendar",
+                    })
+        else:
+            # Project from historical data
+            records = hist_records.get(ticker, [])
+            upcoming = _project_from_history(records, shares, account, ccy, today, end_date)
+
+        if not upcoming:
             continue
 
-        # ── Detect payment frequency from inter-payment intervals ──────────
-        if len(records) >= 2:
-            dates = sorted(
-                [datetime.strptime(r["date"], "%Y-%m-%d") for r in records],
-                reverse=True,
-            )
-            intervals = [(dates[i] - dates[i + 1]).days for i in range(min(5, len(dates) - 1))]
-            avg_interval = sum(intervals) / len(intervals)
-        else:
-            avg_interval = 91
-
-        if avg_interval < 40:
-            freq_label, freq_days = "monthly",    30
-        elif avg_interval < 75:
-            freq_label, freq_days = "bi-monthly", 60
-        elif avg_interval < 135:
-            freq_label, freq_days = "quarterly",  91
-        elif avg_interval < 270:
-            freq_label, freq_days = "semi-annual", 183
-        else:
-            freq_label, freq_days = "annual",     365
-
-        # Use average of last 4 payments as forecast amount
-        avg_amount = sum(r["amount"] for r in records[:4]) / min(4, len(records))
-        last_paid  = datetime.strptime(records[0]["date"], "%Y-%m-%d")
-
-        # ── Project upcoming payments inside the forecast window ──────────
-        upcoming = []
-        next_dt = last_paid + timedelta(days=freq_days)
-        while next_dt.date() <= end_date:
-            if next_dt.date() >= today:
-                upcoming.append({
-                    "estimated_ex_date":  next_dt.strftime("%Y-%m-%d"),
-                    "month":              next_dt.strftime("%B %Y"),
-                    "amount_per_share":   round(avg_amount, 4),
-                    "shares":             shares,
-                    "estimated_total":    round(avg_amount * shares, 2),
-                    "currency":           ccy,
-                    "account":            account,
-                })
-            next_dt += timedelta(days=freq_days)
-
         results.append({
-            "ticker":                  ticker,
-            "account":                 account,
-            "shares":                  shares,
-            "currency":                ccy,
-            "frequency":               freq_label,
-            "last_payment_date":       records[0]["date"],
-            "last_amount_per_share":   records[0]["amount"],
-            "avg_amount_per_share":    round(avg_amount, 4),
-            "upcoming_payments":       upcoming,
-            "subtotal_forecast":       round(sum(p["estimated_total"] for p in upcoming), 2),
+            "ticker":            ticker,
+            "account":           account,
+            "shares":            shares,
+            "currency":          ccy,
+            "upcoming_payments": upcoming,
+            "subtotal_forecast": round(sum(p["estimated_total"] for p in upcoming), 2),
         })
 
     results.sort(key=lambda x: x.get("ticker", ""))
-    grand_total_usd = round(sum(
-        r["subtotal_forecast"] for r in results
-        if not r.get("no_data") and r.get("currency") == "USD"
-    ), 2)
-    grand_total_cad = round(sum(
-        r["subtotal_forecast"] for r in results
-        if not r.get("no_data") and r.get("currency") == "CAD"
-    ), 2)
 
-    print(f"  [get_dividend_forecast] {len(results)} holdings | USD ${grand_total_usd} + CAD ${grand_total_cad}")
+    grand_total_usd = round(sum(r["subtotal_forecast"] for r in results if r.get("currency") == "USD"), 2)
+    grand_total_cad = round(sum(r["subtotal_forecast"] for r in results if r.get("currency") == "CAD"), 2)
+
+    acct_totals: dict = {}
+    for r in results:
+        acct = r["account"]
+        if acct not in acct_totals:
+            acct_totals[acct] = {"USD": 0.0, "CAD": 0.0}
+        acct_totals[acct][r["currency"]] = round(
+            acct_totals[acct][r["currency"]] + r["subtotal_forecast"], 2
+        )
+
+    print(f"  [get_dividend_forecast] {len(results)} payers | USD ${grand_total_usd} + CAD ${grand_total_cad}")
     return {
-        "forecast_period":  f"{today} to {end_date}",
-        "grand_total_usd":  grand_total_usd,
-        "grand_total_cad":  grand_total_cad,
-        "results":          results,
-        "note": "All amounts are in native currency. Convert USD totals at current USD/CAD rate for combined CAD figure.",
+        "forecast_period": f"{today} to {end_date}",
+        "months":          months,
+        "grand_total_usd": grand_total_usd,
+        "grand_total_cad": grand_total_cad,
+        "by_account":      acct_totals,
+        "results":         results,
+        "note": (
+            "US tickers use FMP dividend calendar (actual upcoming dates). "
+            "Canadian .TO tickers projected from Yahoo Finance historical patterns. "
+            "Leveraged ETNs (FNGU/FNGO/FNGA etc.) excluded. "
+            "Amounts in native currency (USD or CAD)."
+        ),
     }
 
 
@@ -702,11 +840,27 @@ class handler(BaseHTTPRequestHandler):
 
     @staticmethod
     def _retry_wait(resp) -> int:
-        """Return seconds to wait based on Groq's retry-after header, capped at 20s."""
         try:
-            return min(int(resp.headers.get("retry-after", 8)), 20)
+            return min(int(float(resp.headers.get("retry-after", 8))), 20)
         except (ValueError, TypeError):
             return 8
+
+    def _groq_post(self, model: str, payload: dict,
+                   stream: bool = False, timeout: int = 32):
+        """POST to Groq. On 429, read retry-after and try once more."""
+        headers = {"Authorization": f"Bearer {GROQ_API_KEY}",
+                   "Content-Type":  "application/json"}
+        body    = {**payload, "model": model}
+        for attempt in range(2):
+            r = requests.post(GROQ_URL, headers=headers,
+                              json=body, timeout=timeout, stream=stream)
+            if r.ok:
+                return r
+            if r.status_code == 429 and attempt == 0:
+                time.sleep(self._retry_wait(r))
+                continue
+            break
+        return r  # return last response (caller checks .ok)
 
     def do_POST(self):
         # ── Parse request ──────────────────────────────────────────────────────
@@ -756,120 +910,53 @@ class handler(BaseHTTPRequestHandler):
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
-        # ── Tool-calling loop (non-streaming) ──────────────────────────────────
+        # ── Tool-calling loop (8B — 20K TPM, fast) ───────────────────────────
         print(f"  chat: message='{message[:60]}' | holdings={len(holdings_list)}")
 
         try:
             for round_num in range(MAX_TOOL_ROUNDS):
-                tool_choice = "auto"
-                resp = requests.post(
-                    GROQ_URL,
-                    headers={
-                        "Authorization": f"Bearer {GROQ_API_KEY}",
-                        "Content-Type":  "application/json",
-                    },
-                    json={
-                        "model":       GROQ_MODEL_FAST,  # smaller/faster model for tool decisions
-                        "messages":    messages,
-                        "tools":       TOOLS,
-                        "tool_choice": tool_choice,
-                        "temperature": 0.2,
-                        "max_tokens":  512,
-                        "stream":      False,
-                    },
-                    timeout=25,
-                )
+                resp = self._groq_post(GROQ_MODEL_FAST, {
+                    "messages":    messages,
+                    "tools":       TOOLS,
+                    "tool_choice": "auto",
+                    "temperature": 0.2,
+                    "max_tokens":  512,
+                    "stream":      False,
+                })
                 if not resp.ok:
-                    print(f"  Groq round-{round_num} error {resp.status_code}: {resp.text[:300]}")
-                    if resp.status_code == 429:
-                        import time
-                        wait = self._retry_wait(resp)
-                        send_event({"status": f"⏳ Rate limited — retrying in {wait}s..."})
-                        time.sleep(wait)
-                        resp = requests.post(
-                            GROQ_URL,
-                            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                            json={"model": GROQ_MODEL_FAST, "messages": messages, "tools": TOOLS,
-                                  "tool_choice": tool_choice, "temperature": 0.2,
-                                  "max_tokens": 512, "stream": False},
-                            timeout=25,
-                        )
-                        if not resp.ok and resp.status_code == 429:
-                            # Still limited — wait again and try 8B
-                            wait2 = self._retry_wait(resp)
-                            send_event({"status": f"⏳ Still limited — waiting {wait2}s more..."})
-                            time.sleep(wait2)
-                            resp = requests.post(
-                                GROQ_URL,
-                                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                                json={"model": GROQ_MODEL_FAST, "messages": messages, "tools": TOOLS,
-                                      "tool_choice": tool_choice, "temperature": 0.2,
-                                      "max_tokens": 512, "stream": False},
-                                timeout=25,
-                            )
-                        if not resp.ok:
-                            break
-                    elif resp.status_code == 413:
-                        # Payload too large — trim tool results and retry
-                        for m in messages:
-                            if m.get("role") == "tool" and len(m.get("content", "")) > 400:
-                                try:
-                                    obj = json.loads(m["content"])
-                                    if isinstance(obj, dict) and "results" in obj:
-                                        obj["results"] = obj["results"][:2]
-                                        m["content"] = json.dumps(obj)
-                                except Exception:
-                                    m["content"] = m["content"][:400]
-                        resp = requests.post(
-                            GROQ_URL,
-                            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                            json={"model": GROQ_MODEL_FAST, "messages": messages, "tools": TOOLS,
-                                  "tool_choice": tool_choice, "temperature": 0.2,
-                                  "max_tokens": 512, "stream": False},
-                            timeout=25,
-                        )
-                        if not resp.ok:
-                            break
-                    else:
-                        break
+                    print(f"  Groq-8B round-{round_num} error {resp.status_code}: {resp.text[:200]}")
+                    break
 
-                choice = resp.json()["choices"][0]
-                msg = choice["message"]
+                choice     = resp.json()["choices"][0]
+                msg        = choice["message"]
                 tool_calls = msg.get("tool_calls") or []
 
                 if not tool_calls:
-                    # Model is satisfied — proceed to streaming final response
-                    break
+                    break  # done with tools — stream the final answer
 
-                # ── Add assistant's tool-call turn ─────────────────────────────
                 messages.append({
                     "role":       "assistant",
                     "content":    msg.get("content"),
                     "tool_calls": tool_calls,
                 })
 
-                # ── Send status event(s) ───────────────────────────────────────
                 unique_tools = list(dict.fromkeys(tc["function"]["name"] for tc in tool_calls))
-                status_parts = [_TOOL_STATUS.get(n, f"🔧 {n}...") for n in unique_tools]
-                send_event({"status": "  |  ".join(status_parts)})
+                send_event({"status": "  |  ".join(_TOOL_STATUS.get(n, f"🔧 {n}...") for n in unique_tools)})
 
-                # ── Execute tools in parallel ──────────────────────────────────
                 def run_tc(tc):
                     name = tc["function"]["name"]
                     try:
                         args = json.loads(tc["function"]["arguments"])
                     except Exception:
                         args = {}
-                    result_json = execute_tool(
+                    return tc["id"], execute_tool(
                         name, args,
                         holdings_list, holdings_prices,
                         closed_positions, cash_positions,
                     )
-                    return tc["id"], result_json
 
                 with ThreadPoolExecutor(max_workers=4) as executor:
-                    futures = [executor.submit(run_tc, tc) for tc in tool_calls]
-                    for future in as_completed(futures):
+                    for future in as_completed([executor.submit(run_tc, tc) for tc in tool_calls]):
                         tc_id, result_json = future.result()
                         messages.append({
                             "role":         "tool",
@@ -877,57 +964,23 @@ class handler(BaseHTTPRequestHandler):
                             "content":      result_json,
                         })
 
-            # ── Stream final response ──────────────────────────────────────────
-            # Include tools + tool_choice:"none" when the conversation has tool
-            # messages — Groq requires the tools schema to be present in that case.
-            has_tool_context = any(m.get("role") == "tool" for m in messages)
+            # ── Stream final response (8B — 20K TPM, no rate limits) ──────────
+            has_tool_ctx = any(m.get("role") == "tool" for m in messages)
             stream_payload = {
-                "model":       GROQ_MODEL,
                 "messages":    messages,
                 "temperature": 0.3,
                 "max_tokens":  2048,
                 "stream":      True,
             }
-            if has_tool_context:
+            if has_tool_ctx:
                 stream_payload["tools"]       = TOOLS
                 stream_payload["tool_choice"] = "none"
 
-            stream_resp = requests.post(
-                GROQ_URL,
-                headers={
-                    "Authorization": f"Bearer {GROQ_API_KEY}",
-                    "Content-Type":  "application/json",
-                },
-                json=stream_payload,
-                timeout=35,
-                stream=True,
-            )
-
-            if not stream_resp.ok and stream_resp.status_code == 429:
-                import time
-                # 70B rate-limited → wait (header-guided) then fall back to 8B
-                wait = self._retry_wait(stream_resp)
-                send_event({"status": f"⏳ Rate limited — switching models, retrying in {wait}s..."})
-                time.sleep(wait)
-                stream_payload["model"] = GROQ_MODEL_FAST
-                stream_resp = requests.post(
-                    GROQ_URL,
-                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                    json=stream_payload, timeout=35, stream=True,
-                )
-                if not stream_resp.ok and stream_resp.status_code == 429:
-                    # 8B also limited — wait once more
-                    wait2 = self._retry_wait(stream_resp)
-                    send_event({"status": f"⏳ Still rate limited — final retry in {wait2}s..."})
-                    time.sleep(wait2)
-                    stream_resp = requests.post(
-                        GROQ_URL,
-                        headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                        json=stream_payload, timeout=35, stream=True,
-                    )
+            stream_resp = self._groq_post(GROQ_MODEL_FAST, stream_payload,
+                                          stream=True, timeout=40)
 
             if not stream_resp.ok:
-                err = stream_resp.text[:400]
+                err = stream_resp.text[:300]
                 print(f"  Groq stream error {stream_resp.status_code}: {err}")
                 send_event({"content": f"AI error ({stream_resp.status_code}). Please try again."})
                 self.wfile.write(b"data: [DONE]\n\n")

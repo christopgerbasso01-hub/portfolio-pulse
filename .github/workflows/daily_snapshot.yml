@@ -1,14 +1,13 @@
-name: Daily Portfolio Snapshot
+name: Daily Portfolio Snapshot & Notify
 
 on:
   schedule:
-    # 9:30 PM UTC = 5:30 PM ET — 90 min after NYSE close, Mon–Fri
-    # Captures final closing prices after after-hours dust settles
+    # 9:30 PM UTC = 5:30 PM ET — ~90 min after NYSE close, Mon–Fri
     - cron: '30 21 * * 1-5'
-  workflow_dispatch:   # Manual trigger from GitHub Actions UI for testing
+  workflow_dispatch:   # Manual trigger from GitHub Actions UI
 
 jobs:
-  snapshot:
+  snapshot-and-notify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -23,10 +22,31 @@ jobs:
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n -1)
 
-          echo "Status: $HTTP_CODE"
-          echo "Response: $BODY"
+          echo "Snapshot status: $HTTP_CODE"
+          echo "Snapshot response: $BODY"
 
           if [ "$HTTP_CODE" != "200" ]; then
             echo "Snapshot failed with status $HTTP_CODE"
             exit 1
+          fi
+
+      - name: Send end-of-day push notifications
+        run: |
+          # Brief pause to ensure snapshot is committed to KV
+          sleep 4
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            https://portfolio-pulse-dun.vercel.app/api/notify)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "Notify status: $HTTP_CODE"
+          echo "Notify response: $BODY"
+
+          # Non-fatal — "no subscribers" returns 200 anyway
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Warning: notify returned $HTTP_CODE"
           fi

@@ -1,0 +1,31 @@
+name: Intraday Portfolio Alerts
+
+on:
+  schedule:
+    # Every 30 min during NYSE market hours (9:30 AM – 4:00 PM ET = 13:30 – 20:00 UTC), Mon–Fri
+    # Runs at :00 and :30 of each hour from 13:00–20:00 UTC
+    - cron: '0,30 13-20 * * 1-5'
+  workflow_dispatch:   # Manual trigger for testing
+
+jobs:
+  intraday-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Check intraday alerts
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            https://portfolio-pulse-dun.vercel.app/api/intraday)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "Intraday status: $HTTP_CODE"
+          echo "Intraday response: $BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Warning: intraday check returned $HTTP_CODE"
+          fi

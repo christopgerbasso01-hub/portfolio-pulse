@@ -6,8 +6,8 @@
  *   Icons / manifest → Cache-first
  */
 
-const CACHE     = 'portfolio-pulse-v7';
-const API_CACHE = 'portfolio-pulse-api-v7';
+const CACHE     = 'portfolio-pulse-v10';
+const API_CACHE = 'portfolio-pulse-api-v10';
 
 const APP_SHELL = [
   '/',

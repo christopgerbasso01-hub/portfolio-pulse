@@ -3766,39 +3766,6 @@ document.addEventListener('visibilitychange', () => {
   }, { passive: true });
 })();
 
-// ============================================================
-// SWIPE LEFT/RIGHT TAB NAVIGATION  (I)
-// ============================================================
-(function () {
-  // Tab order for left/right swipe cycling
-  const SWIPE_TABS = ['portfolio', 'holdings', 'intelligence', 'podcast', 'chat'];
-  const SWIPE_THRESHOLD = 55; // min horizontal distance (px) to trigger a tab switch
-  let swipeX0 = 0, swipeY0 = 0;
-
-  document.addEventListener('touchstart', e => {
-    swipeX0 = e.touches[0].clientX;
-    swipeY0 = e.touches[0].clientY;
-  }, { passive: true });
-
-  document.addEventListener('touchend', e => {
-    if (window.innerWidth > 768) return; // desktop — no tab bar
-    const dx = e.changedTouches[0].clientX - swipeX0;
-    const dy = e.changedTouches[0].clientY - swipeY0;
-    // Ignore mostly-vertical swipes (pull-to-refresh territory)
-    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dy) > Math.abs(dx)) return;
-
-    const activeBtn = document.querySelector('.tab-btn.active');
-    if (!activeBtn) return;
-    const curIdx = SWIPE_TABS.indexOf(activeBtn.dataset.tab);
-    if (curIdx < 0) return;
-
-    // Swipe left → next tab; swipe right → previous tab
-    const nextIdx = dx < 0
-      ? Math.min(curIdx + 1, SWIPE_TABS.length - 1)
-      : Math.max(curIdx - 1, 0);
-    if (nextIdx !== curIdx) activateTab(SWIPE_TABS[nextIdx]);
-  }, { passive: true });
-})();
 
 // ============================================================
 // PUSH NOTIFICATIONS + NOTIFICATION PANEL

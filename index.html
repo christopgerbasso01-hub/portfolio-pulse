@@ -2815,8 +2815,9 @@ let intelligenceData = null;
 async function fetchIntelligence() {
   try {
     // Cache-bust by date so stale JSON isn't served after daily update
+    // Date in URL already busts cache daily — no need for no-cache header
     const url = `data/intelligence.json?d=${new Date().toISOString().slice(0, 10)}`;
-    const res = await fetch(url, { cache: 'no-cache' });
+    const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
     return data.generated_at ? data : null;   // null = placeholder / not yet generated
@@ -3165,6 +3166,18 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Live prices auto-refresh; intelligence does NOT re-fetch on interval
   refreshTimer = setInterval(fetchMarketData, CONFIG.MARKET_REFRESH_MS);
+
+  // Pause refresh when app is backgrounded (saves API calls on iPhone)
+  // Resume immediately when app comes back to foreground
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+    } else {
+      fetchMarketData();                                           // instant refresh on return
+      refreshTimer = setInterval(fetchMarketData, CONFIG.MARKET_REFRESH_MS);
+    }
+  });
 });
 
 // ============================================================

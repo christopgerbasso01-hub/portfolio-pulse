@@ -225,20 +225,45 @@ def rss_news(ticker: str) -> list:
         return []
 
 
+def yf_search(query: str) -> list:
+    """
+    Search tickers by company name or symbol via Yahoo Finance.
+    Works without auth from Vercel IPs.
+    """
+    try:
+        session = _yf_session or requests.Session()
+        r = session.get(
+            "https://query2.finance.yahoo.com/v1/finance/search",
+            params={"q": query, "quotesCount": 8, "newsCount": 0,
+                    "enableFuzzyQuery": "false", "region": "US", "lang": "en-US"},
+            headers=_YF_API_HEADERS,
+            timeout=8,
+        )
+        if not r.ok:
+            return []
+        quotes = r.json().get("quotes", [])
+        results = []
+        for q in quotes[:8]:
+            sym  = q.get("symbol", "")
+            name = q.get("longname") or q.get("shortname") or ""
+            exch = q.get("exchange", "") or q.get("exchDisp", "")
+            if sym and name and q.get("quoteType") in ("EQUITY", "ETF", "MUTUALFUND", "INDEX"):
+                results.append({"ticker": sym, "name": name, "exchange": exch})
+        return results
+    except Exception as e:
+        print(f"  [research] YF search error: {e}")
+        return []
+
+
 def fmp_search(query: str) -> list:
     """
-    Search tickers by company name or symbol via FMP.
-    Returns list of {ticker, name, exchange}.
+    Search tickers via FMP (fallback if YF search fails).
     """
     data = _fmp_get("search", {"query": query, "limit": 8})
     if not data or not isinstance(data, list):
         return []
     return [
-        {
-            "ticker":   d.get("symbol", ""),
-            "name":     d.get("name", ""),
-            "exchange": d.get("exchangeShortName", ""),
-        }
+        {"ticker": d.get("symbol", ""), "name": d.get("name", ""), "exchange": d.get("exchangeShortName", "")}
         for d in data[:8]
         if d.get("symbol") and d.get("name")
     ]
@@ -734,7 +759,7 @@ class handler(BaseHTTPRequestHandler):
                 self._respond(400, {"error": "q parameter required"})
                 return
             try:
-                results = fmp_search(query)
+                results = yf_search(query) or fmp_search(query)
                 self._respond(200, {"results": results})
             except Exception as e:
                 self._respond(500, {"error": str(e)})

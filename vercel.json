@@ -9,6 +9,11 @@
       "src": "api/chat.py",
       "use": "@vercel/python",
       "config": { "maxDuration": 60 }
+    },
+    {
+      "src": "api/snapshot.py",
+      "use": "@vercel/python",
+      "config": { "maxDuration": 30 }
     }
   ],
   "routes": [
@@ -19,6 +24,10 @@
     {
       "src": "/api/chat",
       "dest": "/api/chat.py"
+    },
+    {
+      "src": "/api/snapshot",
+      "dest": "/api/snapshot.py"
     }
   ],
   "headers": [
@@ -27,7 +36,7 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin",  "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
       ]
     }
   ]

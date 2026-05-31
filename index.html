@@ -426,9 +426,25 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .chat-panel.tab-mode .chat-msgs {
     flex: 1;
     max-height: none !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .chat-panel.tab-mode .chat-input-row {
     border-radius: 0 !important;
+    flex-shrink: 0;
+  }
+  /* Hide × close button — there's no "closing" a tab, you just switch tabs */
+  .chat-panel.tab-mode .chat-close { display: none !important; }
+
+  /* Hide the + LOG TRADE FAB when chat tab is open — it covers the send button */
+  body.chat-tab-open .tx-fab { display: none !important; }
+
+  /* iOS keyboard fix: when visualViewport JS detects the keyboard, this class
+     overrides the bottom anchor so the panel clips to the visible viewport */
+  body.chat-kb-adjust .chat-panel.tab-mode {
+    top:    var(--chat-vv-top, 0px) !important;
+    height: var(--chat-vv-h,   100%) !important;
+    bottom: auto !important;
   }
 
   /* Holdings table mobile columns:
@@ -3766,6 +3782,42 @@ document.addEventListener('visibilitychange', () => {
   }, { passive: true });
 })();
 
+// ============================================================
+// iOS KEYBOARD / VISUAL-VIEWPORT FIX FOR CHAT TAB
+// ============================================================
+// On iOS, showing the soft keyboard shrinks the visual viewport but NOT the
+// layout viewport. A position:fixed panel anchored to the layout bottom ends
+// up half-hidden behind the keyboard, and dismissing the keyboard causes a
+// visible "snap" of underlying content. The visualViewport API lets us clip
+// the chat panel to exactly what the user can see.
+(function () {
+  if (!window.visualViewport) return;
+
+  function _syncChat() {
+    if (!document.body.classList.contains('chat-tab-open')) return;
+    var vv  = window.visualViewport;
+    var cp  = document.getElementById('chatPanel');
+    var tab = document.querySelector('.mobile-tabs');
+    if (!cp || !tab) return;
+    var tabH    = tab.offsetHeight;           // real px height incl. safe-area
+    var panelH  = Math.round(vv.height - tabH);
+    var panelTop = Math.round(vv.offsetTop);
+    // Only apply when keyboard is visibly up (visual height meaningfully less than layout)
+    var kbVisible = vv.height < window.innerHeight - 60;
+    if (kbVisible) {
+      document.documentElement.style.setProperty('--chat-vv-top', panelTop + 'px');
+      document.documentElement.style.setProperty('--chat-vv-h',   panelH  + 'px');
+      document.body.classList.add('chat-kb-adjust');
+    } else {
+      document.body.classList.remove('chat-kb-adjust');
+      document.documentElement.style.removeProperty('--chat-vv-top');
+      document.documentElement.style.removeProperty('--chat-vv-h');
+    }
+  }
+
+  window.visualViewport.addEventListener('resize', _syncChat);
+  window.visualViewport.addEventListener('scroll', _syncChat);
+})();
 
 // ============================================================
 // PUSH NOTIFICATIONS + NOTIFICATION PANEL
@@ -4657,6 +4709,7 @@ function renderTxHistory() {
     // ── Chat tab: show as full-screen panel ──────────────────────────────
     if (name === 'chat') {
       if (typeof ensureMarked === 'function') ensureMarked(); // lazy-load marked.js (E)
+      document.body.classList.add('chat-tab-open'); // hide + FAB while chat is active
       if (cp) {
         cp.classList.remove('open');
         cp.classList.add('tab-mode');
@@ -4670,10 +4723,15 @@ function renderTxHistory() {
       return;
     }
 
-    // ── Switching away — close chat if open ──────────────────────────────
+    // ── Switching away — close chat, restore FAB ─────────────────────────
+    document.body.classList.remove('chat-tab-open', 'chat-kb-adjust');
     if (cp) {
       cp.classList.remove('tab-mode', 'open');
       cp.style.display = 'none';
+      // Clear any keyboard-adjust inline styles
+      cp.style.top    = '';
+      cp.style.height = '';
+      cp.style.bottom = '';
     }
 
     // ── Normal section tab switch ────────────────────────────────────────

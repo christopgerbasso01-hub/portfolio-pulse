@@ -31,42 +31,36 @@
       "config": { "maxDuration": 30 }
     },
     {
+      "src": "api/research.py",
+      "use": "@vercel/python",
+      "config": { "maxDuration": 30 }
+    },
+    {
+      "src": "api/watchlist.py",
+      "use": "@vercel/python",
+      "config": { "maxDuration": 15 }
+    },
+    {
       "src": "**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
-    {
-      "src": "/api/market",
-      "dest": "/api/market.py"
-    },
-    {
-      "src": "/api/chat",
-      "dest": "/api/chat.py"
-    },
-    {
-      "src": "/api/snapshot",
-      "dest": "/api/snapshot.py"
-    },
-    {
-      "src": "/api/push",
-      "dest": "/api/push.py"
-    },
-    {
-      "src": "/api/notify",
-      "dest": "/api/notify.py"
-    },
-    {
-      "src": "/api/intraday",
-      "dest": "/api/intraday.py"
-    }
+    { "src": "/api/market",    "dest": "/api/market.py"    },
+    { "src": "/api/chat",      "dest": "/api/chat.py"      },
+    { "src": "/api/snapshot",  "dest": "/api/snapshot.py"  },
+    { "src": "/api/push",      "dest": "/api/push.py"      },
+    { "src": "/api/notify",    "dest": "/api/notify.py"    },
+    { "src": "/api/intraday",  "dest": "/api/intraday.py"  },
+    { "src": "/api/research",  "dest": "/api/research.py"  },
+    { "src": "/api/watchlist", "dest": "/api/watchlist.py" }
   ],
   "headers": [
     {
       "source": "/api/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin",  "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, DELETE, OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
       ]
     }

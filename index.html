@@ -422,22 +422,21 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     border-radius: 0 !important;
   }
 
-  /* ── Holdings table: Ticker(1) Day%(7) Day$(8) Total P/L(14) Return%(16) */
-  /* Hidden: Name(2) Account(3) Sector(4) Shares(5) Price(6) MktVal(9)      */
-  /*         Cost(10) Unrealized(11) Divs(12) Realized(13) Weight%(15)      */
+  /* Holdings table mobile columns:
+     SHOW: Ticker(1) Day%(7) Day$(8) Mkt Value(9) Total P/L(14) Return%(16)
+     HIDE: Name(2) Account(3) Sector(4) Shares(5) Price(6) Cost(10)
+           Unrealized(11) Divs(12) Realized(13) Weight%(15)               */
   .holdings-table th:nth-child(2),  .holdings-table td:nth-child(2),
   .holdings-table th:nth-child(3),  .holdings-table td:nth-child(3),
   .holdings-table th:nth-child(4),  .holdings-table td:nth-child(4),
   .holdings-table th:nth-child(5),  .holdings-table td:nth-child(5),
   .holdings-table th:nth-child(6),  .holdings-table td:nth-child(6),
-  .holdings-table th:nth-child(9),  .holdings-table td:nth-child(9),
   .holdings-table th:nth-child(10), .holdings-table td:nth-child(10),
   .holdings-table th:nth-child(11), .holdings-table td:nth-child(11),
   .holdings-table th:nth-child(12), .holdings-table td:nth-child(12),
   .holdings-table th:nth-child(13), .holdings-table td:nth-child(13),
   .holdings-table th:nth-child(15), .holdings-table td:nth-child(15) { display: none; }
   .holdings-table { min-width: 0; font-size: 12px; }
-  .holdings-table tfoot { display: none; }
 }
 
 @media (max-width: 480px) {
@@ -1034,7 +1033,10 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
       <tbody id="holdingsBody"></tbody>
       <tfoot id="holdingsFoot">
         <tr>
-          <td colspan="4" style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Subtotal</td>
+          <td style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Subtotal</td>
+          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3)">—</td>
           <td style="color:var(--text3)">—</td>
           <td style="color:var(--text3)">—</td>
           <td style="color:var(--text3)">—</td>
@@ -1046,7 +1048,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
           <td id="stReal">—</td>
           <td id="stPnl">—</td>
           <td style="color:var(--text3)">—</td>
-          <td style="color:var(--text3)">—</td>
+          <td id="stRet">—</td>
         </tr>
       </tfoot>
     </table>
@@ -1990,6 +1992,10 @@ function renderHoldingsTable(liveData) {
     const realColor    = realizedCAD   >  0 ? 'green' : (realizedCAD < 0 ? 'red' : 'text2');
     const pnlColor     = totalPnlCAD   >= 0 ? 'green' : 'red';
     const pnlAttr      = totalPnlCAD   >= 0 ? 'gain'  : 'loss';
+    // Live return %: (market value − cost basis) / cost basis
+    const retPct  = costBasisCAD > 0 ? (mktVal - costBasisCAD) / costBasisCAD * 100 : null;
+    const retColor = retPct != null ? (retPct >= 0 ? 'green' : 'red') : '';
+    const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
 
     return `<tr data-rowtype="normal" data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-mv="${mktVal.toFixed(2)}" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="${unrealizedCAD.toFixed(2)}" data-div="${divCAD.toFixed(2)}" data-real="${realizedCAD.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
       <td class="mono blue">${h.ticker}</td>
@@ -2007,7 +2013,7 @@ function renderHoldingsTable(liveData) {
       <td class="mono small ${realColor}">${realizedCAD !== 0 ? fmt$(realizedCAD) : '—'}</td>
       <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
-      <td class="mono ${pnlColor}">${h.pct_return != null ? (h.pct_return >= 0 ? '+' : '') + h.pct_return.toFixed(1) + '%' : '—'}</td>
+      <td class="mono ${retColor}">${retStr}</td>
     </tr>`;
   }).join('');
 
@@ -2175,6 +2181,18 @@ function updateSubtotals() {
   setCell('stDiv',    div,    true);
   setCell('stReal',   real,   false);
   setCell('stPnl',    pnl,    false);
+
+  // Return % subtotal: (total market value − total cost basis) / total cost basis
+  const retEl = document.getElementById('stRet');
+  if (retEl) {
+    if (count === 0 || cb === 0) {
+      retEl.textContent = '—'; retEl.className = 'mono text3';
+    } else {
+      const retPct = (mv - cb) / cb * 100;
+      retEl.textContent = (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%';
+      retEl.className = `mono ${colorClass(retPct)}`;
+    }
+  }
 }
 
 function sortTable(col) {

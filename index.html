@@ -298,24 +298,33 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .mobile-tabs { display: none }
 
 @media (max-width: 768px) {
-  /* Tab bar — fixed at bottom, above iPhone home indicator */
+  /* ── Safe area: live bar sits under iPhone status bar in PWA mode ─────── */
+  .live-bar {
+    padding-top: calc(6px + env(safe-area-inset-top, 0px));
+  }
+
+  /* ── Tab bar ─────────────────────────────────────────────────────────── */
+  /* Height = 62px visible content + bottom safe area (iPhone home bar ~34px) */
   .mobile-tabs {
     display: flex;
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    height: 56px;
+    height: calc(62px + env(safe-area-inset-bottom, 0px));
     background: #0a1628;
     border-top: 1px solid var(--border);
     z-index: 500;
+    /* Push content UP into the 62px visible zone, away from home indicator */
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    align-items: flex-start; /* items anchor at top of bar, above safe area */
   }
   .tab-btn {
     flex: 1;
+    height: 62px;                /* exactly the visible content area */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 3px;
     background: none;
     border: none;
     cursor: pointer;
@@ -325,34 +334,42 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     letter-spacing: .03em;
     text-transform: uppercase;
     transition: color .2s;
-    padding: 6px 0;
   }
   .tab-btn.active { color: var(--blue-bright); }
-  .tab-icon { font-size: 19px; line-height: 1; }
+  .tab-icon { font-size: 22px; line-height: 1; }
 
-  /* Add space at bottom so content isn't hidden behind tab bar */
-  body { padding-bottom: 72px; }
+  /* Body: pad bottom so last section clears the full tab bar */
+  body { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 8px); }
 
-  /* Hide all tabbed sections by default */
-  .section[data-tab] { display: none; }
+  /* ── Floating buttons: lift above tab bar ─────────────────────────────── */
+  .chat-fab {
+    bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 14px) !important;
+  }
+  .tx-fab {
+    bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 14px) !important;
+  }
+  .chat-panel {
+    bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 68px) !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+  }
 
-  /* Show sections for the active tab */
-  .section[data-tab].tab-visible { display: block; }
+  /* ── Section visibility ───────────────────────────────────────────────── */
+  .section[data-tab]              { display: none; }
+  .section[data-tab].tab-visible  { display: block; }
+  #intelBanner                    { display: none !important; }
+  .footer                         { margin-bottom: 8px; }
 
-  /* Intelligence banner: hide until portfolio tab shown (JS handles it) */
-  #intelBanner { display: none !important; }
-
-  /* Lift chat FAB above the tab bar */
-  .chat-fab { bottom: 72px !important; }
-
-  /* Holdings table on mobile — show only essential columns */
-  /* Hide: Name(2), Sector(4), Shares(5), Live Price(6), Day$(8),
-           Cost Basis(10), Unrealized(11), Dividends(12), Realized(13), Weight%(15) */
-  .holdings-table th:nth-child(2), .holdings-table td:nth-child(2),
-  .holdings-table th:nth-child(4), .holdings-table td:nth-child(4),
-  .holdings-table th:nth-child(5), .holdings-table td:nth-child(5),
-  .holdings-table th:nth-child(6), .holdings-table td:nth-child(6),
-  .holdings-table th:nth-child(8), .holdings-table td:nth-child(8),
+  /* ── Holdings table: show only key columns ────────────────────────────── */
+  /* Visible: Ticker(1) Account(3) Day%(7) Mkt Value(9) Total P/L(14)       */
+  /* Hidden : Name(2) Sector(4) Shares(5) Price(6) Day$(8) Cost(10)         */
+  /*          Unrealized(11) Divs(12) Realized(13) Weight%(15)              */
+  .holdings-table th:nth-child(2),  .holdings-table td:nth-child(2),
+  .holdings-table th:nth-child(4),  .holdings-table td:nth-child(4),
+  .holdings-table th:nth-child(5),  .holdings-table td:nth-child(5),
+  .holdings-table th:nth-child(6),  .holdings-table td:nth-child(6),
+  .holdings-table th:nth-child(8),  .holdings-table td:nth-child(8),
   .holdings-table th:nth-child(10), .holdings-table td:nth-child(10),
   .holdings-table th:nth-child(11), .holdings-table td:nth-child(11),
   .holdings-table th:nth-child(12), .holdings-table td:nth-child(12),
@@ -360,9 +377,6 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
   .holdings-table th:nth-child(15), .holdings-table td:nth-child(15) { display: none; }
   .holdings-table { min-width: 0; font-size: 11px; }
   .holdings-table tfoot { display: none; }
-
-  /* Footer margin */
-  .footer { margin-bottom: 8px; }
 }
 
 @media (max-width: 480px) {

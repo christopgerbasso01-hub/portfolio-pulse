@@ -303,19 +303,23 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     padding-top: calc(6px + env(safe-area-inset-top, 0px));
   }
 
-  /* ── Tab bar ─────────────────────────────────────────────────────────── */
-  /* Height = 62px visible content + bottom safe area (iPhone home bar ~34px) */
+  /* ── Tab bar — force fixed to screen bottom (iOS PWA-safe) ──────────── */
   .mobile-tabs {
-    display: flex;
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     height: calc(62px + env(safe-area-inset-bottom, 0px));
     background: #0a1628;
     border-top: 1px solid var(--border);
-    z-index: 500;
-    /* Push content UP into the 62px visible zone, away from home indicator */
+    z-index: 9999 !important;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    align-items: flex-start; /* items anchor at top of bar, above safe area */
+    align-items: flex-start;
+    /* Force GPU compositing layer — fixes iOS PWA fixed-position scrolling bug */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: transform;
   }
   .tab-btn {
     flex: 1;
@@ -377,21 +381,45 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
     margin: 0 auto;
   }
 
-  /* ── Floating chat FAB: hide on mobile (Chat is in tab bar) ──────────── */
+  /* ── Chat FAB: hidden on mobile (Chat lives in the tab bar) ─────────── */
   .chat-fab { display: none !important; }
 
-  /* ── LOG TRADE: icon-only compact button on mobile ───────────────────── */
+  /* ── LOG TRADE: compact icon-only circle on mobile ───────────────────── */
   .tx-fab {
     width: 48px !important;
     height: 48px !important;
     border-radius: 50% !important;
     padding: 0 !important;
-    font-size: 0 !important;   /* hide text */
+    font-size: 0 !important;
   }
-  .tx-fab::before {
-    content: '＋';
-    font-size: 22px;
-    color: #fff;
+  .tx-fab::before { content: '＋'; font-size: 22px; color: #fff; }
+
+  /* ── Chat tab: full-screen panel (replaces popup overlay on mobile) ───── */
+  .chat-panel.tab-mode {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: calc(62px + env(safe-area-inset-bottom, 0px)) !important;
+    width: 100% !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    padding-top: env(safe-area-inset-top, 0px);
+    display: flex !important;
+    flex-direction: column;
+    z-index: 490 !important;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  .chat-panel.tab-mode .chat-msgs {
+    flex: 1;
+    max-height: none !important;
+  }
+  .chat-panel.tab-mode .chat-input-row {
+    border-radius: 0 !important;
   }
 
   /* ── Holdings table: Ticker(1) Day%(7) Day$(8) Total P/L(14) Return%(16) */
@@ -2357,7 +2385,7 @@ function initCharts() {
       labels: ['TFSA', 'Investment', 'FHSA', 'RRSP'],
       datasets: [{ data: [98273, 94272, 53509, 27771], backgroundColor: ['#3b82f6', '#94a3b8', '#10b981', '#fbbf24'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.5, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10 } } } }
   });
 
   // Sector Pie
@@ -2367,7 +2395,7 @@ function initCharts() {
       labels: ['Leveraged ETF', 'Technology', 'Financials', 'Energy', 'Consumer', 'Other'],
       datasets: [{ data: [126652, 65928, 28852, 9454, 13849, 15574], backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 8 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.5, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 8 } } } }
   });
 
   // Geo Pie
@@ -2377,7 +2405,7 @@ function initCharts() {
       labels: ['USA', 'Canada', 'Taiwan', 'Other'],
       datasets: [{ data: [178927, 53316, 8165, 19901], backgroundColor: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 8 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.5, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 8 } } } }
   });
 
   // Asset Pie
@@ -2387,7 +2415,7 @@ function initCharts() {
       labels: ['Leveraged ETF', 'Equities', 'Covered Call ETF', 'Crypto'],
       datasets: [{ data: [126652, 119205, 33716, 3162], backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 8 } } } }
+    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.5, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 8 } } } }
   });
 
   // Contributions Area
@@ -4048,49 +4076,38 @@ function renderTxHistory() {
   window.activateTab = function (name) {
     if (!isMobile()) return;
 
-    // Chat tab: toggle the chat panel without changing section visibility
+    var cp = document.getElementById('chatPanel');
+
+    // ── Chat tab: show as full-screen panel ──────────────────────────────
     if (name === 'chat') {
-      var chatPanel = document.getElementById('chatPanel');
-      if (chatPanel) {
-        var isOpen = chatPanel.classList.contains('open');
-        if (!isOpen) {
-          chatPanel.classList.add('open');
-          chatPanel.style.display = 'flex';
-          var inp = document.getElementById('chatInput');
-          if (inp) setTimeout(function () { inp.focus(); }, 50);
-        } else {
-          chatPanel.classList.remove('open');
-          chatPanel.style.display = 'none';
-        }
+      if (cp) {
+        cp.classList.remove('open');
+        cp.classList.add('tab-mode');
+        cp.style.display = 'flex';
+        var inp = document.getElementById('chatInput');
+        if (inp) setTimeout(function () { inp.focus(); }, 80);
       }
-      // Mark chat tab active/inactive but don't change sections
       document.querySelectorAll('.tab-btn').forEach(function (btn) {
-        btn.classList.toggle('active', btn.dataset.tab === 'chat' && chatPanel && chatPanel.classList.contains('open'));
+        btn.classList.toggle('active', btn.dataset.tab === 'chat');
       });
       return;
     }
 
-    // Close chat panel if switching away
-    var chatPanel = document.getElementById('chatPanel');
-    if (chatPanel && chatPanel.classList.contains('open')) {
-      chatPanel.classList.remove('open');
-      chatPanel.style.display = 'none';
+    // ── Switching away — close chat if open ──────────────────────────────
+    if (cp) {
+      cp.classList.remove('tab-mode', 'open');
+      cp.style.display = 'none';
     }
 
-    // Update button active states
+    // ── Normal section tab switch ────────────────────────────────────────
     document.querySelectorAll('.tab-btn').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.tab === name);
     });
-
-    // Show/hide sections
     document.querySelectorAll('.section[data-tab]').forEach(function (sec) {
       sec.classList.toggle('tab-visible', sec.dataset.tab === name);
     });
 
-    // Persist active tab
     try { localStorage.setItem('pp_tab', name); } catch (e) {}
-
-    // Scroll to top of page on tab switch
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 

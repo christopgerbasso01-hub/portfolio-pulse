@@ -3192,37 +3192,33 @@ function generateAnalysis(data) {
     });
   }
 
-  // ── PICKS ──────────────────────────────────────────────────
+  // ── PICKS — TFSA maxed through 2026, all new buys route to RRSP ──────────
+  // Note: user is non-resident in 2026, returns March 2027. No TFSA/FHSA contributions.
   const picks = [
     {
-      ticker: 'AVGO', action: 'ADD', account: 'TFSA',
-      thesis: `Broadcom is executing on the custom AI ASIC supercycle with confirmed wins at Google and Meta. AI chips are now 60%+ of semiconductor revenue. With only 8 shares at 1.8% of AUM, this position is massively underweight for a top-conviction name. The AVGO thesis is as strong as the NVDA thesis was in 2022.`,
-      entry: `Entry: $${(avgoP * 0.92).toFixed(0)}–$${(avgoP * 0.96).toFixed(0)} on 5-8% pullback from $${avgoP.toFixed(2)}. Target: $${(avgoP * 1.25).toFixed(0)} (12M). Add 5–8 shares in TFSA.`,
+      ticker: 'AVGO', action: 'ADD', account: 'RRSP',
+      thesis: `Broadcom is executing on the custom AI ASIC supercycle with confirmed wins at Google and Meta. AI chips now 60%+ of semiconductor revenue. With only 8 shares at 1.8% of AUM, this is massively underweight for a top-conviction name. TFSA is maxed — RRSP gives tax-deferred compounding on this growth name.`,
+      entry: `Entry: $${(avgoP * 0.92).toFixed(0)}–$${(avgoP * 0.96).toFixed(0)} on 5-8% pullback from $${avgoP.toFixed(2)}. Target: $${(avgoP * 1.25).toFixed(0)} (12M). Add 5–8 shares in RRSP.`,
+    },
+    {
+      ticker: 'MU', action: 'NEW', account: 'RRSP',
+      thesis: `Micron is the AI memory play. HBM3E ships in every NVIDIA H100/GB200 order. Micron's HBM share growing from 20% to 35%+ by end-2026. No memory exposure in portfolio is a gap. US tech growth name → RRSP for tax-deferred compounding since TFSA is at capacity.`,
+      entry: `Entry: $95–$115 range. Position: 10–15 shares (~$1,400–2,000 CAD). Deploy from RRSP.`,
+    },
+    {
+      ticker: 'AMD', action: 'NEW', account: 'RRSP',
+      thesis: `Only credible NVIDIA alternative in GPU data-centre market. MI300X adoption at Azure and Meta accelerating. AMD trades at a meaningful discount to NVDA on forward P/E. No AMD in portfolio is a gap given the AI infrastructure thesis. Route to RRSP — TFSA maxed.`,
+      entry: `Entry: $370–$420 on 10-15% pullback. Target: $550+ (12M). Position: 5–10 shares in RRSP.`,
+    },
+    {
+      ticker: 'BNS.TO', action: 'RE-ENTER', account: 'RRSP',
+      thesis: `Bank of Nova Scotia ~6% dividend yield after management restructuring. Canadian eligible dividends in RRSP grow tax-deferred. Route here since TFSA is at capacity — you'll collect dividends without triggering annual tax while sheltered.`,
+      entry: `Entry: $72–$76 range. Position: 50 shares = ~$3,700. Yield ~6.0% collected in RRSP.`,
     },
     {
       ticker: 'ZSP.TO', action: 'IMMEDIATE', account: 'RRSP',
-      thesis: `BMO S&P 500 ETF (CAD-hedged). You have $10,531 sitting in RRSP cash doing nothing. ZSP.TO in RRSP gets 0% US dividend withholding under Canada-US treaty — the single best reason to hold it here. MER 0.09%. This is not a suggestion, it is the highest-priority allocation decision in the portfolio.`,
-      entry: `Deploy all $10,531 immediately. No timing needed — DCA in 2 tranches if preferred.`,
-    },
-    {
-      ticker: 'MU', action: 'NEW', account: 'TFSA',
-      thesis: `Micron is the AI memory play. HBM3E (High Bandwidth Memory) ships in every NVIDIA H100/GB200 order. Micron's HBM share growing from 20% to 35%+ by end-2026. No memory exposure in portfolio is a gap as the AI chip cycle enters its next phase.`,
-      entry: `Entry: $95–$115 range. Position: 10–15 shares (~$1,400–2,000). TFSA first for tax-free growth.`,
-    },
-    {
-      ticker: 'BNS.TO', action: 'RE-ENTER', account: 'TFSA',
-      thesis: `Bank of Nova Scotia offers a differentiated Canadian bank story via Pacific Alliance exposure. After management restructuring toward North American wealth management, risk profile has improved. ~6% dividend yield collected tax-free in TFSA is compelling for income layering.`,
-      entry: `Entry: $72–$76 range. Yield: ~6.0%. Position: 50 shares = ~$3,700. Tax-free dividend compounding.`,
-    },
-    {
-      ticker: 'AMD', action: 'RE-ENTER', account: 'TFSA',
-      thesis: `Only credible NVIDIA alternative in GPU data-centre market. MI300X adoption at Azure and Meta accelerating. AMD trades at a meaningful discount to NVDA on forward P/E. No AMD in portfolio is a gap given the AI infrastructure thesis.`,
-      entry: `Entry: $370–$420 on 10-15% pullback. Target: $550+ (12M). Position: 5–10 shares in TFSA.`,
-    },
-    {
-      ticker: 'ALAB', action: 'SPECULATIVE', account: 'TFSA',
-      thesis: `Astera Labs makes PCIe retimers and CXL connectivity chips essential for every AI server rack. Picks-and-shovels play on same capex cycle as NVDA and AVGO but at smaller market cap (~$9B) with higher return potential. Risk: limited liquidity and growth-stage execution risk.`,
-      entry: `Entry: $50–$65. Max position: <2% AUM (~$5,000). High risk, high reward.`,
+      thesis: `BMO S&P 500 ETF — $10,531 RRSP idle cash doing nothing. 0% US dividend withholding in RRSP under Canada-US treaty. MER 0.09%. Every month uninvested costs ~$70 in foregone compounding at 8%.`,
+      entry: `Deploy all $10,531 now. No timing needed — lump sum or 2 tranches.`,
     },
   ];
 
@@ -3355,30 +3351,51 @@ function generateAnalysis(data) {
 // ============================================================
 // AI SECTION RENDERERS
 // ============================================================
-function renderPicksSection(picks) {
+async function renderPicksSection(picks) {
   if (!picks || !picks.length) return;
 
-  // Priority order for BUY NOW slot (action type, not fake score)
-  const actionPriority = { 'IMMEDIATE':0, 'ADD':1, 'ACCUMULATE':1, 'NEW':2, 'RE-ENTER':3, 'SPECULATIVE':4, 'WATCH':5 };
-  const buyPicks = picks
-    .filter(p => p.action !== 'SELL' && p.action !== 'TRIM')
-    .sort((a,b) => (actionPriority[a.action]??9) - (actionPriority[b.action]??9));
+  const nonSellPicks = picks.filter(p => p.action !== 'SELL' && p.action !== 'TRIM');
+  const sellPick     = picks.find(p => p.action === 'SELL' || p.action === 'TRIM');
 
-  const sellPick  = picks.find(p => p.action === 'SELL' || p.action === 'TRIM');
-  const buyNow    = buyPicks[0];
-  const watchPick = buyPicks[1];
+  // Show skeleton while scores load
+  document.getElementById('picksGrid').innerHTML = [1,2,3].map(() =>
+    `<div class="card" style="border-left:3px solid var(--border)">
+      <div class="skeleton skeleton-line" style="width:60%;margin-bottom:12px"></div>
+      <div class="skeleton skeleton-line h3" style="width:40%;margin-bottom:10px"></div>
+      <div class="skeleton skeleton-line" style="margin-bottom:6px"></div>
+      <div class="skeleton skeleton-line short"></div>
+    </div>`).join('');
+  document.getElementById('aiSec07').classList.remove('loading');
+
+  // Fetch real scores for all non-sell picks in parallel
+  const scoredPicks = await Promise.all(nonSellPicks.map(async p => {
+    try {
+      const r = await fetch(`${CONFIG.API_BASE}/api/research?ticker=${encodeURIComponent(p.ticker)}`);
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      if (d.error) throw new Error();
+      const result = computeFitScore({ ...d, ticker: p.ticker });
+      return { ...p, _score: result.score, _color: result.color };
+    } catch {
+      return { ...p, _score: null, _color: 'var(--text3)' };
+    }
+  }));
+
+  // Sort by real score — highest gets BUY NOW slot
+  scoredPicks.sort((a,b) => (b._score ?? 0) - (a._score ?? 0));
+  const buyNow    = scoredPicks[0];
+  const watchPick = scoredPicks[1];
   const threeCards = [buyNow, watchPick, sellPick].filter(Boolean);
 
   const pickCard = (p, slot) => {
-    const isSell   = p.action === 'SELL' || p.action === 'TRIM';
-    const slotColor = slot === 'buy' ? '#10b981' : slot === 'watch' ? '#f59e0b' : '#ef4444';
-    const slotLabel = slot === 'buy' ? 'BUY NOW' : slot === 'watch' ? 'WATCH' : (p.action === 'TRIM' ? 'TRIM' : 'SELL');
-    const safeId    = p.ticker.replace(/[^a-zA-Z0-9]/g,'');
-    const scoreId   = `pick-score-${safeId}`;
-    const labelId   = `pick-label-${safeId}`;
-    // Score circle: "…" loading until real research data arrives; hidden for sell
-    const scoreCircle = isSell ? '' :
-      `<span id="${scoreId}" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0">…</span>`;
+    const isSell    = slot === 'sell';
+    const slotColor = slot === 'buy' ? (p._color || '#10b981') : slot === 'watch' ? '#f59e0b' : '#ef4444';
+    const slotLabel = isSell ? (p.action === 'TRIM' ? '✂ TRIM' : '⬇ SELL')
+      : p._score == null ? p.action
+      : p._score >= 85 ? 'BUY NOW' : p._score >= 70 ? 'BUY ON DIP' : 'WATCH';
+    const scoreCircle = isSell ? '' : p._score != null
+      ? `<span style="background:${p._color}20;border:1.5px solid ${p._color};border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;color:${p._color};flex-shrink:0">${p._score}</span>`
+      : `<span style="background:var(--surface2);border:1.5px solid var(--border);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--text3);flex-shrink:0">—</span>`;
     return `<div class="card" style="border-left:3px solid ${slotColor}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="display:flex;gap:6px;align-items:center">
@@ -3386,7 +3403,7 @@ function renderPicksSection(picks) {
           <span class="badge ${acctBadgeClass(p.account)}">${p.account}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
-          <span id="${labelId}" style="font-family:var(--mono);font-size:12px;font-weight:700;color:${slotColor}">${slotLabel}</span>
+          <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${slotColor}">${slotLabel}</span>
           ${scoreCircle}
         </div>
       </div>
@@ -3396,40 +3413,8 @@ function renderPicksSection(picks) {
     </div>`;
   };
 
-  const slots = ['buy','watch','sell'];
-  document.getElementById('picksGrid').innerHTML = threeCards.map((p,i) => pickCard(p, slots[i])).join('');
-  document.getElementById('aiSec07').classList.remove('loading');
-
-  // Async-fetch real research scores (same algorithm as Research tab — no fake scores)
-  [[buyNow, 'buy'], [watchPick, 'watch']].filter(([p]) => p).forEach(async ([p, slot]) => {
-    const scoreId  = `pick-score-${p.ticker.replace(/[^a-zA-Z0-9]/g,'')}`;
-    const labelId  = `pick-label-${p.ticker.replace(/[^a-zA-Z0-9]/g,'')}`;
-    try {
-      const r = await fetch(`${CONFIG.API_BASE}/api/research?ticker=${encodeURIComponent(p.ticker)}`);
-      if (!r.ok) throw new Error('no data');
-      const d = await r.json();
-      if (d.error) throw new Error(d.error);
-      const { score, color } = computeFitScore({ ...d, ticker: p.ticker });
-      const el = document.getElementById(scoreId);
-      if (el) {
-        el.textContent = score;
-        el.style.color = color;
-        el.style.borderColor = color;
-        el.style.background = color + '20';
-        el.style.fontSize = '12px';
-      }
-      // Update action label to match real score
-      const lblEl = document.getElementById(labelId);
-      if (lblEl && slot === 'buy') {
-        if (score >= 85)      { lblEl.textContent = 'BUY NOW';    lblEl.style.color = '#10b981'; }
-        else if (score >= 70) { lblEl.textContent = 'BUY ON DIP'; lblEl.style.color = '#3b82f6'; }
-        else                  { lblEl.textContent = 'WATCH';       lblEl.style.color = '#f59e0b'; }
-      }
-    } catch {
-      const el = document.getElementById(scoreId);
-      if (el) { el.textContent = '—'; el.style.fontSize = '11px'; }
-    }
-  });
+  document.getElementById('picksGrid').innerHTML =
+    threeCards.map((p,i) => pickCard(p, ['buy','watch','sell'][i])).join('');
 }
 
 function renderAISection(analysis) {

@@ -79,11 +79,17 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
     {
       "title": "Theme title under 80 chars",
       "impact": "HIGH|MED|LOW",
-      "confidence": <integer 0–100>,
+      "confidence": <integer 0–100, your conviction this theme plays out>,
       "body": "2–4 sentences analysing this macro theme for this specific portfolio",
-      "bull": "1–2 sentence bull case outcome for portfolio",
-      "base": "1–2 sentence base case outcome for portfolio",
-      "bear": "1–2 sentence bear case outcome for portfolio"
+      "bull": "1–2 sentence bull case for portfolio",
+      "bull_estimate": "Quantified CAD portfolio impact e.g. '+$35,000–$50,000 via FNGU/SPXL 3x leverage'",
+      "bull_probability": <integer 0–100>,
+      "base": "1–2 sentence base case for portfolio",
+      "base_estimate": "Quantified CAD portfolio impact e.g. '±$5,000 — markets grind higher'",
+      "base_probability": <integer 0–100>,
+      "bear": "1–2 sentence bear case for portfolio",
+      "bear_estimate": "Quantified CAD portfolio impact e.g. '-$45,000–$65,000 via 3x ETF amplification'",
+      "bear_probability": <integer 0–100, all 3 probabilities must sum to 100>
     }
   ],
   "risks": [
@@ -98,7 +104,8 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
     {
       "headline": "Portfolio-relevant headline under 90 chars",
       "impact": "HIGH|MED|LOW",
-      "category": "Macro & Rates|Sector & Stock|Canadian Markets",
+      "confidence": <integer 0–100, how confident you are in this assessment>,
+      "category": "Sector & Stock|Canadian Markets",
       "body": "2–3 sentences: what happened and EXACTLY which holdings are affected and why",
       "exposure": "Name the specific tickers and approximate CAD value affected e.g. 'FNGU ~$87K CAD (3x leverage), SPXL ~$22K CAD'",
       "outcomes": [

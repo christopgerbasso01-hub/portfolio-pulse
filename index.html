@@ -1180,21 +1180,10 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     <span class="ai-badge" id="ai06badge">⚡ LIVE · Loading...</span>
   </div>
   <div class="ai-section-wrap loading" id="aiSec06">
-    <div class="grid-2" id="newsGrid" style="align-items:start">
-      <div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:10px;text-transform:uppercase">Macro &amp; Rates</div>
-        <div id="newsMacro">
-          <div class="skeleton-card"><div class="skeleton skeleton-line h3"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
-          <div class="skeleton-card"><div class="skeleton skeleton-line h3"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
-        </div>
-      </div>
-      <div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:10px;text-transform:uppercase">Sector &amp; Stock News</div>
-        <div id="newsSector">
-          <div class="skeleton-card"><div class="skeleton skeleton-line h3"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
-          <div class="skeleton-card"><div class="skeleton skeleton-line h3"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
-        </div>
-      </div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:10px;text-transform:uppercase">Sector &amp; Market News</div>
+    <div class="grid-2" id="newsSector" style="align-items:start">
+      <div class="skeleton-card"><div class="skeleton skeleton-line h3"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
+      <div class="skeleton-card"><div class="skeleton skeleton-line h3"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
     </div>
   </div>
 </div>
@@ -1484,9 +1473,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 
 <!-- ================================================================  FOOTER -->
 <div class="footer">
-  <p>⚡ Portfolio Pulse — Live Dashboard · AI analysis powered by Claude</p>
-  <p>For informational purposes only — not financial advice. Consult a registered CFP/CFA and CPA before making investment decisions.</p>
-  <p>FHSA/RRSP/TFSA rules subject to CRA guidelines. Holdings data last manually updated 2026-05-12 — portfolio values update live via market prices.</p>
+  <p style="font-size:10px;color:var(--text3)">Powered by Claude</p>
   <p id="footerTimestamp"></p>
 </div>
 
@@ -1499,7 +1486,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 // ============================================================
 const CONFIG = {
   API_BASE: 'https://portfolio-pulse-dun.vercel.app',
-  MARKET_REFRESH_MS: 10_000,
+  MARKET_REFRESH_MS: 5_000,
 };
 
 // ============================================================
@@ -2035,10 +2022,23 @@ const TFSA_ANNUAL_2027 = 7000; // estimated
 const FHSA_ANNUAL      = 8000;
 const FHSA_LIFETIME    = 40000;
 
-function initContribRoom() {
-  const rrspStored = localStorage.getItem('pp_rrsp_limit');
-  if (rrspStored) document.getElementById('rrspLimitInput').value = rrspStored;
+async function initContribRoom() {
+  // Load from localStorage first (instant, no flash)
+  const local = localStorage.getItem('pp_rrsp_limit');
+  if (local) document.getElementById('rrspLimitInput').value = local;
   updateContribRoom();
+  // Then sync from KV (authoritative across devices)
+  try {
+    const r = await fetch(`${API_BASE}/api/settings`);
+    if (r.ok) {
+      const s = await r.json();
+      if (s.rrsp_limit) {
+        document.getElementById('rrspLimitInput').value = s.rrsp_limit;
+        localStorage.setItem('pp_rrsp_limit', s.rrsp_limit);
+        updateRRSPRoom();
+      }
+    }
+  } catch {}
 }
 
 function updateContribRoom() {
@@ -2069,7 +2069,15 @@ function updateContribRoom() {
 function updateRRSPRoom() {
   const input = document.getElementById('rrspLimitInput');
   const limit = parseFloat(input?.value) || 0;
-  if (limit > 0) localStorage.setItem('pp_rrsp_limit', limit);
+  if (limit > 0) {
+    localStorage.setItem('pp_rrsp_limit', limit);
+    // Sync to KV in background so other devices pick it up
+    fetch(`${API_BASE}/api/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rrsp_limit: limit }),
+    }).catch(() => {});
+  }
   const rrspContrib = CONTRIB_STATE.RRSP || 16132;
   const remaining   = Math.max(0, limit - rrspContrib);
   const usedPct     = limit > 0 ? Math.min(100, rrspContrib / limit * 100) : 0;
@@ -3393,6 +3401,49 @@ function generateAnalysis(data) {
 // ============================================================
 // AI SECTION RENDERERS
 // ============================================================
+function renderPicksSection(picks) {
+  if (!picks || !picks.length) return;
+  const scoredPicks = picks
+    .filter(p => p.action !== 'SELL' && p.action !== 'TRIM')
+    .map(p => ({ ...p, _fit: calcPickFitScore(p) }));
+
+  const sellPick = picks.find(p => p.action === 'SELL' || p.action === 'TRIM');
+
+  // Best BUY NOW: highest score ≥ 90, fallback to highest overall
+  const sorted = [...scoredPicks].sort((a,b) => b._fit.score - a._fit.score);
+  const buyNow = sorted.find(p => p._fit.score >= 90) || sorted[0];
+  const watchPick = sorted.filter(p => p !== buyNow)[0];
+  const threeCards = [buyNow, watchPick, sellPick].filter(Boolean);
+
+  const pickCard = (p) => {
+    const isSell = p.action === 'SELL' || p.action === 'TRIM';
+    const fit = isSell ? null : p._fit || calcPickFitScore(p);
+    const accentColor = isSell ? 'var(--red)' : (fit?.actionColor || 'var(--blue-bright)');
+    const scoreCircle = fit ? `<span style="background:${fit.actionColor}20;border:1.5px solid ${fit.actionColor};border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;color:${fit.actionColor};flex-shrink:0">${fit.score}</span>` : '';
+    const actionLabel = isSell ? (p.action === 'TRIM' ? '✂ TRIM' : '⬇ SELL') : (fit?.actionRec || p.action);
+    const actionLabelColor = isSell ? 'var(--red)' : (fit?.actionColor || 'var(--blue-bright)');
+    return `<div class="card" style="border-left:3px solid ${accentColor}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="badge ${actionBadgeClass(p.action)}">${p.action}</span>
+          <span class="badge ${acctBadgeClass(p.account)}">${p.account}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${actionLabelColor}">${actionLabel}</span>
+          ${scoreCircle}
+        </div>
+      </div>
+      <div class="pick-ticker">${p.ticker}</div>
+      <div class="pick-thesis">${p.thesis}</div>
+      ${fit?.facts?.length ? `<div style="margin:6px 0;border-top:1px solid var(--border);padding-top:6px">${fit.facts.map(f=>`<div style="font-size:11px;color:var(--text2);margin-bottom:3px;display:flex;gap:5px"><span>${f.icon}</span><span>${f.text}</span></div>`).join('')}</div>` : ''}
+      <div class="entry-box">${isSell ? '📤' : '🎯'} ${p.entry}</div>
+    </div>`;
+  };
+
+  document.getElementById('picksGrid').innerHTML = threeCards.map(pickCard).join('');
+  document.getElementById('aiSec07').classList.remove('loading');
+}
+
 function renderAISection(analysis) {
   if (!analysis || analysis.error) return;
 
@@ -3418,10 +3469,16 @@ function renderAISection(analysis) {
         <div class="conf-meter"><div class="conf-fill" style="width:${m.confidence}%"></div></div>
         <h4 style="margin-top:8px">${m.title}</h4>
         <p style="font-size:12px;color:var(--text2)">${m.body}</p>
-        <div class="scenario-block">
-          <div class="scenario-line">🟢 <b>Bull:</b> ${m.bull}</div>
-          <div class="scenario-line">🟡 <b>Base:</b> ${m.base}</div>
-          <div class="scenario-line">🔴 <b>Bear:</b> ${m.bear}</div>
+        <div class="outcomes-grid" style="margin-top:8px">
+          ${[
+            {label:'Bull', icon:'🟢', text:m.bull, est:m.bull_estimate, cls:'bull', prob: m.bull_probability},
+            {label:'Base', icon:'🟡', text:m.base, est:m.base_estimate, cls:'base', prob: m.base_probability},
+            {label:'Bear', icon:'🔴', text:m.bear, est:m.bear_estimate, cls:'bear', prob: m.bear_probability},
+          ].map(s => `<div class="outcome-card outcome-${s.cls}">
+            <div class="outcome-label">${s.icon} ${s.label}${s.prob != null ? ` <span style="font-size:9px;opacity:.7">${s.prob}%</span>` : ''}</div>
+            <div class="outcome-scenario">${s.text || ''}</div>
+            ${s.est ? `<div class="outcome-estimate" style="margin-top:4px">${s.est}</div>` : ''}
+          </div>`).join('')}
         </div>
       </div>`).join('');
   }
@@ -3440,12 +3497,26 @@ function renderAISection(analysis) {
   document.getElementById('aiSec05').classList.remove('loading');
   document.getElementById('ai05badge').textContent = _aiBadgeLabel;
 
-  // Section 06: News
+  // Section 06: News — all categories in one grid (Macro & Rates merged in)
   if (analysis.news) {
-    const macro = analysis.news.filter(n => n.category === 'Macro & Rates');
-    const sector = analysis.news.filter(n => n.category !== 'Macro & Rates');
+    const allNews = Array.isArray(analysis.news) ? analysis.news : [
+      ...(analysis.news['Macro & Rates'] || []),
+      ...(analysis.news.sector || []),
+      ...Object.values(analysis.news).flat().filter(n => typeof n === 'object'),
+    ].filter((v,i,a) => a.indexOf(v) === i);
+
     const newsCard = (n) => {
-      // Build outcomes block — supports new array format or legacy scenarios string
+      const confidence = n.confidence != null ? n.confidence : (
+        Array.isArray(n.outcomes) && n.outcomes.length ?
+          Math.round(n.outcomes.find(o => o.label === 'Base')?.probability || 50) : null
+      );
+      const confHTML = confidence != null
+        ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            <div style="flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${confidence}%;background:${confidence>=65?'var(--green)':confidence>=40?'var(--amber)':'var(--red)'};border-radius:2px"></div>
+            </div>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">Confidence ${confidence}%</span>
+           </div>` : '';
       let outcomesHTML = '';
       if (Array.isArray(n.outcomes) && n.outcomes.length) {
         outcomesHTML = `<div class="outcomes-grid">${n.outcomes.map(o => {
@@ -3463,73 +3534,28 @@ function renderAISection(analysis) {
       } else if (n.scenarios) {
         outcomesHTML = `<div class="news-scenarios">${n.scenarios}</div>`;
       }
+      const catBadge = n.category && n.category !== 'Sector & Stock'
+        ? `<span style="font-family:var(--mono);font-size:9px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;white-space:nowrap">${n.category}</span>` : '';
       return `<div class="news-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div class="news-headline">${n.headline}</div>
-          <span class="badge ${impactBadgeClass(n.impact)}">${n.impact}</span>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:6px">
+          <div class="news-headline" style="flex:1">${n.headline}</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
+            <span class="badge ${impactBadgeClass(n.impact)}">${n.impact}</span>
+            ${catBadge}
+          </div>
         </div>
+        ${confHTML}
         <div class="news-body">${n.body}</div>
         <div class="news-exposure">${n.exposure}</div>
         ${outcomesHTML}
       </div>`;
     };
-    document.getElementById('newsMacro').innerHTML = macro.map(newsCard).join('') || '<div class="error-state">No macro news available.</div>';
-    document.getElementById('newsSector').innerHTML = sector.map(newsCard).join('') || '<div class="error-state">No sector news available.</div>';
+    document.getElementById('newsSector').innerHTML = allNews.map(newsCard).join('') || '<div class="error-state">No news available.</div>';
   }
   document.getElementById('aiSec06').classList.remove('loading');
   document.getElementById('ai06badge').textContent = _aiBadgeLabel;
 
-  // Section 07: Picks — show exactly 3: best BUY NOW (score≥90), best WATCH, best SELL
-  if (analysis.picks) {
-    // Score all non-sell picks
-    const scoredPicks = analysis.picks
-      .filter(p => p.action !== 'SELL' && p.action !== 'TRIM')
-      .map(p => ({ ...p, _fit: calcPickFitScore(p) }));
-
-    const sellPick = analysis.picks.find(p => p.action === 'SELL' || p.action === 'TRIM');
-
-    // Best BUY NOW: highest score ≥ 90 (or highest overall if none ≥ 90)
-    const buyNow = scoredPicks
-      .filter(p => p._fit.score >= 90)
-      .sort((a,b) => b._fit.score - a._fit.score)[0]
-      || scoredPicks.sort((a,b) => b._fit.score - a._fit.score)[0];
-
-    // Best WATCH: highest score in 52–89 range that isn't the BUY NOW pick
-    const watchPick = scoredPicks
-      .filter(p => p !== buyNow && p._fit.score < 90)
-      .sort((a,b) => b._fit.score - a._fit.score)[0]
-      || scoredPicks.filter(p => p !== buyNow)[0];
-
-    const threeCards = [buyNow, watchPick, sellPick].filter(Boolean);
-
-    const pickCard = (p) => {
-      const isSell = p.action === 'SELL' || p.action === 'TRIM';
-      const fit    = isSell ? null : p._fit || calcPickFitScore(p);
-      const accentColor = isSell ? 'var(--red)' : (fit?.actionColor || 'var(--blue-bright)');
-      const scoreCircle = fit ? `<span style="background:${fit.actionColor}20;border:1.5px solid ${fit.actionColor};border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;color:${fit.actionColor};flex-shrink:0">${fit.score}</span>` : '';
-      const actionLabel = isSell ? (p.action === 'TRIM' ? '✂ TRIM' : '⬇ SELL') : (fit?.actionRec || p.action);
-      const actionLabelColor = isSell ? 'var(--red)' : (fit?.actionColor || 'var(--blue-bright)');
-      return `
-      <div class="card" style="border-left:3px solid ${accentColor}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="display:flex;gap:6px;align-items:center">
-            <span class="badge ${actionBadgeClass(p.action)}">${p.action}</span>
-            <span class="badge ${acctBadgeClass(p.account)}">${p.account}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${actionLabelColor}">${actionLabel}</span>
-            ${scoreCircle}
-          </div>
-        </div>
-        <div class="pick-ticker">${p.ticker}</div>
-        <div class="pick-thesis">${p.thesis}</div>
-        ${fit?.facts?.length ? `<div style="margin:6px 0;border-top:1px solid var(--border);padding-top:6px">${fit.facts.map(f=>`<div style="font-size:11px;color:var(--text2);margin-bottom:3px;display:flex;gap:5px"><span>${f.icon}</span><span>${f.text}</span></div>`).join('')}</div>` : ''}
-        <div class="entry-box">${isSell ? '📤' : '🎯'} ${p.entry}</div>
-      </div>`;
-    };
-
-    document.getElementById('picksGrid').innerHTML = threeCards.map(pickCard).join('');
-  }
+  // Section 07: delegated to renderPicksSection() which is always called with local picks
   document.getElementById('aiSec07').classList.remove('loading');
   document.getElementById('ai07badge').textContent = _aiBadgeLabel;
 
@@ -4034,6 +4060,10 @@ window.addEventListener('DOMContentLoaded', () => {
       renderAISection(generateAnalysis(marketData || {}));
       updateAIBadges('RULE-BASED', null);
     }
+    // Always re-render sec07 with local analysis so sell candidate + scored picks are shown
+    // regardless of whether intel JSON or fallback was used above
+    const localPicks = generateAnalysis(marketData || {});
+    renderPicksSection(localPicks.picks);
   });
 
   // Live prices auto-refresh; intelligence does NOT re-fetch on interval

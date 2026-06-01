@@ -292,7 +292,12 @@ def call_groq(prompt: str, max_tokens: int = 4096, temperature: float = 0.55) ->
 SCRIPT_PROMPT_TEMPLATE = """You are writing a podcast script for "Portfolio Pulse Weekly" — a sharp, personal finance podcast for a Canadian investor.
 
 TODAY: {today}
+TRADING WEEK: {week_range}
+LAST TRADING DAY (most recent market session): {last_trading_day}
 MARKET MOOD THIS WEEK: {mood}
+
+CRITICAL: Stock markets are closed on weekends. NEVER reference Sunday or Saturday as a market day.
+Reference only Mon–Fri trading sessions. "Yesterday" or "today" only applies if it is a weekday.
 
 {live_portfolio}
 
@@ -384,8 +389,26 @@ Quick forward look for next week. Warm close.
 Write the full script now:"""
 
 
+def _last_trading_day(ref: datetime) -> str:
+    """Return the most recent weekday (Mon-Fri) on or before ref, formatted nicely."""
+    d = ref
+    while d.weekday() >= 5:   # 5=Saturday, 6=Sunday
+        d -= timedelta(days=1)
+    return d.strftime("%A, %B %d, %Y")
+
+
+def _week_trading_range(ref: datetime) -> str:
+    """Return the Mon→Fri trading week label for the week containing ref."""
+    mon = ref - timedelta(days=ref.weekday())           # Monday of this week
+    fri = mon + timedelta(days=4)
+    return f"{mon.strftime('%b %d')} – {fri.strftime('%b %d, %Y')}"
+
+
 def build_script_prompt(intel: dict, snapshot_data: dict = None, old_meta: dict = None) -> str:
-    today   = datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
+    now     = datetime.now(timezone.utc)
+    today   = now.strftime("%A, %B %d, %Y")
+    last_td = _last_trading_day(now)
+    week_rng= _week_trading_range(now)
     mood    = intel.get("market_mood", "neutral").upper()
     outlook = intel.get("daily_outlook", "No outlook available.")
     macro   = "\n".join(
@@ -408,7 +431,8 @@ def build_script_prompt(intel: dict, snapshot_data: dict = None, old_meta: dict 
     prev_episode   = build_previous_episode_context(old_meta or {})
 
     return SCRIPT_PROMPT_TEMPLATE.format(
-        today=today, mood=mood, portfolio=PORTFOLIO_CONTEXT,
+        today=today, week_range=week_rng, last_trading_day=last_td,
+        mood=mood, portfolio=PORTFOLIO_CONTEXT,
         live_portfolio=live_portfolio, prev_episode=prev_episode,
         outlook=outlook, macro=macro, news=news, picks=picks,
         strengths=strengths, concerns=concerns, strategy=strategy,
@@ -449,7 +473,7 @@ PORTFOLIO CONTEXT (abbreviated):
 
 Return ONLY a valid JSON object with these exact keys — no markdown, no fences:
 {{
-  "episode_title": "Punchy 8-10 word title summarising the most important thing this week",
+  "episode_title": "Punchy 6-9 word title for THIS SPECIFIC WEEK — must reference the single most important market event or portfolio move that happened this week. NEVER reuse a title from a previous episode. Include a specific ticker, dollar figure, or event name.",
   "mood_summary": "One sharp sentence on market mood and what it means for this portfolio",
   "portfolio_snapshot": [
     "3-4 specific bullet points about portfolio performance — use dollar amounts and % where possible"

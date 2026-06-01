@@ -207,6 +207,31 @@ def fetch_company_news(api_key: str, ticker: str) -> list[dict]:
 # PROMPT ASSEMBLY
 # ============================================================
 
+def _load_previous_intelligence(path: str = "data/intelligence.json") -> str:
+    """Load the previous intelligence summary to avoid repeating it."""
+    try:
+        import pathlib
+        p = pathlib.Path(path)
+        if not p.exists():
+            return ""
+        old = json.loads(p.read_text())
+        # Extract key themes so the LLM knows what was already covered
+        prev_date  = old.get("generated_date", "")
+        prev_mood  = old.get("market_mood", "")
+        prev_macro = " | ".join(m.get("title","") for m in (old.get("macro") or [])[:3])
+        prev_news  = " | ".join(n.get("headline","") for n in (old.get("news") or [])[:4])
+        if not prev_macro and not prev_news:
+            return ""
+        return (
+            f"PREVIOUS BRIEFING ({prev_date}, mood: {prev_mood}):\n"
+            f"  Macro themes already covered: {prev_macro or 'none'}\n"
+            f"  News already covered: {prev_news or 'none'}\n"
+            f"  → TODAY'S BRIEFING MUST DIFFER. Focus on what has CHANGED or is NEW since then."
+        )
+    except Exception:
+        return ""
+
+
 def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]]) -> str:
     general_block = (
         "\n".join(f"• {a['headline']}" for a in general_news[:22])
@@ -222,12 +247,15 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]]) 
     if not company_block:
         company_block = "(no company-specific news fetched)"
 
-    today = datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
+    today    = datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
+    prev_ctx = _load_previous_intelligence()
+
+    prev_section = f"\n{prev_ctx}\n" if prev_ctx else ""
 
     return f"""You are a portfolio intelligence analyst generating a daily briefing for a personal Canadian investment portfolio.
 
 TODAY'S DATE: {today}
-
+{prev_section}
 PORTFOLIO CONTEXT:
 {PORTFOLIO_CONTEXT}
 

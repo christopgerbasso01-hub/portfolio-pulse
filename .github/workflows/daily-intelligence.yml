@@ -46,11 +46,15 @@ jobs:
           git push
 
       - name: Deploy to Vercel
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
         env:
           VERCEL_TOKEN:      ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID:     team_cBG29NHHnnkVTbkmZOjZ7RCy
           VERCEL_PROJECT_ID: prj_dpklrWAGa5FSVf6yOltJM3aJgtn9
         run: |
-          npm install -g vercel@latest
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "VERCEL_TOKEN not set — skipping Vercel deployment"
+            exit 0
+          fi
+          npm install -g vercel@latest --quiet
           vercel --prod --yes --token "$VERCEL_TOKEN"
+          echo "✓ Deployed to Vercel"

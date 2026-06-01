@@ -327,6 +327,19 @@ class handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             body   = json.loads(self.rfile.read(length) or b"{}") if length else {}
 
+            if body.get("type") == "test":
+                notif = {
+                    "title": body.get("title", "🔔 Portfolio Pulse Test"),
+                    "body":  body.get("body", "Push notifications are working correctly!"),
+                    "tag":   "test-notification",
+                }
+                subs = get_subs()
+                now  = datetime.now(timezone.utc)
+                results = broadcast([notif], subs)
+                print(f"  [notify] test notification — sent={results.get('sent',0)}")
+                self._respond(200, {"ok": True, "type": "test", **results})
+                return
+
             if body.get("type") == "podcast":
                 ep_num = body.get("episode", "?")
                 title  = body.get("title", f"Episode #{ep_num}")

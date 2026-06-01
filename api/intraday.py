@@ -129,9 +129,10 @@ def get_index_change(ticker: str) -> float | None:
 
 # ── Push sender ───────────────────────────────────────────────────────────────
 
-def send_push(sub: dict, payload: dict) -> bool:
+def _send_push_checked(sub: dict, payload: dict) -> str:
+    """Returns 'ok', 'stale', or 'error'."""
     if not PUSH_AVAILABLE or not VAPID_PRIVATE:
-        return False
+        return 'error'
     try:
         webpush(
             subscription_info=sub,
@@ -139,18 +140,44 @@ def send_push(sub: dict, payload: dict) -> bool:
             vapid_private_key=VAPID_PRIVATE,
             vapid_claims={"sub": VAPID_SUBJECT},
         )
-        return True
+        return 'ok'
     except WebPushException as exc:
         status = exc.response.status_code if exc.response else 0
+        if status in (404, 410):
+            print(f"  [intraday] stale subscription (HTTP {status}), will remove")
+            return 'stale'
         print(f"  [intraday] WebPushException {status}: {exc}")
-        return False
+        return 'error'
     except Exception as exc:
         print(f"  [intraday] send error: {exc}")
-        return False
+        return 'error'
 
 
-def broadcast(payload: dict, subs: list) -> int:
-    return sum(1 for s in subs if send_push(s, payload))
+def broadcast_checked(payload: dict, subs: list) -> tuple[int, list]:
+    """Returns (sent_count, stale_endpoints_list)."""
+    stale_eps = []
+    sent = 0
+    for s in subs:
+        result = _send_push_checked(s, payload)
+        if result == 'ok':
+            sent += 1
+        elif result == 'stale':
+            stale_eps.append(s.get("endpoint", ""))
+    return sent, stale_eps
+
+
+def remove_stale_subs(stale_endpoints: list):
+    """Purge expired/gone subscriptions from KV."""
+    if not stale_endpoints:
+        return
+    try:
+        subs = get_subs()
+        cleaned = [s for s in subs if s.get("endpoint") not in stale_endpoints]
+        if len(cleaned) < len(subs):
+            kv_set("push:subs", cleaned, ttl=400 * 86400)
+            print(f"  [intraday] removed {len(subs)-len(cleaned)} stale subscription(s)")
+    except Exception as exc:
+        print(f"  [intraday] cleanup error: {exc}")
 
 
 # ── Alert logic ───────────────────────────────────────────────────────────────
@@ -162,7 +189,7 @@ def check_alerts(today_str: str, holdings: dict, subs: list) -> list:
     """
     fired_today = get_fired(today_str)
     newly_fired = []
-    sent_total  = 0
+    all_stale   = []
 
     # ── #12 & #13: Individual holdings ───────────────────────────────────────
     for ticker, data in holdings.items():
@@ -179,9 +206,10 @@ def check_alerts(today_str: str, holdings: dict, subs: list) -> list:
                     "body":  f"{ticker} down {pct:+.1f}% today  ·  ${price:.2f}",
                     "tag":   f"stock-crash-{ticker}",
                 }
-                sent_total += broadcast(payload, subs)
+                sent, stale = broadcast_checked(payload, subs)
+                all_stale.extend(stale)
                 newly_fired.append(alert_id)
-                print(f"  [intraday] crash alert: {ticker} {pct:+.1f}%")
+                print(f"  [intraday] crash alert: {ticker} {pct:+.1f}% → sent {sent}")
 
         elif pct >= SPIKE_THRESHOLD:
             alert_id = f"spike_{ticker}"
@@ -191,9 +219,10 @@ def check_alerts(today_str: str, holdings: dict, subs: list) -> list:
                     "body":  f"{ticker} up {pct:+.1f}% today  ·  ${price:.2f}",
                     "tag":   f"stock-spike-{ticker}",
                 }
-                sent_total += broadcast(payload, subs)
+                sent, stale = broadcast_checked(payload, subs)
+                all_stale.extend(stale)
                 newly_fired.append(alert_id)
-                print(f"  [intraday] spike alert: {ticker} {pct:+.1f}%")
+                print(f"  [intraday] spike alert: {ticker} {pct:+.1f}% → sent {sent}")
 
     # ── #23: Major indices ────────────────────────────────────────────────────
     alert_id = "index_drop"
@@ -210,9 +239,14 @@ def check_alerts(today_str: str, holdings: dict, subs: list) -> list:
                 "body":  "\n".join(down_indices),
                 "tag":   "index-drop",
             }
-            sent_total += broadcast(payload, subs)
+            sent, stale = broadcast_checked(payload, subs)
+            all_stale.extend(stale)
             newly_fired.append(alert_id)
-            print(f"  [intraday] index drop: {', '.join(down_indices)}")
+            print(f"  [intraday] index drop: {', '.join(down_indices)} → sent {sent}")
+
+    # Clean up stale subscriptions
+    if all_stale:
+        remove_stale_subs(list(set(all_stale)))
 
     # Persist dedup list and history
     if newly_fired:
@@ -249,6 +283,27 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self._cors()
         self.end_headers()
+
+    def do_GET(self):
+        """Send a test push notification to all subscribers (auth required)."""
+        if not self._auth():
+            return
+        try:
+            subs = get_subs()
+            if not subs:
+                self._respond(200, {"ok": True, "message": "No subscribers"})
+                return
+            payload = {
+                "title": "🔔 Portfolio Pulse Test",
+                "body":  "Push notifications are working correctly!",
+                "tag":   "test-notification",
+            }
+            sent, stale = broadcast_checked(payload, subs)
+            if stale:
+                remove_stale_subs(list(set(stale)))
+            self._respond(200, {"ok": True, "sent": sent, "stale_removed": len(set(stale))})
+        except Exception as exc:
+            self._respond(500, {"error": str(exc)})
 
     def do_POST(self):
         if not self._auth():

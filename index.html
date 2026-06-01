@@ -191,6 +191,12 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 
 .tax-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px}
 .tax-card-header{padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.contrib-room-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.contrib-room-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px}
+.contrib-room-bar{height:6px;border-radius:3px;background:var(--border);margin:8px 0;overflow:hidden}
+.contrib-room-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.contrib-room-input{font-family:var(--mono);font-size:13px;background:var(--surface1);border:1px solid var(--border);color:var(--text1);border-radius:4px;padding:3px 6px;width:90px;text-align:right}
+.contrib-room-input:focus{outline:none;border-color:var(--blue-bright)}
 .tax-item{font-size:12px;margin-bottom:8px;display:flex;gap:6px;align-items:flex-start}
 
 .news-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}
@@ -273,6 +279,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 
   /* All multi-column grids collapse */
   .grid-4, .acct-grid, .tax-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .contrib-room-grid { grid-template-columns: repeat(2, 1fr); }
   .grid-3, .macro-grid, .strat-grid { grid-template-columns: 1fr; gap: 10px; }
   .grid-2, .sc-grid { grid-template-columns: 1fr; gap: 10px; }
 
@@ -408,6 +415,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 @media (max-width: 480px) {
   .header-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
   .grid-4, .acct-grid, .tax-grid { grid-template-columns: 1fr; }
+  .contrib-room-grid { grid-template-columns: 1fr; }
   .card-value { font-size: 15px; }
   .header-title h1 { font-size: 14px; }
 }
@@ -1299,6 +1307,48 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
         <div id="taxInvItems"><div class="skeleton skeleton-line" style="margin-bottom:10px"></div><div class="skeleton skeleton-line" style="margin-bottom:10px"></div><div class="skeleton skeleton-line short"></div></div>
       </div>
     </div>
+
+    <!-- ── Contribution Room ─────────────────────────────────── -->
+    <div style="margin-top:20px;font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Contribution Room Tracker</div>
+    <div class="contrib-room-grid" id="contribRoomGrid">
+      <!-- TFSA -->
+      <div class="contrib-room-card" style="border-top:3px solid var(--blue-bright)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="badge badge-tfsa">TFSA</div>
+          <span class="mono" style="font-size:10px;color:var(--text3)">2026</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px">Contributed: <span class="mono" id="tfsaContribAmt">$44,500</span></div>
+        <div style="font-size:12px;color:var(--text2)">Remaining room: <span class="mono green" id="tfsaRoomAmt">$0</span></div>
+        <div class="contrib-room-bar"><div class="contrib-room-fill" id="tfsaRoomBar" style="background:var(--blue-bright)"></div></div>
+        <div style="font-size:10px;color:var(--text3)" id="tfsaRoomNote">Room maxed — $7,000 new room opens Jan 1, 2027</div>
+      </div>
+      <!-- FHSA -->
+      <div class="contrib-room-card" style="border-top:3px solid var(--green)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="badge badge-fhsa">FHSA</div>
+          <span class="mono" style="font-size:10px;color:var(--text3)">2026</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px">Contributed: <span class="mono" id="fhsaContribAmt">$24,000</span></div>
+        <div style="font-size:12px;color:var(--text2)">Lifetime remaining: <span class="mono green" id="fhsaRoomAmt">$16,000</span></div>
+        <div class="contrib-room-bar"><div class="contrib-room-fill" id="fhsaRoomBar" style="background:var(--green)"></div></div>
+        <div style="font-size:10px;color:var(--text3)" id="fhsaRoomNote">$8,000 annual limit · $40,000 lifetime · 2026 annual room available</div>
+      </div>
+      <!-- RRSP -->
+      <div class="contrib-room-card" style="border-top:3px solid var(--amber)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="badge badge-rrsp">RRSP</div>
+          <span class="mono" style="font-size:10px;color:var(--text3)">from NOA</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px">Contributed: <span class="mono" id="rrspContribAmt">$16,132</span></div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px">
+          Deduction limit (NOA):
+          <input type="number" class="contrib-room-input" id="rrspLimitInput" value="28000" min="0" onchange="updateRRSPRoom()" oninput="updateRRSPRoom()" placeholder="28000">
+        </div>
+        <div style="font-size:12px;color:var(--text2)">Remaining: <span class="mono green" id="rrspRoomAmt">$11,868</span></div>
+        <div class="contrib-room-bar"><div class="contrib-room-fill" id="rrspRoomBar" style="background:var(--amber)"></div></div>
+        <div style="font-size:10px;color:var(--text3)" id="rrspRoomNote">Enter your deduction limit from your latest NOA (CRA My Account)</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1449,7 +1499,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 // ============================================================
 const CONFIG = {
   API_BASE: 'https://portfolio-pulse-dun.vercel.app',
-  MARKET_REFRESH_MS: 60_000,
+  MARKET_REFRESH_MS: 10_000,
 };
 
 // ============================================================
@@ -1627,6 +1677,85 @@ const colorClass = (n) => n == null ? '' : (n >= 0 ? 'green' : 'red');
 const impactBadgeClass = (impact) => ({HIGH:'badge-high',MED:'badge-med',LOW:'badge-low'}[impact] || 'badge-med');
 const actionBadgeClass = (action) => ({'ADD':'badge-add','NEW':'badge-new','RE-ENTER':'badge-re','IMMEDIATE':'badge-high','SPECULATIVE':'badge-spec','ACCUMULATE':'badge-add','WATCH':'badge-med','HOLD':'badge-med','TRIM':'badge-spec'}[action] || 'badge-add');
 const acctBadgeClass = (acct) => ({'TFSA':'badge-tfsa','FHSA':'badge-fhsa','RRSP':'badge-rrsp','Investment':'badge-inv'}[acct] || 'badge-inv');
+
+function calcPickFitScore(pick) {
+  // Base score from action priority
+  const baseScore = { 'IMMEDIATE':92, 'ADD':80, 'ACCUMULATE':78, 'NEW':70, 'RE-ENTER':65, 'SPECULATIVE':48, 'WATCH':55, 'HOLD':60, 'TRIM':30 }[pick.action] || 65;
+  let score = baseScore;
+  const facts = [];
+
+  // Current holding check
+  const holding = HOLDINGS_STATIC.find(h => h.ticker === pick.ticker);
+  const livePrice = _lastLiveData?.holdings?.[pick.ticker]?.price;
+  const changePct = _lastLiveData?.holdings?.[pick.ticker]?.change_pct;
+
+  if (holding) {
+    // Already in portfolio — show current position context
+    const costBasis = holding.cost_basis || 0;
+    const unrealizedPct = costBasis > 0 && livePrice ? ((livePrice - costBasis) / costBasis * 100) : null;
+    if (unrealizedPct != null) {
+      if (unrealizedPct > 100) {
+        facts.push({ icon:'🏆', text:`In portfolio +${unrealizedPct.toFixed(0)}% — consider trimming for rebalance or hold for continued compounding` });
+        score = Math.min(score, 75); // cap — may be overweight
+      } else if (unrealizedPct > 20) {
+        facts.push({ icon:'✅', text:`In portfolio +${unrealizedPct.toFixed(0)}% — strong position, consider adding on pullbacks` });
+      } else if (unrealizedPct < -10) {
+        facts.push({ icon:'⚠️', text:`In portfolio ${unrealizedPct.toFixed(0)}% — averaging down opportunity or review thesis` });
+        score = Math.min(score + 5, 95);
+      } else {
+        facts.push({ icon:'✅', text:`In portfolio ${unrealizedPct > 0 ? '+' : ''}${unrealizedPct.toFixed(0)}% — moderate gain, add on weakness` });
+      }
+    }
+  } else {
+    facts.push({ icon:'🆕', text:'Not currently held — new position opportunity' });
+  }
+
+  // Price vs entry range check
+  if (livePrice && pick.entry) {
+    const priceMatch = pick.entry.match(/\$([0-9,]+)[–\-–]?\$?([0-9,]*)/);
+    if (priceMatch) {
+      const low  = parseFloat(priceMatch[1].replace(',',''));
+      const high = priceMatch[2] ? parseFloat(priceMatch[2].replace(',','')) : low * 1.05;
+      if (!isNaN(low)) {
+        if (livePrice <= high && livePrice >= low * 0.97) {
+          score = Math.min(score + 10, 100);
+          facts.push({ icon:'✅', text:`$${livePrice.toFixed(2)} is in the entry zone $${low}–$${high} — entry timing is good` });
+        } else if (livePrice < low * 0.97) {
+          score = Math.min(score + 15, 100);
+          facts.push({ icon:'🟢', text:`$${livePrice.toFixed(2)} is below entry range — even better value, strong buy signal` });
+        } else {
+          const pct = ((livePrice - high) / high * 100).toFixed(0);
+          score = Math.max(score - 8, 20);
+          facts.push({ icon:'⚠️', text:`$${livePrice.toFixed(2)} is ${pct}% above entry range — wait for pullback` });
+        }
+      }
+    }
+  }
+
+  // Macro context (VIX)
+  const vix = _lastLiveData?.holdings?.['%5EVIX']?.price || null;
+  if (vix != null) {
+    if (vix > 28 && pick.action !== 'SPECULATIVE') {
+      score = Math.max(score - 10, 20);
+      facts.push({ icon:'❌', text:`VIX ${vix.toFixed(1)} — elevated volatility, reduce position sizing` });
+    } else if (vix < 18) {
+      score = Math.min(score + 5, 100);
+      facts.push({ icon:'✅', text:`VIX ${vix.toFixed(1)} — low volatility, favourable entry conditions` });
+    } else {
+      facts.push({ icon:'⚠️', text:`VIX ${vix.toFixed(1)} — moderate volatility, standard position sizing` });
+    }
+  }
+
+  // Action recommendation
+  score = Math.min(100, Math.max(0, Math.round(score)));
+  let actionRec, actionColor;
+  if (score >= 80)      { actionRec = 'BUY NOW';    actionColor = '#10b981'; }
+  else if (score >= 68) { actionRec = 'BUY ON DIP'; actionColor = '#3b82f6'; }
+  else if (score >= 52) { actionRec = 'WATCH';       actionColor = '#f59e0b'; }
+  else                  { actionRec = 'PASS';         actionColor = '#ef4444'; }
+
+  return { score, facts, actionRec, actionColor };
+}
 
 function isMarketOpen() {
   const now = new Date();
@@ -1896,6 +2025,68 @@ function updateHoldingsCells(hPrices, usdcad) {
 // ============================================================
 // ACCOUNT CARD DYNAMIC FOOTERS
 // ============================================================
+// ── Contribution Room Tracker ─────────────────────────────────────────────────
+// TFSA cumulative room: user born ≤1991 → eligible from 2009. Total through 2026:
+// 2009–2012: 4×$5k=20k, 2013–2014: 2×$5.5k=11k, 2015: $10k, 2016–2018: 3×$5.5k=16.5k
+// 2019–2022: 4×$6k=24k, 2023: $6.5k, 2024–2026: 3×$7k=21k → $108,000 total room
+// However user says they're maxed → use contributions as proxy for available room used.
+const TFSA_ANNUAL_2026 = 7000;
+const TFSA_ANNUAL_2027 = 7000; // estimated
+const FHSA_ANNUAL      = 8000;
+const FHSA_LIFETIME    = 40000;
+
+function initContribRoom() {
+  const rrspStored = localStorage.getItem('pp_rrsp_limit');
+  if (rrspStored) document.getElementById('rrspLimitInput').value = rrspStored;
+  updateContribRoom();
+}
+
+function updateContribRoom() {
+  const tfsaContrib = CONTRIB_STATE.TFSA || 44500;
+  // TFSA: user is maxed (room = 0 this year; new room Jan 1)
+  const tfsaRoom = 0;
+  document.getElementById('tfsaContribAmt').textContent = '$' + tfsaContrib.toLocaleString('en-CA');
+  document.getElementById('tfsaRoomAmt').textContent = '$' + tfsaRoom.toLocaleString('en-CA');
+  document.getElementById('tfsaRoomAmt').className = 'mono ' + (tfsaRoom > 0 ? 'green' : 'amber');
+  document.getElementById('tfsaRoomBar').style.width = '100%';
+  document.getElementById('tfsaRoomNote').textContent =
+    tfsaRoom === 0 ? `Room maxed — $${TFSA_ANNUAL_2027.toLocaleString()} new room opens Jan 1, 2027`
+                   : `$${tfsaRoom.toLocaleString()} remaining · $${TFSA_ANNUAL_2026.toLocaleString()} added Jan 1, 2026`;
+
+  // FHSA
+  const fhsaContrib  = CONTRIB_STATE.FHSA || 24000;
+  const fhsaLifetime = FHSA_LIFETIME;
+  const fhsaRemain   = Math.max(0, fhsaLifetime - fhsaContrib);
+  const fhsaUsedPct  = Math.min(100, fhsaContrib / fhsaLifetime * 100);
+  document.getElementById('fhsaContribAmt').textContent = '$' + fhsaContrib.toLocaleString('en-CA');
+  document.getElementById('fhsaRoomAmt').textContent = '$' + fhsaRemain.toLocaleString('en-CA');
+  document.getElementById('fhsaRoomAmt').className = 'mono ' + (fhsaRemain > 0 ? 'green' : 'red');
+  document.getElementById('fhsaRoomBar').style.width = fhsaUsedPct + '%';
+  const fhsaAnnualLeft = Math.min(FHSA_ANNUAL, fhsaRemain);
+  document.getElementById('fhsaRoomNote').textContent =
+    fhsaRemain === 0 ? 'Lifetime limit reached — account must close within 15 years of first contribution'
+                     : `$${fhsaAnnualLeft.toLocaleString()} available this year · $${fhsaRemain.toLocaleString()} lifetime remaining`;
+
+  updateRRSPRoom();
+}
+
+function updateRRSPRoom() {
+  const input = document.getElementById('rrspLimitInput');
+  const limit = parseFloat(input?.value) || 0;
+  if (limit > 0) localStorage.setItem('pp_rrsp_limit', limit);
+  const rrspContrib = CONTRIB_STATE.RRSP || 16132;
+  const remaining   = Math.max(0, limit - rrspContrib);
+  const usedPct     = limit > 0 ? Math.min(100, rrspContrib / limit * 100) : 0;
+  document.getElementById('rrspContribAmt').textContent = '$' + rrspContrib.toLocaleString('en-CA');
+  document.getElementById('rrspRoomAmt').textContent = '$' + remaining.toLocaleString('en-CA');
+  document.getElementById('rrspRoomAmt').className = 'mono ' + (remaining > 1000 ? 'green' : remaining > 0 ? 'amber' : 'red');
+  document.getElementById('rrspRoomBar').style.width = usedPct + '%';
+  document.getElementById('rrspRoomNote').textContent =
+    limit === 0 ? 'Enter your deduction limit from your latest NOA (CRA My Account)'
+    : remaining === 0 ? 'RRSP room fully used for this year'
+    : `$${remaining.toLocaleString()} remaining · 18% of prior year earned income (max ~$32,490 for 2026)`;
+}
+
 function updateAccountFooters(data) {
   const hPrices  = data.holdings || {};
   const usdcad   = data.usdcad   || 1.37;
@@ -3250,16 +3441,33 @@ function renderAISection(analysis) {
 
   // Section 07: Picks
   if (analysis.picks) {
-    document.getElementById('picksGrid').innerHTML = analysis.picks.map(p => `
+    document.getElementById('picksGrid').innerHTML = analysis.picks.map(p => {
+      const fit = calcPickFitScore(p);
+      const lp  = _lastLiveData?.holdings?.[p.ticker];
+      const priceStr = lp ? `<span style="font-size:11px;color:var(--text2);font-family:var(--mono)">$${lp.price.toFixed(2)} <span style="color:${lp.change_pct>=0?'var(--green)':'var(--red)'}">${lp.change_pct>=0?'+':''}${lp.change_pct?.toFixed(2)}%</span></span>` : '';
+      return `
       <div class="card blue-accent">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <span class="badge ${actionBadgeClass(p.action)}">${p.action}</span>
           <span class="badge ${acctBadgeClass(p.account)}">${p.account}</span>
         </div>
-        <div class="pick-ticker">${p.ticker}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="pick-ticker" style="margin-bottom:0">${p.ticker}</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+            ${priceStr}
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:${fit.actionColor}">${fit.actionRec}</span>
+              <span style="background:${fit.actionColor}20;border:1.5px solid ${fit.actionColor};border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;color:${fit.actionColor};flex-shrink:0">${fit.score}</span>
+            </div>
+          </div>
+        </div>
         <div class="pick-thesis">${p.thesis}</div>
+        <div style="margin:6px 0;border-top:1px solid var(--border);padding-top:6px">
+          ${fit.facts.map(f=>`<div style="font-size:11px;color:var(--text2);margin-bottom:3px;display:flex;gap:5px"><span>${f.icon}</span><span>${f.text}</span></div>`).join('')}
+        </div>
         <div class="entry-box">🎯 ${p.entry}</div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
   document.getElementById('aiSec07').classList.remove('loading');
   document.getElementById('ai07badge').textContent = _aiBadgeLabel;
@@ -3749,6 +3957,7 @@ window.addEventListener('DOMContentLoaded', () => {
   updateRowCount();
   initCharts();
   mergeKvChartData();   // append recent daily snapshots from KV
+  initContribRoom();
 
   document.getElementById('headerDate').textContent = `As of ${new Date().toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}`;
   document.getElementById('footerTimestamp').textContent = `Dashboard last loaded: ${new Date().toLocaleString('en-CA', { dateStyle: 'full', timeStyle: 'medium' })}`;
@@ -4036,6 +4245,40 @@ function closeNotifPanel() {
       panel.style.borderRadius = panel.style.transform = '';
     }
   }, 300);
+}
+
+async function sendTestNotification() {
+  const btn = document.getElementById('notifTestBtn');
+  if (btn) { btn.textContent = '⏳ Sending…'; btn.disabled = true; }
+  try {
+    // Re-register subscription to ensure it's fresh, then fire a local notification
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      if (btn) { btn.textContent = '⚠ Enable first'; btn.style.color = 'var(--amber)'; }
+      setTimeout(() => { if (btn) { btn.textContent = '🔔 Send Test'; btn.style.color = ''; btn.disabled = false; } }, 3000);
+      return;
+    }
+    // Refresh subscription in KV (ensures server has the latest endpoint)
+    await fetch(`${API_BASE}/api/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON()),
+    });
+    // Fire a local notification via the service worker
+    await reg.showNotification('🔔 Portfolio Pulse Test', {
+      body: 'Push notifications are working! Your subscription is active.',
+      tag: 'test-notification',
+      icon: '/icons/icon-192.png',
+    });
+    if (btn) { btn.textContent = '✓ Sent'; btn.style.color = 'var(--green)'; }
+  } catch(e) {
+    if (btn) { btn.textContent = '✗ Failed'; btn.style.color = 'var(--red)'; }
+    console.warn('[notif test]', e);
+  }
+  setTimeout(() => {
+    if (btn) { btn.textContent = '🔔 Send Test'; btn.style.color = ''; btn.disabled = false; }
+  }, 3000);
 }
 
 // ── Toggle handler (inside panel) ────────────────────────────────────────────
@@ -4635,19 +4878,42 @@ function renderFitScore(d) {
   score += targetPts;
   facts.push({ icon: targetPts >= 15 ? '✅' : targetPts >= 8 ? '⚠️' : '❌', text: (currentPrice && targetMean) ? `Analyst target ${targetMean.toFixed(2)} — ${((targetMean-currentPrice)/currentPrice*100).toFixed(0)}% ${targetMean>currentPrice?'upside':'downside'} from current price` : 'No analyst target available' });
 
+  // 6. Macro & market context (0-15 pts) — uses live VIX + sector trend
+  let macroPts = 8; // neutral default
+  const vix = _lastLiveData?.holdings?.['%5EVIX']?.price || _lastLiveData?.holdings?.['VIX']?.price || null;
+  const sector = (d.sector || d.industry || '').toLowerCase();
+  const isAI    = sector.includes('tech') || sector.includes('semiconductor') || sector.includes('software');
+  const isEnergy = sector.includes('energy');
+  const isDefensive = sector.includes('util') || sector.includes('consumer staple') || sector.includes('health');
+  if (vix != null) {
+    if (vix < 18 && isAI)         macroPts = 15; // low vol + tech/AI = best macro setup
+    else if (vix < 18)             macroPts = 13;
+    else if (vix < 25 && isAI)    macroPts = 12;
+    else if (vix < 25)             macroPts = 10;
+    else if (vix < 30 && isDefensive) macroPts = 12; // high vol = defensives look better
+    else if (vix < 30)             macroPts = 7;
+    else if (vix >= 30 && isDefensive) macroPts = 10;
+    else                           macroPts = 4; // high vol + aggressive = bad macro fit
+  }
+  score += macroPts;
+  const vixLabel = vix != null ? `VIX ${vix.toFixed(1)}` : 'macro data unavailable';
+  const macroTrend = macroPts >= 12 ? 'favourable macro backdrop' : macroPts >= 8 ? 'neutral macro environment' : 'challenging macro — elevated volatility';
+  facts.push({ icon: macroPts >= 12 ? '✅' : macroPts >= 8 ? '⚠️' : '❌', text: `${vixLabel} — ${macroTrend} for this sector` });
+
   // ── Account recommendation ────────────────────────────────────────────
   const isCdn    = (d.exchange||'').toUpperCase().includes('TSX') || (d.ticker||'').endsWith('.TO');
-  const isGrowth = (d.sector||'').toLowerCase().includes('tech') || (d.trailingPE||0) > 25;
+  const isGrowth = sector.includes('tech') || (d.trailingPE||0) > 25;
   const hasDivs  = (d.dividendRate||0) > 0;
   let acctRec;
+  // TFSA is maxed — route accordingly
   if (!isCdn && hasDivs) {
     acctRec = '💡 Best account: <b>RRSP</b> — US dividends qualify for 0% withholding under the Canada-US tax treaty';
   } else if (isGrowth) {
-    acctRec = '💡 Best account: <b>TFSA</b> — high-growth position benefits most from permanent tax-free compounding';
-  } else if (hasDivs) {
-    acctRec = '💡 Best account: <b>TFSA</b> — dividend income grows permanently tax-free';
+    acctRec = '💡 Best account: <b>RRSP</b> — TFSA is at capacity; RRSP provides tax-deferred compounding for growth names';
+  } else if (hasDivs && isCdn) {
+    acctRec = '💡 Best account: <b>RRSP</b> — TFSA full; eligible Canadian dividends still grow tax-deferred here';
   } else {
-    acctRec = '💡 Best account: <b>TFSA</b> for maximum tax shelter, or <b>RRSP</b> if TFSA room is full';
+    acctRec = '💡 Best account: <b>RRSP</b> for tax-deferred growth, or <b>Investment</b> account for flexible access';
   }
 
   score = Math.min(100, Math.max(0, score));
@@ -5300,7 +5566,10 @@ function renderTxHistory() {
       <span class="notif-slider"></span>
     </label>
   </div>
-  <div class="notif-list-label">Recent</div>
+  <div class="notif-list-label" style="display:flex;align-items:center;justify-content:space-between">
+    <span>Recent</span>
+    <button id="notifTestBtn" onclick="sendTestNotification()" style="font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);padding:3px 8px;border-radius:4px;cursor:pointer">🔔 Send Test</button>
+  </div>
   <div class="notif-list" id="notifList"><div class="notif-loading">Loading…</div></div>
 </div>
 

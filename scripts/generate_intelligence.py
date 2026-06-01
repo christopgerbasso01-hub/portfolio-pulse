@@ -272,29 +272,50 @@ SECTION DISTINCTIVENESS — each section must cover UNIQUE ground, zero repetiti
 # ============================================================
 
 def call_llm(api_key: str, prompt: str) -> dict:
-    """Call Groq's free-tier Llama API and return parsed JSON."""
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "model": GROQ_MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.35,
-        "max_tokens": 8192,
-    }
-    resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=120)
-    resp.raise_for_status()
-    text = resp.json()["choices"][0]["message"]["content"].strip()
+    """
+    Call Groq's free-tier Llama API and return parsed JSON.
+    Retries up to 4 times on 429 rate-limit errors with exponential backoff.
+    Falls back to the 8B model if the 70B model keeps hitting limits.
+    """
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    models  = [GROQ_MODEL, "llama-3.1-8b-instant"]   # 70B → 8B fallback
 
-    # Strip markdown code fences if the model adds them
-    if text.startswith("```"):
-        lines = text.split("\n")
-        start = 1
-        end = len(lines) - 1 if lines[-1].strip() == "```" else len(lines)
-        text = "\n".join(lines[start:end])
+    for model in models:
+        for attempt in range(4):
+            payload = {
+                "model":       model,
+                "messages":    [{"role": "user", "content": prompt}],
+                "temperature": 0.35,
+                "max_tokens":  8192,
+            }
+            resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=120)
 
-    return json.loads(text)
+            if resp.status_code == 429:
+                # Read retry-after header; default to exponential backoff
+                try:
+                    wait = min(int(resp.headers.get("retry-after", 2 ** (attempt + 1))), 60)
+                except (ValueError, TypeError):
+                    wait = 2 ** (attempt + 1)
+                print(f"  ⏳ Rate limited on {model} attempt {attempt+1}/4 — waiting {wait}s")
+                time.sleep(wait)
+                continue
+
+            resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"].strip()
+
+            # Strip markdown code fences if the model adds them
+            if text.startswith("```"):
+                lines = text.split("\n")
+                start = 1
+                end = len(lines) - 1 if lines[-1].strip() == "```" else len(lines)
+                text = "\n".join(lines[start:end])
+
+            print(f"  ✓ Generated with {model} (attempt {attempt+1})")
+            return json.loads(text)
+
+        print(f"  ⚠ All retries exhausted for {model}, trying next model...")
+
+    raise RuntimeError("All Groq models exhausted after retries — check rate limits")
 
 
 # ============================================================

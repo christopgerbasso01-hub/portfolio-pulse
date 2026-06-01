@@ -340,13 +340,28 @@ SCRIPT RULES — follow every single one:
    Use: "Right, but here's the thing...", "Wait, hold on...", "That's what I was going to say...",
    "And the crazy part is...", "So what you're saying is...", "Exactly, and on top of that..."
    Interrupt each other. Build on each other's points. React to surprises.
+   Vary sentence openings — do NOT start multiple consecutive lines with the same word or phrase.
 
 4. TARGET: 1,800–2,100 words total. That's 12–14 minutes spoken.
 
 5. DO NOT explain how TFSA/FHSA/RRSP accounts work — assume listener knows.
    DO NOT dwell on past performance beyond a quick context line.
-   DO NOT repeat the same point twice.
+   DO NOT repeat the same point twice in the episode.
+   NEVER write the same sentence or phrase more than once — every line must be unique.
    BE specific: say "FNGU is up 6.2% this week" not "FNGU performed well".
+
+5b. PREVIOUS EPISODE CALLBACK — exactly one natural callback per episode:
+    Reference ONE specific thing from last episode (a position, a prediction, an action item).
+    Make it sound like two hosts who remember last week, NOT a recap. Example:
+    "Alex, remember last week you said to watch that RRSP cash drag — well..."
+    "Yeah, and I said if the Fed held rates, FNGU would rip — it did."
+    Do NOT summarize the entire previous episode. One brief callback, then move on.
+
+5c. WEEKLY THEME — every episode must have a spine:
+    Choose ONE central theme or question for this week (e.g. "Is the leverage still justified?",
+    "What does the rate hold mean for the home-buying goal?", "Is NVDA still untouchable?").
+    Weave it through every section — open with it, return to it, close with it.
+    Alex and Sam should feel like they're building toward an answer, not just reading data.
 
 6. FORWARD-LOOKING: what matters NOW and what to watch NEXT WEEK.
 

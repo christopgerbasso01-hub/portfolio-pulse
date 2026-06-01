@@ -2022,10 +2022,12 @@ function updateContribRoom() {
 }
 
 async function saveRRSPRoom() {
-  const input = document.getElementById('rrspLimitInput');
-  const btn   = document.getElementById('rrspSaveBtn');
-  const limit = parseFloat(input?.value) || 0;
-  if (!limit) return;
+  const input  = document.getElementById('rrspLimitInput');
+  const btn    = document.getElementById('rrspSaveBtn');
+  const rawVal = input?.value ?? '';
+  if (rawVal === '') return;
+  const limit  = parseFloat(rawVal);
+  if (isNaN(limit) || limit < 0) return;
   if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
   localStorage.setItem('pp_rrsp_limit', limit);
   try {
@@ -3462,11 +3464,15 @@ function renderAISection(analysis) {
             {label:'Bull', icon:'🟢', text:m.bull, est:m.bull_estimate, cls:'bull', prob: m.bull_probability},
             {label:'Base', icon:'🟡', text:m.base, est:m.base_estimate, cls:'base', prob: m.base_probability},
             {label:'Bear', icon:'🔴', text:m.bear, est:m.bear_estimate, cls:'bear', prob: m.bear_probability},
-          ].map(s => `<div class="outcome-card outcome-${s.cls}">
-            <div class="outcome-label">${s.icon} ${s.label}${s.prob != null ? ` <span style="font-size:9px;opacity:.7">${s.prob}%</span>` : ''}</div>
-            <div class="outcome-scenario">${s.text || ''}</div>
-            ${s.est ? `<div class="outcome-estimate" style="margin-top:4px">${s.est}</div>` : ''}
-          </div>`).join('')}
+          ].map(s => {
+            const pct = s.prob != null ? Math.min(100, Math.max(0, s.prob)) : null;
+            return `<div class="outcome-card outcome-${s.cls}">
+              <div class="outcome-label">${s.icon} ${s.label}</div>
+              ${pct != null ? `<div class="outcome-prob">${pct}%</div><div class="outcome-bar-track"><div class="outcome-bar-fill" style="width:${pct}%"></div></div>` : ''}
+              <div class="outcome-scenario">${s.text || ''}</div>
+              ${s.est ? `<div class="outcome-estimate">${s.est}</div>` : ''}
+            </div>`;
+          }).join('')}
         </div>
       </div>`).join('');
   }

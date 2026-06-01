@@ -1733,7 +1733,7 @@ function calcPickFitScore(pick) {
   }
 
   // Macro context (VIX)
-  const vix = _lastLiveData?.holdings?.['%5EVIX']?.price || null;
+  const vix = _lastLiveData?.benchmarks?.vix?.price || null;
   if (vix != null) {
     if (vix > 28 && pick.action !== 'SPECULATIVE') {
       score = Math.max(score - 10, 20);
@@ -2043,29 +2043,25 @@ function initContribRoom() {
 
 function updateContribRoom() {
   const tfsaContrib = CONTRIB_STATE.TFSA || 44500;
-  // TFSA: user is maxed (room = 0 this year; new room Jan 1)
-  const tfsaRoom = 0;
+  // Non-resident year (2026) — cannot contribute to TFSA or FHSA; room resumes Jan 1 2027
   document.getElementById('tfsaContribAmt').textContent = '$' + tfsaContrib.toLocaleString('en-CA');
-  document.getElementById('tfsaRoomAmt').textContent = '$' + tfsaRoom.toLocaleString('en-CA');
-  document.getElementById('tfsaRoomAmt').className = 'mono ' + (tfsaRoom > 0 ? 'green' : 'amber');
+  document.getElementById('tfsaRoomAmt').textContent = '$0';
+  document.getElementById('tfsaRoomAmt').className = 'mono amber';
   document.getElementById('tfsaRoomBar').style.width = '100%';
   document.getElementById('tfsaRoomNote').textContent =
-    tfsaRoom === 0 ? `Room maxed — $${TFSA_ANNUAL_2027.toLocaleString()} new room opens Jan 1, 2027`
-                   : `$${tfsaRoom.toLocaleString()} remaining · $${TFSA_ANNUAL_2026.toLocaleString()} added Jan 1, 2026`;
+    '⚠ Non-resident 2026 — contributions suspended. $7,000 room resumes Jan 1, 2027.';
 
-  // FHSA
+  // FHSA — non-resident year, $0 available this year
   const fhsaContrib  = CONTRIB_STATE.FHSA || 24000;
   const fhsaLifetime = FHSA_LIFETIME;
-  const fhsaRemain   = Math.max(0, fhsaLifetime - fhsaContrib);
+  const fhsaRemainLifetime = Math.max(0, fhsaLifetime - fhsaContrib); // $16,000 lifetime still available
   const fhsaUsedPct  = Math.min(100, fhsaContrib / fhsaLifetime * 100);
   document.getElementById('fhsaContribAmt').textContent = '$' + fhsaContrib.toLocaleString('en-CA');
-  document.getElementById('fhsaRoomAmt').textContent = '$' + fhsaRemain.toLocaleString('en-CA');
-  document.getElementById('fhsaRoomAmt').className = 'mono ' + (fhsaRemain > 0 ? 'green' : 'red');
+  document.getElementById('fhsaRoomAmt').textContent = '$0 this year';
+  document.getElementById('fhsaRoomAmt').className = 'mono amber';
   document.getElementById('fhsaRoomBar').style.width = fhsaUsedPct + '%';
-  const fhsaAnnualLeft = Math.min(FHSA_ANNUAL, fhsaRemain);
   document.getElementById('fhsaRoomNote').textContent =
-    fhsaRemain === 0 ? 'Lifetime limit reached — account must close within 15 years of first contribution'
-                     : `$${fhsaAnnualLeft.toLocaleString()} available this year · $${fhsaRemain.toLocaleString()} lifetime remaining`;
+    `⚠ Non-resident 2026 — contributions suspended. $${fhsaRemainLifetime.toLocaleString()} lifetime room ($8,000/yr) resumes when CDN resident again.`;
 
   updateRRSPRoom();
 }
@@ -3268,6 +3264,50 @@ function generateAnalysis(data) {
     },
   ];
 
+  // ── SELL CANDIDATES (dynamic, from current holdings) ─────────────────────
+  const sellCandidates = [];
+
+  // Tax-loss harvest candidates (deeply underwater in Investment account)
+  const taxLossTargets = [
+    { ticker: 'MSTR',  account: 'Investment', lossEst: -43.2, shares: 5 },
+    { ticker: 'BYDDF', account: 'Investment', lossEst: -28.9, shares: 150 },
+    { ticker: 'GBTC',  account: 'Investment', lossEst: -17.5, shares: 20 },
+  ];
+  taxLossTargets.forEach(t => {
+    const liveP  = _lastLiveData?.holdings?.[t.ticker];
+    const pct    = liveP?.change_pct ?? t.lossEst;
+    const price  = liveP?.price;
+    const priceStr = price ? ` · Current $${price.toFixed(2)}` : '';
+    if (t.lossEst < -15) {
+      sellCandidates.push({
+        ticker: t.ticker, action: 'SELL', account: t.account,
+        thesis: `Tax-loss harvest opportunity. Position is ${t.lossEst}% underwater in your non-registered account${priceStr}. Realizing this loss offsets capital gains elsewhere in the portfolio, reducing 2026 taxable income. Re-enter after 30 days to avoid the superficial loss rule.`,
+        entry:  `Sell all ${t.shares} shares. Harvest the loss before Dec 31. Save in cash or park in a similar-but-not-identical ETF during the 30-day waiting period.`,
+        _sellScore: Math.abs(t.lossEst), // higher loss = higher priority to harvest
+      });
+    }
+  });
+
+  // Large-gain trim candidate (Investment account, taxable)
+  const spxlP   = _lastLiveData?.holdings?.['SPXL']?.price;
+  const fnguInvH = HOLDINGS_STATIC.find(h => h.ticker === 'FNGU' && h.account === 'Investment');
+  const spxlInvH = HOLDINGS_STATIC.find(h => h.ticker === 'SPXL' && h.account === 'Investment');
+  if (spxlInvH && spxlP) {
+    const gain = ((spxlP - (spxlInvH.cost_basis||0)) / (spxlInvH.cost_basis||1) * 100);
+    if (gain > 60 && highVol) {
+      sellCandidates.push({
+        ticker: 'SPXL', action: 'TRIM', account: 'Investment',
+        thesis: `SPXL carries ~$${Math.round(spxlInvH.shares * spxlP * usdcad / 1000)}K CAD in taxable unrealized gains (+${gain.toFixed(0)}%) in your non-reg account. With VIX at ${vixVal.toFixed(1)}, 3x ETF volatility decay risk is elevated. Trimming 30-50% here locks in gains, reduces leverage concentration, and creates dry powder for re-entry on a pullback.`,
+        entry: `Sell 30–50% of ${spxlInvH.shares} shares (~$${Math.round(spxlInvH.shares*0.4*spxlP*usdcad/100)*100} CAD proceeds). Redeploy into ZSP.TO in RRSP.`,
+        _sellScore: gain,
+      });
+    }
+  }
+
+  // Sort sell candidates by priority and take top 1
+  sellCandidates.sort((a,b) => (b._sellScore||0) - (a._sellScore||0));
+  if (sellCandidates.length > 0) picks.push(sellCandidates[0]);
+
   // ── STRENGTHS / CONCERNS ──────────────────────────────────
   const strengths = [
     { ticker: 'NVDA', text: `NVDA in TFSA at +1,776% on $645 cost basis — ~$${(nvdaP*40*usdcad).toFixed(0)} CAD value, 100% tax-free permanently. One of the best-documented TFSA compounders. Never sell.` },
@@ -3439,35 +3479,56 @@ function renderAISection(analysis) {
   document.getElementById('aiSec06').classList.remove('loading');
   document.getElementById('ai06badge').textContent = _aiBadgeLabel;
 
-  // Section 07: Picks
+  // Section 07: Picks — show exactly 3: best BUY NOW (score≥90), best WATCH, best SELL
   if (analysis.picks) {
-    document.getElementById('picksGrid').innerHTML = analysis.picks.map(p => {
-      const fit = calcPickFitScore(p);
-      const lp  = _lastLiveData?.holdings?.[p.ticker];
-      const priceStr = lp ? `<span style="font-size:11px;color:var(--text2);font-family:var(--mono)">$${lp.price.toFixed(2)} <span style="color:${lp.change_pct>=0?'var(--green)':'var(--red)'}">${lp.change_pct>=0?'+':''}${lp.change_pct?.toFixed(2)}%</span></span>` : '';
+    // Score all non-sell picks
+    const scoredPicks = analysis.picks
+      .filter(p => p.action !== 'SELL' && p.action !== 'TRIM')
+      .map(p => ({ ...p, _fit: calcPickFitScore(p) }));
+
+    const sellPick = analysis.picks.find(p => p.action === 'SELL' || p.action === 'TRIM');
+
+    // Best BUY NOW: highest score ≥ 90 (or highest overall if none ≥ 90)
+    const buyNow = scoredPicks
+      .filter(p => p._fit.score >= 90)
+      .sort((a,b) => b._fit.score - a._fit.score)[0]
+      || scoredPicks.sort((a,b) => b._fit.score - a._fit.score)[0];
+
+    // Best WATCH: highest score in 52–89 range that isn't the BUY NOW pick
+    const watchPick = scoredPicks
+      .filter(p => p !== buyNow && p._fit.score < 90)
+      .sort((a,b) => b._fit.score - a._fit.score)[0]
+      || scoredPicks.filter(p => p !== buyNow)[0];
+
+    const threeCards = [buyNow, watchPick, sellPick].filter(Boolean);
+
+    const pickCard = (p) => {
+      const isSell = p.action === 'SELL' || p.action === 'TRIM';
+      const fit    = isSell ? null : p._fit || calcPickFitScore(p);
+      const accentColor = isSell ? 'var(--red)' : (fit?.actionColor || 'var(--blue-bright)');
+      const scoreCircle = fit ? `<span style="background:${fit.actionColor}20;border:1.5px solid ${fit.actionColor};border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;color:${fit.actionColor};flex-shrink:0">${fit.score}</span>` : '';
+      const actionLabel = isSell ? (p.action === 'TRIM' ? '✂ TRIM' : '⬇ SELL') : (fit?.actionRec || p.action);
+      const actionLabelColor = isSell ? 'var(--red)' : (fit?.actionColor || 'var(--blue-bright)');
       return `
-      <div class="card blue-accent">
+      <div class="card" style="border-left:3px solid ${accentColor}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span class="badge ${actionBadgeClass(p.action)}">${p.action}</span>
-          <span class="badge ${acctBadgeClass(p.account)}">${p.account}</span>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div class="pick-ticker" style="margin-bottom:0">${p.ticker}</div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
-            ${priceStr}
-            <div style="display:flex;align-items:center;gap:6px">
-              <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:${fit.actionColor}">${fit.actionRec}</span>
-              <span style="background:${fit.actionColor}20;border:1.5px solid ${fit.actionColor};border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;color:${fit.actionColor};flex-shrink:0">${fit.score}</span>
-            </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge ${actionBadgeClass(p.action)}">${p.action}</span>
+            <span class="badge ${acctBadgeClass(p.account)}">${p.account}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${actionLabelColor}">${actionLabel}</span>
+            ${scoreCircle}
           </div>
         </div>
+        <div class="pick-ticker">${p.ticker}</div>
         <div class="pick-thesis">${p.thesis}</div>
-        <div style="margin:6px 0;border-top:1px solid var(--border);padding-top:6px">
-          ${fit.facts.map(f=>`<div style="font-size:11px;color:var(--text2);margin-bottom:3px;display:flex;gap:5px"><span>${f.icon}</span><span>${f.text}</span></div>`).join('')}
-        </div>
-        <div class="entry-box">🎯 ${p.entry}</div>
+        ${fit?.facts?.length ? `<div style="margin:6px 0;border-top:1px solid var(--border);padding-top:6px">${fit.facts.map(f=>`<div style="font-size:11px;color:var(--text2);margin-bottom:3px;display:flex;gap:5px"><span>${f.icon}</span><span>${f.text}</span></div>`).join('')}</div>` : ''}
+        <div class="entry-box">${isSell ? '📤' : '🎯'} ${p.entry}</div>
       </div>`;
-    }).join('');
+    };
+
+    document.getElementById('picksGrid').innerHTML = threeCards.map(pickCard).join('');
   }
   document.getElementById('aiSec07').classList.remove('loading');
   document.getElementById('ai07badge').textContent = _aiBadgeLabel;
@@ -4251,34 +4312,57 @@ async function sendTestNotification() {
   const btn = document.getElementById('notifTestBtn');
   if (btn) { btn.textContent = '⏳ Sending…'; btn.disabled = true; }
   try {
-    // Re-register subscription to ensure it's fresh, then fire a local notification
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      if (btn) { btn.textContent = '⚠ Enable first'; btn.style.color = 'var(--amber)'; }
+    // Check notification permission
+    if (!('Notification' in window)) throw new Error('Notifications not supported');
+    if (Notification.permission === 'denied') {
+      if (btn) { btn.textContent = '🚫 Blocked'; btn.style.color = 'var(--red)'; }
       setTimeout(() => { if (btn) { btn.textContent = '🔔 Send Test'; btn.style.color = ''; btn.disabled = false; } }, 3000);
       return;
     }
-    // Refresh subscription in KV (ensures server has the latest endpoint)
-    await fetch(`${API_BASE}/api/push`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sub.toJSON()),
-    });
-    // Fire a local notification via the service worker
-    await reg.showNotification('🔔 Portfolio Pulse Test', {
-      body: 'Push notifications are working! Your subscription is active.',
+    if (Notification.permission !== 'granted') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        if (btn) { btn.textContent = '🚫 Denied'; btn.style.color = 'var(--red)'; }
+        setTimeout(() => { if (btn) { btn.textContent = '🔔 Send Test'; btn.style.color = ''; btn.disabled = false; } }, 3000);
+        return;
+      }
+    }
+    // Ensure service worker is ready
+    const reg = await navigator.serviceWorker.ready;
+    // Re-save subscription to KV so server has the latest endpoint
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await fetch(`${API_BASE}/api/push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub.toJSON()),
+      }).catch(() => {});
+    }
+    // Fire local notification (no server round-trip needed for test)
+    await reg.showNotification('🔔 Portfolio Pulse', {
+      body: 'Push notifications are working! Alerts will appear here.',
       tag: 'test-notification',
-      icon: '/icons/icon-192.png',
+      badge: '/icon-72.png',
+      icon: '/icon-192.png',
     });
     if (btn) { btn.textContent = '✓ Sent'; btn.style.color = 'var(--green)'; }
   } catch(e) {
-    if (btn) { btn.textContent = '✗ Failed'; btn.style.color = 'var(--red)'; }
     console.warn('[notif test]', e);
+    // Fallback: try a plain Notification if SW showNotification failed
+    try {
+      if (Notification.permission === 'granted') {
+        new Notification('🔔 Portfolio Pulse', { body: 'Push notifications are working!' });
+        if (btn) { btn.textContent = '✓ Sent'; btn.style.color = 'var(--green)'; }
+      } else {
+        throw e;
+      }
+    } catch(e2) {
+      if (btn) { btn.textContent = '✗ Failed'; btn.style.color = 'var(--red)'; }
+    }
   }
   setTimeout(() => {
     if (btn) { btn.textContent = '🔔 Send Test'; btn.style.color = ''; btn.disabled = false; }
-  }, 3000);
+  }, 3500);
 }
 
 // ── Toggle handler (inside panel) ────────────────────────────────────────────
@@ -4880,7 +4964,7 @@ function renderFitScore(d) {
 
   // 6. Macro & market context (0-15 pts) — uses live VIX + sector trend
   let macroPts = 8; // neutral default
-  const vix = _lastLiveData?.holdings?.['%5EVIX']?.price || _lastLiveData?.holdings?.['VIX']?.price || null;
+  const vix = _lastLiveData?.benchmarks?.vix?.price || null;
   const sector = (d.sector || d.industry || '').toLowerCase();
   const isAI    = sector.includes('tech') || sector.includes('semiconductor') || sector.includes('software');
   const isEnergy = sector.includes('energy');

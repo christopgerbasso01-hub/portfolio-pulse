@@ -910,21 +910,21 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       </div>
       <div class="bm-bar-wrap">
         <div class="bm-bar-label">
-          <span class="text2" style="font-size:12px">S&amp;P 500 (contribution-weighted)</span>
+          <span class="text2" style="font-size:12px">S&amp;P 500</span>
           <span class="mono text2" style="font-size:12px" id="bmSP500Label">$167,218 · +11.8%</span>
         </div>
         <div class="bm-bar-bg"><div class="bm-bar-fill" id="bmSP500Bar" style="width:64.2%;background:var(--blue-bright)">$167,218</div></div>
       </div>
       <div class="bm-bar-wrap">
         <div class="bm-bar-label">
-          <span class="text2" style="font-size:12px">TSX Composite (contribution-weighted)</span>
+          <span class="text2" style="font-size:12px">TSX Composite</span>
           <span class="mono text2" style="font-size:12px" id="bmTSXLabel">$171,477 · +14.6%</span>
         </div>
         <div class="bm-bar-bg"><div class="bm-bar-fill" id="bmTSXBar" style="width:65.9%;background:var(--amber)">$171,477</div></div>
       </div>
       <div class="bm-bar-wrap">
         <div class="bm-bar-label">
-          <span class="text2" style="font-size:12px">NASDAQ-100 (contribution-weighted)</span>
+          <span class="text2" style="font-size:12px">NASDAQ-100</span>
           <span class="mono text2" style="font-size:12px" id="bmNASDAQLabel">$172,760 · +15.5%</span>
         </div>
         <div class="bm-bar-bg"><div class="bm-bar-fill" id="bmNASDAQBar" style="width:66.4%;background:var(--purple)">$172,760</div></div>
@@ -1329,9 +1329,10 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
           <span class="mono" style="font-size:10px;color:var(--text3)">from NOA</span>
         </div>
         <div style="font-size:12px;color:var(--text2);margin-bottom:4px">Contributed: <span class="mono" id="rrspContribAmt">$16,132</span></div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:4px">
-          Deduction limit (NOA):
-          <input type="number" class="contrib-room-input" id="rrspLimitInput" value="28000" min="0" onchange="updateRRSPRoom()" oninput="updateRRSPRoom()" placeholder="28000">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span>Deduction limit (NOA):</span>
+          <input type="number" class="contrib-room-input" id="rrspLimitInput" value="28000" min="0" placeholder="28000">
+          <button id="rrspSaveBtn" onclick="saveRRSPRoom()" style="font-family:var(--mono);font-size:10px;background:var(--blue-bright);color:#fff;border:none;border-radius:4px;padding:3px 10px;cursor:pointer;white-space:nowrap">Save</button>
         </div>
         <div style="font-size:12px;color:var(--text2)">Remaining: <span class="mono green" id="rrspRoomAmt">$11,868</span></div>
         <div class="contrib-room-bar"><div class="contrib-room-fill" id="rrspRoomBar" style="background:var(--amber)"></div></div>
@@ -2020,18 +2021,32 @@ function updateContribRoom() {
   updateRRSPRoom();
 }
 
-function updateRRSPRoom() {
+async function saveRRSPRoom() {
   const input = document.getElementById('rrspLimitInput');
+  const btn   = document.getElementById('rrspSaveBtn');
   const limit = parseFloat(input?.value) || 0;
-  if (limit > 0) {
-    localStorage.setItem('pp_rrsp_limit', limit);
-    // Sync to KV in background so other devices pick it up
-    fetch(`${CONFIG.API_BASE}/api/settings`, {
+  if (!limit) return;
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+  localStorage.setItem('pp_rrsp_limit', limit);
+  try {
+    await fetch(`${CONFIG.API_BASE}/api/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rrsp_limit: limit }),
-    }).catch(() => {});
+    });
+    if (btn) { btn.textContent = '✓ Saved'; btn.style.background = 'var(--green)'; }
+  } catch {
+    if (btn) { btn.textContent = 'Saved locally'; }
   }
+  updateRRSPRoom();
+  setTimeout(() => {
+    if (btn) { btn.textContent = 'Save'; btn.style.background = 'var(--blue-bright)'; btn.disabled = false; }
+  }, 2500);
+}
+
+function updateRRSPRoom() {
+  const input = document.getElementById('rrspLimitInput');
+  const limit = parseFloat(input?.value) || parseFloat(localStorage.getItem('pp_rrsp_limit')) || 0;
   const rrspContrib = CONTRIB_STATE.RRSP || 16132;
   const remaining   = Math.max(0, limit - rrspContrib);
   const usedPct     = limit > 0 ? Math.min(100, rrspContrib / limit * 100) : 0;
@@ -5035,7 +5050,10 @@ async function loadWatchlist() {
 
 function renderWatchlistStrip(tickers) {
   const strip = document.getElementById('rsrchWatchlistStrip');
-  if (!tickers.length) { strip.innerHTML = ''; return; }
+  if (!tickers.length) {
+    strip.innerHTML = `<div style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:4px 0">No watchlist items — search a ticker and tap ☆ to add</div>`;
+    return;
+  }
   strip.innerHTML = tickers.map(t => `
     <div class="rsrch-wcard" onclick="document.getElementById('rsrchInput').value='${t}';runResearch()">
       <button class="rsrch-wcard-del" onclick="event.stopPropagation();removeFromWatchlist('${t}')" title="Remove">✕</button>

@@ -3289,16 +3289,16 @@ function generateAnalysis(data) {
   });
 
   // Large-gain trim candidate (Investment account, taxable)
-  const spxlP   = _lastLiveData?.holdings?.['SPXL']?.price;
+  const spxlLive = _lastLiveData?.holdings?.['SPXL']?.price;
   const fnguInvH = HOLDINGS_STATIC.find(h => h.ticker === 'FNGU' && h.account === 'Investment');
   const spxlInvH = HOLDINGS_STATIC.find(h => h.ticker === 'SPXL' && h.account === 'Investment');
-  if (spxlInvH && spxlP) {
-    const gain = ((spxlP - (spxlInvH.cost_basis||0)) / (spxlInvH.cost_basis||1) * 100);
+  if (spxlInvH && spxlLive) {
+    const gain = ((spxlLive - (spxlInvH.cost_basis||0)) / (spxlInvH.cost_basis||1) * 100);
     if (gain > 60 && highVol) {
       sellCandidates.push({
         ticker: 'SPXL', action: 'TRIM', account: 'Investment',
-        thesis: `SPXL carries ~$${Math.round(spxlInvH.shares * spxlP * usdcad / 1000)}K CAD in taxable unrealized gains (+${gain.toFixed(0)}%) in your non-reg account. With VIX at ${vixVal.toFixed(1)}, 3x ETF volatility decay risk is elevated. Trimming 30-50% here locks in gains, reduces leverage concentration, and creates dry powder for re-entry on a pullback.`,
-        entry: `Sell 30–50% of ${spxlInvH.shares} shares (~$${Math.round(spxlInvH.shares*0.4*spxlP*usdcad/100)*100} CAD proceeds). Redeploy into ZSP.TO in RRSP.`,
+        thesis: `SPXL carries ~$${Math.round(spxlInvH.shares * spxlLive * usdcad / 1000)}K CAD in taxable unrealized gains (+${gain.toFixed(0)}%) in your non-reg account. With VIX at ${vixVal.toFixed(1)}, 3x ETF volatility decay risk is elevated. Trimming 30-50% here locks in gains, reduces leverage concentration, and creates dry powder for re-entry on a pullback.`,
+        entry: `Sell 30–50% of ${spxlInvH.shares} shares (~$${Math.round(spxlInvH.shares*0.4*spxlLive*usdcad/100)*100} CAD proceeds). Redeploy into ZSP.TO in RRSP.`,
         _sellScore: gain,
       });
     }

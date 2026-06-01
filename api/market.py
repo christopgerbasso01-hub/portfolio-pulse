@@ -95,7 +95,7 @@ BENCHMARKS = {
 
 _cache = {}
 _cache_ts = 0
-CACHE_TTL = 60
+CACHE_TTL = 12
 
 
 def _safe_float(val, default=None):

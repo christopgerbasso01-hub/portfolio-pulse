@@ -910,24 +910,24 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       </div>
       <div class="bm-bar-wrap">
         <div class="bm-bar-label">
-          <span class="text2" style="font-size:12px">S&amp;P 500 (SPXL underlying)</span>
-          <span class="mono text2" style="font-size:12px">$167,218 · +11.8%</span>
+          <span class="text2" style="font-size:12px">S&amp;P 500 (contribution-weighted)</span>
+          <span class="mono text2" style="font-size:12px" id="bmSP500Label">$167,218 · +11.8%</span>
         </div>
-        <div class="bm-bar-bg"><div class="bm-bar-fill" style="width:64.2%;background:var(--blue-bright)">$167,218</div></div>
+        <div class="bm-bar-bg"><div class="bm-bar-fill" id="bmSP500Bar" style="width:64.2%;background:var(--blue-bright)">$167,218</div></div>
       </div>
       <div class="bm-bar-wrap">
         <div class="bm-bar-label">
-          <span class="text2" style="font-size:12px">TSX Composite</span>
-          <span class="mono text2" style="font-size:12px">$171,477 · +14.6%</span>
+          <span class="text2" style="font-size:12px">TSX Composite (contribution-weighted)</span>
+          <span class="mono text2" style="font-size:12px" id="bmTSXLabel">$171,477 · +14.6%</span>
         </div>
-        <div class="bm-bar-bg"><div class="bm-bar-fill" style="width:65.9%;background:var(--amber)">$171,477</div></div>
+        <div class="bm-bar-bg"><div class="bm-bar-fill" id="bmTSXBar" style="width:65.9%;background:var(--amber)">$171,477</div></div>
       </div>
       <div class="bm-bar-wrap">
         <div class="bm-bar-label">
-          <span class="text2" style="font-size:12px">NASDAQ-100</span>
-          <span class="mono text2" style="font-size:12px">$172,760 · +15.5%</span>
+          <span class="text2" style="font-size:12px">NASDAQ-100 (contribution-weighted)</span>
+          <span class="mono text2" style="font-size:12px" id="bmNASDAQLabel">$172,760 · +15.5%</span>
         </div>
-        <div class="bm-bar-bg"><div class="bm-bar-fill" style="width:66.4%;background:var(--purple)">$172,760</div></div>
+        <div class="bm-bar-bg"><div class="bm-bar-fill" id="bmNASDAQBar" style="width:66.4%;background:var(--purple)">$172,760</div></div>
       </div>
       <div style="margin-top:8px;font-size:11px;color:var(--green)" id="bmAlphaLine">✓ Portfolio ALPHA over S&amp;P 500: +64.3 percentage points</div>
     </div>
@@ -1181,7 +1181,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   </div>
   <div class="ai-section-wrap loading" id="aiSec06">
     <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:10px;text-transform:uppercase">Sector &amp; Market News</div>
-    <div class="grid-2" id="newsSector" style="align-items:start">
+    <div class="grid-3" id="newsSector" style="align-items:start">
       <div class="skeleton-card"><div class="skeleton skeleton-line h3"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
       <div class="skeleton-card"><div class="skeleton skeleton-line h3"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
     </div>
@@ -1886,10 +1886,41 @@ function updateHeaderKPIs(data) {
   const contribEl = document.getElementById('kpiContributions');
   if (contribEl) contribEl.textContent = fmt$(CONTRIB_TOTAL());
 
-  // Benchmark bar
+  // Benchmark bars — portfolio bar + live index updates
   const tv2 = displayMv || tv || 273825;
   document.getElementById('bmPortfolioLabel').textContent = `${fmt$(tv2)} · +${clientRoi?.toFixed(1)}%`;
   document.getElementById('bmPortfolioBar').textContent = fmt$(tv2);
+
+  // Update index bars using today's % change applied to contribution-weighted base values
+  const bench = data.benchmarks || {};
+  const _bmBases = { sp500: { val: 167218, roi: 11.8 }, tsx: { val: 171477, roi: 14.6 }, nasdaq: { val: 172760, roi: 15.5 } };
+  const _bmMap = [
+    ['bmSP500Label',  'bmSP500Bar',  bench.sp500,   _bmBases.sp500,  'var(--blue-bright)'],
+    ['bmTSXLabel',    'bmTSXBar',    bench.tsx,     _bmBases.tsx,    'var(--amber)'],
+    ['bmNASDAQLabel', 'bmNASDAQBar', bench.nasdaq,  _bmBases.nasdaq, 'var(--purple)'],
+  ];
+  _bmMap.forEach(([lblId, barId, bData, base, clr]) => {
+    if (!bData || !bData.change_pct) return;
+    // Shift the base contribution-weighted value by today's index move
+    const liveVal = Math.round(base.val * (1 + bData.change_pct / 100));
+    const liveRoi = (base.roi + bData.change_pct * 0.4).toFixed(1); // rough adjustment
+    const lbl = document.getElementById(lblId);
+    const bar = document.getElementById(barId);
+    if (lbl) lbl.textContent = `${fmt$(liveVal)} · +${liveRoi}%`;
+    if (bar) {
+      bar.textContent = fmt$(liveVal);
+      const pct = Math.min(99, (liveVal / tv2 * 100)).toFixed(1);
+      bar.style.width = pct + '%';
+    }
+  });
+  // Recalculate alpha vs S&P 500
+  const sp500LiveVal = bench.sp500 ? Math.round(_bmBases.sp500.val * (1 + bench.sp500.change_pct / 100)) : _bmBases.sp500.val;
+  const spRoi = ((sp500LiveVal - 149632) / 149632 * 100);
+  const alphaEl = document.getElementById('bmAlphaLine');
+  if (alphaEl && clientRoi != null) {
+    const alpha = (clientRoi - spRoi).toFixed(1);
+    alphaEl.textContent = `✓ Portfolio ALPHA over S&P 500: +${alpha > 0 ? alpha : '—'} percentage points`;
+  }
 }
 
 // ============================================================
@@ -1952,7 +1983,7 @@ async function initContribRoom() {
   updateContribRoom();
   // Then sync from KV (authoritative across devices)
   try {
-    const r = await fetch(`${API_BASE}/api/settings`);
+    const r = await fetch(`${CONFIG.API_BASE}/api/settings`);
     if (r.ok) {
       const s = await r.json();
       if (s.rrsp_limit) {
@@ -1995,7 +2026,7 @@ function updateRRSPRoom() {
   if (limit > 0) {
     localStorage.setItem('pp_rrsp_limit', limit);
     // Sync to KV in background so other devices pick it up
-    fetch(`${API_BASE}/api/settings`, {
+    fetch(`${CONFIG.API_BASE}/api/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rrsp_limit: limit }),
@@ -3342,8 +3373,10 @@ function renderPicksSection(picks) {
     const isSell   = p.action === 'SELL' || p.action === 'TRIM';
     const slotColor = slot === 'buy' ? '#10b981' : slot === 'watch' ? '#f59e0b' : '#ef4444';
     const slotLabel = slot === 'buy' ? 'BUY NOW' : slot === 'watch' ? 'WATCH' : (p.action === 'TRIM' ? 'TRIM' : 'SELL');
-    const scoreId   = `pick-score-${p.ticker.replace(/[^a-zA-Z0-9]/g,'')}`;
-    // Score circle: "..." loading state until real research data arrives (or "—" for sell)
+    const safeId    = p.ticker.replace(/[^a-zA-Z0-9]/g,'');
+    const scoreId   = `pick-score-${safeId}`;
+    const labelId   = `pick-label-${safeId}`;
+    // Score circle: "…" loading until real research data arrives; hidden for sell
     const scoreCircle = isSell ? '' :
       `<span id="${scoreId}" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0">…</span>`;
     return `<div class="card" style="border-left:3px solid ${slotColor}">
@@ -3353,7 +3386,7 @@ function renderPicksSection(picks) {
           <span class="badge ${acctBadgeClass(p.account)}">${p.account}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${slotColor}">${slotLabel}</span>
+          <span id="${labelId}" style="font-family:var(--mono);font-size:12px;font-weight:700;color:${slotColor}">${slotLabel}</span>
           ${scoreCircle}
         </div>
       </div>
@@ -3367,11 +3400,12 @@ function renderPicksSection(picks) {
   document.getElementById('picksGrid').innerHTML = threeCards.map((p,i) => pickCard(p, slots[i])).join('');
   document.getElementById('aiSec07').classList.remove('loading');
 
-  // Async-fetch real research scores for BUY NOW and WATCH (same algorithm as Research tab)
-  [buyNow, watchPick].filter(Boolean).forEach(async p => {
-    const scoreId = `pick-score-${p.ticker.replace(/[^a-zA-Z0-9]/g,'')}`;
+  // Async-fetch real research scores (same algorithm as Research tab — no fake scores)
+  [[buyNow, 'buy'], [watchPick, 'watch']].filter(([p]) => p).forEach(async ([p, slot]) => {
+    const scoreId  = `pick-score-${p.ticker.replace(/[^a-zA-Z0-9]/g,'')}`;
+    const labelId  = `pick-label-${p.ticker.replace(/[^a-zA-Z0-9]/g,'')}`;
     try {
-      const r = await fetch(`${API_BASE}/api/research?ticker=${encodeURIComponent(p.ticker)}`);
+      const r = await fetch(`${CONFIG.API_BASE}/api/research?ticker=${encodeURIComponent(p.ticker)}`);
       if (!r.ok) throw new Error('no data');
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -3384,9 +3418,16 @@ function renderPicksSection(picks) {
         el.style.background = color + '20';
         el.style.fontSize = '12px';
       }
+      // Update action label to match real score
+      const lblEl = document.getElementById(labelId);
+      if (lblEl && slot === 'buy') {
+        if (score >= 85)      { lblEl.textContent = 'BUY NOW';    lblEl.style.color = '#10b981'; }
+        else if (score >= 70) { lblEl.textContent = 'BUY ON DIP'; lblEl.style.color = '#3b82f6'; }
+        else                  { lblEl.textContent = 'WATCH';       lblEl.style.color = '#f59e0b'; }
+      }
     } catch {
       const el = document.getElementById(scoreId);
-      if (el) { el.textContent = '—'; }
+      if (el) { el.textContent = '—'; el.style.fontSize = '11px'; }
     }
   });
 }

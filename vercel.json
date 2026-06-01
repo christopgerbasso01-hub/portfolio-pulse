@@ -41,6 +41,11 @@
       "config": { "maxDuration": 15 }
     },
     {
+      "src": "api/settings.py",
+      "use": "@vercel/python",
+      "config": { "maxDuration": 15 }
+    },
+    {
       "src": "**",
       "use": "@vercel/static"
     }
@@ -53,7 +58,8 @@
     { "src": "/api/notify",    "dest": "/api/notify.py"    },
     { "src": "/api/intraday",  "dest": "/api/intraday.py"  },
     { "src": "/api/research",  "dest": "/api/research.py"  },
-    { "src": "/api/watchlist", "dest": "/api/watchlist.py" }
+    { "src": "/api/watchlist", "dest": "/api/watchlist.py" },
+    { "src": "/api/settings",  "dest": "/api/settings.py"  }
   ],
   "headers": [
     {

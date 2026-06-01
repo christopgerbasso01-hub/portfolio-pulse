@@ -1987,7 +1987,7 @@ async function initContribRoom() {
     const r = await fetch(`${CONFIG.API_BASE}/api/settings`);
     if (r.ok) {
       const s = await r.json();
-      if (s.rrsp_limit) {
+      if (s.rrsp_limit != null) {
         document.getElementById('rrspLimitInput').value = s.rrsp_limit;
         localStorage.setItem('pp_rrsp_limit', s.rrsp_limit);
         updateRRSPRoom();

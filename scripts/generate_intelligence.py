@@ -164,9 +164,11 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
   "market_mood": "risk-on|risk-off|neutral|mixed"
 }
 
-Quantity limits:
-  macro: 3–4 | risks: 3 | news: 4–6 | picks: 3–4
-  strengths: 4–5 | concerns: 4–5 | strategy items: 3–4 each | tax items: 2–3 each
+Quantity limits — STRICTLY ENFORCE:
+  macro: EXACTLY 3 (no more, no fewer)
+  risks: EXACTLY 3 (no more, no fewer)
+  news: EXACTLY 3 (no more, no fewer) — all categories merged, no Macro & Rates
+  picks: 2–3 | strengths: 4–5 | concerns: 4–5 | strategy items: 3–4 each | tax items: 2–3 each
 """
 
 

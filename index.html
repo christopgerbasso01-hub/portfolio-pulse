@@ -1665,84 +1665,7 @@ const impactBadgeClass = (impact) => ({HIGH:'badge-high',MED:'badge-med',LOW:'ba
 const actionBadgeClass = (action) => ({'ADD':'badge-add','NEW':'badge-new','RE-ENTER':'badge-re','IMMEDIATE':'badge-high','SPECULATIVE':'badge-spec','ACCUMULATE':'badge-add','WATCH':'badge-med','HOLD':'badge-med','TRIM':'badge-spec'}[action] || 'badge-add');
 const acctBadgeClass = (acct) => ({'TFSA':'badge-tfsa','FHSA':'badge-fhsa','RRSP':'badge-rrsp','Investment':'badge-inv'}[acct] || 'badge-inv');
 
-function calcPickFitScore(pick) {
-  // Base score from action priority
-  const baseScore = { 'IMMEDIATE':92, 'ADD':80, 'ACCUMULATE':78, 'NEW':70, 'RE-ENTER':65, 'SPECULATIVE':48, 'WATCH':55, 'HOLD':60, 'TRIM':30 }[pick.action] || 65;
-  let score = baseScore;
-  const facts = [];
-
-  // Current holding check
-  const holding = HOLDINGS_STATIC.find(h => h.ticker === pick.ticker);
-  const livePrice = _lastLiveData?.holdings?.[pick.ticker]?.price;
-  const changePct = _lastLiveData?.holdings?.[pick.ticker]?.change_pct;
-
-  if (holding) {
-    // Already in portfolio — show current position context
-    const costBasis = holding.cost_basis || 0;
-    const unrealizedPct = costBasis > 0 && livePrice ? ((livePrice - costBasis) / costBasis * 100) : null;
-    if (unrealizedPct != null) {
-      if (unrealizedPct > 100) {
-        facts.push({ icon:'🏆', text:`In portfolio +${unrealizedPct.toFixed(0)}% — consider trimming for rebalance or hold for continued compounding` });
-        score = Math.min(score, 75); // cap — may be overweight
-      } else if (unrealizedPct > 20) {
-        facts.push({ icon:'✅', text:`In portfolio +${unrealizedPct.toFixed(0)}% — strong position, consider adding on pullbacks` });
-      } else if (unrealizedPct < -10) {
-        facts.push({ icon:'⚠️', text:`In portfolio ${unrealizedPct.toFixed(0)}% — averaging down opportunity or review thesis` });
-        score = Math.min(score + 5, 95);
-      } else {
-        facts.push({ icon:'✅', text:`In portfolio ${unrealizedPct > 0 ? '+' : ''}${unrealizedPct.toFixed(0)}% — moderate gain, add on weakness` });
-      }
-    }
-  } else {
-    facts.push({ icon:'🆕', text:'Not currently held — new position opportunity' });
-  }
-
-  // Price vs entry range check
-  if (livePrice && pick.entry) {
-    const priceMatch = pick.entry.match(/\$([0-9,]+)[–\-–]?\$?([0-9,]*)/);
-    if (priceMatch) {
-      const low  = parseFloat(priceMatch[1].replace(',',''));
-      const high = priceMatch[2] ? parseFloat(priceMatch[2].replace(',','')) : low * 1.05;
-      if (!isNaN(low)) {
-        if (livePrice <= high && livePrice >= low * 0.97) {
-          score = Math.min(score + 10, 100);
-          facts.push({ icon:'✅', text:`$${livePrice.toFixed(2)} is in the entry zone $${low}–$${high} — entry timing is good` });
-        } else if (livePrice < low * 0.97) {
-          score = Math.min(score + 15, 100);
-          facts.push({ icon:'🟢', text:`$${livePrice.toFixed(2)} is below entry range — even better value, strong buy signal` });
-        } else {
-          const pct = ((livePrice - high) / high * 100).toFixed(0);
-          score = Math.max(score - 8, 20);
-          facts.push({ icon:'⚠️', text:`$${livePrice.toFixed(2)} is ${pct}% above entry range — wait for pullback` });
-        }
-      }
-    }
-  }
-
-  // Macro context (VIX)
-  const vix = _lastLiveData?.benchmarks?.vix?.price || null;
-  if (vix != null) {
-    if (vix > 28 && pick.action !== 'SPECULATIVE') {
-      score = Math.max(score - 10, 20);
-      facts.push({ icon:'❌', text:`VIX ${vix.toFixed(1)} — elevated volatility, reduce position sizing` });
-    } else if (vix < 18) {
-      score = Math.min(score + 5, 100);
-      facts.push({ icon:'✅', text:`VIX ${vix.toFixed(1)} — low volatility, favourable entry conditions` });
-    } else {
-      facts.push({ icon:'⚠️', text:`VIX ${vix.toFixed(1)} — moderate volatility, standard position sizing` });
-    }
-  }
-
-  // Action recommendation
-  score = Math.min(100, Math.max(0, Math.round(score)));
-  let actionRec, actionColor;
-  if (score >= 80)      { actionRec = 'BUY NOW';    actionColor = '#10b981'; }
-  else if (score >= 68) { actionRec = 'BUY ON DIP'; actionColor = '#3b82f6'; }
-  else if (score >= 52) { actionRec = 'WATCH';       actionColor = '#f59e0b'; }
-  else                  { actionRec = 'PASS';         actionColor = '#ef4444'; }
-
-  return { score, facts, actionRec, actionColor };
-}
+// calcPickFitScore removed — picks now use computeFitScore() with real research API data
 
 function isMarketOpen() {
   const now = new Date();
@@ -3403,45 +3326,69 @@ function generateAnalysis(data) {
 // ============================================================
 function renderPicksSection(picks) {
   if (!picks || !picks.length) return;
-  const scoredPicks = picks
+
+  // Priority order for BUY NOW slot (action type, not fake score)
+  const actionPriority = { 'IMMEDIATE':0, 'ADD':1, 'ACCUMULATE':1, 'NEW':2, 'RE-ENTER':3, 'SPECULATIVE':4, 'WATCH':5 };
+  const buyPicks = picks
     .filter(p => p.action !== 'SELL' && p.action !== 'TRIM')
-    .map(p => ({ ...p, _fit: calcPickFitScore(p) }));
+    .sort((a,b) => (actionPriority[a.action]??9) - (actionPriority[b.action]??9));
 
-  const sellPick = picks.find(p => p.action === 'SELL' || p.action === 'TRIM');
-
-  // Best BUY NOW: highest score ≥ 90, fallback to highest overall
-  const sorted = [...scoredPicks].sort((a,b) => b._fit.score - a._fit.score);
-  const buyNow = sorted.find(p => p._fit.score >= 90) || sorted[0];
-  const watchPick = sorted.filter(p => p !== buyNow)[0];
+  const sellPick  = picks.find(p => p.action === 'SELL' || p.action === 'TRIM');
+  const buyNow    = buyPicks[0];
+  const watchPick = buyPicks[1];
   const threeCards = [buyNow, watchPick, sellPick].filter(Boolean);
 
-  const pickCard = (p) => {
-    const isSell = p.action === 'SELL' || p.action === 'TRIM';
-    const fit = isSell ? null : p._fit || calcPickFitScore(p);
-    const accentColor = isSell ? 'var(--red)' : (fit?.actionColor || 'var(--blue-bright)');
-    const scoreCircle = fit ? `<span style="background:${fit.actionColor}20;border:1.5px solid ${fit.actionColor};border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;color:${fit.actionColor};flex-shrink:0">${fit.score}</span>` : '';
-    const actionLabel = isSell ? (p.action === 'TRIM' ? '✂ TRIM' : '⬇ SELL') : (fit?.actionRec || p.action);
-    const actionLabelColor = isSell ? 'var(--red)' : (fit?.actionColor || 'var(--blue-bright)');
-    return `<div class="card" style="border-left:3px solid ${accentColor}">
+  const pickCard = (p, slot) => {
+    const isSell   = p.action === 'SELL' || p.action === 'TRIM';
+    const slotColor = slot === 'buy' ? '#10b981' : slot === 'watch' ? '#f59e0b' : '#ef4444';
+    const slotLabel = slot === 'buy' ? 'BUY NOW' : slot === 'watch' ? 'WATCH' : (p.action === 'TRIM' ? 'TRIM' : 'SELL');
+    const scoreId   = `pick-score-${p.ticker.replace(/[^a-zA-Z0-9]/g,'')}`;
+    // Score circle: "..." loading state until real research data arrives (or "—" for sell)
+    const scoreCircle = isSell ? '' :
+      `<span id="${scoreId}" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0">…</span>`;
+    return `<div class="card" style="border-left:3px solid ${slotColor}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="display:flex;gap:6px;align-items:center">
           <span class="badge ${actionBadgeClass(p.action)}">${p.action}</span>
           <span class="badge ${acctBadgeClass(p.account)}">${p.account}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${actionLabelColor}">${actionLabel}</span>
+          <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${slotColor}">${slotLabel}</span>
           ${scoreCircle}
         </div>
       </div>
       <div class="pick-ticker">${p.ticker}</div>
       <div class="pick-thesis">${p.thesis}</div>
-      ${fit?.facts?.length ? `<div style="margin:6px 0;border-top:1px solid var(--border);padding-top:6px">${fit.facts.map(f=>`<div style="font-size:11px;color:var(--text2);margin-bottom:3px;display:flex;gap:5px"><span>${f.icon}</span><span>${f.text}</span></div>`).join('')}</div>` : ''}
       <div class="entry-box">${isSell ? '📤' : '🎯'} ${p.entry}</div>
     </div>`;
   };
 
-  document.getElementById('picksGrid').innerHTML = threeCards.map(pickCard).join('');
+  const slots = ['buy','watch','sell'];
+  document.getElementById('picksGrid').innerHTML = threeCards.map((p,i) => pickCard(p, slots[i])).join('');
   document.getElementById('aiSec07').classList.remove('loading');
+
+  // Async-fetch real research scores for BUY NOW and WATCH (same algorithm as Research tab)
+  [buyNow, watchPick].filter(Boolean).forEach(async p => {
+    const scoreId = `pick-score-${p.ticker.replace(/[^a-zA-Z0-9]/g,'')}`;
+    try {
+      const r = await fetch(`${API_BASE}/api/research?ticker=${encodeURIComponent(p.ticker)}`);
+      if (!r.ok) throw new Error('no data');
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      const { score, color } = computeFitScore({ ...d, ticker: p.ticker });
+      const el = document.getElementById(scoreId);
+      if (el) {
+        el.textContent = score;
+        el.style.color = color;
+        el.style.borderColor = color;
+        el.style.background = color + '20';
+        el.style.fontSize = '12px';
+      }
+    } catch {
+      const el = document.getElementById(scoreId);
+      if (el) { el.textContent = '—'; }
+    }
+  });
 }
 
 function renderAISection(analysis) {
@@ -4935,7 +4882,8 @@ function renderEpsChart(history) {
 }
 
 // ── Portfolio Fit Score ───────────────────────────────────────────────────
-function renderFitScore(d) {
+// Pure scoring logic — shared by Research tab and Stocks to Watch picks
+function computeFitScore(d) {
   let score   = 0;
   const facts = [];
 
@@ -5033,13 +4981,17 @@ function renderFitScore(d) {
   score = Math.min(100, Math.max(0, score));
   const grade = score >= 80 ? 'Strong Match' : score >= 65 ? 'Good Match' : score >= 50 ? 'Moderate' : score >= 35 ? 'Weak Match' : 'Poor Match';
   const color = score >= 80 ? '#10b981' : score >= 65 ? '#3b82f6' : score >= 50 ? '#f59e0b' : '#ef4444';
+  return { score, grade, color, facts, acctRec };
+}
 
+// Renders the fit score into the Research tab DOM (calls computeFitScore internally)
+function renderFitScore(d) {
+  const { score, grade, color, facts, acctRec } = computeFitScore(d);
   const circle = document.getElementById('rsrchFitCircle');
   circle.style.cssText = `background:${color}20;border:3px solid ${color};width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:var(--mono);font-weight:700;flex-shrink:0`;
   document.getElementById('rsrchFitNum').textContent = score;
   document.getElementById('rsrchFitNum').style.color = color;
   document.getElementById('rsrchFitNum').style.fontSize = '24px';
-
   document.getElementById('rsrchFitFactors').innerHTML = facts.map(f => `<div class="rsrch-fit-factor">${f.icon} <span>${f.text}</span></div>`).join('') + `<div style="margin-top:4px;font-size:11px;font-weight:700;color:${color}">${grade}</div>`;
   document.getElementById('rsrchFitAcct').innerHTML = acctRec;
 }

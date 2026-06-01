@@ -1,31 +1,31 @@
 {
   "macro": [
     {
-      "title": "Geopolitical Tensions",
+      "title": "Geopolitical Escalation",
       "impact": "HIGH",
       "confidence": 80,
-      "body": "The ongoing conflict between the US and Iran, as well as the Israeli incursion into Lebanon, may lead to increased market volatility. This could impact the portfolio's leveraged ETFs, such as FNGU and SPXL. The situation is fluid and may escalate, affecting global markets.",
-      "bull": "A swift resolution to the conflict could lead to a market rally, benefiting the portfolio's leveraged positions.",
-      "base": "A prolonged conflict may lead to increased market volatility, but the portfolio's diversification and tax advantages could help mitigate losses.",
-      "bear": "An escalation of the conflict could lead to a significant market downturn, amplifying losses in the portfolio's leveraged positions."
+      "body": "The ongoing conflict between the US and Iran is escalating, with potential supply chain disruptions and increased volatility in the market. This could lead to a decrease in investor confidence and a shift towards safer assets. The portfolio's high exposure to technology and leveraged ETFs makes it vulnerable to market fluctuations.",
+      "bull": "A swift resolution to the conflict could lead to a relief rally, benefiting the portfolio's tech holdings.",
+      "base": "A prolonged conflict could lead to increased market volatility, affecting the portfolio's overall performance.",
+      "bear": "An escalation of the conflict could lead to a significant market downturn, negatively impacting the portfolio's value."
+    },
+    {
+      "title": "Inflation Worries",
+      "impact": "MED",
+      "confidence": 60,
+      "body": "Rising inflation concerns could lead to increased interest rates, affecting the portfolio's leveraged ETFs and technology holdings. The portfolio's Canadian financials holdings could benefit from higher interest rates.",
+      "bull": "A moderate increase in interest rates could lead to a strengthening of the Canadian dollar, benefiting the portfolio's CAD-denominated holdings.",
+      "base": "A gradual increase in interest rates could lead to a stable market environment, with minimal impact on the portfolio.",
+      "bear": "A sharp increase in interest rates could lead to a market downturn, negatively impacting the portfolio's value."
     },
     {
       "title": "Sector Rotation",
-      "impact": "MED",
-      "confidence": 60,
-      "body": "The tech sector, which is a significant component of the portfolio, may experience rotation as investors shift focus to other sectors. This could impact the portfolio's technology holdings, such as NVDA and TXF.TO.",
-      "bull": "A rotation into the tech sector could lead to gains in the portfolio's technology holdings.",
-      "base": "A neutral sector rotation may not significantly impact the portfolio's technology holdings.",
-      "bear": "A rotation out of the tech sector could lead to losses in the portfolio's technology holdings."
-    },
-    {
-      "title": "Currency Fluctuations",
-      "impact": "MED",
-      "confidence": 50,
-      "body": "The CAD/USD exchange rate may fluctuate, impacting the portfolio's USD-denominated holdings. A strong CAD could lead to losses in these holdings, while a weak CAD could lead to gains.",
-      "bull": "A weak CAD could lead to gains in the portfolio's USD-denominated holdings.",
-      "base": "A stable CAD/USD exchange rate may not significantly impact the portfolio's USD-denominated holdings.",
-      "bear": "A strong CAD could lead to losses in the portfolio's USD-denominated holdings."
+      "impact": "LOW",
+      "confidence": 40,
+      "body": "The market may be due for a sector rotation, with investors shifting from technology to other sectors. The portfolio's technology holdings could be affected by this rotation.",
+      "bull": "A rotation into technology could lead to a surge in the portfolio's tech holdings.",
+      "base": "A moderate rotation could lead to a stable market environment, with minimal impact on the portfolio.",
+      "bear": "A significant rotation out of technology could lead to a decline in the portfolio's value."
     }
   ],
   "risks": [
@@ -33,127 +33,127 @@
       "title": "Leverage Risk",
       "level": "HIGH",
       "context": "49% of portfolio (~ $135K CAD) in leveraged ETFs",
-      "body": "The portfolio's leveraged ETFs, such as FNGU and SPXL, amplify market movements, increasing potential gains but also potential losses."
+      "body": "The portfolio's high exposure to leveraged ETFs amplifies market fluctuations, increasing the potential for significant gains or losses."
     },
     {
-      "title": "FX Book Rate Drag",
+      "title": "FX Risk",
       "level": "MED",
-      "context": "68% of portfolio in USD-denominated holdings",
-      "body": "The portfolio's USD-denominated holdings may be impacted by the CAD/USD exchange rate, leading to potential losses if the CAD strengthens."
+      "context": "68% of portfolio (~ $187K CAD) in USD-denominated holdings",
+      "body": "The portfolio's high exposure to USD-denominated holdings makes it vulnerable to currency fluctuations, with a 1¢ USD/CAD move impacting the portfolio by ~ $1,800 CAD."
     },
     {
       "title": "Concentration Risk",
-      "level": "MED",
-      "context": "Large positions in NVDA and FNGU",
-      "body": "The portfolio's large positions in NVDA and FNGU may increase risk if these holdings experience significant losses."
+      "level": "LOW",
+      "context": "NVDA holding (~ $16/sh split-adj cost) in TFSA",
+      "body": "The portfolio's concentration in NVDA, although a strong performer, increases the risk of significant losses if the stock experiences a downturn."
     }
   ],
   "news": [
     {
-      "headline": "US Strikes Iranian Military Sites",
-      "impact": "HIGH",
-      "category": "Macro & Rates",
-      "body": "The US strike on Iranian military sites may lead to increased market volatility, impacting the portfolio's leveraged ETFs, such as FNGU and SPXL.",
-      "exposure": "FNGU ~$87K CAD (3x leverage), SPXL ~$22K CAD",
+      "headline": "UAW Union Strike",
+      "impact": "MED",
+      "category": "Sector & Stock",
+      "body": "The UAW union strike could impact the automotive sector, affecting the portfolio's holdings in TSLA and other related stocks.",
+      "exposure": "TSLA ~ $14K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 20,
-          "scenario": "A swift resolution to the conflict could lead to a market rally, benefiting the portfolio's leveraged positions.",
-          "estimate": "+$12,000–$18,000 on leveraged positions"
+          "probability": 30,
+          "scenario": "A swift resolution to the strike could lead to a relief rally in TSLA.",
+          "estimate": "+ $2,000–$4,000 on TSLA holding"
         },
         {
           "label": "Base",
           "probability": 50,
-          "scenario": "A prolonged conflict may lead to increased market volatility, but the portfolio's diversification and tax advantages could help mitigate losses.",
-          "estimate": "±$3,000 — minimal net change"
+          "scenario": "A prolonged strike could lead to increased volatility in the automotive sector.",
+          "estimate": "± $1,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "An escalation of the conflict could lead to a significant market downturn, amplifying losses in the portfolio's leveraged positions.",
-          "estimate": "-$20,000–$30,000 via 3x leverage amplification"
+          "probability": 20,
+          "scenario": "An escalation of the strike could lead to a significant decline in TSLA's value.",
+          "estimate": "- $4,000–$6,000 on TSLA holding"
         }
       ]
     },
     {
-      "headline": "NVIDIA Debuts RTX Spark Processor",
-      "impact": "MED",
+      "headline": "Nvidia AI Chip Launch",
+      "impact": "HIGH",
       "category": "Sector & Stock",
-      "body": "NVIDIA's debut of the RTX Spark processor may lead to gains in the portfolio's NVDA holding.",
-      "exposure": "NVDA ~$16/sh split-adj cost, 40sh in TFSA",
+      "body": "Nvidia's launch of a new AI chip could lead to increased demand for the company's products, benefiting the portfolio's NVDA holding.",
+      "exposure": "NVDA ~ $64K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "The RTX Spark processor could lead to increased demand for NVIDIA's products, benefiting the portfolio's NVDA holding.",
-          "estimate": "+$5,000–$10,000 on NVDA position"
+          "scenario": "The launch could lead to a surge in NVDA's stock price.",
+          "estimate": "+ $10,000–$15,000 on NVDA holding"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "The RTX Spark processor may not significantly impact the portfolio's NVDA holding.",
-          "estimate": "±$1,000 — minimal net change"
+          "scenario": "The launch could lead to a moderate increase in NVDA's stock price.",
+          "estimate": "+ $2,000–$5,000 on NVDA holding"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "The RTX Spark processor could face competition from other companies, leading to losses in the portfolio's NVDA holding.",
-          "estimate": "-$5,000–$10,000 on NVDA position"
+          "scenario": "The launch could be met with skepticism, leading to a decline in NVDA's stock price.",
+          "estimate": "- $5,000–$10,000 on NVDA holding"
         }
       ]
     },
     {
-      "headline": "Broadcom Ties Wi-Fi 8 And 5G To Future Broadband Growth",
-      "impact": "LOW",
-      "category": "Sector & Stock",
-      "body": "Broadcom's announcement may lead to minor gains in the portfolio's AVGO holding.",
-      "exposure": "AVGO ~8sh in TFSA",
+      "headline": "Iran-US Conflict Escalation",
+      "impact": "HIGH",
+      "category": "Macro & Rates",
+      "body": "The escalation of the conflict between the US and Iran could lead to increased market volatility, affecting the portfolio's overall performance.",
+      "exposure": "FNGU ~ $87K CAD, SPXL ~ $22K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 20,
-          "scenario": "The announcement could lead to increased demand for Broadcom's products, benefiting the portfolio's AVGO holding.",
-          "estimate": "+$1,000–$2,000 on AVGO position"
+          "scenario": "A swift resolution to the conflict could lead to a relief rally in the market.",
+          "estimate": "+ $10,000–$20,000 on leveraged ETFs"
         },
         {
           "label": "Base",
           "probability": 50,
-          "scenario": "The announcement may not significantly impact the portfolio's AVGO holding.",
-          "estimate": "±$500 — minimal net change"
+          "scenario": "A prolonged conflict could lead to increased market volatility.",
+          "estimate": "± $5,000 — minimal net change"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "The announcement could face competition from other companies, leading to losses in the portfolio's AVGO holding.",
-          "estimate": "-$1,000–$2,000 on AVGO position"
+          "scenario": "An escalation of the conflict could lead to a significant market downturn.",
+          "estimate": "- $20,000–$30,000 on leveraged ETFs"
         }
       ]
     },
     {
-      "headline": "Tesla Backs Off Threat to Cancel Australian Graphite Supply Agreement",
-      "impact": "LOW",
+      "headline": "Broadcom Earnings Report",
+      "impact": "MED",
       "category": "Sector & Stock",
-      "body": "The announcement may lead to minor gains in the portfolio's TSLA holding.",
-      "exposure": "TSLA ~14sh in TFSA",
+      "body": "Broadcom's upcoming earnings report could impact the portfolio's AVGO holding.",
+      "exposure": "AVGO ~ $8K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 20,
-          "scenario": "The announcement could lead to increased demand for Tesla's products, benefiting the portfolio's TSLA holding.",
-          "estimate": "+$1,000–$2,000 on TSLA position"
+          "probability": 40,
+          "scenario": "A strong earnings report could lead to a surge in AVGO's stock price.",
+          "estimate": "+ $1,000–$2,000 on AVGO holding"
         },
         {
           "label": "Base",
-          "probability": 50,
-          "scenario": "The announcement may not significantly impact the portfolio's TSLA holding.",
-          "estimate": "±$500 — minimal net change"
+          "probability": 30,
+          "scenario": "A moderate earnings report could lead to a stable AVGO stock price.",
+          "estimate": "± $500 — minimal net change"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "The announcement could face competition from other companies, leading to losses in the portfolio's TSLA holding.",
-          "estimate": "-$1,000–$2,000 on TSLA position"
+          "scenario": "A weak earnings report could lead to a decline in AVGO's stock price.",
+          "estimate": "- $1,000–$2,000 on AVGO holding"
         }
       ]
     }
@@ -163,139 +163,140 @@
       "ticker": "ZSP.TO",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "The portfolio's RRSP cash can be invested in ZSP.TO, a low-cost, US-focused ETF, to take advantage of the US market's growth potential.",
+      "thesis": "Using the uninvested RRSP cash to purchase ZSP.TO, a low-cost S&P 500 index fund, could provide a stable and diversified addition to the portfolio.",
       "entry": "Entry at current market price"
     },
     {
-      "ticker": "ENB.TO",
+      "ticker": "CSCO",
       "action": "WATCH",
       "account": "TFSA",
-      "thesis": "Enbridge's strong dividend yield and stable cash flows make it an attractive addition to the portfolio's Canadian financials holdings.",
+      "thesis": "Cisco Systems, a leading networking equipment provider, could be a potential addition to the portfolio's technology holdings.",
       "entry": "Monitor for a potential entry point"
-    },
-    {
-      "ticker": "GBTC",
-      "action": "SPECULATIVE",
-      "account": "Investment",
-      "thesis": "The portfolio's investment account can be used to speculate on the price of Bitcoin through GBTC, a Bitcoin proxy.",
-      "entry": "Entry at current market price, with a stop-loss in place"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "The portfolio's tax advantages, including the TFSA and FHSA, provide a significant benefit in terms of tax-free growth and withdrawals."
+      "text": "Diversified portfolio with a mix of technology, financials, and other sectors"
     },
     {
       "ticker": "NVDA",
-      "text": "The portfolio's NVDA holding has a low cost basis and has provided significant returns, making it a strong core holding."
+      "text": "Strong performance of NVDA holding, with a +1,776% ROI"
     },
     {
       "ticker": null,
-      "text": "The portfolio's diversification across various sectors and asset classes helps to mitigate risk and increase potential returns."
-    },
-    {
-      "ticker": "FNGU",
-      "text": "The portfolio's FNGU holding provides exposure to the tech sector and has the potential for significant growth."
+      "text": "Tax-efficient portfolio structure, with a mix of registered and non-registered accounts"
     },
     {
       "ticker": null,
-      "text": "The portfolio's RRSP cash provides an opportunity to invest in new positions or add to existing holdings, increasing potential returns."
+      "text": "Low-cost basis for many holdings, providing a strong foundation for long-term growth"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "The portfolio's concentration in the tech sector may increase risk if the sector experiences a downturn."
+      "text": "Uninvested RRSP cash, which could be put to work in the market to generate returns"
     },
     {
       "ticker": "FNGU",
-      "text": "The portfolio's FNGU holding has a high leverage ratio, which may amplify losses if the market moves against the position."
+      "text": "High concentration of FNGU holding, which amplifies market fluctuations"
     },
     {
       "ticker": null,
-      "text": "The portfolio's USD-denominated holdings may be impacted by currency fluctuations, leading to potential losses."
+      "text": "Potential for increased market volatility due to geopolitical events and economic uncertainty"
     },
     {
-      "ticker": "NVDA",
-      "text": "The portfolio's NVDA holding has a high valuation, which may increase the risk of a correction."
-    },
-    {
-      "ticker": null,
-      "text": "The portfolio's RRSP cash is not currently invested, which may lead to missed opportunities for growth."
+      "ticker": "TSLA",
+      "text": "Volatility of TSLA holding, which could impact the portfolio's overall performance"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's leveraged ETFs, such as FNGU and SPXL, for potential adjustments to mitigate risk."
+      "text": "Monitor the portfolio's leverage and adjust as needed to maintain a stable risk profile"
     },
     {
       "num": "02",
-      "text": "Consider adding to the portfolio's Canadian financials holdings, such as CM.TO or RY.TO, to increase diversification."
+      "text": "Consider adding to the portfolio's technology holdings, such as CSCO or other leading tech stocks"
     },
     {
       "num": "03",
-      "text": "Keep the portfolio's RRSP cash invested in a low-risk position, such as ZSP.TO, to take advantage of the US market's growth potential."
+      "text": "Keep an eye on the portfolio's currency exposure and consider hedging strategies if necessary"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Consider rebalancing the portfolio's sector weights to maintain an optimal allocation."
+      "text": "Continue to diversify the portfolio by adding new holdings and sectors"
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's currency exposure and consider hedging strategies to mitigate potential losses."
+      "text": "Consider increasing the portfolio's allocation to Canadian financials, such as CM.TO or RY.TO"
     },
     {
       "num": "03",
-      "text": "Evaluate the portfolio's tax implications and consider tax-loss harvesting to minimize tax liabilities."
+      "text": "Monitor the portfolio's overall risk profile and adjust as needed to maintain a stable long-term strategy"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Maintain a long-term perspective and avoid making emotional decisions based on short-term market fluctuations."
+      "text": "Maintain a long-term focus and avoid making emotional decisions based on short-term market fluctuations"
     },
     {
       "num": "02",
-      "text": "Continuously monitor the portfolio's holdings and consider adjustments to maintain an optimal allocation."
+      "text": "Continue to invest in a tax-efficient manner, utilizing registered accounts and low-cost investments"
     },
     {
       "num": "03",
-      "text": "Consider increasing the portfolio's exposure to emerging markets or alternative assets to increase diversification and potential returns."
+      "text": "Consider increasing the portfolio's allocation to dividend-paying stocks, such as V or other leading dividend payers"
     }
   ],
   "tax": {
     "tfsa": [
       {
         "icon": "✦",
-        "text": "The portfolio's TFSA provides tax-free growth and withdrawals, making it an ideal account for holding high-growth investments."
+        "text": "Utilize TFSA contributions to maximize tax-free growth"
+      },
+      {
+        "icon": "✦",
+        "text": "Consider holding tax-efficient investments, such as index funds or ETFs, within the TFSA"
       }
     ],
     "fhsa": [
       {
         "icon": "✦",
-        "text": "The portfolio's FHSA provides a double tax advantage, with tax-free growth and withdrawals, as well as a tax deduction for contributions."
+        "text": "Take advantage of the FHSA's double tax advantage for first-time homebuyers"
+      },
+      {
+        "icon": "✦",
+        "text": "Consider holding tax-efficient investments, such as index funds or ETFs, within the FHSA"
       }
     ],
     "rrsp": [
       {
         "icon": "⚡",
-        "text": "The portfolio's RRSP provides tax-deferred growth, allowing investments to grow without being taxed until withdrawal."
+        "text": "Utilize RRSP contributions to defer taxes and maximize retirement savings"
+      },
+      {
+        "icon": "⚡",
+        "text": "Consider holding tax-efficient investments, such as index funds or ETFs, within the RRSP"
       }
     ],
     "investment": [
       {
         "icon": "⚠",
-        "text": "The portfolio's investment account is subject to tax on capital gains and dividends, making tax-efficient investing strategies important."
+        "text": "Be mindful of tax implications when investing in non-registered accounts"
+      },
+      {
+        "icon": "⚠",
+        "text": "Consider holding tax-efficient investments, such as index funds or ETFs, within non-registered accounts"
       }
     ]
   },
-  "daily_outlook": "The portfolio's outlook is neutral, with a mix of positive and negative news impacting various holdings. The ongoing conflict between the US and Iran, as well as the Israeli incursion into Lebanon, may lead to increased market volatility, while NVIDIA's debut of the RTX Spark processor may lead to gains in the portfolio's NVDA holding.",
+  "daily_outlook": "The portfolio is well-diversified and positioned for long-term growth, but may be impacted by short-term market fluctuations. Monitor the portfolio's leverage and adjust as needed to maintain a stable risk profile.",
   "market_mood": "neutral",
-  "generated_at": "2026-06-01T06:43:39.147536+00:00",
+  "generated_at": "2026-06-01T16:12:12.080118+00:00",
   "generated_date": "June 01, 2026",
   "next_update": "6:00 AM EST next trading day"
 }

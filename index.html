@@ -736,23 +736,23 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 
   <!-- Live Market Widget -->
   <!-- Account Balance Strip -->
-  <div class="market-widget" id="acctBalanceStrip" style="margin-bottom:8px;border-color:rgba(139,92,246,.2)">
-    <div class="mw-item">
+  <div class="market-widget" id="acctBalanceStrip" style="margin-bottom:8px;border-color:rgba(139,92,246,.2);display:grid;grid-template-columns:repeat(4,1fr)">
+    <div class="mw-item" style="flex:1;justify-content:flex-start;border-right:1px solid var(--border)">
       <div class="mw-label" style="color:var(--blue-bright)">TFSA</div>
       <div class="mw-value" id="abTFSAVal">—</div>
       <div class="mw-chg" id="abTFSAChg">—</div>
     </div>
-    <div class="mw-item">
+    <div class="mw-item" style="flex:1;justify-content:flex-start;border-right:1px solid var(--border)">
       <div class="mw-label" style="color:var(--green)">FHSA</div>
       <div class="mw-value" id="abFHSAVal">—</div>
       <div class="mw-chg" id="abFHSAChg">—</div>
     </div>
-    <div class="mw-item">
+    <div class="mw-item" style="flex:1;justify-content:flex-start;border-right:1px solid var(--border)">
       <div class="mw-label" style="color:var(--amber)">RRSP</div>
       <div class="mw-value" id="abRRSPVal">—</div>
       <div class="mw-chg" id="abRRSPChg">—</div>
     </div>
-    <div class="mw-item">
+    <div class="mw-item" style="flex:1;justify-content:flex-start">
       <div class="mw-label" style="color:var(--text3)">NON-REG</div>
       <div class="mw-value" id="abInvVal">—</div>
       <div class="mw-chg" id="abInvChg">—</div>
@@ -1148,7 +1148,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
           <td style="color:var(--text3)">—</td>
           <td id="stCb">—</td>
           <td id="stMv">—</td>
-          <td style="color:var(--text3)">—</td>
+          <td id="stDayGain">—</td>
           <td style="color:var(--text3)">—</td>
           <td id="stPnl">—</td>
           <td id="stRet">—</td>
@@ -2218,26 +2218,31 @@ function updateAccountFooters(data) {
 
   // ── Account Balance Strip (above index widget) ──────────────────────────
   const fmt$k = v => v >= 1000 ? `$${(v/1000).toFixed(1)}K` : `$${v.toFixed(0)}`;
-  const fmtChg = (d, p) => {
-    const sign = d >= 0 ? '+' : '';
-    return `${sign}${fmt$k(Math.abs(d))} ${sign}${Math.abs(p).toFixed(2)}%`;
-  };
   [
-    ['TFSA',       'abTFSAVal',  'abTFSAChg'],
-    ['FHSA',       'abFHSAVal',  'abFHSAChg'],
-    ['RRSP',       'abRRSPVal',  'abRRSPChg'],
-    ['Investment', 'abInvVal',   'abInvChg'],
-  ].forEach(([acctKey, valId, chgId]) => {
+    ['TFSA',       'abTFSAVal', 'abTFSAChg', CONTRIBS.TFSA       || 44500],
+    ['FHSA',       'abFHSAVal', 'abFHSAChg', CONTRIBS.FHSA       || 24000],
+    ['RRSP',       'abRRSPVal', 'abRRSPChg', CONTRIBS.RRSP       || 16132],
+    ['Investment', 'abInvVal',  'abInvChg',  CONTRIBS.Investment  || 65000],
+  ].forEach(([acctKey, valId, chgId, contrib]) => {
+    // Sum daily gains directly from holdings for this account (avoids cash-bug in metrics)
+    const hs = HOLDINGS_STATIC.filter(h => h.account === acctKey);
+    let acctDayChg = 0;
+    hs.forEach(h => {
+      const p = hPrices[h.ticker];
+      if (!p?.price || !p?.prev) return;
+      const fx = h.ccy === 'USD' ? usdcad : 1;
+      acctDayChg += (p.price - p.prev) * h.shares * fx;
+    });
     const m = metrics(acctKey);
-    const valEl = document.getElementById(valId);
-    const chgEl = document.getElementById(chgId);
-    if (valEl) {
-      valEl.textContent = fmt$k(m.acctVal);
-      valEl.className = 'mw-value';
-    }
+    // % = daily gain / total contributions (contribution-weighted daily %)
+    const dayPct = contrib > 0 ? (acctDayChg / contrib * 100) : 0;
+    const sign   = acctDayChg >= 0 ? '+' : '';
+    const valEl  = document.getElementById(valId);
+    const chgEl  = document.getElementById(chgId);
+    if (valEl) { valEl.textContent = fmt$k(m.acctVal); valEl.className = 'mw-value'; }
     if (chgEl) {
-      chgEl.textContent = fmtChg(m.dayChgCAD, m.dayChgPct);
-      chgEl.className = `mw-chg ${m.dayChgCAD >= 0 ? 'green' : 'red'}`;
+      chgEl.textContent = `${sign}${fmt$k(Math.abs(acctDayChg))} ${sign}${Math.abs(dayPct).toFixed(2)}%`;
+      chgEl.className   = `mw-chg ${acctDayChg >= 0 ? 'green' : 'red'}`;
     }
   });
 }
@@ -2617,10 +2622,12 @@ function refreshTablePrices(liveData) {
     }
 
     // Update data-* attributes so filterTable/updateSubtotals use fresh values
-    row.dataset.mv     = mktVal.toFixed(2);
-    row.dataset.unreal = unrealizedCAD.toFixed(2);
-    row.dataset.pnlval = totalPnlCAD.toFixed(2);
-    row.dataset.pnl    = totalPnlCAD >= 0 ? 'gain' : 'loss';
+    const dayChgCAD = livePrice ? (mktVal - (p.prev || livePrice) * h.shares * (h.ccy === 'USD' ? usdcad : 1)) : 0;
+    row.dataset.mv      = mktVal.toFixed(2);
+    row.dataset.unreal  = unrealizedCAD.toFixed(2);
+    row.dataset.pnlval  = totalPnlCAD.toFixed(2);
+    row.dataset.pnl     = totalPnlCAD >= 0 ? 'gain' : 'loss';
+    row.dataset.daychg  = dayChgCAD.toFixed(2);
   });
 
   filterTable(); // re-runs subtotals with updated data attributes
@@ -2700,7 +2707,7 @@ function updateRowCount() {
 
 function updateSubtotals() {
   const rows = document.querySelectorAll('#holdingsBody tr');
-  let mv = 0, cb = 0, unreal = 0, div = 0, real = 0, pnl = 0, count = 0;
+  let mv = 0, cb = 0, unreal = 0, div = 0, real = 0, pnl = 0, daychg = 0, count = 0;
   rows.forEach(r => {
     if (r.style.display === 'none') return;
     mv    += parseFloat(r.dataset.mv     || 0);
@@ -2709,6 +2716,7 @@ function updateSubtotals() {
     div   += parseFloat(r.dataset.div    || 0);
     real  += parseFloat(r.dataset.real   || 0);
     pnl   += parseFloat(r.dataset.pnlval || 0);
+    daychg+= parseFloat(r.dataset.daychg || 0);
     count++;
   });
 
@@ -2726,6 +2734,15 @@ function updateSubtotals() {
   setCell('stDiv',    div,    true);
   setCell('stReal',   real,   false);
   setCell('stPnl',    pnl,    false);
+  // Day gain $ subtotal
+  const dgEl = document.getElementById('stDayGain');
+  if (dgEl) {
+    if (count === 0) { dgEl.textContent = '—'; dgEl.className = 'mono text3'; }
+    else {
+      dgEl.textContent = (daychg >= 0 ? '+' : '') + fmt$(Math.round(daychg));
+      dgEl.className = `mono ${daychg >= 0 ? 'green' : 'red'}`;
+    }
+  }
 
   // Return % subtotal: (total market value − total cost basis) / total cost basis
   const retEl = document.getElementById('stRet');

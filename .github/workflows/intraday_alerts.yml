@@ -2,15 +2,15 @@ name: Intraday Portfolio Alerts
 
 on:
   schedule:
-    # Every 30 min during NYSE market hours (9:30 AM – 4:00 PM ET = 13:30 – 20:00 UTC), Mon–Fri
-    # Runs at :00 and :30 of each hour from 13:00–20:00 UTC
-    - cron: '0,30 13-20 * * 1-5'
+    # Every 5 min during NYSE market hours (9:30 AM – 4:00 PM ET = 13:30 – 20:00 UTC), Mon–Fri
+    # GitHub Actions minimum is 5 minutes. Uses ~1,700 min/month (well within 2,000 free tier).
+    - cron: '*/5 13-20 * * 1-5'
   workflow_dispatch:   # Manual trigger for testing
 
 jobs:
   intraday-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 2
 
     steps:
       - name: Check intraday alerts

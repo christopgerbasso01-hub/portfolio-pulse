@@ -23,43 +23,63 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 # PORTFOLIO CONTEXT  (update when positions change)
 # ============================================================
 PORTFOLIO_CONTEXT = """
-ACCOUNTS & APPROXIMATE VALUES (as of May 2026):
-  TFSA:        CAD ~$98K  | Contributions $44,500 | ROI ~+121%  | 100% tax-free
-  Investment:  CAD ~$94K  | Contributions $65,000 | ROI ~+45%   | 50% cap-gains inclusion
-  FHSA:        CAD ~$54K  | Contributions $24,000 | ROI ~+123%  | Double tax win
-  RRSP:        CAD ~$28K  | Contributions $16,132 | ROI ~+72%   | Deferred
-  Total:       CAD ~$274K | Total P&L ~+$124K     | Overall ROI ~+83%
+=== INVESTOR PROFILE ===
+  Name: Christopher, Age 24, Male, Toronto ON Canada
+  Income: ~$90K CAD/year salaried + annual bonus (bonus usually October)
+  Risk tolerance: HIGH — comfortable with 3x leveraged ETFs, no forced-sell threshold
+  Home purchase: Planning GTA property purchase, FHSA (~$54K) + RRSP HBP ($35K) = ~$89K down
+  Residency: Currently working abroad (non-Canadian resident in 2026) → returns to Canada March 2027
+  TFSA/FHSA: ZERO contribution room in 2026 (non-resident year) — DO NOT suggest these accounts
+  RRSP: Still eligible to contribute — route ALL new BUY recommendations here
+  Investment acct: Available for new buys when RRSP is not optimal
 
-CURRENT HOLDINGS (approximate weights):
+=== CONTRIBUTION ROOM STATUS (2026) ===
+  TFSA:  $0 available this year (non-resident). $7,000 room opens Jan 1 2027.
+  FHSA:  $0 available this year (non-resident). $8,000/yr + $16K lifetime remaining resumes 2027.
+  RRSP:  Room available — deploy new buys here (0% US dividend withholding advantage)
+  RULE:  ALL stock pick account recommendations must say RRSP or Investment. NEVER suggest TFSA or FHSA.
+
+=== ACCOUNTS & APPROXIMATE VALUES (as of June 2026) ===
+  TFSA:        CAD ~$100K | Contributions $44,500 | ROI ~+121% | 100% tax-free on all gains
+  Investment:  CAD ~$97K  | Contributions $65,000 | ROI ~+45%  | 50% cap-gains inclusion
+  FHSA:        CAD ~$55K  | Contributions $24,000 | ROI ~+123% | Tax-free home purchase withdrawal
+  RRSP:        CAD ~$28K  | Contributions $16,132 | ROI ~+72%  | Deferred + 0% US dividend withholding
+  Total:       CAD ~$280K | Total P&L ~+$124K     | Overall ROI ~+83%
+
+=== CURRENT HOLDINGS (approximate weights) ===
   Leveraged ETFs ~49%:
     FNGU  — FANG+ 3x (TFSA 495sh + Investment 665sh + FHSA 157sh + RRSP 56sh)
     SPXL  — S&P500 3x (TFSA 23sh + Investment 75sh + FHSA 53sh)
     UDOW  — Dow 3x (TFSA 84sh + FHSA 86sh + RRSP 36sh)
 
   Technology ~20%:
-    NVDA   — TFSA 40sh @ $16/sh split-adj cost (+1,776% ROI — core forever holding)
+    NVDA   — TFSA 40sh @ $16/sh split-adj cost (+1,776% ROI — core forever holding, NEVER SELL)
     TXF.TO — CI Tech Giants Covered Call ETF (TFSA 320sh+Inv 221sh+FHSA 434sh+RRSP 284sh)
-    AVGO   — TFSA 8sh (acquired Apr 2026)
-    MSFT   — TFSA 2sh | AAPL — TFSA 4sh | QCOM — TFSA 5sh
+    AVGO   — TFSA 8sh (acquired Apr 2026) | MSFT — TFSA 2sh | AAPL — TFSA 4sh | QCOM — TFSA 5sh
     TSM    — Investment 9sh + RRSP 6sh | MSTR — Investment 4sh
 
   Canadian Financials ~10%:
-    CM.TO — CIBC (TFSA 45sh + Investment 50sh)
-    RY.TO — Royal Bank (TFSA 22sh + Investment 19sh)
-    BMO.TO — TFSA 15sh
+    CM.TO — CIBC (TFSA 45sh + Investment 50sh) | RY.TO — Royal Bank (Investment 19sh) | BMO.TO — TFSA 15sh
 
   Other ~21%:
-    ENB.TO — Enbridge FHSA 82sh | TSLA — TFSA 14sh | IBKR — Investment 40sh
-    V — Investment 4sh (Visa) | ET — TFSA 60sh (Energy Transfer)
-    LYV — Investment 11sh (Live Nation) | GBTC — Investment 25sh (Bitcoin proxy)
-    BYDDF — Investment 3sh (BYD) | RRSP Cash — ~$10,531 uninvested
+    ENB.TO — Enbridge FHSA 82sh | TSLA — TFSA 14sh | IBKR — Investment 40sh | V — Investment 4sh
+    ET — TFSA 60sh | LYV — Investment 11sh | GBTC — Investment 25sh | BYDDF — Investment 1sh
+    RRSP Cash — ~$10,531 uninvested (priority: deploy into ZSP.TO immediately)
 
-KEY SENSITIVITIES:
-  - ~49% leveraged ETFs → amplifies S&P 500 / NASDAQ / Dow by 3x
+=== KEY SENSITIVITIES ===
+  - ~49% leveraged ETFs → amplifies S&P 500/NASDAQ/Dow by 3x both ways
   - ~68% USD-denominated → every 1¢ USD/CAD move ≈ $1,800 portfolio impact
   - FX book rate 1.3925 (drag when CAD < 1.3925, tailwind when CAD > 1.3925)
-  - RRSP cash $10,531 uninvested = opportunity cost (ZSP.TO preferred for US treaty)
-  - NVDA is best single trade; never sell (TFSA, tax-free, +1,776%)
+  - RRSP cash $10,531 uninvested = $843/year foregone at 8% — ZSP.TO preferred
+  - NVDA is best single trade at +1,776% — never sell (TFSA, permanently sheltered)
+  - VIX above 22 = danger zone for 3x ETF volatility decay
+
+=== INVESTMENT PHILOSOPHY ===
+  - High conviction in AI infrastructure: NVDA, AVGO, TSM, FNGU
+  - Open to ANY sector if thesis is strong — no restrictions
+  - New stock ideas welcome from any market/sector globally
+  - Prefers actionable entries with specific price targets
+  - Comfortable holding leveraged ETFs through drawdowns (does not panic sell)
 """
 
 # US tickers to pull company-specific news for (Finnhub free tier, no .TO support)
@@ -132,11 +152,13 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
   ],
   "picks": [
     {
-      "ticker": "TICKER",
-      "action": "ADD|WATCH|NEW|SPECULATIVE",
-      "account": "TFSA|FHSA|RRSP|Investment|Any",
-      "thesis": "2–3 sentence investment thesis specific to this portfolio",
-      "entry": "Entry / timing note"
+      "ticker": "TICKER — can be ANY stock from ANY market. Include stocks NOT in the portfolio.
+                 Use current news to find the most relevant opportunities right now.
+                 At least 1 pick should be a stock NOT currently held.",
+      "action": "ADD (add to existing position)|WATCH (monitor for entry)|NEW (no current holding)|SPECULATIVE",
+      "account": "RRSP or Investment ONLY. NEVER TFSA or FHSA (non-resident year 2026, room suspended).",
+      "thesis": "2–3 sentence investment thesis tied to current news/market conditions and this portfolio",
+      "entry": "Specific entry price range, catalyst to watch, or timing note"
     }
   ],
   "strengths": [

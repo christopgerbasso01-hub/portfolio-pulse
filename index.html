@@ -428,7 +428,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .mood-risk-off{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
 .mood-neutral,.mood-mixed{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
 .intel-banner-date{font-family:var(--mono);font-size:10px;color:var(--text3)}
-.intel-banner-outlook{font-size:12px;color:var(--text2);margin-top:6px;padding:0 16px 10px;display:none}
+.intel-banner-outlook{font-size:12px;color:var(--text2);margin-top:6px;padding:0 16px 10px;display:block}
 
 /* ============================  PODCAST PLAYER  ============================ */
 .pod-player-wrap{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px}
@@ -735,6 +735,31 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   </div>
 
   <!-- Live Market Widget -->
+  <!-- Account Balance Strip -->
+  <div class="market-widget" id="acctBalanceStrip" style="margin-bottom:8px;border-color:rgba(139,92,246,.2)">
+    <div class="mw-item">
+      <div class="mw-label" style="color:var(--blue-bright)">TFSA</div>
+      <div class="mw-value" id="abTFSAVal">—</div>
+      <div class="mw-chg" id="abTFSAChg">—</div>
+    </div>
+    <div class="mw-item">
+      <div class="mw-label" style="color:var(--green)">FHSA</div>
+      <div class="mw-value" id="abFHSAVal">—</div>
+      <div class="mw-chg" id="abFHSAChg">—</div>
+    </div>
+    <div class="mw-item">
+      <div class="mw-label" style="color:var(--amber)">RRSP</div>
+      <div class="mw-value" id="abRRSPVal">—</div>
+      <div class="mw-chg" id="abRRSPChg">—</div>
+    </div>
+    <div class="mw-item">
+      <div class="mw-label" style="color:var(--text3)">NON-REG</div>
+      <div class="mw-value" id="abInvVal">—</div>
+      <div class="mw-chg" id="abInvChg">—</div>
+    </div>
+  </div>
+
+  <!-- Index Widget -->
   <div class="market-widget" id="marketWidget">
     <div class="mw-item">
       <div class="mw-label">S&amp;P 500</div>
@@ -1144,7 +1169,10 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       <span class="intel-banner-mood" id="intelMood">—</span>
       <span id="intelDate" class="intel-banner-date"></span>
     </div>
-    <button onclick="toggleOutlook()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;font-family:var(--mono)">OUTLOOK ▾</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="intelRefreshBtn" onclick="refreshIntelligence()" style="font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);padding:3px 8px;border-radius:4px;cursor:pointer" title="Refresh market intelligence">↻ REFRESH</button>
+      <button onclick="toggleOutlook()" id="outlookToggle" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;font-family:var(--mono)">OUTLOOK ▴</button>
+    </div>
   </div>
   <div class="intel-banner-outlook" id="intelOutlook"></div>
 </div>
@@ -1503,7 +1531,7 @@ const USD_BOOK_RATE = 1.3925;
 const _HOLDINGS_BASE = [
   {ticker:"SPXL",name:"S&P500 3x ETF",account:"Investment",sector:"Leveraged ETF",shares:75,cost_total:9785.05,unrealized:13993.28,realized:231.45,total_pnl:14224.73,pct_return:104.71,weight:10.51,book_rate:1.37585,dividends:231.45,ccy:"USD"},
   {ticker:"FNGU",name:"FANG+ 3x ETF",account:"Investment",sector:"Leveraged ETF",shares:665,cost_total:13266.68,unrealized:8142.17,realized:0,total_pnl:8142.17,pct_return:44.89,weight:10.10,book_rate:1.37735,ccy:"USD"},
-  {ticker:"FNGU",name:"FANG+ 3x ETF",account:"TFSA",sector:"Leveraged ETF",shares:495,cost_total:9435.62,unrealized:6491.13,realized:0,total_pnl:6491.13,pct_return:49.66,weight:7.51,book_rate:1.39547,ccy:"USD"},
+  {ticker:"FNGU",name:"FANG+ 3x ETF",account:"TFSA",sector:"Leveraged ETF",shares:457,cost_total:8805.09,unrealized:7120.66,realized:0,total_pnl:7120.66,pct_return:53.41,weight:7.51,book_rate:1.39547,ccy:"USD"},
   {ticker:"SPXL",name:"S&P500 3x ETF",account:"FHSA",sector:"Leveraged ETF",shares:53,cost_total:5180.21,unrealized:12235.71,realized:225.54,total_pnl:12461.25,pct_return:175.0,weight:7.43,book_rate:1.3541,dividends:163.56,ccy:"USD"},
   {ticker:"NVDA",name:"NVIDIA",account:"TFSA",sector:"Technology",shares:40,cost_total:471.15,unrealized:11455.57,realized:9.11,total_pnl:11464.68,pct_return:1776.15,weight:4.65,book_rate:1.32234,dividends:7.58,ccy:"USD"},
   {ticker:"TXF.TO",name:"CI Tech Giants CC",account:"FHSA",sector:"Technology",shares:434,cost_total:11411.13,unrealized:211.39,realized:792.52,total_pnl:1003.91,pct_return:1.85,weight:4.46,dividends:792.52,ccy:"CAD"},
@@ -1515,7 +1543,7 @@ const _HOLDINGS_BASE = [
   {ticker:"UDOW",name:"Dow 3x ETF",account:"FHSA",sector:"Leveraged ETF",shares:86,cost_total:3889.41,unrealized:1898.97,realized:152.29,total_pnl:2051.26,pct_return:37.08,weight:2.78,book_rate:1.44016,dividends:130.56,ccy:"USD"},
   {ticker:"UDOW",name:"Dow 3x ETF",account:"TFSA",sector:"Leveraged ETF",shares:84,cost_total:3098.21,unrealized:2815.02,realized:176.13,total_pnl:2991.15,pct_return:69.07,weight:2.71,book_rate:1.37693,dividends:127.52,ccy:"USD"},
   {ticker:"CM.TO",name:"CIBC",account:"TFSA",sector:"Financials",shares:45,cost_total:2957.00,unrealized:3923.05,realized:166.69,total_pnl:4089.74,pct_return:142.94,weight:2.64,dividends:166.69,ccy:"CAD"},
-  {ticker:"FNGU",name:"FANG+ 3x ETF",account:"FHSA",sector:"Leveraged ETF",shares:157,cost_total:2995.88,unrealized:2045.19,realized:3280.41,total_pnl:5325.60,pct_return:44.08,weight:2.38,book_rate:1.39547,ccy:"USD"},
+  {ticker:"FNGU",name:"FANG+ 3x ETF",account:"FHSA",sector:"Leveraged ETF",shares:195,cost_total:3725.43,unrealized:3330.75,realized:3280.41,total_pnl:6611.16,pct_return:57.52,weight:2.38,book_rate:1.39547,ccy:"USD"},
   {ticker:"ENB.TO",name:"Enbridge",account:"FHSA",sector:"Energy",shares:82,cost_total:4499.84,unrealized:1665.74,realized:542.56,total_pnl:2208.30,pct_return:49.07,weight:2.37,dividends:542.56,ccy:"CAD"},
   {ticker:"TXF.TO",name:"CI Tech Giants CC",account:"Investment",sector:"Technology",shares:221,cost_total:4955.93,unrealized:962.45,realized:403.56,total_pnl:1366.01,pct_return:19.42,weight:2.27,dividends:403.56,ccy:"CAD"},
   {ticker:"RY.TO",name:"Royal Bank",account:"Investment",sector:"Financials",shares:19,cost_total:3895.45,unrealized:852.08,realized:91.58,total_pnl:943.66,pct_return:21.87,weight:1.82,dividends:91.58,ccy:"CAD"},
@@ -1929,7 +1957,7 @@ function updateHeaderKPIs(data) {
 // ============================================================
 function updateHoldingsCells(hPrices, usdcad) {
   const specs = [
-    {ticker:"FNGU",account:"TFSA",shares:495,id:"live-FNGU-TFSA",ccy:"USD"},
+    {ticker:"FNGU",account:"TFSA",shares:457,id:"live-FNGU-TFSA",ccy:"USD"},
     {ticker:"NVDA",account:"TFSA",shares:40,id:"live-NVDA-TFSA",ccy:"USD"},
     {ticker:"TXF.TO",account:"TFSA",shares:320,id:"live-TXF.TO-TFSA",ccy:"CAD"},
     {ticker:"SPXL",account:"TFSA",shares:23,id:"live-SPXL-TFSA",ccy:"USD"},
@@ -1946,7 +1974,7 @@ function updateHoldingsCells(hPrices, usdcad) {
     {ticker:"SPXL",account:"FHSA",shares:53,id:"live-SPXL-FHSA",ccy:"USD"},
     {ticker:"TXF.TO",account:"FHSA",shares:434,id:"live-TXF.TO-FHSA",ccy:"CAD"},
     {ticker:"UDOW",account:"FHSA",shares:86,id:"live-UDOW-FHSA",ccy:"USD"},
-    {ticker:"FNGU",account:"FHSA",shares:157,id:"live-FNGU-FHSA",ccy:"USD"},
+    {ticker:"FNGU",account:"FHSA",shares:195,id:"live-FNGU-FHSA",ccy:"USD"},
     {ticker:"ENB.TO",account:"FHSA",shares:82,id:"live-ENB.TO-FHSA",ccy:"CAD"},
     {ticker:"TXF.TO",account:"RRSP",shares:284,id:"live-TXF.TO-RRSP",ccy:"CAD"},
     {ticker:"TSM",account:"RRSP",shares:6,id:"live-TSM-RRSP",ccy:"USD"},
@@ -2187,6 +2215,31 @@ function updateAccountFooters(data) {
     const el = document.getElementById('acctRRSPFooter');
     if (el) el.textContent = msg;
   }
+
+  // ── Account Balance Strip (above index widget) ──────────────────────────
+  const fmt$k = v => v >= 1000 ? `$${(v/1000).toFixed(1)}K` : `$${v.toFixed(0)}`;
+  const fmtChg = (d, p) => {
+    const sign = d >= 0 ? '+' : '';
+    return `${sign}${fmt$k(Math.abs(d))} ${sign}${Math.abs(p).toFixed(2)}%`;
+  };
+  [
+    ['TFSA',       'abTFSAVal',  'abTFSAChg'],
+    ['FHSA',       'abFHSAVal',  'abFHSAChg'],
+    ['RRSP',       'abRRSPVal',  'abRRSPChg'],
+    ['Investment', 'abInvVal',   'abInvChg'],
+  ].forEach(([acctKey, valId, chgId]) => {
+    const m = metrics(acctKey);
+    const valEl = document.getElementById(valId);
+    const chgEl = document.getElementById(chgId);
+    if (valEl) {
+      valEl.textContent = fmt$k(m.acctVal);
+      valEl.className = 'mw-value';
+    }
+    if (chgEl) {
+      chgEl.textContent = fmtChg(m.dayChgCAD, m.dayChgPct);
+      chgEl.className = `mw-chg ${m.dayChgCAD >= 0 ? 'green' : 'red'}`;
+    }
+  });
 }
 
 // ============================================================
@@ -3384,8 +3437,9 @@ async function renderPicksSection(picks) {
     </div>`).join('');
   document.getElementById('aiSec07').classList.remove('loading');
 
-  // Fetch real scores for all non-sell picks in parallel
-  const scoredPicks = await Promise.all(nonSellPicks.map(async p => {
+  // Fetch real scores for ALL picks (including sell) in parallel
+  const allPicksForScore = [...nonSellPicks, ...(sellPick ? [sellPick] : [])];
+  const scoredPicks = await Promise.all(allPicksForScore.map(async p => {
     try {
       const r = await fetch(`${CONFIG.API_BASE}/api/research?ticker=${encodeURIComponent(p.ticker)}`);
       if (!r.ok) throw new Error();
@@ -3398,11 +3452,17 @@ async function renderPicksSection(picks) {
     }
   }));
 
-  // Sort by real score — highest gets BUY NOW slot
-  scoredPicks.sort((a,b) => (b._score ?? 0) - (a._score ?? 0));
-  const buyNow    = scoredPicks[0];
-  const watchPick = scoredPicks[1];
-  const threeCards = [buyNow, watchPick, sellPick].filter(Boolean);
+  // Separate scored sells from buys
+  const scoredSell = allPicksForScore.length > nonSellPicks.length
+    ? scoredPicks[scoredPicks.length - 1] : null;
+  const scoredBuys = scoredPicks.slice(0, nonSellPicks.length);
+
+  // Sort buy picks by real score — highest gets BUY NOW slot
+  scoredBuys.sort((a,b) => (b._score ?? 0) - (a._score ?? 0));
+  const buyNow    = scoredBuys[0];
+  const watchPick = scoredBuys[1];
+  const finalSell = scoredSell || (sellPick ? { ...sellPick, _score: null, _color: '#ef4444' } : null);
+  const threeCards = [buyNow, watchPick, finalSell].filter(Boolean);
 
   const pickCard = (p, slot) => {
     const isSell    = slot === 'sell';
@@ -3410,9 +3470,11 @@ async function renderPicksSection(picks) {
     const slotLabel = isSell ? (p.action === 'TRIM' ? '✂ TRIM' : '⬇ SELL')
       : p._score == null ? p.action
       : p._score >= 85 ? 'BUY NOW' : p._score >= 70 ? 'BUY ON DIP' : 'WATCH';
-    const scoreCircle = isSell ? '' : p._score != null
-      ? `<span style="background:${p._color}20;border:1.5px solid ${p._color};border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;color:${p._color};flex-shrink:0">${p._score}</span>`
-      : `<span style="background:var(--surface2);border:1.5px solid var(--border);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--text3);flex-shrink:0">—</span>`;
+    const scoreColor = isSell ? '#ef4444' : p._color;
+    const scoreVal   = p._score != null ? p._score : '…';
+    const scoreCircle = p._score != null || isSell
+      ? `<span style="background:${(scoreColor||'var(--red)')}20;border:1.5px solid ${scoreColor||'var(--red)'};border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;color:${scoreColor||'var(--red)'};flex-shrink:0">${isSell ? (p._score ?? '…') : p._score}</span>`
+      : `<span id="pick-score-${p.ticker.replace(/[^a-zA-Z0-9]/g,'')}" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--text3);flex-shrink:0">…</span>`;
     return `<div class="card" style="border-left:3px solid ${slotColor}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="display:flex;gap:6px;align-items:center">
@@ -3719,7 +3781,13 @@ function renderIntelligenceBanner(intel) {
     const mood = intel.market_mood || 'neutral';
     const moodClass = { 'risk-on': 'mood-risk-on', 'risk-off': 'mood-risk-off' }[mood] || 'mood-neutral';
     moodEl.className = `intel-banner-mood ${moodClass}`;
-    moodEl.textContent = mood.toUpperCase().replace('-', ' ');
+    const moodLabels = {
+      'risk-on':  'Markets Favouring Growth',
+      'risk-off': 'Defensive — Reduce Exposure',
+      'neutral':  'Mixed Signals — Stay Disciplined',
+      'mixed':    'Conflicting Signals — Watch Closely',
+    };
+    moodEl.textContent = moodLabels[mood] || mood.toUpperCase();
   }
 
   const dateEl = document.getElementById('intelDate');
@@ -3730,10 +3798,39 @@ function renderIntelligenceBanner(intel) {
 }
 
 function toggleOutlook() {
-  const el = document.getElementById('intelOutlook');
+  const el  = document.getElementById('intelOutlook');
+  const btn = document.getElementById('outlookToggle');
   if (!el) return;
-  const visible = el.style.display !== 'none' && el.style.display !== '';
+  const visible = el.style.display === 'block' || (el.style.display === '' && el.offsetParent !== null);
   el.style.display = visible ? 'none' : 'block';
+  if (btn) btn.textContent = visible ? 'OUTLOOK ▾' : 'OUTLOOK ▴';
+}
+
+async function refreshIntelligence() {
+  const btn = document.getElementById('intelRefreshBtn');
+  if (btn) { btn.textContent = '⏳ Loading…'; btn.disabled = true; }
+  try {
+    const url = `${CONFIG.API_BASE}/data/intelligence.json?v=${Date.now()}`;
+    const r   = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    if (data && data.generated_at) {
+      intelligenceData = data;
+      renderAISection(data);
+      updateAIBadges('GEMINI', data.generated_date);
+      renderIntelligenceBanner(data);
+      const localPicks = generateAnalysis(_lastLiveData || {});
+      renderPicksSection(localPicks.picks);
+      if (btn) { btn.textContent = '✓ Updated'; btn.style.color = 'var(--green)'; }
+    } else {
+      if (btn) { btn.textContent = '— No update'; }
+    }
+  } catch {
+    if (btn) { btn.textContent = '✗ Failed'; }
+  }
+  setTimeout(() => {
+    if (btn) { btn.textContent = '↻ REFRESH'; btn.style.color = ''; btn.disabled = false; }
+  }, 3000);
 }
 
 // ============================================================

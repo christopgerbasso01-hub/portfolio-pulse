@@ -17,7 +17,7 @@ _YF_HEADERS = {
 # =============================================================================
 HOLDINGS = [
     # TFSA
-    {"ticker": "FNGU",   "account": "TFSA",       "shares": 495,  "cost_total": 13070.64, "ccy": "USD"},
+    {"ticker": "FNGU",   "account": "TFSA",       "shares": 457,  "cost_total": 12067.59, "ccy": "USD"},
     {"ticker": "NVDA",   "account": "TFSA",        "shares": 40,   "cost_total": 645.60,   "ccy": "USD"},
     {"ticker": "TXF.TO", "account": "TFSA",        "shares": 320,  "cost_total": 7033.29,  "ccy": "CAD"},
     {"ticker": "SPXL",   "account": "TFSA",        "shares": 23,   "cost_total": 5573.74,  "ccy": "USD"},
@@ -50,7 +50,7 @@ HOLDINGS = [
     {"ticker": "SPXL",   "account": "FHSA",        "shares": 53,   "cost_total": 7096.23,  "ccy": "USD"},
     {"ticker": "TXF.TO", "account": "FHSA",        "shares": 434,  "cost_total": 11411.13, "ccy": "CAD"},
     {"ticker": "UDOW",   "account": "FHSA",        "shares": 86,   "cost_total": 5329.56,  "ccy": "USD"},
-    {"ticker": "FNGU",   "account": "FHSA",        "shares": 157,  "cost_total": 4159.25,  "ccy": "USD"},
+    {"ticker": "FNGU",   "account": "FHSA",        "shares": 195,  "cost_total": 5167.08,  "ccy": "USD"},
     {"ticker": "ENB.TO", "account": "FHSA",        "shares": 82,   "cost_total": 4499.84,  "ccy": "CAD"},
     # RRSP
     {"ticker": "TXF.TO", "account": "RRSP",        "shares": 284,  "cost_total": 6184.11,  "ccy": "CAD"},

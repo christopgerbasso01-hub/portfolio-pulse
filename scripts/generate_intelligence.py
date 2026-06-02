@@ -167,8 +167,15 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
 Quantity limits — STRICTLY ENFORCE:
   macro: EXACTLY 3 (no more, no fewer)
   risks: EXACTLY 3 (no more, no fewer)
-  news: EXACTLY 3 (no more, no fewer) — all categories merged, no Macro & Rates
+  news: EXACTLY 3 (no more, no fewer)
   picks: 2–3 | strengths: 4–5 | concerns: 4–5 | strategy items: 3–4 each | tax items: 2–3 each
+
+CRITICAL RULE — news vs macro separation:
+  "macro" array = broad macro/geopolitical themes (US-Iran, Fed policy, tariffs, inflation, FX).
+  "news" array = ONLY individual tickers, specific industries, earnings, company catalysts.
+  NEVER put geopolitical or macro-economic themes into "news". If a topic (e.g. US-Iran tensions,
+  Fed rates, tariffs) belongs in macro, put it ONLY there, not duplicated in news.
+  news items MUST reference specific tickers from the portfolio by name.
 """
 
 

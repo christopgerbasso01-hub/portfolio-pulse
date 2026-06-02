@@ -2,9 +2,16 @@ name: Intraday Portfolio Alerts
 
 on:
   schedule:
-    # Every 5 min during NYSE market hours (9:30 AM – 4:00 PM ET = 13:30 – 20:00 UTC), Mon–Fri
-    # GitHub Actions minimum is 5 minutes. Uses ~1,700 min/month (well within 2,000 free tier).
-    - cron: '*/5 13-20 * * 1-5'
+    # Every 10 min during NYSE market hours (9:30 AM – 4:00 PM ET = 13:30 – 20:00 UTC), Mon–Fri
+    # Using explicit minutes to avoid GitHub Actions cron throttling with */N syntax
+    - cron: '0,10,20,30,40,50 14 * * 1-5'
+    - cron: '0,10,20,30,40,50 15 * * 1-5'
+    - cron: '0,10,20,30,40,50 16 * * 1-5'
+    - cron: '0,10,20,30,40,50 17 * * 1-5'
+    - cron: '0,10,20,30,40,50 18 * * 1-5'
+    - cron: '0,10,20,30,40,50 19 * * 1-5'
+    # 9:30–10am ET window (13:30–14:00 UTC)
+    - cron: '30,40,50 13 * * 1-5'
   workflow_dispatch:   # Manual trigger for testing
 
 jobs:

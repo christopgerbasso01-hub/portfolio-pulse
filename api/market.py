@@ -131,10 +131,13 @@ def _fetch_one(session, ticker):
             _fetch_errors[ticker] = "no price in response"
             return ticker, None
         prev = prev or curr
+        # FX pairs (USDCAD=X etc.) need 4 decimal places; equities use 2
+        is_fx = ticker.endswith('=X') or ticker.endswith('-CAD') or ticker.endswith('-USD')
+        price_decimals = 4 if is_fx else 2
         return ticker, {
-            "price": round(curr, 2),
-            "prev": round(prev, 2),
-            "change": round(curr - prev, 2),
+            "price": round(curr, price_decimals),
+            "prev": round(prev, price_decimals),
+            "change": round(curr - prev, price_decimals),
             "change_pct": round((curr - prev) / prev * 100, 2),
         }
     except Exception as e:

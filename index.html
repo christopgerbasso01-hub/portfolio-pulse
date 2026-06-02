@@ -3808,31 +3808,60 @@ function toggleOutlook() {
 
 async function refreshIntelligence() {
   const btn = document.getElementById('intelRefreshBtn');
-  if (btn) { btn.textContent = '⏳ Loading…'; btn.disabled = true; }
+  if (btn) { btn.textContent = '⏳ Triggering…'; btn.disabled = true; btn.style.color = ''; }
+
   try {
-    const url = `${CONFIG.API_BASE}/data/intelligence.json?v=${Date.now()}`;
-    const r   = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) throw new Error();
-    const data = await r.json();
-    if (data && data.generated_at) {
-      intelligenceData = data;
-      renderAISection(data);
-      updateAIBadges('GEMINI', data.generated_date);
-      renderIntelligenceBanner(data);
-      const _la = generateAnalysis(_lastLiveData || {});
-      const _sc = _la.picks.find(p => p.action === 'SELL' || p.action === 'TRIM');
-      const _bp = (data.picks || []).filter(p => p.action !== 'SELL' && p.action !== 'TRIM');
-      renderPicksSection([...(_bp.length >= 2 ? _bp : _la.picks.filter(p => p.action !== 'SELL')), ...(_sc ? [_sc] : [])]);
-      if (btn) { btn.textContent = '✓ Updated'; btn.style.color = 'var(--green)'; }
-    } else {
-      if (btn) { btn.textContent = '— No update'; }
-    }
-  } catch {
-    if (btn) { btn.textContent = '✗ Failed'; }
+    // Step 1: Trigger the GitHub Actions workflow (same as 6 AM daily run)
+    const triggerRes = await fetch(`${CONFIG.API_BASE}/api/trigger_intelligence`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const triggerData = await triggerRes.json();
+    if (!triggerData.ok) throw new Error(triggerData.error || 'Trigger failed');
+
+    if (btn) { btn.textContent = '⌛ Generating (~3 min)…'; btn.style.color = 'var(--amber)'; }
+
+    // Step 2: Poll for new intelligence.json every 20 seconds (max 5 minutes)
+    const currentDate = intelligenceData?.generated_at || '';
+    let attempts = 0;
+    const maxAttempts = 15; // 15 × 20s = 5 minutes
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const r = await fetch(`${CONFIG.API_BASE}/data/intelligence.json?v=${Date.now()}`, { cache: 'no-store' });
+        if (!r.ok) return;
+        const data = await r.json();
+        if (data?.generated_at && data.generated_at !== currentDate) {
+          // New content available — render it
+          intelligenceData = data;
+          renderAISection(data);
+          updateAIBadges('GEMINI', data.generated_date);
+          renderIntelligenceBanner(data);
+          const _la = generateAnalysis(_lastLiveData || {});
+          const _sc = _la.picks.find(p => p.action === 'SELL' || p.action === 'TRIM');
+          const _bp = (data.picks || []).filter(p => p.action !== 'SELL' && p.action !== 'TRIM');
+          renderPicksSection([...(_bp.length >= 2 ? _bp : _la.picks.filter(p => p.action !== 'SELL')), ...(_sc ? [_sc] : [])]);
+          if (btn) { btn.textContent = '✓ Updated'; btn.style.color = 'var(--green)'; btn.disabled = false; }
+          setTimeout(() => { if (btn) { btn.textContent = '↻ REFRESH'; btn.style.color = ''; } }, 4000);
+          return; // Done — stop polling
+        }
+      } catch {}
+      if (attempts < maxAttempts) {
+        const remaining = Math.round((maxAttempts - attempts) * 20 / 60);
+        if (btn) btn.textContent = `⌛ ~${remaining}m remaining…`;
+        setTimeout(poll, 20000);
+      } else {
+        if (btn) { btn.textContent = '↻ REFRESH'; btn.style.color = ''; btn.disabled = false; }
+      }
+    };
+    setTimeout(poll, 25000); // Wait 25s before first poll (workflow needs time to start)
+
+  } catch(e) {
+    console.warn('[intel refresh]', e);
+    if (btn) { btn.textContent = '✗ Failed'; btn.style.color = 'var(--red)'; }
+    setTimeout(() => { if (btn) { btn.textContent = '↻ REFRESH'; btn.style.color = ''; btn.disabled = false; } }, 3000);
   }
-  setTimeout(() => {
-    if (btn) { btn.textContent = '↻ REFRESH'; btn.style.color = ''; btn.disabled = false; }
-  }, 3000);
 }
 
 // ============================================================

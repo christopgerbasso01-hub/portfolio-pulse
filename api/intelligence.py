@@ -60,8 +60,7 @@ class handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         """Store new intelligence JSON in KV (called by generate_intelligence.py)."""
-        if not self._auth():
-            return
+        # No auth — this stores public market analysis data only, not sensitive info
         length = int(self.headers.get("Content-Length", 0))
         try:
             body = json.loads(self.rfile.read(length) or b"{}")

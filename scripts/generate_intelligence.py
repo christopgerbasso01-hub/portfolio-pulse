@@ -453,6 +453,24 @@ def main() -> int:
 
     save(intelligence)
 
+    # Also push to Vercel KV via /api/intelligence so the dashboard
+    # can detect fresh data immediately (bypasses CDN cache on static files)
+    vercel_url = "https://portfolio-pulse-dun.vercel.app/api/intelligence"
+    cron_secret = os.environ.get("CRON_SECRET", "")
+    try:
+        resp = requests.post(
+            vercel_url,
+            headers={"Authorization": f"Bearer {cron_secret}", "Content-Type": "application/json"},
+            json=intelligence,
+            timeout=15,
+        )
+        if resp.status_code == 200:
+            print(f"  ✓ Intelligence pushed to KV (generated_at: {intelligence['generated_at']})")
+        else:
+            print(f"  ⚠ KV push returned {resp.status_code}: {resp.text[:100]}")
+    except Exception as exc:
+        print(f"  ⚠ KV push failed (non-fatal): {exc}")
+
     print(f"\n  Summary:")
     print(f"    {len(intelligence.get('macro', []))} macro themes")
     print(f"    {len(intelligence.get('news',  []))} news items")

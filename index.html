@@ -3750,14 +3750,22 @@ async function fetchMarketData() {
 let intelligenceData = null;
 
 async function fetchIntelligence() {
+  // Try KV endpoint first (always fresh, no CDN caching)
+  // Fall back to static file if KV has no data yet
   try {
-    // Cache-bust by date so stale JSON isn't served after daily update
-    // Date in URL already busts cache daily — no need for no-cache header
+    const kvRes = await fetch(`${CONFIG.API_BASE}/api/intelligence`, { cache: 'no-store' });
+    if (kvRes.ok) {
+      const data = await kvRes.json();
+      if (data?.generated_at) return data;
+    }
+  } catch {}
+  // Fallback: static file (daily cache-bust by date)
+  try {
     const url = `data/intelligence.json?d=${new Date().toISOString().slice(0, 10)}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
-    return data.generated_at ? data : null;   // null = placeholder / not yet generated
+    return data.generated_at ? data : null;
   } catch { return null; }
 }
 
@@ -3821,18 +3829,21 @@ async function refreshIntelligence() {
 
     if (btn) { btn.textContent = '⌛ Generating (~3 min)…'; btn.style.color = 'var(--amber)'; }
 
-    // Step 2: Poll for new intelligence.json every 20 seconds (max 5 minutes)
-    const currentDate = intelligenceData?.generated_at || '';
+    // Step 2: Poll /api/intelligence (KV — no CDN caching) every 15 seconds for up to 5 min
+    const triggerTime = new Date().toISOString();
+    const currentGenAt = intelligenceData?.generated_at || '';
     let attempts = 0;
-    const maxAttempts = 15; // 15 × 20s = 5 minutes
+    const maxAttempts = 20; // 20 × 15s = 5 minutes
 
     const poll = async () => {
       attempts++;
       try {
-        const r = await fetch(`${CONFIG.API_BASE}/data/intelligence.json?v=${Date.now()}`, { cache: 'no-store' });
+        // Use KV endpoint — always returns freshest data, no CDN caching issue
+        const r = await fetch(`${CONFIG.API_BASE}/api/intelligence`, { cache: 'no-store' });
         if (!r.ok) return;
         const data = await r.json();
-        if (data?.generated_at && data.generated_at !== currentDate) {
+        // New if: generated_at changed AND is after when we triggered
+        if (data?.generated_at && data.generated_at !== currentGenAt && data.generated_at > triggerTime) {
           // New content available — render it
           intelligenceData = data;
           renderAISection(data);
@@ -3848,14 +3859,14 @@ async function refreshIntelligence() {
         }
       } catch {}
       if (attempts < maxAttempts) {
-        const remaining = Math.round((maxAttempts - attempts) * 20 / 60);
+        const remaining = Math.round((maxAttempts - attempts) * 15 / 60);
         if (btn) btn.textContent = `⌛ ~${remaining}m remaining…`;
-        setTimeout(poll, 20000);
+        setTimeout(poll, 15000);
       } else {
         if (btn) { btn.textContent = '↻ REFRESH'; btn.style.color = ''; btn.disabled = false; }
       }
     };
-    setTimeout(poll, 25000); // Wait 25s before first poll (workflow needs time to start)
+    setTimeout(poll, 30000); // Wait 30s before first poll (workflow needs ~20s to start running)
 
   } catch(e) {
     console.warn('[intel refresh]', e);

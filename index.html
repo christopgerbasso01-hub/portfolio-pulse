@@ -735,27 +735,27 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   </div>
 
   <!-- Live Market Widget -->
-  <!-- Account Balance Strip -->
-  <div class="market-widget" id="acctBalanceStrip" style="margin-bottom:8px;border-color:rgba(139,92,246,.2);display:grid;grid-template-columns:repeat(4,1fr)">
-    <div class="mw-item" style="flex:1;justify-content:flex-start;border-right:1px solid var(--border)">
-      <div class="mw-label" style="color:var(--blue-bright)">TFSA</div>
-      <div class="mw-value" id="abTFSAVal">—</div>
-      <div class="mw-chg" id="abTFSAChg">—</div>
+  <!-- Account Balance Strip — one full-width row per account -->
+  <div id="acctBalanceStrip" style="background:var(--surface2);border:1px solid rgba(139,92,246,.2);border-radius:8px;overflow:hidden;margin-bottom:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-bottom:1px solid var(--border)">
+      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--blue-bright);width:68px;flex-shrink:0">TFSA</span>
+      <span class="mono" style="font-size:14px;font-weight:700" id="abTFSAVal">—</span>
+      <span class="mono" style="font-size:12px;margin-left:auto;padding-left:10px" id="abTFSAChg">—</span>
     </div>
-    <div class="mw-item" style="flex:1;justify-content:flex-start;border-right:1px solid var(--border)">
-      <div class="mw-label" style="color:var(--green)">FHSA</div>
-      <div class="mw-value" id="abFHSAVal">—</div>
-      <div class="mw-chg" id="abFHSAChg">—</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-bottom:1px solid var(--border)">
+      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--green);width:68px;flex-shrink:0">FHSA</span>
+      <span class="mono" style="font-size:14px;font-weight:700" id="abFHSAVal">—</span>
+      <span class="mono" style="font-size:12px;margin-left:auto;padding-left:10px" id="abFHSAChg">—</span>
     </div>
-    <div class="mw-item" style="flex:1;justify-content:flex-start;border-right:1px solid var(--border)">
-      <div class="mw-label" style="color:var(--amber)">RRSP</div>
-      <div class="mw-value" id="abRRSPVal">—</div>
-      <div class="mw-chg" id="abRRSPChg">—</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-bottom:1px solid var(--border)">
+      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--amber);width:68px;flex-shrink:0">RRSP</span>
+      <span class="mono" style="font-size:14px;font-weight:700" id="abRRSPVal">—</span>
+      <span class="mono" style="font-size:12px;margin-left:auto;padding-left:10px" id="abRRSPChg">—</span>
     </div>
-    <div class="mw-item" style="flex:1;justify-content:flex-start">
-      <div class="mw-label" style="color:var(--text3)">NON-REG</div>
-      <div class="mw-value" id="abInvVal">—</div>
-      <div class="mw-chg" id="abInvChg">—</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px">
+      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--text3);width:68px;flex-shrink:0">NON-REG</span>
+      <span class="mono" style="font-size:14px;font-weight:700" id="abInvVal">—</span>
+      <span class="mono" style="font-size:12px;margin-left:auto;padding-left:10px" id="abInvChg">—</span>
     </div>
   </div>
 
@@ -2312,7 +2312,7 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
     const retPct  = g.costBasisCAD > 0 ? (g.mktVal - g.costBasisCAD) / g.costBasisCAD * 100 : null;
     const retColor = retPct != null ? (retPct >= 0 ? 'green' : 'red') : '';
     const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
-    return `<tr data-rowtype="summary" data-account="${g.accounts[0]}" data-sector="${g.sector}" data-pnl="${pnlAttr}" data-mv="${g.mktVal.toFixed(2)}" data-cb="${g.costBasisCAD.toFixed(2)}" data-unreal="${g.unrealizedCAD.toFixed(2)}" data-div="${g.dividends.toFixed(2)}" data-real="${g.realized.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
+    return `<tr data-rowtype="summary" data-account="${g.accounts[0]}" data-sector="${g.sector}" data-pnl="${pnlAttr}" data-mv="${g.mktVal.toFixed(2)}" data-cb="${g.costBasisCAD.toFixed(2)}" data-unreal="${g.unrealizedCAD.toFixed(2)}" data-div="${g.dividends.toFixed(2)}" data-real="${g.realized.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}" data-daychg="${dayDollarCAD.toFixed(2)}">
       <td class="mono blue">${g.ticker}</td>
       <td class="text2">${g.name}</td>
       <td><div style="display:flex;flex-wrap:wrap;gap:3px">${acctBadgesHtml}</div></td>
@@ -2554,7 +2554,8 @@ function refreshTablePrices(liveData) {
   ].reduce((a, b) => a + b, 0);
 
   HOLDINGS_STATIC.forEach(h => {
-    const row = tbody.querySelector(`tr[data-ticker="${h.ticker}"][data-account="${h.account}"]`);
+    // Only update NORMAL rows — summary rows aggregate multiple lots and must not be overwritten
+    const row = tbody.querySelector(`tr[data-rowtype="normal"][data-ticker="${h.ticker}"][data-account="${h.account}"]`);
     if (!row) return;
 
     const p         = hPrices[h.ticker];

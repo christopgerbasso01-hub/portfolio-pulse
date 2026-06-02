@@ -23,63 +23,19 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 # PORTFOLIO CONTEXT  (update when positions change)
 # ============================================================
 PORTFOLIO_CONTEXT = """
-=== INVESTOR PROFILE ===
-  Name: Christopher, Age 24, Male, Toronto ON Canada
-  Income: ~$90K CAD/year salaried + annual bonus (bonus usually October)
-  Risk tolerance: HIGH — comfortable with 3x leveraged ETFs, no forced-sell threshold
-  Home purchase: Planning GTA property purchase, FHSA (~$54K) + RRSP HBP ($35K) = ~$89K down
-  Residency: Currently working abroad (non-Canadian resident in 2026) → returns to Canada March 2027
-  TFSA/FHSA: ZERO contribution room in 2026 (non-resident year) — DO NOT suggest these accounts
-  RRSP: Still eligible to contribute — route ALL new BUY recommendations here
-  Investment acct: Available for new buys when RRSP is not optimal
+INVESTOR: Christopher, 24M, Toronto. $90K salary + Oct bonus. HIGH risk tolerance.
+GTA home purchase planned: FHSA ~$55K + RRSP HBP $35K = ~$90K down payment.
+Non-resident 2026 (abroad) → returns Canada March 2027.
+ACCOUNT RULE: All new BUY picks → RRSP or Investment ONLY. NEVER TFSA/FHSA (room suspended 2026).
 
-=== CONTRIBUTION ROOM STATUS (2026) ===
-  TFSA:  $0 available this year (non-resident). $7,000 room opens Jan 1 2027.
-  FHSA:  $0 available this year (non-resident). $8,000/yr + $16K lifetime remaining resumes 2027.
-  RRSP:  Room available — deploy new buys here (0% US dividend withholding advantage)
-  RULE:  ALL stock pick account recommendations must say RRSP or Investment. NEVER suggest TFSA or FHSA.
+ACCOUNTS (~$280K total, +83% ROI):
+  TFSA $100K +121% | Investment $97K +45% | FHSA $55K +123% | RRSP $28K +72%
 
-=== ACCOUNTS & APPROXIMATE VALUES (as of June 2026) ===
-  TFSA:        CAD ~$100K | Contributions $44,500 | ROI ~+121% | 100% tax-free on all gains
-  Investment:  CAD ~$97K  | Contributions $65,000 | ROI ~+45%  | 50% cap-gains inclusion
-  FHSA:        CAD ~$55K  | Contributions $24,000 | ROI ~+123% | Tax-free home purchase withdrawal
-  RRSP:        CAD ~$28K  | Contributions $16,132 | ROI ~+72%  | Deferred + 0% US dividend withholding
-  Total:       CAD ~$280K | Total P&L ~+$124K     | Overall ROI ~+83%
+HOLDINGS: Leveraged ETFs 49% (FNGU/SPXL/UDOW), Tech 20% (NVDA+1776% NEVER SELL, TXF.TO, AVGO, TSM, MSFT, AAPL, QCOM, MSTR), CDN Fin 10% (CM.TO, RY.TO, BMO.TO), Other (ENB.TO, TSLA, IBKR, V, ET, LYV, GBTC, BYDDF). RRSP has $10,531 cash — deploy to ZSP.TO.
 
-=== CURRENT HOLDINGS (approximate weights) ===
-  Leveraged ETFs ~49%:
-    FNGU  — FANG+ 3x (TFSA 495sh + Investment 665sh + FHSA 157sh + RRSP 56sh)
-    SPXL  — S&P500 3x (TFSA 23sh + Investment 75sh + FHSA 53sh)
-    UDOW  — Dow 3x (TFSA 84sh + FHSA 86sh + RRSP 36sh)
+SENSITIVITIES: 3x leverage amplifies S&P/NASDAQ/Dow both ways. 68% USD → $1,800/1¢ USD/CAD. FX book 1.3925. VIX>22 = decay risk.
 
-  Technology ~20%:
-    NVDA   — TFSA 40sh @ $16/sh split-adj cost (+1,776% ROI — core forever holding, NEVER SELL)
-    TXF.TO — CI Tech Giants Covered Call ETF (TFSA 320sh+Inv 221sh+FHSA 434sh+RRSP 284sh)
-    AVGO   — TFSA 8sh (acquired Apr 2026) | MSFT — TFSA 2sh | AAPL — TFSA 4sh | QCOM — TFSA 5sh
-    TSM    — Investment 9sh + RRSP 6sh | MSTR — Investment 4sh
-
-  Canadian Financials ~10%:
-    CM.TO — CIBC (TFSA 45sh + Investment 50sh) | RY.TO — Royal Bank (Investment 19sh) | BMO.TO — TFSA 15sh
-
-  Other ~21%:
-    ENB.TO — Enbridge FHSA 82sh | TSLA — TFSA 14sh | IBKR — Investment 40sh | V — Investment 4sh
-    ET — TFSA 60sh | LYV — Investment 11sh | GBTC — Investment 25sh | BYDDF — Investment 1sh
-    RRSP Cash — ~$10,531 uninvested (priority: deploy into ZSP.TO immediately)
-
-=== KEY SENSITIVITIES ===
-  - ~49% leveraged ETFs → amplifies S&P 500/NASDAQ/Dow by 3x both ways
-  - ~68% USD-denominated → every 1¢ USD/CAD move ≈ $1,800 portfolio impact
-  - FX book rate 1.3925 (drag when CAD < 1.3925, tailwind when CAD > 1.3925)
-  - RRSP cash $10,531 uninvested = $843/year foregone at 8% — ZSP.TO preferred
-  - NVDA is best single trade at +1,776% — never sell (TFSA, permanently sheltered)
-  - VIX above 22 = danger zone for 3x ETF volatility decay
-
-=== INVESTMENT PHILOSOPHY ===
-  - High conviction in AI infrastructure: NVDA, AVGO, TSM, FNGU
-  - Open to ANY sector if thesis is strong — no restrictions
-  - New stock ideas welcome from any market/sector globally
-  - Prefers actionable entries with specific price targets
-  - Comfortable holding leveraged ETFs through drawdowns (does not panic sell)
+PICKS RULE: Include stocks NOT currently held. RRSP or Investment account only. Use news to find fresh ideas from any global market.
 """
 
 # US tickers to pull company-specific news for (Finnhub free tier, no .TO support)

@@ -6,11 +6,6 @@
       "config": { "maxDuration": 30 }
     },
     {
-      "src": "api/chat.py",
-      "use": "@vercel/python",
-      "config": { "maxDuration": 60 }
-    },
-    {
       "src": "api/snapshot.py",
       "use": "@vercel/python",
       "config": { "maxDuration": 30 }
@@ -72,7 +67,6 @@
   ],
   "routes": [
     { "src": "/api/market",               "dest": "/api/market.py"               },
-    { "src": "/api/chat",                 "dest": "/api/chat.py"                 },
     { "src": "/api/snapshot",             "dest": "/api/snapshot.py"             },
     { "src": "/api/push",                 "dest": "/api/push.py"                 },
     { "src": "/api/notify",               "dest": "/api/notify.py"               },

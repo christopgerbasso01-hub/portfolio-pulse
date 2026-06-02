@@ -1,125 +1,97 @@
 {
   "macro": [
     {
-      "title": "US-Iran Peace",
+      "title": "Inflation Fears",
       "impact": "MED",
-      "confidence": 60,
-      "body": "The potential for a US-Iran peace deal could lead to a decrease in oil prices, affecting the global economy. This could have a positive impact on the portfolio's technology holdings. However, the situation is highly uncertain and volatile.",
-      "bull": "A peace deal could lead to increased investment in the technology sector, benefiting holdings like NVDA and MSFT.",
-      "bull_estimate": "+$20,000–$30,000 via tech holdings",
+      "confidence": 70,
+      "body": "The recent surge in job openings and potential Iran war developments may lead to increased inflation. This could impact the portfolio's leveraged positions.",
+      "bull": "A moderate inflation environment could boost the portfolio's growth-oriented holdings.",
+      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL",
       "bull_probability": 40,
-      "base": "The situation is likely to remain uncertain, with minimal impact on the portfolio.",
+      "base": "A stable inflation environment would likely result in minimal net change for the portfolio.",
       "base_estimate": "±$5,000",
       "base_probability": 30,
-      "bear": "An escalation of the conflict could lead to increased oil prices, negatively impacting the portfolio's technology holdings.",
-      "bear_estimate": "-$15,000–$25,000 via 3x leverage amplification",
+      "bear": "High inflation could lead to decreased purchasing power and negatively impact the portfolio's value.",
+      "bear_estimate": "-$30,000-$40,000",
       "bear_probability": 30
     },
     {
-      "title": "Global Supply Chains",
+      "title": "Geopolitical Tensions",
       "impact": "HIGH",
       "confidence": 80,
-      "body": "The ongoing conflict in the Middle East is affecting global supply chains, particularly in the technology sector. This could lead to increased costs and decreased production for companies like NVDA and TSM.",
-      "bull": "Companies like NVDA and TSM may benefit from increased demand for their products, despite supply chain disruptions.",
-      "bull_estimate": "+$15,000–$25,000 via tech holdings",
+      "body": "The ongoing US-Iran conflict and potential escalation could lead to market volatility. This may affect the portfolio's risk profile.",
+      "bull": "A resolution to the conflict could lead to a relief rally, benefiting the portfolio's growth-oriented holdings.",
+      "bull_estimate": "+$25,000-$35,000",
       "bull_probability": 35,
-      "base": "The situation is likely to remain challenging, with minimal impact on the portfolio.",
-      "base_estimate": "±$5,000",
+      "base": "A prolonged conflict could result in increased market volatility, potentially impacting the portfolio's value.",
+      "base_estimate": "±$10,000",
       "base_probability": 40,
-      "bear": "Prolonged supply chain disruptions could lead to decreased production and increased costs, negatively impacting the portfolio's technology holdings.",
-      "bear_estimate": "-$25,000–$40,000 via 3x leverage amplification",
+      "bear": "An escalation of the conflict could lead to a significant market downturn, negatively impacting the portfolio.",
+      "bear_estimate": "-$40,000-$50,000",
       "bear_probability": 25
     },
     {
-      "title": "US Manufacturing",
+      "title": "AI-Driven Growth",
       "impact": "MED",
-      "confidence": 70,
-      "body": "The US manufacturing sector is experiencing a resurgence, with increased activity and production. This could have a positive impact on the portfolio's technology holdings, particularly those with exposure to the US market.",
-      "bull": "Companies like MSFT and AAPL may benefit from increased demand for their products, driven by the resurgence of the US manufacturing sector.",
-      "bull_estimate": "+$10,000–$20,000 via tech holdings",
+      "confidence": 60,
+      "body": "The growing adoption of AI technology could lead to increased growth in the tech sector. This may benefit the portfolio's tech holdings.",
+      "bull": "A continued AI-driven growth trend could lead to significant gains for the portfolio's tech holdings.",
+      "bull_estimate": "+$30,000-$40,000",
       "bull_probability": 45,
-      "base": "The situation is likely to remain positive, with minimal impact on the portfolio.",
-      "base_estimate": "±$5,000",
+      "base": "A stable AI growth environment would likely result in moderate gains for the portfolio's tech holdings.",
+      "base_estimate": "+$10,000-$20,000",
       "base_probability": 35,
-      "bear": "A decline in the US manufacturing sector could lead to decreased demand for technology products, negatively impacting the portfolio's holdings.",
-      "bear_estimate": "-$10,000–$20,000 via 3x leverage amplification",
+      "bear": "A slowdown in AI adoption could lead to decreased growth for the portfolio's tech holdings.",
+      "bear_estimate": "-$15,000-$25,000",
       "bear_probability": 20
     }
   ],
   "risks": [
     {
-      "title": "3x Leverage Amplification",
+      "title": "Leverage Risk",
       "level": "HIGH",
-      "context": "49% of portfolio (~ $135K CAD)",
-      "body": "The portfolio's exposure to 3x leveraged ETFs amplifies both gains and losses, increasing the risk of significant portfolio fluctuations."
+      "context": "49% of portfolio (~ $135K CAD) in leveraged ETFs",
+      "body": "The portfolio's high leverage exposure amplifies both gains and losses, increasing risk."
     },
     {
-      "title": "FX Book Rate Drag",
+      "title": "FX Risk",
       "level": "MED",
-      "context": "68% of portfolio denominated in USD",
-      "body": "The portfolio's FX book rate of 1.3925 may result in a drag on returns if the CAD strengthens against the USD, affecting the value of USD-denominated holdings."
+      "context": "68% USD exposure (~ $190K CAD) with FX book rate of 1.3925",
+      "body": "The portfolio's significant USD exposure and FX book rate may result in currency-related losses."
     },
     {
       "title": "Concentration Risk",
       "level": "MED",
-      "context": "Large positions in NVDA and FNGU",
-      "body": "The portfolio's concentration in a few large positions, particularly NVDA and FNGU, increases the risk of significant losses if these holdings decline in value."
+      "context": "Top 5 holdings account for ~60% of portfolio value",
+      "body": "The portfolio's concentration in a few key holdings increases risk if any of these holdings experience significant declines."
     }
   ],
   "news": [
     {
-      "headline": "US-Iran Peace Talks",
-      "impact": "MED",
-      "confidence": 60,
-      "category": "Sector & Stock",
-      "body": "The potential for a US-Iran peace deal could lead to decreased oil prices, affecting the global economy and the portfolio's technology holdings.",
-      "exposure": "FNGU ~$87K CAD (3x leverage), SPXL ~$22K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 40,
-          "scenario": "A peace deal could lead to increased investment in the technology sector, benefiting holdings like NVDA and MSFT.",
-          "estimate": "+$12,000–$18,000 on leveraged positions"
-        },
-        {
-          "label": "Base",
-          "probability": 30,
-          "scenario": "The situation is likely to remain uncertain, with minimal impact on the portfolio.",
-          "estimate": "±$3,000"
-        },
-        {
-          "label": "Bear",
-          "probability": 30,
-          "scenario": "An escalation of the conflict could lead to increased oil prices, negatively impacting the portfolio's technology holdings.",
-          "estimate": "-$20,000–$30,000 via 3x leverage amplification"
-        }
-      ]
-    },
-    {
       "headline": "NVIDIA AI PC Chip",
       "impact": "HIGH",
-      "confidence": 80,
+      "confidence": 85,
       "category": "Sector & Stock",
-      "body": "NVIDIA's new AI PC chip could lead to increased demand for their products, benefiting the portfolio's NVDA holding.",
-      "exposure": "NVDA ~$20K CAD",
+      "body": "NVIDIA's AI PC chip unveiling may lead to increased demand for NVDA and other AI-related stocks.",
+      "exposure": "NVDA ~$43K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 50,
-          "scenario": "Increased demand for NVIDIA's products could lead to significant gains for the portfolio's NVDA holding.",
-          "estimate": "+$10,000–$15,000"
+          "scenario": "NVDA and other AI-related stocks experience significant gains.",
+          "estimate": "+$10,000-$15,000"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "The situation is likely to remain positive, with minimal impact on the portfolio.",
-          "estimate": "±$2,000"
+          "scenario": "NVDA and other AI-related stocks experience moderate gains.",
+          "estimate": "+$3,000-$6,000"
         },
         {
           "label": "Bear",
           "probability": 20,
-          "scenario": "Intense competition in the AI sector could lead to decreased demand for NVIDIA's products, negatively impacting the portfolio's NVDA holding.",
-          "estimate": "-$5,000–$10,000"
+          "scenario": "NVDA and other AI-related stocks experience declines.",
+          "estimate": "-$5,000-$10,000"
         }
       ]
     },
@@ -128,165 +100,205 @@
       "impact": "MED",
       "confidence": 70,
       "category": "Sector & Stock",
-      "body": "TSMC's price hike could lead to increased costs for companies like NVIDIA, affecting the portfolio's NVDA holding.",
-      "exposure": "NVDA ~$20K CAD, TSM ~$10K CAD",
+      "body": "TSMC's price hike may negatively impact NVDA's margins and stock price.",
+      "exposure": "NVDA ~$43K CAD, TSM ~$10K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 35,
-          "scenario": "Companies like NVIDIA may be able to pass on increased costs to consumers, minimizing the impact on the portfolio.",
-          "estimate": "+$2,000–$5,000"
+          "probability": 30,
+          "scenario": "NVDA and TSM experience minimal impact from the price hike.",
+          "estimate": "±$1,000"
         },
         {
           "label": "Base",
           "probability": 40,
-          "scenario": "The situation is likely to remain challenging, with minimal impact on the portfolio.",
-          "estimate": "±$1,000"
+          "scenario": "NVDA and TSM experience moderate declines due to the price hike.",
+          "estimate": "-$2,000-$4,000"
+        },
+        {
+          "label": "Bear",
+          "probability": 30,
+          "scenario": "NVDA and TSM experience significant declines due to the price hike.",
+          "estimate": "-$5,000-$10,000"
+        }
+      ]
+    },
+    {
+      "headline": "HPE Guidance Hike",
+      "impact": "MED",
+      "confidence": 65,
+      "category": "Sector & Stock",
+      "body": "HPE's guidance hike may lead to increased demand for tech stocks, including AVGO and MSFT.",
+      "exposure": "AVGO ~$12K CAD, MSFT ~$15K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 40,
+          "scenario": "AVGO and MSFT experience significant gains due to the guidance hike.",
+          "estimate": "+$4,000-$8,000"
+        },
+        {
+          "label": "Base",
+          "probability": 35,
+          "scenario": "AVGO and MSFT experience moderate gains due to the guidance hike.",
+          "estimate": "+$1,500-$3,500"
         },
         {
           "label": "Bear",
           "probability": 25,
-          "scenario": "Increased costs could lead to decreased margins for companies like NVIDIA, negatively impacting the portfolio's NVDA holding.",
-          "estimate": "-$5,000–$10,000"
+          "scenario": "AVGO and MSFT experience minimal impact from the guidance hike.",
+          "estimate": "±$1,000"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "GOOGL",
+      "ticker": "CRWD",
       "action": "ADD",
-      "account": "TFSA",
-      "thesis": "Google's dominance in the technology sector, particularly in AI, makes it an attractive addition to the portfolio.",
-      "entry": "Consider adding GOOGL to the TFSA account, taking advantage of the tax-free growth."
+      "account": "RRSP",
+      "thesis": "CrowdStrike's growth in the cybersecurity sector, driven by AI adoption, makes it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $150-$180"
     },
     {
-      "ticker": "AMZN",
+      "ticker": "ZM",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Amazon's diversification across various sectors, including technology and e-commerce, makes it a potential addition to the portfolio.",
-      "entry": "Monitor AMZN's performance and consider adding it to the Investment account if the thesis plays out."
+      "thesis": "Zoom's potential for growth in the video conferencing space, driven by remote work trends, makes it a stock to monitor for potential addition to the portfolio.",
+      "entry": "Monitor for entry on a pullback to $200-$220"
     }
   ],
   "strengths": [
     {
-      "ticker": "NVDA",
-      "text": "Significant gains in NVDA, with a +1,776% ROI, providing a strong foundation for the portfolio."
-    },
-    {
-      "ticker": "FNGU",
-      "text": "3x leverage in FNGU amplifies gains, increasing the portfolio's potential for growth."
-    },
-    {
-      "ticker": "TFSA",
-      "text": "Tax-free growth in the TFSA account provides a significant advantage for long-term investments."
-    },
-    {
-      "ticker": "FHSA",
-      "text": "Double tax advantage in the FHSA account offers a unique opportunity for tax-efficient growth."
-    },
-    {
       "ticker": null,
-      "text": "Diversification across various sectors, including technology and finance, reduces portfolio risk."
+      "text": "Diversified portfolio with a mix of growth and income-generating holdings"
+    },
+    {
+      "ticker": "NVDA",
+      "text": "Strong growth potential in the AI and tech sectors"
+    },
+    {
+      "ticker": "TSLA",
+      "text": "Exposure to the growing electric vehicle market"
+    },
+    {
+      "ticker": "MSFT",
+      "text": "Stable cash flows and dividend payments"
+    },
+    {
+      "ticker": "V",
+      "text": "Growing payment processing industry and potential for expansion"
     }
   ],
   "concerns": [
     {
-      "ticker": "RRSP",
-      "text": "Uninvested cash in the RRSP account represents an opportunity cost, potentially reducing long-term growth."
-    },
-    {
-      "ticker": "FNGU",
-      "text": "Concentration in FNGU increases the risk of significant losses if the holding declines in value."
+      "ticker": null,
+      "text": "High leverage exposure increases risk"
     },
     {
       "ticker": "NVDA",
-      "text": "Dependence on NVDA's performance may increase portfolio risk if the company experiences a decline."
+      "text": "Dependence on AI and tech sector growth"
+    },
+    {
+      "ticker": "TSLA",
+      "text": "Volatility in the electric vehicle market"
     },
     {
       "ticker": "SPXL",
-      "text": "3x leverage in SPXL amplifies both gains and losses, increasing the risk of significant portfolio fluctuations."
+      "text": "Concentration in a few key holdings increases risk"
     },
     {
-      "ticker": null,
-      "text": "FX book rate drag may result in a decrease in the portfolio's value if the CAD strengthens against the USD."
+      "ticker": "FNGU",
+      "text": "Leveraged ETFs amplify both gains and losses"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the US-Iran peace talks and adjust the portfolio accordingly, taking advantage of potential opportunities or mitigating risks."
+      "text": "Monitor and adjust leverage exposure as needed to manage risk"
     },
     {
       "num": "02",
-      "text": "Consider rebalancing the portfolio to maintain an optimal asset allocation, reducing concentration risk and increasing diversification."
+      "text": "Consider tax-loss harvesting to optimize portfolio performance"
     },
     {
       "num": "03",
-      "text": "Take advantage of tax-loss harvesting opportunities to minimize taxes and optimize portfolio performance."
+      "text": "Maintain a cash allocation to take advantage of potential market opportunities"
+    },
+    {
+      "num": "04",
+      "text": "Review and adjust the portfolio's sector allocation to ensure diversification"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to invest in the technology sector, taking advantage of growth opportunities and potential innovations."
+      "text": "Continue to invest in growth-oriented holdings, such as tech and AI-related stocks"
     },
     {
       "num": "02",
-      "text": "Diversify the portfolio by adding new holdings, reducing concentration risk and increasing potential for long-term growth."
+      "text": "Diversify the portfolio by adding holdings from other sectors, such as healthcare or finance"
     },
     {
       "num": "03",
-      "text": "Consider adding alternative investments, such as real estate or commodities, to reduce correlation with traditional assets and increase diversification."
+      "text": "Consider adding dividend-paying stocks to increase income generation"
+    },
+    {
+      "num": "04",
+      "text": "Review and adjust the portfolio's geographic allocation to ensure diversification"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Maintain a long-term perspective, focusing on growth and income generation rather than short-term gains."
+      "text": "Maintain a long-term focus and avoid making emotional decisions based on short-term market fluctuations"
     },
     {
       "num": "02",
-      "text": "Continuously monitor and adjust the portfolio to ensure it remains aligned with the investor's goals and risk tolerance."
+      "text": "Continue to invest in a tax-efficient manner, utilizing tax-advantaged accounts such as RRSPs and TFSAs"
     },
     {
       "num": "03",
-      "text": "Consider adding a small allocation to emerging markets or sectors, taking advantage of potential growth opportunities and increasing diversification."
+      "text": "Review and adjust the portfolio's asset allocation to ensure it remains aligned with the investor's risk tolerance and goals"
+    },
+    {
+      "num": "04",
+      "text": "Consider adding alternative investments, such as real estate or private equity, to further diversify the portfolio"
     }
   ],
   "tax": {
     "tfsa": [
       {
         "icon": "✦",
-        "text": "Maximize tax-free growth in the TFSA account by investing in high-growth assets."
+        "text": "Utilize TFSA contributions to optimize tax-free growth"
       },
       {
         "icon": "✦",
-        "text": "Consider adding a tax-efficient investment, such as a covered call ETF, to the TFSA account."
+        "text": "Consider transferring non-registered holdings to a TFSA to reduce tax liability"
       }
     ],
     "fhsa": [
       {
         "icon": "✦",
-        "text": "Take advantage of the double tax advantage in the FHSA account by investing in tax-efficient assets."
+        "text": "Utilize FHSA contributions to optimize tax-free growth for the home purchase"
       }
     ],
     "rrsp": [
       {
         "icon": "⚡",
-        "text": "Consider adding a tax-efficient investment, such as a dividend-paying stock, to the RRSP account."
+        "text": "Contribute to RRSP to reduce taxable income and optimize deferred growth"
       }
     ],
     "investment": [
       {
         "icon": "⚠",
-        "text": "Monitor and adjust the portfolio to minimize taxes, taking advantage of tax-loss harvesting opportunities."
+        "text": "Monitor and adjust the portfolio's tax efficiency to minimize tax liability"
       }
     ]
   },
-  "daily_outlook": "The portfolio's outlook remains positive, with potential opportunities for growth in the technology sector. However, the US-Iran peace talks and global supply chain disruptions may introduce uncertainty and volatility.",
+  "daily_outlook": "The portfolio's outlook is cautiously optimistic, with a focus on monitoring and adjusting leverage exposure and sector allocation to manage risk. The potential for growth in the tech and AI sectors, driven by adoption and innovation, is a key driver of the portfolio's performance.",
   "market_mood": "risk-on",
-  "generated_at": "2026-06-01T22:18:56.362931+00:00",
-  "generated_date": "June 01, 2026",
+  "generated_at": "2026-06-02T15:20:23.176633+00:00",
+  "generated_date": "June 02, 2026",
   "next_update": "6:00 AM EST next trading day"
 }

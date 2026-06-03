@@ -1,229 +1,236 @@
 {
   "macro": [
     {
-      "title": "GDP Growth",
-      "impact": "MED",
-      "confidence": 70,
-      "body": "The latest economic indicators suggest a moderate growth in GDP, which could lead to a stable market environment. This growth is expected to be driven by consumer spending and investments. However, the ongoing geopolitical tensions and inflation fears could impact the growth trajectory.",
-      "bull": "A strong GDP growth could lead to an increase in stock prices, benefiting the portfolio's leveraged positions.",
-      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 40,
-      "base": "A moderate GDP growth could result in a stable market, with minimal impact on the portfolio.",
-      "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 30,
-      "bear": "A slow GDP growth could lead to a decline in stock prices, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$25,000-$40,000 via 3x ETF amplification",
+      "title": "Iran Conflict",
+      "impact": "HIGH",
+      "confidence": 80,
+      "body": "The ongoing conflict between Iran and its neighbors has significant implications for global markets, particularly in the energy sector. This could lead to increased volatility and potential disruptions in oil supplies. The conflict may also lead to increased tensions between the US and Iran, which could have broader geopolitical implications.",
+      "bull": "A swift resolution to the conflict could lead to a decrease in oil prices, benefiting the portfolio's energy holdings.",
+      "bull_estimate": "+$10,000-$15,000 via ENB.TO and other energy holdings",
+      "bull_probability": 30,
+      "base": "A prolonged conflict could lead to increased oil prices, negatively impacting the portfolio's energy holdings.",
+      "base_estimate": "-$5,000-$10,000 via ENB.TO and other energy holdings",
+      "base_probability": 40,
+      "bear": "A severe escalation of the conflict could lead to a significant increase in oil prices, severely impacting the portfolio's energy holdings.",
+      "bear_estimate": "-$20,000-$30,000 via ENB.TO and other energy holdings",
       "bear_probability": 30
     },
     {
-      "title": "Inflation Fears",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "The recent inflation data has raised concerns about the potential impact on the economy and stock markets. The portfolio's holdings in tech and finance could be affected by changes in inflation expectations.",
-      "bull": "A decline in inflation fears could lead to an increase in stock prices, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$15,000-$25,000 via NVDA and TXF.TO",
-      "bull_probability": 35,
-      "base": "A stable inflation environment could result in a minimal impact on the portfolio.",
-      "base_estimate": "±$2,000 — inflation expectations stable",
-      "base_probability": 40,
-      "bear": "A rise in inflation fears could lead to a decline in stock prices, negatively impacting the portfolio's tech holdings.",
-      "bear_estimate": "-$20,000-$35,000 via NVDA and TXF.TO",
-      "bear_probability": 25
+      "title": "US Tariffs",
+      "impact": "MED",
+      "confidence": 70,
+      "body": "The proposed tariffs on EU goods could lead to a trade war, negatively impacting global markets. This could lead to increased volatility and decreased economic growth.",
+      "bull": "A resolution to the tariff dispute could lead to increased trade and economic growth, benefiting the portfolio's holdings.",
+      "bull_estimate": "+$5,000-$10,000 via MSFT, AAPL, and other holdings",
+      "bull_probability": 40,
+      "base": "A prolonged tariff dispute could lead to decreased trade and economic growth, negatively impacting the portfolio's holdings.",
+      "base_estimate": "-$2,000-$5,000 via MSFT, AAPL, and other holdings",
+      "base_probability": 30,
+      "bear": "A severe escalation of the tariff dispute could lead to a significant decrease in trade and economic growth, severely impacting the portfolio's holdings.",
+      "bear_estimate": "-$10,000-$20,000 via MSFT, AAPL, and other holdings",
+      "bear_probability": 30
     },
     {
-      "title": "Geopolitical Tensions",
-      "impact": "MED",
+      "title": "Global Economic Growth",
+      "impact": "LOW",
       "confidence": 60,
-      "body": "The ongoing geopolitical tensions could impact the global economy and stock markets. The portfolio's holdings in finance and energy could be affected by changes in global trade and diplomacy.",
-      "bull": "A decline in geopolitical tensions could lead to an increase in stock prices, benefiting the portfolio's finance holdings.",
-      "bull_estimate": "+$10,000-$20,000 via CM.TO and RY.TO",
-      "bull_probability": 30,
-      "base": "A stable geopolitical environment could result in a minimal impact on the portfolio.",
-      "base_estimate": "±$1,000 — geopolitical tensions stable",
-      "base_probability": 50,
-      "bear": "A rise in geopolitical tensions could lead to a decline in stock prices, negatively impacting the portfolio's finance holdings.",
-      "bear_estimate": "-$15,000-$30,000 via CM.TO and RY.TO",
-      "bear_probability": 20
+      "body": "The global economy is expected to continue growing, albeit at a slower pace. This could lead to increased demand for goods and services, benefiting the portfolio's holdings.",
+      "bull": "A stronger-than-expected economic growth could lead to increased demand for goods and services, benefiting the portfolio's holdings.",
+      "bull_estimate": "+$5,000-$10,000 via TXF.TO, AVGO, and other holdings",
+      "bull_probability": 40,
+      "base": "A slower-than-expected economic growth could lead to decreased demand for goods and services, negatively impacting the portfolio's holdings.",
+      "base_estimate": "-$2,000-$5,000 via TXF.TO, AVGO, and other holdings",
+      "base_probability": 30,
+      "bear": "A severe economic downturn could lead to a significant decrease in demand for goods and services, severely impacting the portfolio's holdings.",
+      "bear_estimate": "-$10,000-$20,000 via TXF.TO, AVGO, and other holdings",
+      "bear_probability": 30
     }
   ],
   "risks": [
     {
-      "title": "Leverage Risk",
+      "title": "3x Leverage Amplification",
       "level": "HIGH",
-      "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's high leverage exposure through FNGU, SPXL, and UDOW could result in significant losses if the market declines. This risk is amplified by the portfolio's high risk tolerance and concentration in tech and finance."
+      "context": "49% of portfolio (~ $135K CAD) is invested in 3x leveraged ETFs",
+      "body": "The portfolio's 3x leveraged ETFs amplify both gains and losses, increasing the risk of significant losses if the market declines."
     },
     {
-      "title": "FX Risk",
+      "title": "FX Book Rate Drag",
       "level": "MED",
-      "context": "68% USD exposure ~ $190K CAD",
-      "body": "The portfolio's high USD exposure could result in losses if the CAD appreciates against the USD. This risk is mitigated by the portfolio's FX book rate of 1.3925."
+      "context": "68% of portfolio is denominated in USD, with a FX book rate of 1.3925",
+      "body": "The portfolio's FX book rate could lead to losses if the CAD appreciates against the USD."
     },
     {
       "title": "Concentration Risk",
       "level": "MED",
-      "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's high concentration in a few holdings, such as NVDA and FNGU, could result in significant losses if these holdings decline in value. This risk is mitigated by the portfolio's diversification across sectors and geographies."
+      "context": "The portfolio is heavily concentrated in a few holdings, including NVDA and FNGU",
+      "body": "The portfolio's concentration in a few holdings increases the risk of significant losses if those holdings decline in value."
     }
   ],
   "news": [
     {
-      "headline": "NVIDIA AI PC Chip",
+      "headline": "Hezbollah Launches Rockets at Israel",
       "impact": "HIGH",
-      "confidence": 90,
+      "confidence": 80,
       "category": "Sector & Stock",
-      "body": "NVIDIA's new AI PC chip could lead to an increase in demand for the company's products, benefiting the portfolio's NVDA holding.",
-      "exposure": "NVDA ~ $40K CAD",
+      "body": "The conflict between Hezbollah and Israel could lead to increased tensions in the region, negatively impacting the portfolio's energy holdings.",
+      "exposure": "ENB.TO ~ $10K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 50,
-          "scenario": "NVIDIA's stock price increases due to high demand for the new AI PC chip.",
-          "estimate": "+$10,000-$15,000 via NVDA"
+          "probability": 20,
+          "scenario": "A swift resolution to the conflict could lead to a decrease in oil prices, benefiting the portfolio's energy holdings.",
+          "estimate": "+$2,000-$5,000"
         },
         {
           "label": "Base",
-          "probability": 30,
-          "scenario": "NVIDIA's stock price remains stable due to moderate demand for the new AI PC chip.",
-          "estimate": "±$2,000 — NVIDIA's stock price stable"
+          "probability": 50,
+          "scenario": "A prolonged conflict could lead to increased oil prices, negatively impacting the portfolio's energy holdings.",
+          "estimate": "-$1,000-$3,000"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "NVIDIA's stock price declines due to low demand for the new AI PC chip.",
-          "estimate": "-$5,000-$10,000 via NVDA"
+          "probability": 30,
+          "scenario": "A severe escalation of the conflict could lead to a significant increase in oil prices, severely impacting the portfolio's energy holdings.",
+          "estimate": "-$5,000-$10,000"
         }
       ]
     },
     {
-      "headline": "Microsoft MAI AI Models",
+      "headline": "NVIDIA AI Chip Demand",
       "impact": "MED",
       "confidence": 70,
       "category": "Sector & Stock",
-      "body": "Microsoft's new MAI AI models could lead to an increase in demand for the company's products, benefiting the portfolio's MSFT holding.",
-      "exposure": "MSFT ~ $15K CAD",
+      "body": "The increasing demand for NVIDIA's AI chips could lead to increased revenue and profitability for the company, benefiting the portfolio's NVDA holding.",
+      "exposure": "NVDA ~ $30K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "Microsoft's stock price increases due to high demand for the new MAI AI models.",
-          "estimate": "+$5,000-$10,000 via MSFT"
+          "scenario": "Increased demand for NVIDIA's AI chips could lead to significant revenue growth, benefiting the portfolio's NVDA holding.",
+          "estimate": "+$5,000-$10,000"
         },
         {
           "label": "Base",
-          "probability": 40,
-          "scenario": "Microsoft's stock price remains stable due to moderate demand for the new MAI AI models.",
-          "estimate": "±$1,000 — Microsoft's stock price stable"
+          "probability": 30,
+          "scenario": "Stable demand for NVIDIA's AI chips could lead to moderate revenue growth, benefiting the portfolio's NVDA holding.",
+          "estimate": "+$1,000-$3,000"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "Microsoft's stock price declines due to low demand for the new MAI AI models.",
-          "estimate": "-$3,000-$6,000 via MSFT"
+          "probability": 30,
+          "scenario": "Decreased demand for NVIDIA's AI chips could lead to significant revenue decline, negatively impacting the portfolio's NVDA holding.",
+          "estimate": "-$5,000-$10,000"
         }
       ]
     },
     {
       "headline": "Visa Stablecoin Platform",
       "impact": "LOW",
-      "confidence": 50,
+      "confidence": 60,
       "category": "Sector & Stock",
-      "body": "Visa's new stablecoin platform could lead to an increase in demand for the company's products, benefiting the portfolio's V holding.",
-      "exposure": "V ~ $10K CAD",
+      "body": "The launch of Visa's stablecoin platform could lead to increased adoption of cryptocurrencies, benefiting the portfolio's GBTC holding.",
+      "exposure": "GBTC ~ $5K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 30,
-          "scenario": "Visa's stock price increases due to high demand for the new stablecoin platform.",
-          "estimate": "+$2,000-$5,000 via V"
+          "scenario": "Increased adoption of cryptocurrencies could lead to significant price appreciation, benefiting the portfolio's GBTC holding.",
+          "estimate": "+$1,000-$3,000"
         },
         {
           "label": "Base",
-          "probability": 50,
-          "scenario": "Visa's stock price remains stable due to moderate demand for the new stablecoin platform.",
-          "estimate": "±$500 — Visa's stock price stable"
+          "probability": 40,
+          "scenario": "Stable demand for cryptocurrencies could lead to moderate price appreciation, benefiting the portfolio's GBTC holding.",
+          "estimate": "+$500-$1,000"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "Visa's stock price declines due to low demand for the new stablecoin platform.",
-          "estimate": "-$1,500-$3,000 via V"
+          "probability": 30,
+          "scenario": "Decreased demand for cryptocurrencies could lead to significant price decline, negatively impacting the portfolio's GBTC holding.",
+          "estimate": "-$1,000-$3,000"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "COST",
+      "ticker": "AMD",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Costco's strong quarterly performance and retail advantage could lead to an increase in demand for the company's products, benefiting the portfolio.",
-      "entry": "Entry price range: $500-$600"
+      "thesis": "AMD's increasing market share in the semiconductor industry, particularly in the AI and gaming segments, makes it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $80-$100"
     },
     {
-      "ticker": "SHEL",
+      "ticker": "BABA",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Shell's portfolio optimization and LNG strength could lead to an increase in demand for the company's products, benefiting the portfolio.",
-      "entry": "Monitor for entry on a decline in oil prices"
+      "thesis": "BABA's dominant position in the Chinese e-commerce market and its growing presence in the cloud computing and AI segments make it a potential addition to the portfolio.",
+      "entry": "Monitor for entry opportunity on a pullback to $150-$180"
+    },
+    {
+      "ticker": "ZSP.TO",
+      "action": "NEW",
+      "account": "RRSP",
+      "thesis": "ZSP.TO's low-cost index tracking and diversification benefits make it an attractive addition to the portfolio, particularly for the RRSP account.",
+      "entry": "Deploy $10,531 cash in RRSP to ZSP.TO"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "High risk tolerance and concentration in growth sectors"
+      "text": "Diversified portfolio with a mix of growth and income-generating assets"
     },
     {
       "ticker": "NVDA",
-      "text": "Strong performance and high growth potential"
+      "text": "Significant holding in a leading AI and semiconductor company"
     },
     {
       "ticker": "FNGU",
-      "text": "Leveraged exposure to the growth sector"
+      "text": "3x leveraged ETF providing amplified exposure to the US stock market"
     },
     {
-      "ticker": "TXF.TO",
-      "text": "Diversification across geographies and sectors"
+      "ticker": "ENB.TO",
+      "text": "Stable energy holding with a strong dividend yield"
     },
     {
-      "ticker": null,
-      "text": "Tax-efficient use of RRSP and TFSA accounts"
+      "ticker": "MSFT",
+      "text": "Diversified technology holding with a strong track record of growth and innovation"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "High leverage exposure and concentration risk"
+      "text": "Concentration risk in a few holdings, including NVDA and FNGU"
     },
     {
-      "ticker": "NVDA",
-      "text": "Dependence on a few high-growth stocks"
+      "ticker": "GBTC",
+      "text": "Volatility and regulatory risks associated with cryptocurrency holdings"
     },
     {
-      "ticker": "FNGU",
-      "text": "Leveraged ETFs can result in significant losses if the market declines"
+      "ticker": "TSLA",
+      "text": "Valuation risks and competitive pressures in the electric vehicle market"
     },
     {
-      "ticker": null,
-      "text": "FX risk due to high USD exposure"
+      "ticker": "IBKR",
+      "text": "Dependence on trading volumes and market conditions for brokerage revenue"
     },
     {
-      "ticker": null,
-      "text": "Concentration in tech and finance sectors"
+      "ticker": "V",
+      "text": "Competition and regulatory risks in the payment processing industry"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's leverage exposure and adjust as needed to maintain a stable risk profile"
+      "text": "Monitor the Iran conflict and its potential impact on energy prices and the portfolio's energy holdings"
     },
     {
       "num": "02",
-      "text": "Consider adding to the portfolio's holdings in growth sectors, such as tech and finance"
+      "text": "Keep an eye on the US tariff situation and its potential impact on global trade and the portfolio's holdings"
     },
     {
       "num": "03",
-      "text": "Keep a close eye on the portfolio's FX exposure and adjust the FX book rate as needed"
+      "text": "Consider rebalancing the portfolio to maintain an optimal asset allocation"
     },
     {
       "num": "04",
@@ -233,60 +240,84 @@
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Consider diversifying the portfolio's holdings across more sectors and geographies"
+      "text": "Consider adding more international exposure to the portfolio to diversify and reduce dependence on US markets"
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's concentration risk and adjust as needed to maintain a stable risk profile"
+      "text": "Monitor the growth of the AI and semiconductor industries and consider adding more exposure to these sectors"
     },
     {
       "num": "03",
-      "text": "Keep a close eye on the portfolio's growth potential and adjust the allocation to growth sectors as needed"
+      "text": "Review the portfolio's income-generating assets and consider adding more dividend-paying stocks or bonds"
+    },
+    {
+      "num": "04",
+      "text": "Consider increasing the portfolio's allocation to alternative assets, such as real estate or private equity"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Consider adding to the portfolio's holdings in dividend-paying stocks to increase income generation"
+      "text": "Consider the long-term implications of the global shift towards renewable energy and its potential impact on the portfolio's energy holdings"
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's tax efficiency and consider tax-deferred growth opportunities"
+      "text": "Monitor the growth of emerging markets and consider adding more exposure to these regions"
     },
     {
       "num": "03",
-      "text": "Keep a close eye on the portfolio's long-term growth potential and adjust the allocation to growth sectors as needed"
+      "text": "Review the portfolio's asset allocation and consider making adjustments to maintain an optimal mix of assets over the long term"
+    },
+    {
+      "num": "04",
+      "text": "Consider the potential impact of demographic changes and technological advancements on the portfolio's holdings and overall strategy"
     }
   ],
   "tax": {
     "tfsa": [
       {
-        "icon": "✦",
-        "text": "TFSA tax-free optimisation note: consider adding to the portfolio's TFSA holdings to maximize tax-free growth"
+        "icon": "",
+        "text": "Consider maximizing TFSA contributions to optimize tax-free growth"
+      },
+      {
+        "icon": "",
+        "text": "Review the TFSA's asset allocation and consider rebalancing to maintain an optimal mix of assets"
       }
     ],
     "fhsa": [
       {
-        "icon": "✦",
-        "text": "FHSA double tax advantage note: consider adding to the portfolio's FHSA holdings to maximize tax-free growth and first-time homebuyer benefits"
+        "icon": "",
+        "text": "Consider utilizing the FHSA for tax-efficient savings towards a first home purchase"
+      },
+      {
+        "icon": "",
+        "text": "Review the FHSA's asset allocation and consider rebalancing to maintain an optimal mix of assets"
       }
     ],
     "rrsp": [
       {
-        "icon": "⚡",
-        "text": "RRSP deferred growth note: consider adding to the portfolio's RRSP holdings to maximize tax-deferred growth"
+        "icon": "",
+        "text": "Consider maximizing RRSP contributions to optimize tax-deferred growth"
+      },
+      {
+        "icon": "",
+        "text": "Review the RRSP's asset allocation and consider rebalancing to maintain an optimal mix of assets"
       }
     ],
     "investment": [
       {
-        "icon": "⚠",
-        "text": "Non-reg tax consideration: consider tax-loss harvesting opportunities in the portfolio's non-registered accounts"
+        "icon": "",
+        "text": "Consider the tax implications of holding investments in a non-registered account"
+      },
+      {
+        "icon": "",
+        "text": "Review the investment account's asset allocation and consider rebalancing to maintain an optimal mix of assets"
       }
     ]
   },
-  "daily_outlook": "The portfolio's outlook is positive, with a high growth potential and a stable risk profile. However, the portfolio's high leverage exposure and concentration risk require close monitoring.",
+  "daily_outlook": "The portfolio's outlook is cautiously optimistic, with a focus on monitoring the Iran conflict and its potential impact on energy prices and the portfolio's energy holdings. The portfolio's diversified asset allocation and strong holdings in growth-oriented sectors provide a solid foundation for long-term growth.",
   "market_mood": "risk-on",
-  "generated_at": "2026-06-03T14:00:59.527687+00:00",
+  "generated_at": "2026-06-03T17:07:20.466864+00:00",
   "generated_date": "June 03, 2026",
   "next_update": "6:00 AM EST next trading day"
 }

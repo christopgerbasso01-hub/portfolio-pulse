@@ -31,12 +31,41 @@ ACCOUNT RULE: All new BUY picks → RRSP or Investment ONLY. NEVER TFSA/FHSA (ro
 ACCOUNTS (~$280K total, +83% ROI):
   TFSA $100K +121% | Investment $97K +45% | FHSA $55K +123% | RRSP $28K +72%
 
-HOLDINGS: Leveraged ETFs 49% (FNGU/SPXL/UDOW), Tech 20% (NVDA+1776% NEVER SELL, TXF.TO, AVGO, TSM, MSFT, AAPL, QCOM, MSTR), CDN Fin 10% (CM.TO, RY.TO, BMO.TO), Other (ENB.TO, TSLA, IBKR, V, ET, LYV, GBTC, BYDDF). RRSP has $10,531 cash — deploy to ZSP.TO.
+HOLDINGS: Leveraged ETFs 49% (FNGU/SPXL/UDOW), Tech 20% (NVDA+1776% NEVER SELL, TXF.TO, AVGO, TSM, MSFT, AAPL, QCOM, MSTR), CDN Fin 10% (CM.TO, RY.TO, BMO.TO), Other (ENB.TO, TSLA, IBKR, V, ET, LYV, GBTC, BYDDF).
 
 SENSITIVITIES: 3x leverage amplifies S&P/NASDAQ/Dow both ways. 68% USD → $1,800/1¢ USD/CAD. FX book 1.3925. VIX>22 = decay risk.
 
 PICKS RULE: Include stocks NOT currently held. RRSP or Investment account only. Use news to find fresh ideas from any global market.
 """
+
+
+def _fetch_tax_context() -> str:
+    """Fetch the user's live tax situation from KV settings (RRSP limit).
+    Returns a formatted string to inject into the LLM tax prompt."""
+    rrsp_limit = 0
+    try:
+        r = requests.get("https://portfolio-pulse-dun.vercel.app/api/settings", timeout=8)
+        if r.ok:
+            rrsp_limit = float(r.json().get("rrsp_limit") or 0)
+    except Exception:
+        pass
+
+    rrsp_contributions = 16132  # Current contributions from _CONTRIB_BASE
+    rrsp_room     = max(0, rrsp_limit - rrsp_contributions) if rrsp_limit > 0 else None
+    tax_saving    = round(rrsp_room * 0.43) if rrsp_room else None  # ~43% marginal rate
+
+    return f"""=== REAL TAX SITUATION — use this for the "tax" section. Be specific, not generic. ===
+TFSA: MAXED. Non-resident 2026 = ZERO contributions. DO NOT suggest adding to TFSA.
+      $7,000 new room opens Jan 1, 2027. Focus: manage existing positions, plan 2027 re-entry.
+FHSA: NON-RESIDENT 2026 = zero contributions. $16,000 lifetime room remaining resumes March 2027.
+      DO NOT suggest contributing this year. Focus: protect down payment capital, plan withdrawal.
+RRSP: {'NOA deduction limit: $' + f'{rrsp_limit:,.0f}' + ' | Contributed: $' + f'{rrsp_contributions:,.0f}' + ' | Remaining room: $' + f'{rrsp_room:,.0f}' + '.' + (f' A full $' + f'{rrsp_room:,.0f}' + f' contribution saves ~${tax_saving:,.0f} in taxes at current income. October bonus = natural deployment window.' if rrsp_room else '') if rrsp_limit > 0 else f'User has not yet entered their NOA deduction limit. Contributed ${rrsp_contributions:,.0f}. Advise them to check their NOA for exact room.'}
+      RRSP cash (~$7,685 USD) idle — priority deploy into BMO S&P 500 ETF for 0% US dividend withholding.
+NON-REG: Unrealized gains on SPXL, FNGU (50% inclusion + ~43% rate = ~21.5¢ tax/$ at disposition).
+          Harvest candidates: MicroStrategy (~-43%), Grayscale Bitcoin (-17%), BYD (-28%).
+PLANNING: FHSA ($55K) + RRSP HBP ($35K) = ~$90K down payment for GTA. Use FHSA first (no repayment).
+          January 2027: $7K TFSA room opens — prioritize Broadcom, AMD, or highest-conviction growth."""
+
 
 # US tickers to pull company-specific news for (Finnhub free tier, no .TO support)
 COMPANY_NEWS_TICKERS = [
@@ -133,10 +162,10 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
     {"num": "01", "text": "2–10+ year long-horizon note"}
   ],
   "tax": {
-    "tfsa":       [{"icon": "✦", "text": "TFSA tax-free optimisation note"}],
-    "fhsa":       [{"icon": "✦", "text": "FHSA double tax advantage note"}],
-    "rrsp":       [{"icon": "⚡", "text": "RRSP deferred growth note"}],
-    "investment": [{"icon": "⚠",  "text": "Non-reg tax consideration"}]
+    "tfsa":       [{"icon": "⚠️|✅|💡", "text": "Specific note based on REAL TAX SITUATION above. NO generic advice. Must address actual 2026 non-resident status. Max 2 items."}],
+    "fhsa":       [{"icon": "⚠️|✅|💡", "text": "Specific FHSA note: non-resident 2026, home purchase timeline, actual account value context. Max 2 items."}],
+    "rrsp":       [{"icon": "⚠️|✅|💡|💰", "text": "Specific RRSP note: use actual deduction limit and room from TAX SITUATION. If room > 0: quantify tax savings. If cash idle: name the ETF. Max 2 items."}],
+    "investment": [{"icon": "⚠️|✅|💡", "text": "Specific non-reg note: reference actual harvest candidates by name, estimate deferred tax, migration plan. Max 2 items."}]
   },
   "daily_outlook": "2–3 sentences on today's overall portfolio outlook",
   "market_mood": "risk-on|risk-off|neutral|mixed"
@@ -245,6 +274,7 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]]) 
     prev_ctx = _load_previous_intelligence()
 
     prev_section = f"\n{prev_ctx}\n" if prev_ctx else ""
+    tax_context  = _fetch_tax_context()
 
     return f"""You are a portfolio intelligence analyst generating a daily briefing for a personal Canadian investment portfolio.
 
@@ -252,6 +282,8 @@ TODAY'S DATE: {today}
 {prev_section}
 PORTFOLIO CONTEXT:
 {PORTFOLIO_CONTEXT}
+
+{tax_context}
 
 TODAY'S GENERAL MARKET NEWS (latest ~22 headlines):
 {general_block}

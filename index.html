@@ -3802,11 +3802,14 @@ async function renderPicksSection(picks) {
 // Uses live holdings, actual contribution room, residency status,
 // and real portfolio values. Updates on every market refresh.
 // ============================================================
-function renderTaxSection(data) {
+function renderTaxSection(data, llmTax) {
   const hPrices = data.holdings  || {};
   const usdcad  = data.usdcad    || 1.38;
   const accts   = data.portfolio?.accounts || {};
+  // taxItem renders a bullet; llmItem renders LLM narrative with a subtle style
   const taxItem = (icon, text) => `<div class="tax-item">${icon} ${text}</div>`;
+  const llmItem = (t) => t?.icon && t?.text
+    ? `<div class="tax-item" style="opacity:.85;font-style:italic">${t.icon} ${t.text}</div>` : '';
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   const acctMV = key => accts[key] || HOLDINGS_STATIC
@@ -3834,6 +3837,12 @@ function renderTaxSection(data) {
   const fhsaROI = acctROI('FHSA', fhsaC);
   const rrspROI = acctROI('RRSP', rrspC);
   const invROI  = acctROI('Investment', invC);
+
+  // RRSP NOA deduction limit — from the Contribution Room Tracker
+  const rrspNOALimit  = parseFloat(localStorage.getItem('pp_rrsp_limit') || '0');
+  const rrspRoom      = rrspNOALimit > 0 ? Math.max(0, rrspNOALimit - rrspC) : null;
+  // Tax savings estimate: RRSP contribution deduction at ~43% marginal rate (~$90K income)
+  const rrspTaxSaving = rrspRoom ? Math.round(rrspRoom * 0.43) : null;
 
   // Top holdings per account for context
   const topInAcct = key => HOLDINGS_STATIC
@@ -3875,15 +3884,25 @@ function renderTaxSection(data) {
   // ── RRSP ─────────────────────────────────────────────────────────────────
   const rrspTop = topInAcct('RRSP');
   const rrspItems = [
+    // 1. Idle cash (highest priority if applicable)
     rrspCashCAD > 500
-      ? taxItem('⚠️', `${fmt$(Math.round(rrspCashCAD))} idle cash (${rrspV > 0 ? (rrspCashCAD/rrspV*100).toFixed(0) : 0}% of RRSP). Costs ~${fmt$(Math.round(rrspCashCAD*0.08/12))}/month in foregone returns. Deploy into ZSP.TO — 0% US dividend withholding under Canada-US treaty.`)
-      : taxItem('✅', `RRSP fully deployed — every dollar working. Ideal next buys: ZSP.TO, SCHD, or high-dividend US names that benefit most from the 0% withholding advantage.`),
+      ? taxItem('⚠️', `${fmt$(Math.round(rrspCashCAD))} idle cash (${rrspV > 0 ? (rrspCashCAD/rrspV*100).toFixed(0) : 0}% of RRSP). Costs ~${fmt$(Math.round(rrspCashCAD*0.08/12))}/month in foregone returns. Deploy into BMO S&P 500 ETF — 0% US dividend withholding under Canada-US treaty, unavailable in any other account.`)
+      : taxItem('✅', `RRSP fully deployed — every dollar working. Ideal next buys: BMO S&P 500 ETF, SCHD, or high-dividend US names that benefit most from the 0% withholding advantage.`),
+
+    // 2. Contribution room from NOA (dynamic based on whether limit is set)
+    rrspRoom === null
+      ? taxItem('📋', `Enter your RRSP deduction limit from your most recent NOA in the Contribution Room Tracker below — it unlocks your exact remaining room and projected tax savings.`)
+      : rrspRoom === 0
+        ? taxItem('✅', `RRSP contribution room fully used for this year. Focus on growing existing positions. New room accumulates at 18% of earned income annually (max ~$32,490 in 2026).`)
+        : taxItem('💰', `${fmt$(rrspRoom)} remaining RRSP room (from your NOA deduction limit of ${fmt$(rrspNOALimit)}). A full contribution saves ~${fmt$(rrspTaxSaving)} in 2026 taxes at your income bracket. Use the October bonus as the natural deployment window.`),
+
+    // 3. ROI + treaty advantage
     rrspROI != null
-      ? taxItem('✅', `+${rrspROI.toFixed(1)}% ROI. RRSP's 0% US dividend withholding is worth an estimated 15% extra return vs holding US dividend payers in non-reg. No other account matches this.`)
-      : taxItem('✅', `RRSP defers taxes until withdrawal — best for high-dividend US stocks and long-horizon growth.`),
-    rrspTop.length ? taxItem('💡', `Current: ${rrspTop.map(h=>`${h.ticker} ${h.pct>=0?'+':''}${h.pct.toFixed(1)}%`).join(' · ')}. Route next RRSP buy toward ZSP.TO or a dividend ETF to leverage the treaty advantage.`)
-      : taxItem('💡', `Focus new RRSP contributions on US-dividend payers. 0% withholding under Canada-US treaty beats every other account for this asset class.`),
-    taxItem('💡', `HBP: Can withdraw up to $35K for first home purchase with 15-year repayment. Combined with FHSA (~${fmt$(Math.round(fhsaV))}) = ~${fmt$(downPayEst)} down payment power.`),
+      ? taxItem('✅', `+${rrspROI.toFixed(1)}% ROI on ${fmt$(rrspC)} contributed. RRSP's 0% US dividend withholding is worth ~15% extra return vs holding the same US dividend payers in non-reg. No other Canadian account offers this.`)
+      : taxItem('✅', `RRSP defers all taxes until withdrawal — compound in full, pay tax only when you take money out. Best structural home for US-dividend payers.`),
+
+    // 4. HBP planning
+    taxItem('💡', `HBP: Can withdraw up to $35K for first home purchase with 15-year repayment. Combined with FHSA (~${fmt$(Math.round(fhsaV))}) = ~${fmt$(downPayEst)} down payment. FHSA has no repayment obligation — use it before HBP.`),
   ];
 
   // ── Non-Reg ───────────────────────────────────────────────────────────────
@@ -3900,15 +3919,27 @@ function renderTaxSection(data) {
     taxItem('💡', `Long-term plan: migrate high-growth positions to TFSA/RRSP as room opens ($7K TFSA in Jan 2027). Hold only tax-efficient names (eligible CDN dividends, return-of-capital ETFs) here long-term.`),
   ];
 
-  // Render
-  const render = (id, items) => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = items.join('');
+  // Render: client facts first, then LLM narrative supplement (if available and non-generic)
+  const llmNarrative = (llmItems) => {
+    if (!llmItems?.length) return [];
+    // Only include LLM items that aren't generic placeholders
+    return llmItems
+      .filter(t => t?.text && !t.text.includes('tax-free optimisation') && !t.text.includes('double tax advantage note') && !t.text.includes('deferred growth note') && !t.text.includes('Non-reg tax consideration') && t.text.length > 20)
+      .map(t => llmItem(t));
   };
-  render('taxTFSAItems', tfsaItems);
-  render('taxFHSAItems', fhsaItems);
-  render('taxRRSPItems', rrspItems);
-  render('taxInvItems',  invItems);
+
+  const render = (id, items, llmItems) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const llmHTML = llmNarrative(llmItems);
+    const divider = llmHTML.length ? `<div style="margin:6px 0;border-top:1px solid var(--border);opacity:.3"></div>` : '';
+    el.innerHTML = items.join('') + (llmHTML.length ? divider + llmHTML.join('') : '');
+  };
+
+  render('taxTFSAItems', tfsaItems, llmTax?.tfsa);
+  render('taxFHSAItems', fhsaItems, llmTax?.fhsa);
+  render('taxRRSPItems', rrspItems, llmTax?.rrsp);
+  render('taxInvItems',  invItems,  llmTax?.investment);
   document.getElementById('aiSec10')?.classList.remove('loading');
   const badge = document.getElementById('ai10badge');
   if (badge) badge.textContent = '⚡ LIVE · Updated with prices';
@@ -4060,9 +4091,9 @@ function renderAISection(analysis) {
   document.getElementById('ai09badge').textContent = _aiBadgeLabel;
 
   // Section 10: Tax
-  // Tax section: always override with client-side computed content
-  // (LLM doesn't know your residency, room status, or live holdings)
-  renderTaxSection(_lastLiveData || {});
+  // Tax section: client-side computes live numbers, LLM adds contextual narrative when available
+  // Pass LLM tax items as optional narrative supplement (LLM is now given real tax context)
+  renderTaxSection(_lastLiveData || {}, analysis?.tax || null);
   document.getElementById('aiSec10').classList.remove('loading');
   document.getElementById('ai10badge').textContent = _aiBadgeLabel;
 }

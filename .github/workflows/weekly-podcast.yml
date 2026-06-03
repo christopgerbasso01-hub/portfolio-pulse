@@ -31,7 +31,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
-          pip install requests mutagen soundfile kokoro-onnx
+          pip install requests mutagen soundfile huggingface_hub kokoro-onnx
 
       - name: Generate podcast
         env:

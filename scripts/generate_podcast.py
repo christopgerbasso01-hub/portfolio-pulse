@@ -154,7 +154,8 @@ DIALOGUE RULES (non-negotiable):
 - NO phrases: "it's worth noting", "going forward", "as mentioned", "at the end of the day"
 - Every turn starts differently — never two consecutive turns with the same opening word
 
-WORD COUNT: 1,800–2,200 words for this half.
+WORD COUNT: MINIMUM 1,900 words, TARGET 2,200 words for this half.
+You must reach 1,900+ words. If you are running short, extend the deep dive — go deeper into the mechanism, add more push-back turns, add more portfolio implications.
 FORMAT: Every line starts with "ALEX:" or "SAM:" — no exceptions, no stage directions.
 
 Write PART 1 now (Welcome Back + Portfolio Recap + Deep Dive 1):"""
@@ -211,7 +212,8 @@ Format example:
 - "What we're watching next week" — ONE specific thing, why it matters for the portfolio
 - Warm sign-off from both hosts, tease next week very briefly
 
-WORD COUNT: 1,400–1,800 words for this half.
+WORD COUNT: MINIMUM 1,400 words, TARGET 1,700 words for this half.
+If you are running short, extend the scenario discussion or add more depth to the closing thought.
 FORMAT: Every line starts with "ALEX:" or "SAM:" — no exceptions.
 NAMES not tickers (90%). Short reactions mixed with explanations.
 NO repeated phrases. Every turn opens differently.
@@ -344,7 +346,7 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str) -
         today=today, week_range=week, mood=mood, prev_ep_title=prev_title,
         live_portfolio=live_port, outlook=outlook, macro=macro, news=news,
         portfolio=PORTFOLIO_CONTEXT,
-    ), "Part 1", max_tokens=3500)
+    ), "Part 1", max_tokens=4000)
 
     # Extract a summary of Deep Dive 1 for Part 2 context
     dive1_lines = [l for l in part1.split('\n') if l.strip().startswith(('ALEX:', 'SAM:'))]
@@ -355,7 +357,7 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str) -
         today=today, dive1_summary=dive1_last, picks=picks,
         strengths=strengths, concerns=concerns, strategy=strategy,
         news=news, portfolio=PORTFOLIO_CONTEXT,
-    ), "Part 2", max_tokens=3000)
+    ), "Part 2", max_tokens=3500)
 
     full = part1.rstrip() + "\n\n" + part2.lstrip()
     print(f"  ✓ Full script: {len(full.split()):,} words across both parts")
@@ -427,8 +429,19 @@ def synthesize_kokoro(turns: list[tuple[str, str]], tmp_dir: Path) -> list[Path]
     import numpy as np
     import soundfile as sf
 
+    print("  Downloading Kokoro model files from HuggingFace...")
+    try:
+        from huggingface_hub import hf_hub_download
+        model_path  = hf_hub_download(repo_id="hexgrad/Kokoro-82M", filename="kokoro-v0_19.onnx")
+        voices_path = hf_hub_download(repo_id="hexgrad/Kokoro-82M", filename="voices.bin")
+        print(f"  ✓ Model: {model_path}")
+    except Exception as exc:
+        # Fallback: try no-arg constructor (older kokoro-onnx versions)
+        print(f"  ⚠ hf_hub_download failed ({exc}), trying no-arg constructor...")
+        model_path = voices_path = None
+
     print("  Loading Kokoro model...")
-    kokoro = Kokoro()
+    kokoro = Kokoro(model_path, voices_path) if model_path else Kokoro()
     print("  ✓ Kokoro ready")
 
     wav_paths = []

@@ -9,7 +9,7 @@ permissions:
 jobs:
   generate-podcast:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35   # Kokoro synthesis needs ~15-20 min for a 15-20 min episode
 
     steps:
       - name: Checkout repo
@@ -20,9 +20,19 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install requests edge-tts mutagen
-        # Pure Python only — no system dependencies needed
+      - name: Install system dependencies (ffmpeg for MP3 encoding)
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Cache Kokoro model files
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/huggingface
+          key: kokoro-models-v1
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests mutagen soundfile kokoro-onnx
 
       - name: Generate podcast
         env:

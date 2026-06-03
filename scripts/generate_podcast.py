@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 """
 Portfolio Pulse — Weekly Podcast Generator
-Runs via GitHub Actions every Monday at 6:00 AM UTC (8:00 AM Geneva).
+==========================================
+Runs via cron-job.org every Monday at 6:00 AM UTC.
 
 Pipeline:
-  1. Load data/intelligence.json
-  2. Groq (Llama 3.3 70B) → two-host podcast script (~1,800 words)
-  3. Groq → structured text summary JSON
-  4. edge-tts → MP3 segments per speaker turn (two distinct voices)
-  5. Pure-Python bytes concat → data/podcast_ep{N:03d}.mp3
-  6. Save episode metadata to data/podcast_meta.json
+  1. Load data/intelligence.json + KV snapshot data
+  2. Groq (Llama 3.3 70B) → full podcast script (3,000–3,800 words)
+     Split into 2 Groq calls to stay within token limits
+  3. Kokoro TTS (kokoro-onnx) → WAV segments per speaker turn
+  4. ffmpeg → concatenate WAVs to MP3
+  5. Save episode + metadata
 
-No API keys required beyond GROQ_API_KEY (already configured).
+Voices: am_michael (Alex — warm male analyst), af_heart (Sam — curious female)
+Style: NotebookLM-inspired — deep dives, mechanisms, genuine push-back
 """
 
 import asyncio
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone, timedelta
@@ -29,288 +32,72 @@ import requests
 GROQ_URL      = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL    = "llama-3.3-70b-versatile"
 SNAPSHOT_API  = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
-NOTIFY_API    = "https://portfolio-pulse-dun.vercel.app/api/notify"
 CRON_SECRET   = os.environ.get("CRON_SECRET", "")
 
-# Two distinct Microsoft neural voices — genuine characters
-# Multilingual voices have the best prosody + support express-as chat style
-VOICE_ALEX = "en-US-AndrewMultilingualNeural"   # Male — warm, analytical, gets excited about numbers
-VOICE_SAM  = "en-US-AvaMultilingualNeural"      # Female — curious, challenges, listener proxy
-
-# Base speech rate — adjusted dynamically per turn length (shorter = faster, longer = slower)
-SPEECH_RATE_SHORT  = "+14%"   # Reactions, affirmations, < 60 chars
-SPEECH_RATE_MEDIUM = "+8%"    # Normal conversational turns, 60–200 chars
-SPEECH_RATE_LONG   = "+3%"    # Detailed explanations, > 200 chars
+# Kokoro TTS voices
+VOICE_ALEX = "am_michael"   # Warm, authoritative male — the analyst who connects dots
+VOICE_SAM  = "af_heart"     # Expressive, curious female — asks the questions listeners have
 
 DATA_DIR     = Path("data")
 PODCAST_META = DATA_DIR / "podcast_meta.json"
 INTEL_FILE   = DATA_DIR / "intelligence.json"
-MAX_EPISODES = 4   # Keep current + this many in archive
+MAX_EPISODES = 4
 
 
-def podcast_file(ep: int) -> Path:
-    """Return the Path for a numbered episode MP3."""
-    return DATA_DIR / f"podcast_ep{ep:03d}.mp3"
-
-# ── Portfolio context (kept in sync with market.py) ───────────────────────────
+# ============================================================
+# PORTFOLIO CONTEXT (compressed — same as intelligence.py)
+# ============================================================
 PORTFOLIO_CONTEXT = """
-PORTFOLIO SNAPSHOT (approximate, May 2026):
-  TFSA:        ~$98K  | Contributed $44,500  | ROI ~+121%  | Tax-free growth
-  Investment:  ~$94K  | Contributed $65,000  | ROI ~+45%   | 50% cap-gains inclusion
-  FHSA:        ~$54K  | Contributed $24,000  | ROI ~+123%  | Double tax win (buy home)
-  RRSP:        ~$28K  | Contributed $16,132  | ROI ~+72%   | Deferred tax growth
-  TOTAL:       ~$274K | Total P&L ~+$124K    | Overall ROI ~+83%
+INVESTOR: Christopher, 24M, Toronto. $90K salary. HIGH risk tolerance.
+GTA home purchase planned: FHSA (~$55K) + RRSP HBP ($35K) = ~$90K down.
+Non-resident 2026 → returns Canada March 2027.
+TFSA/FHSA: no contributions in 2026. RRSP: eligible, route all new buys here.
 
-KEY HOLDINGS:
-  Leveraged ETFs ~49% of portfolio:
-    FNGU  — Direxion 3x FANG+ (1,373 shares across TFSA/Investment/FHSA/RRSP)
-    SPXL  — Direxion 3x S&P500 (151 shares across TFSA/Investment/FHSA)
-    UDOW  — ProShares 3x Dow (206 shares across TFSA/FHSA/RRSP)
+ACCOUNTS (~$282K total):
+  TFSA $101K +127% | Investment $97K +50% | FHSA $55K +130% | RRSP $29K +77%
 
-  Technology ~20%:
-    NVDA  — 40sh TFSA, cost ~$16/sh split-adj → unrealized +1,776% (never sell)
-    TXF.TO — CI Tech Giants Covered Call ETF (1,259 shares total)
-    AVGO, MSFT, AAPL, QCOM, TSM, MSTR
+KEY HOLDINGS (use company NAMES, not tickers, 90% of the time):
+  Leveraged ETFs 49%: FANG+ 3x (1,373 shares), S&P500 3x (151 shares), Dow 3x (206 shares)
+  Tech: Nvidia (40sh TFSA, +1,776%), Broadcom (8sh), Taiwan Semiconductor (15sh),
+        CI Tech Giants ETF (1,259sh), Microsoft (2sh), Apple (4sh), Qualcomm (5sh)
+  CDN Financials: CIBC (95sh), Royal Bank (19sh), Bank of Montreal (15sh)
+  Energy/Other: Enbridge (82sh), Energy Transfer (60sh), Shell (22sh)
+  Speculative: MicroStrategy (4sh, underwater), Grayscale Bitcoin (25sh), BYD (3sh)
+  RRSP Cash: ~$7,685 USD uninvested (deploy to BMO S&P500 ETF)
 
-  Canadian Financials ~10%:
-    CM.TO (CIBC) — 95 shares total | RY.TO — 41 shares | BMO.TO — 15 shares
-
-  Other ~21%:
-    ENB.TO (Enbridge), TSLA, IBKR, V (Visa), ET (Energy Transfer),
-    LYV (Live Nation), GBTC (Bitcoin proxy), BYDDF (BYD)
-
-  Cash: ~$8,130 USD uninvested (RRSP $7,685 + TFSA $344 + Investment $50)
-
-KEY SENSITIVITIES:
-  - 49% leveraged ETFs → 3x amplification of S&P/NASDAQ/Dow moves
-  - 68% USD exposure → each 1¢ CAD/USD move = ~$1,800 portfolio impact
-  - NVDA is the best trade ever made — never a reason to sell
-  - RRSP cash drag is the biggest opportunity cost right now
+SENSITIVITIES: 3x leverage amplifies S&P/NASDAQ/Dow both ways.
+  68% USD-denominated → $1,800 portfolio impact per 1¢ USD/CAD.
+  Nvidia never sell — permanently tax-free in TFSA at +1,776%.
 """
 
-
-# ── Live portfolio data ───────────────────────────────────────────────────────
-
-def fetch_snapshot_data() -> dict:
-    """Fetch the last 90 days of KV snapshots from the Vercel API."""
-    try:
-        r = requests.get(SNAPSHOT_API, timeout=15)
-        r.raise_for_status()
-        return r.json()
-    except Exception as exc:
-        print(f"  ⚠  Could not fetch live snapshot data: {exc}")
-        return {}
-
-
-def _fmt(v: float) -> str:
-    sign = "+" if v >= 0 else "-"
-    return f"{sign}${abs(v):,.0f}"
+# Company name lookup for the script (tickers → names, for reference)
+COMPANY_NAMES = {
+    "FNGU": "FANG+ 3x ETF", "SPXL": "S&P 500 3x ETF", "UDOW": "Dow 3x ETF",
+    "NVDA": "Nvidia", "AVGO": "Broadcom", "TSM": "Taiwan Semiconductor",
+    "TXF.TO": "CI Tech Giants ETF", "MSFT": "Microsoft", "AAPL": "Apple",
+    "QCOM": "Qualcomm", "TSLA": "Tesla", "IBKR": "Interactive Brokers",
+    "CM.TO": "CIBC", "RY.TO": "Royal Bank", "BMO.TO": "Bank of Montreal",
+    "ENB.TO": "Enbridge", "ET": "Energy Transfer", "SHEL": "Shell",
+    "MSTR": "MicroStrategy", "GBTC": "Grayscale Bitcoin Trust",
+    "BYDDF": "BYD", "V": "Visa", "LYV": "Live Nation",
+    "ZSP.TO": "BMO S&P 500 ETF",
+}
 
 
-def compute_weekly_movers(snapshots: dict) -> tuple[list, list]:
-    """
-    Compare oldest vs newest snapshot prices to get weekly % move per ticker.
-    Returns (top_winners, top_losers) as [(ticker, pct), ...].
-    """
-    dates = sorted(snapshots.keys())
-    if len(dates) < 2:
-        return [], []
-    old_prices = snapshots[dates[0]].get("holdings_prices", {})
-    new_prices = snapshots[dates[-1]].get("holdings_prices", {})
-    movers = {}
-    for ticker, data in new_prices.items():
-        if ticker in old_prices:
-            old_p = old_prices[ticker].get("price") or 0
-            new_p = data.get("price") or 0
-            if old_p and new_p:
-                movers[ticker] = round((new_p - old_p) / old_p * 100, 2)
-    ranked = sorted(movers.items(), key=lambda x: x[1], reverse=True)
-    return ranked[:4], ranked[-4:]
+# ============================================================
+# SCRIPT PROMPT — PART 1: Welcome + Recap + Deep Dive 1
+# ============================================================
+SCRIPT_PROMPT_PART1 = """You are writing the FIRST HALF of a weekly financial podcast called "Portfolio Pulse Weekly."
 
-
-def build_live_portfolio_context(snapshot_data: dict) -> str:
-    """
-    Build a rich live-data context string from the /api/snapshot response.
-    Covers: weekly P&L, daily breakdown, top movers, account deltas.
-    Falls back to empty string if data unavailable.
-    """
-    if not snapshot_data:
-        return ""
-    weekly    = snapshot_data.get("weekly_summary", {})
-    snapshots = snapshot_data.get("snapshots", {})
-    if not weekly or not snapshots:
-        return ""
-
-    start_val  = weekly.get("start_value")  or 0
-    end_val    = weekly.get("end_value")    or 0
-    week_gain  = weekly.get("week_gain_cad") or 0
-    week_pct   = weekly.get("week_gain_pct") or 0
-    period_start = weekly.get("period_start", "")
-    period_end   = weekly.get("period_end", "")
-
-    # Day-by-day (last 5 trading days in the snapshot window)
-    recent_dates = sorted(snapshots.keys())[-5:]
-    daily_lines = []
-    best_day = worst_day = None
-    for d in recent_dates:
-        snap = snapshots[d]
-        dc = snap.get("daily_change") or 0
-        dp = snap.get("daily_change_pct") or 0
-        try:
-            label = datetime.fromisoformat(d).strftime("%a %b %d")
-        except Exception:
-            label = d
-        daily_lines.append(f"    {label}: {_fmt(dc)} ({'+' if dp>=0 else ''}{dp:.2f}%)")
-        if best_day is None or dc > best_day[1]:
-            best_day = (label, dc, dp)
-        if worst_day is None or dc < worst_day[1]:
-            worst_day = (label, dc, dp)
-
-    # Weekly movers
-    winners, losers = compute_weekly_movers(
-        {d: snapshots[d] for d in recent_dates if d in snapshots}
-    )
-    winners_str = ", ".join(f"{t} {p:+.1f}%" for t, p in winners if p > 0) or "none"
-    losers_str  = ", ".join(f"{t} {p:+.1f}%" for t, p in reversed(losers) if p < 0) or "none"
-
-    # Account deltas
-    acct_deltas = weekly.get("account_deltas", {})
-    acct_parts  = []
-    for acct in ("TFSA", "Investment", "FHSA", "RRSP"):
-        v = acct_deltas.get(acct)
-        if v is not None:
-            acct_parts.append(f"{acct}: {_fmt(v)}")
-    acct_str = " | ".join(acct_parts)
-
-    lines = [
-        f"ACTUAL WEEKLY PORTFOLIO DATA ({period_start} → {period_end}):",
-        f"  Open:  ${start_val:,.0f} CAD",
-        f"  Close: ${end_val:,.0f} CAD",
-        f"  Week P&L: {_fmt(week_gain)} ({'+' if week_pct>=0 else ''}{week_pct:.2f}%)",
-        "",
-        "  Day-by-day:",
-    ]
-    lines.extend(daily_lines)
-    if best_day and best_day[1] > 0:
-        lines.append(f"  Best day:  {best_day[0]} {_fmt(best_day[1])} ({best_day[2]:+.2f}%)")
-    if worst_day and worst_day[1] < 0:
-        lines.append(f"  Worst day: {worst_day[0]} {_fmt(worst_day[1])} ({worst_day[2]:+.2f}%)")
-    lines += [
-        "",
-        f"  Best performers this week:  {winners_str}",
-        f"  Worst performers this week: {losers_str}",
-    ]
-    if acct_str:
-        lines += ["", f"  Account deltas: {acct_str}"]
-
-    return "\n".join(lines)
-
-
-def build_previous_episode_context(meta: dict) -> str:
-    """
-    Build a brief continuity note from the previous episode's summary.
-    Alex & Sam can reference it once or twice — not dwell on it.
-    """
-    if not meta:
-        return ""
-    archive = meta.get("archive", [])
-    prev    = archive[0] if archive else None
-    if not prev:
-        # No archive yet — use the current episode as the baseline
-        if meta.get("episode", 0) < 2:
-            return ""
-        prev = meta
-
-    title        = prev.get("title", "")
-    display_date = prev.get("display_date", "")
-    summary      = prev.get("summary", {})
-
-    themes = []
-    for field in ("market_context", "position_spotlight"):
-        for item in (summary.get(field) or [])[:2]:
-            themes.append(f"  • {str(item)[:130]}")
-    actions = [
-        f"  • {str(a)[:130]}"
-        for a in (summary.get("action_items") or [])[:3]
-    ]
-
-    if not themes:
-        return ""
-
-    lines = [
-        f"PREVIOUS EPISODE (for narrative continuity — reference once naturally, don't recap):",
-        f"  Title: \"{title}\"  ({display_date})",
-        "  Key themes:",
-    ]
-    lines.extend(themes[:4])
-    if actions:
-        lines.append("  Action items Alex & Sam set last week:")
-        lines.extend(actions)
-    return "\n".join(lines)
-
-
-# ── Podcast-ready push notification ──────────────────────────────────────────
-
-def send_podcast_notification(episode_num: int, title: str) -> None:
-    """Tell the Vercel notify endpoint to push a 'new episode ready' alert."""
-    if not CRON_SECRET:
-        print("  ⚠  CRON_SECRET not set — skipping podcast notification")
-        return
-    try:
-        r = requests.post(
-            NOTIFY_API,
-            headers={
-                "Authorization": f"Bearer {CRON_SECRET}",
-                "Content-Type":  "application/json",
-            },
-            json={"type": "podcast", "episode": episode_num, "title": title},
-            timeout=15,
-        )
-        r.raise_for_status()
-        print(f"  ✓  Podcast notification sent: {r.json()}")
-    except Exception as exc:
-        print(f"  ⚠  Podcast notification failed: {exc}")
-
-
-# ── Groq helper ──────────────────────────────────────────────────────────────
-def call_groq(prompt: str, max_tokens: int = 4096, temperature: float = 0.55) -> str:
-    api_key = os.environ.get("GROQ_API_KEY", "")
-    if not api_key:
-        raise ValueError("GROQ_API_KEY not set")
-    resp = requests.post(
-        GROQ_URL,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={
-            "model": GROQ_MODEL,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        },
-        timeout=120,
-    )
-    resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"].strip()
-
-
-# ── Script generation ─────────────────────────────────────────────────────────
-SCRIPT_PROMPT_TEMPLATE = """You are writing a podcast script for "Portfolio Pulse Weekly" — a sharp, personal finance podcast for a Canadian investor.
-
-TODAY: {today}
+EPISODE DATE: {today}
 TRADING WEEK: {week_range}
-LAST TRADING DAY (most recent market session): {last_trading_day}
-MARKET MOOD THIS WEEK: {mood}
+MARKET MOOD: {mood}
+PREVIOUS EPISODE (one brief callback only — one sentence max): {prev_ep_title}
 
-CRITICAL: Stock markets are closed on weekends. NEVER reference Sunday or Saturday as a market day.
-Reference only Mon–Fri trading sessions. "Yesterday" or "today" only applies if it is a weekday.
-
+PORTFOLIO PERFORMANCE THIS WEEK:
 {live_portfolio}
 
-{prev_episode}
-
-PORTFOLIO STRUCTURE (accounts, holdings, sensitivities):
-{portfolio}
-
-THIS WEEK'S INTELLIGENCE:
+THIS WEEK'S MACRO INTELLIGENCE:
 Daily Outlook: {outlook}
 
 Macro Themes:
@@ -319,239 +106,307 @@ Macro Themes:
 Market News:
 {news}
 
-Stocks to Watch:
+PORTFOLIO CONTEXT:
+{portfolio}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PODCAST STYLE — study this carefully:
+
+TONE MODEL: Think NPR/Bloomberg deep-dive format. Not a data recital. A story.
+Every number gets a mechanism. Every mechanism gets an implication. Every implication connects back to the portfolio.
+
+OPENING STRUCTURE:
+[WELCOME BACK — 60 seconds]
+Alex welcomes listeners back warmly.
+"Hey everyone, welcome back to Portfolio Pulse Weekly. I'm Alex, joined as always by Sam..."
+Give a SHORT agenda teaser: "This week we're covering [Topic 1], [Topic 2], and wrapping up with what we're watching going into next week."
+ONE sentence hook about the most interesting or paradoxical thing this week.
+(The hook should create a "wait, what?" reaction — like "The thing that stopped me this week was...")
+
+[PORTFOLIO RECAP — 2.5 minutes]
+Do NOT recite a scoreboard. Tell the STORY of what drove the portfolio's moves.
+Structure:
+- How did the overall portfolio do vs last week? (one honest sentence)
+- What drove the biggest moves? (mechanism first, number second)
+  Bad: "FANG+ 3x ETF was up 6.2%"
+  Good: "The FANG+ 3x ETF ripped this week because Meta guided their AI capital spending way higher than expected —
+         and when three of the five biggest names in that basket all move together, the 3x leverage turns that
+         into something that really shows up in the numbers."
+- One honest acknowledgment if something underperformed or surprised us
+- Reference the PREVIOUS episode callback naturally here (one sentence only)
+
+[DEEP DIVE 1 — 5 to 6 minutes]
+Pick the single most important macro force impacting the portfolio this week.
+Structure:
+- SAM opens with the paradox/tension hook for this segment
+- ALEX explains using ONE central metaphor (introduce it early, return to it)
+- SAM pushes back TWICE with real challenges ("But wait, I need to challenge that...")
+- ALEX re-explains more clearly each time
+- Connect explicitly to named portfolio holdings: "Which means for us, Nvidia and Broadcom in particular..."
+- End with "So what does this mean right now?" — concrete implication
+
+DIALOGUE RULES (non-negotiable):
+- 90% company NAMES, 10% tickers. Say "Nvidia", not "NVDA". Say "Broadcom", not "AVGO".
+- Every % explained as a mechanism and dollar impact on the portfolio
+- Short reaction turns mixed with longer explanations (min 25% of turns under 20 words)
+- Natural filler: "Right.", "Yeah.", "Exactly.", "Hmm.", "Okay but...", "Ah — I see."
+- Sam says "But hang on" or "I need to push back" at least twice in Deep Dive 1
+- NO phrases: "it's worth noting", "going forward", "as mentioned", "at the end of the day"
+- Every turn starts differently — never two consecutive turns with the same opening word
+
+WORD COUNT: 1,800–2,200 words for this half.
+FORMAT: Every line starts with "ALEX:" or "SAM:" — no exceptions, no stage directions.
+
+Write PART 1 now (Welcome Back + Portfolio Recap + Deep Dive 1):"""
+
+
+# ============================================================
+# SCRIPT PROMPT — PART 2: Deep Dive 2 + Scenarios + Close
+# ============================================================
+SCRIPT_PROMPT_PART2 = """You are writing the SECOND HALF of "Portfolio Pulse Weekly" for {today}.
+
+RECAP OF PART 1 ALREADY WRITTEN (continue naturally from here):
+Deep Dive 1 covered: {dive1_summary}
+
+THIS WEEK'S PICKS & STRATEGY:
 {picks}
-
-Portfolio Strengths:
 {strengths}
-
-Portfolio Concerns:
 {concerns}
-
-Short-Term Strategy (0–6 months):
 {strategy}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SCRIPT RULES — follow every single one:
+MARKET NEWS (for Deep Dive 2):
+{news}
 
-1. TWO HOSTS ONLY:
-   ALEX — sharp portfolio analyst. Specific about numbers. Gets genuinely excited. Sometimes nervous.
-   SAM  — smart investor, sounds like the listener. Pushes back, asks "but why does that matter?"
+PORTFOLIO CONTEXT:
+{portfolio}
 
-2. EVERY line must start with "ALEX:" or "SAM:" — zero exceptions. No stage directions.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Continue the podcast naturally from where Part 1 ended.
 
-3. NATURAL CONVERSATION — strict rules:
-   a) MIX short and long turns. Minimum 20% of turns must be SHORT (1–2 sentences max, under 60 words).
-      Short turns: "Wait — how much?", "Okay that's actually huge.", "Right, and that directly affects FNGU.",
-      "Hmm. So we're saying hold?", "That number is insane.", "Exactly — that's the whole thesis."
-   b) REACTIONS: at least 6 turns must be pure reactions — just responding to what was just said.
-      Good: "Okay, but here's what worries me about that." / "See, that's exactly what I wanted to ask."
-      Bad: Starting with the same word as the previous turn. Never two consecutive "So" or "And" openers.
-   c) INTERRUPTION FEEL: Use em-dashes mid-sentence to suggest cutting in:
-      "And the crazy part is — NVDA alone moved the—" / "Wait, before you get to that—"
-   d) CONTRACTIONS always: "we're" not "we are", "it's" not "it is", "that's" not "that is".
-   e) NO FILLER PHRASES: ban "as we mentioned", "as I said", "it's important to note", "make sure to".
-   f) VARY sentence openers every single line — track what you wrote and don't repeat an opener.
+[DEEP DIVE 2 — 5 to 6 minutes]
+Pick a specific position, sector rotation, or portfolio opportunity this week.
+Could be: why one holding matters more than usual, a holding that's at a decision point,
+or a new idea tied to this week's news that fits the portfolio thesis.
 
-4. TARGET: 1,600–1,900 words total. Tighter = more listenable. Quality over length.
+Structure (same style as Deep Dive 1):
+- ALEX introduces the specific story with a hook
+- SAM asks the obvious "but why does this matter for us specifically?" question
+- ALEX explains the mechanism with a fresh metaphor (different from Part 1)
+- At least ONE genuine push-back from SAM
+- Explicit connection to the portfolio: "$X of our portfolio is directly exposed..."
+- End with a concrete "here's what we're watching"
 
-5. DO NOT explain how TFSA/FHSA/RRSP accounts work — assume listener knows.
-   DO NOT dwell on past performance beyond a quick context line.
-   DO NOT repeat the same point twice in the episode.
-   NEVER write the same sentence or phrase more than once — every line must be unique.
-   NEVER start two consecutive lines with the same word.
-   NEVER use these phrases: "it's worth noting", "make sure", "as we mentioned", "that being said",
-     "at the end of the day", "going forward", "moving forward", "to be honest".
-   BE specific: say "FNGU is up 6.2% this week" not "FNGU performed well".
-   SOUND HUMAN: read every line aloud in your head — if it sounds like an article, rewrite it.
+[SCENARIO FRAMEWORK — 2 minutes]
+Three scenarios for the NEXT 2–4 WEEKS with approximate probability.
+Each scenario must state the specific portfolio implication in dollar terms.
 
-5b. PREVIOUS EPISODE CALLBACK — exactly one natural callback per episode:
-    Reference ONE specific thing from last episode (a position, a prediction, an action item).
-    Make it sound like two hosts who remember last week, NOT a recap. Example:
-    "Alex, remember last week you said to watch that RRSP cash drag — well..."
-    "Yeah, and I said if the Fed held rates, FNGU would rip — it did."
-    Do NOT summarize the entire previous episode. One brief callback, then move on.
+Format example:
+"Base case — 50% probability: [what happens] → for our portfolio, this means [specific impact]"
+"Bull case — 30% probability: [what happens] → [specific portfolio impact in $]"
+"Bear case — 20% probability: [what happens] → [specific portfolio downside]"
 
-5c. WEEKLY THEME — every episode must have a spine:
-    Choose ONE central theme or question for this week (e.g. "Is the leverage still justified?",
-    "What does the rate hold mean for the home-buying goal?", "Is NVDA still untouchable?").
-    Weave it through every section — open with it, return to it, close with it.
-    Alex and Sam should feel like they're building toward an answer, not just reading data.
+[CLOSING — 60 seconds]
+- One open, unanswered question to leave the listener thinking
+  (Not a data question — a deeper "what does this all mean" question)
+- "What we're watching next week" — ONE specific thing, why it matters for the portfolio
+- Warm sign-off from both hosts, tease next week very briefly
 
-6. FORWARD-LOOKING: what matters NOW and what to watch NEXT WEEK.
+WORD COUNT: 1,400–1,800 words for this half.
+FORMAT: Every line starts with "ALEX:" or "SAM:" — no exceptions.
+NAMES not tickers (90%). Short reactions mixed with explanations.
+NO repeated phrases. Every turn opens differently.
 
-STYLE EXAMPLE (format only — don't copy this content):
-ALEX: So the headline number this week — FNGU is up 6.2%, which means the 3x FANG+ index had a monster run.
-SAM: And FNGU is the biggest position, right? Like across all the accounts combined.
-ALEX: Biggest single holding by a mile. About 1,373 shares total, split across TFSA, the investment account, FHSA and RRSP.
-SAM: So when it moves 6%, that's not a small number in dollar terms.
-ALEX: Not even close. We're talking roughly thirty-something thousand dollars of paper gain just this week.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EPISODE STRUCTURE:
-
-[COLD OPEN — 30 seconds]
-Hook with the single most interesting/surprising thing from this week. No intro, just dive in.
-
-[PORTFOLIO SNAPSHOT — 2 minutes]
-Quick performance check: total portfolio, biggest movers, daily changes this week.
-What went up, what went down, any surprises.
-
-[MARKET DEEP DIVE — 3 minutes]
-The macro themes and news that directly hit these specific holdings.
-Alex explains why it matters, Sam pushes for the "so what does that mean for me" angle.
-
-[POSITION SPOTLIGHT — 3 minutes]
-Pick 1–2 holdings worth discussing in depth this week based on what happened.
-Could be a big winner, a concern, a new catalyst, or a strategic question.
-
-[WATCH LIST — 2 minutes]
-Specific upcoming catalysts, dates, signals to monitor.
-Concrete: "watch for X on Y date because it directly affects Z holding".
-
-[ACTION ITEMS — 2 minutes]
-Concrete things to consider. Not vague hedges — real, specific actions.
-Could be: deploy RRSP cash, trim a position, add to something, watch a level.
-
-[SIGN OFF — 30 seconds]
-Quick forward look for next week. Warm close.
-
-Write the full script now:"""
+Write PART 2 now (Deep Dive 2 + Scenarios + Closing):"""
 
 
+# ============================================================
+# DATA HELPERS
+# ============================================================
 def _last_trading_day(ref: datetime) -> str:
-    """Return the most recent weekday (Mon-Fri) on or before ref, formatted nicely."""
     d = ref
-    while d.weekday() >= 5:   # 5=Saturday, 6=Sunday
+    while d.weekday() >= 5:
         d -= timedelta(days=1)
     return d.strftime("%A, %B %d, %Y")
 
 
 def _week_trading_range(ref: datetime) -> str:
-    """Return the Mon→Fri trading week label for the week containing ref."""
-    mon = ref - timedelta(days=ref.weekday())           # Monday of this week
+    mon = ref - timedelta(days=ref.weekday())
     fri = mon + timedelta(days=4)
     return f"{mon.strftime('%b %d')} – {fri.strftime('%b %d, %Y')}"
 
 
-def build_script_prompt(intel: dict, snapshot_data: dict = None, old_meta: dict = None) -> str:
+def _load_intel() -> dict:
+    try:
+        if INTEL_FILE.exists():
+            return json.loads(INTEL_FILE.read_text())
+    except Exception:
+        pass
+    return {}
+
+
+def _fetch_snapshot() -> dict:
+    try:
+        r = requests.get(SNAPSHOT_API, timeout=15)
+        r.raise_for_status()
+        return r.json()
+    except Exception:
+        return {}
+
+
+def _build_live_portfolio(snapshot: dict) -> str:
+    """Build a narrative-ready portfolio performance string from snapshot data."""
+    snaps = snapshot.get("snapshots", {})
+    if not snaps:
+        return "Portfolio performance data unavailable this week."
+
+    sorted_dates = sorted(snaps.keys())
+    if len(sorted_dates) < 2:
+        latest = snaps[sorted_dates[-1]]
+        return (f"Current portfolio value: ${latest.get('total_value', 0):,.0f} CAD. "
+                f"ROI: {latest.get('roi_pct', 0):.1f}%.")
+
+    newest = snaps[sorted_dates[-1]]
+    oldest = snaps[sorted_dates[0]]
+    tv_new = newest.get("total_value", 0) or 0
+    tv_old = oldest.get("total_value", 0) or tv_new
+    weekly_chg = tv_new - tv_old
+    weekly_pct = (weekly_chg / tv_old * 100) if tv_old else 0
+    accts_new = newest.get("accounts", {})
+    accts_old = oldest.get("accounts", {})
+
+    lines = [
+        f"TOTAL PORTFOLIO: ${tv_new:,.0f} CAD | Weekly change: {weekly_chg:+,.0f} CAD ({weekly_pct:+.1f}%)",
+        f"ROI all-time: {newest.get('roi_pct', 0):.1f}%",
+    ]
+    for acct in ["TFSA", "Investment", "FHSA", "RRSP"]:
+        v_new = accts_new.get(acct, 0) or 0
+        v_old = accts_old.get(acct, 0) or v_new
+        chg = v_new - v_old
+        pct = (chg / v_old * 100) if v_old else 0
+        lines.append(f"  {acct}: ${v_new:,.0f} | {chg:+,.0f} ({pct:+.1f}%)")
+
+    return "\n".join(lines)
+
+
+def _prev_ep_title(meta: dict) -> str:
+    archive = meta.get("archive", [])
+    if archive:
+        return archive[0].get("title", "last week's episode")
+    return "last week's episode"
+
+
+# ============================================================
+# GROQ SCRIPT GENERATION
+# ============================================================
+def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) -> str:
+    models = [GROQ_MODEL, "llama-3.1-8b-instant"]
+    for attempt, model in enumerate(models * 2):
+        try:
+            r = requests.post(
+                GROQ_URL,
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": model, "messages": [{"role": "user", "content": prompt}],
+                      "max_tokens": max_tokens, "temperature": 0.85},
+                timeout=120,
+            )
+            r.raise_for_status()
+            text = r.json()["choices"][0]["message"]["content"].strip()
+            if text:
+                print(f"  ✓ {label} with {model} ({len(text.split()):,} words)")
+                return text
+        except Exception as exc:
+            print(f"  ⚠ {label} attempt {attempt+1} failed: {exc}")
+            if attempt < 3:
+                import time; time.sleep(2 * (attempt + 1))
+    raise RuntimeError(f"All Groq attempts failed for {label}")
+
+
+def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str) -> str:
     now     = datetime.now(timezone.utc)
     today   = now.strftime("%A, %B %d, %Y")
-    last_td = _last_trading_day(now)
-    week_rng= _week_trading_range(now)
+    week    = _week_trading_range(now)
     mood    = intel.get("market_mood", "neutral").upper()
-    outlook = intel.get("daily_outlook", "No outlook available.")
-    macro   = "\n".join(
-        f"• {m['title']} [{m.get('impact','?')}]: {m.get('body','')[:250]}"
-        for m in intel.get("macro", [])[:4]
-    )
-    news    = "\n".join(
-        f"• {n['headline']}: {n.get('body','')[:200]} | Exposure: {n.get('exposure','')[:100]}"
-        for n in intel.get("news", [])[:5]
-    )
-    picks   = "\n".join(
-        f"• {p['ticker']} — {p['action']} in {p.get('account','?')}: {p.get('thesis','')[:180]}"
-        for p in intel.get("picks", [])[:4]
-    )
-    strengths = "\n".join(f"• {s['text'][:180]}" for s in intel.get("strengths", [])[:4])
-    concerns  = "\n".join(f"• {c['text'][:180]}" for c in intel.get("concerns", [])[:4])
-    strategy  = "\n".join(f"• {s['text'][:180]}" for s in intel.get("strategy_short", [])[:4])
+    outlook = intel.get("daily_outlook", "")[:300]
+    macro   = "\n".join(f"• {m['title']} [{m.get('impact','?')}]: {m.get('body','')[:300]}"
+                        for m in intel.get("macro", [])[:3])
+    news    = "\n".join(f"• {n['headline']}: {n.get('body','')[:250]} | Exposure: {n.get('exposure','')[:100]}"
+                        for n in intel.get("news", [])[:4])
+    picks   = "\n".join(f"• {p['ticker']} ({COMPANY_NAMES.get(p['ticker'], p['ticker'])}): {p.get('thesis','')[:200]}"
+                        for p in intel.get("picks", [])[:3])
+    strengths = "\n".join(f"• {s['text'][:200]}" for s in intel.get("strengths", [])[:3])
+    concerns  = "\n".join(f"• {c['text'][:200]}" for c in intel.get("concerns", [])[:3])
+    strategy  = "\n".join(f"• {s['text'][:200]}" for s in intel.get("strategy_short", [])[:3])
+    live_port = _build_live_portfolio(snapshot)
+    prev_title = _prev_ep_title(old_meta)
 
-    live_portfolio = build_live_portfolio_context(snapshot_data or {})
-    prev_episode   = build_previous_episode_context(old_meta or {})
+    print("2/3  Generating Part 1 (Welcome + Recap + Deep Dive 1)...")
+    part1 = _groq_call(api_key, SCRIPT_PROMPT_PART1.format(
+        today=today, week_range=week, mood=mood, prev_ep_title=prev_title,
+        live_portfolio=live_port, outlook=outlook, macro=macro, news=news,
+        portfolio=PORTFOLIO_CONTEXT,
+    ), "Part 1", max_tokens=3500)
 
-    return SCRIPT_PROMPT_TEMPLATE.format(
-        today=today, week_range=week_rng, last_trading_day=last_td,
-        mood=mood, portfolio=PORTFOLIO_CONTEXT,
-        live_portfolio=live_portfolio, prev_episode=prev_episode,
-        outlook=outlook, macro=macro, news=news, picks=picks,
+    # Extract a summary of Deep Dive 1 for Part 2 context
+    dive1_lines = [l for l in part1.split('\n') if l.strip().startswith(('ALEX:', 'SAM:'))]
+    dive1_last  = ' '.join(l[5:].strip() for l in dive1_lines[-6:])[:400]
+
+    print("     Generating Part 2 (Deep Dive 2 + Scenarios + Close)...")
+    part2 = _groq_call(api_key, SCRIPT_PROMPT_PART2.format(
+        today=today, dive1_summary=dive1_last, picks=picks,
         strengths=strengths, concerns=concerns, strategy=strategy,
-    )
+        news=news, portfolio=PORTFOLIO_CONTEXT,
+    ), "Part 2", max_tokens=3000)
+
+    full = part1.rstrip() + "\n\n" + part2.lstrip()
+    print(f"  ✓ Full script: {len(full.split()):,} words across both parts")
+    return full
 
 
-def generate_script(intel: dict, snapshot_data: dict = None, old_meta: dict = None) -> str:
-    print("1/3  Generating podcast script with Groq...")
-    prompt = build_script_prompt(intel, snapshot_data, old_meta)
-    script = call_groq(prompt, max_tokens=4096, temperature=0.6)
-    # Validate it has enough turns
-    turns = [l for l in script.split('\n') if l.strip().startswith(('ALEX:', 'SAM:'))]
-    print(f"     → {len(turns)} speaker turns, ~{len(script.split()):,} words")
-    if len(turns) < 15:
-        print("     ⚠ Script seems sparse — retrying with higher temperature")
-        script = call_groq(prompt, max_tokens=4096, temperature=0.75)
-    return script
+# ============================================================
+# SCRIPT SUMMARY (for podcast metadata)
+# ============================================================
+def generate_summary(script: str, intel: dict, api_key: str) -> dict:
+    turns  = [l for l in script.split('\n') if l.startswith(('ALEX:', 'SAM:'))]
+    sample = '\n'.join(turns[:30])
+    prompt = f"""Extract a structured JSON summary of this podcast episode.
 
+SCRIPT SAMPLE:
+{sample}
 
-# ── Summary generation ────────────────────────────────────────────────────────
-def generate_summary(intel: dict) -> dict:
-    print("2/3  Generating text summary...")
-    today = datetime.now(timezone.utc).strftime("%B %d, %Y")
-
-    intel_compact = {
-        k: intel[k]
-        for k in ("market_mood","daily_outlook","macro","news","picks","strengths","concerns","strategy_short")
-        if k in intel
-    }
-
-    prompt = f"""Based on this weekly portfolio intelligence briefing (date: {today}), write a structured summary for display on a dashboard.
-
-INTELLIGENCE DATA:
-{json.dumps(intel_compact, indent=2)[:3500]}
-
-PORTFOLIO CONTEXT (abbreviated):
-{PORTFOLIO_CONTEXT[:800]}
-
-Return ONLY a valid JSON object with these exact keys — no markdown, no fences:
+Return ONLY valid JSON:
 {{
-  "episode_title": "Punchy 6-9 word title for THIS SPECIFIC WEEK — must reference the single most important market event or portfolio move that happened this week. NEVER reuse a title from a previous episode. Include a specific ticker, dollar figure, or event name.",
-  "mood_summary": "One sharp sentence on market mood and what it means for this portfolio",
-  "portfolio_snapshot": [
-    "3-4 specific bullet points about portfolio performance — use dollar amounts and % where possible"
-  ],
-  "market_context": [
-    "3-4 bullet points on market themes directly affecting these holdings — be specific about which tickers"
-  ],
-  "position_spotlight": [
-    "2-3 bullet points on 1-2 specific holdings worth highlighting this week"
-  ],
-  "watch_list": [
-    "3-4 items with specific tickers, upcoming catalysts or levels to watch"
-  ],
-  "action_items": [
-    "3-4 concrete, specific actions — not vague. E.g. 'Deploy RRSP cash into ZSP.TO before next earnings'"
-  ],
-  "key_news": [
-    "3-4 relevant news items with direct impact on specific holdings"
-  ]
+  "episode_title": "< 10-word punchy title for this specific episode >",
+  "mood_summary": "one sentence on the market mood and portfolio outlook",
+  "portfolio_snapshot": ["3-4 bullet strings about portfolio performance"],
+  "market_context": ["3-4 bullet strings about macro themes covered"],
+  "watch_list": ["2-3 things to watch next week"],
+  "action_items": ["2-3 specific portfolio actions discussed"]
 }}"""
+    try:
+        raw = _groq_call(api_key, prompt, "Summary", max_tokens=800)
+        start, end = raw.find('{'), raw.rfind('}') + 1
+        return json.loads(raw[start:end]) if start >= 0 else {}
+    except Exception:
+        return {"episode_title": intel.get("daily_outlook", "Weekly Update")[:60]}
 
-    raw = call_groq(prompt, max_tokens=1200, temperature=0.4)
-    if raw.startswith("```"):
-        lines = raw.split("\n")
-        end = len(lines) - 1 if lines[-1].strip() == "```" else len(lines)
-        raw = "\n".join(lines[1:end])
-    return json.loads(raw)
 
-
-# ── Audio generation ──────────────────────────────────────────────────────────
+# ============================================================
+# AUDIO GENERATION — Kokoro TTS
+# ============================================================
 def parse_script(script: str) -> list[tuple[str, str]]:
-    """Return list of (speaker, text) tuples."""
     turns = []
     for line in script.strip().split("\n"):
         line = line.strip()
         if line.startswith("ALEX:"):
             text = line[5:].strip()
-            if text:
-                turns.append(("ALEX", text))
+            if text: turns.append(("ALEX", text))
         elif line.startswith("SAM:"):
             text = line[4:].strip()
-            if text:
-                turns.append(("SAM", text))
+            if text: turns.append(("SAM", text))
     return turns
 
 
-def split_long_text(text: str, max_chars: int = 480) -> list[str]:
-    """Split a long turn at sentence boundaries to avoid TTS timeouts."""
+def split_long_text(text: str, max_chars: int = 400) -> list[str]:
     if len(text) <= max_chars:
         return [text]
     chunks, current = [], ""
@@ -566,192 +421,200 @@ def split_long_text(text: str, max_chars: int = 480) -> list[str]:
     return chunks or [text]
 
 
-def _pick_rate(text: str) -> str:
-    """Choose speech rate based on turn length — shorter = snappier, longer = measured."""
-    n = len(text)
-    if n < 60:  return SPEECH_RATE_SHORT
-    if n < 200: return SPEECH_RATE_MEDIUM
-    return SPEECH_RATE_LONG
+def synthesize_kokoro(turns: list[tuple[str, str]], tmp_dir: Path) -> list[Path]:
+    """Synthesize all turns with Kokoro TTS. Returns list of WAV file paths."""
+    from kokoro_onnx import Kokoro
+    import numpy as np
+    import soundfile as sf
 
+    print("  Loading Kokoro model...")
+    kokoro = Kokoro()
+    print("  ✓ Kokoro ready")
 
-async def synthesize_one(text: str, voice: str, path: str, retries: int = 3) -> None:
-    """Synthesize one turn using plain text + dynamic rate (no SSML — edge-tts reads tags literally)."""
-    import edge_tts
-    rate = _pick_rate(text)
-    for attempt in range(retries):
-        try:
-            comm = edge_tts.Communicate(text, voice, rate=rate)
-            await comm.save(path)
-            return
-        except Exception as exc:
-            if attempt == retries - 1:
-                raise
-            await asyncio.sleep(1.0 * (attempt + 1))
-
-
-async def generate_all_audio(turns: list[tuple[str, str]], tmp_dir: Path) -> list[str]:
-    """Synthesize all turns, splitting long ones; return ordered list of mp3 paths."""
-    paths: list[str] = []
-    tasks: list = []
+    wav_paths = []
+    total = sum(len(split_long_text(t)) for _, t in turns)
+    done = 0
 
     for i, (speaker, text) in enumerate(turns):
-        voice = VOICE_ALEX if speaker == "ALEX" else VOICE_SAM
+        voice  = VOICE_ALEX if speaker == "ALEX" else VOICE_SAM
         chunks = split_long_text(text)
         for j, chunk in enumerate(chunks):
-            path = str(tmp_dir / f"seg_{i:04d}_{j:02d}.mp3")
-            paths.append(path)
-            tasks.append(synthesize_one(chunk, voice, path))
-
-    # Process in batches of 8 to be polite to the free service
-    batch = 8
-    for start in range(0, len(tasks), batch):
-        await asyncio.gather(*tasks[start:start + batch])
-        if start + batch < len(tasks):
-            await asyncio.sleep(0.3)
-
-    return paths
-
-
-def merge_audio(segment_paths: list[str], output: Path, _tmp_dir: Path) -> None:
-    """Concatenate MP3 segments using pure Python — no ffmpeg needed.
-
-    Browsers handle concatenated MP3 streams perfectly. edge-tts already
-    adds natural trailing silence to each segment, so no explicit pause needed.
-    """
-    with open(output, "wb") as out:
-        for path in segment_paths:
-            with open(path, "rb") as seg:
-                out.write(seg.read())
+            path = tmp_dir / f"seg_{i:04d}_{j:02d}.wav"
+            try:
+                samples, sample_rate = kokoro.create(
+                    chunk, voice=voice, speed=1.0, lang="en-us"
+                )
+                sf.write(str(path), samples, sample_rate)
+                wav_paths.append(path)
+                done += 1
+                if done % 10 == 0:
+                    print(f"    Synthesized {done}/{total} segments...")
+            except Exception as exc:
+                print(f"    ⚠ Segment {i}-{j} failed: {exc}")
+    return wav_paths
 
 
-def audio_duration(path: Path) -> float:
-    """Return audio duration in seconds using mutagen (pure Python)."""
+def merge_wavs_to_mp3(wav_paths: list[Path], output: Path) -> None:
+    """Concatenate WAV files into one MP3 using ffmpeg."""
+    if not wav_paths:
+        raise RuntimeError("No WAV segments to merge")
+
+    # Write ffmpeg concat list
+    concat_file = output.parent / "concat.txt"
+    with open(concat_file, "w") as f:
+        for p in wav_paths:
+            f.write(f"file '{p.absolute()}'\n")
+
+    print(f"  Merging {len(wav_paths)} segments with ffmpeg...")
+    result = subprocess.run([
+        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+        "-i", str(concat_file),
+        "-c:a", "libmp3lame", "-b:a", "64k", "-ar", "24000",
+        str(output)
+    ], capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"  ffmpeg error: {result.stderr[:500]}")
+        raise RuntimeError("ffmpeg merge failed")
+    concat_file.unlink(missing_ok=True)
+    print(f"  ✓ MP3 created: {output}")
+
+
+# ============================================================
+# METADATA
+# ============================================================
+def load_meta() -> dict:
+    try:
+        if PODCAST_META.exists():
+            return json.loads(PODCAST_META.read_text())
+    except Exception:
+        pass
+    return {"episode": 0, "archive": []}
+
+
+def audio_duration(path: Path) -> tuple[str, int]:
+    """Return (HH:MM, seconds) duration."""
     try:
         from mutagen.mp3 import MP3
-        return MP3(str(path)).info.length
+        secs = int(MP3(str(path)).info.length)
     except Exception:
-        # Fallback: rough estimate from file size assuming ~24kbps
-        try:
-            return path.stat().st_size / (24_000 / 8)
-        except Exception:
-            return 0.0
+        secs = int(path.stat().st_size / (64_000 / 8))
+    return f"{secs // 60}:{secs % 60:02d}", secs
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# ============================================================
+# MAIN
+# ============================================================
 def main() -> int:
-    now = datetime.now(timezone.utc)
-    print(f"\n{'='*60}")
-    print(f"  Portfolio Pulse — Weekly Podcast")
-    print(f"  {now.strftime('%Y-%m-%d %H:%M UTC')}")
-    print(f"{'='*60}\n")
-
-    # Load intelligence
-    if not INTEL_FILE.exists():
-        print("ERROR: data/intelligence.json not found")
+    groq_key = os.environ.get("GROQ_API_KEY", "")
+    if not groq_key:
+        print("ERROR: GROQ_API_KEY not set")
         return 1
 
-    intel = json.loads(INTEL_FILE.read_text())
-    print(f"  Intelligence from: {intel.get('generated_date','?')}\n")
-
-    # ── Fetch live portfolio snapshot data from Vercel KV ─────────────────────
-    print("  Fetching live portfolio data from KV snapshots...")
-    snapshot_data = fetch_snapshot_data()
-    if snapshot_data.get("count", 0) > 0:
-        weekly = snapshot_data.get("weekly_summary", {})
-        print(f"  → {snapshot_data['count']} snapshots | "
-              f"Week P&L: {_fmt(weekly.get('week_gain_cad', 0))} "
-              f"({weekly.get('week_gain_pct', 0):+.2f}%)\n")
-    else:
-        print("  → No snapshot data available — using static context\n")
-
-    # ── Determine episode number and build archive from existing meta ─────────
-    episode_num = 1
-    archive: list[dict] = []
-    if PODCAST_META.exists():
-        try:
-            old = json.loads(PODCAST_META.read_text())
-            episode_num = old.get("episode", 0) + 1
-            # If there was a real previous episode, push it onto the archive
-            if old.get("episode", 0) > 0 and old.get("file"):
-                prev_entry = {
-                    "episode":      old["episode"],
-                    "title":        old.get("title", ""),
-                    "date":         old.get("date", ""),
-                    "display_date": old.get("display_date", ""),
-                    "duration":     old.get("duration", ""),
-                    "mood":         old.get("mood", "neutral"),
-                    "mood_summary": old.get("mood_summary", ""),
-                    "file":         old["file"],
-                    "summary":      old.get("summary", {}),
-                }
-                archive = [prev_entry] + old.get("archive", [])
-        except Exception:
-            pass
-
-    # Keep only the last (MAX_EPISODES - 1) archive entries so total = MAX_EPISODES
-    archive = archive[: MAX_EPISODES - 1]
-    new_filename = f"podcast_ep{episode_num:03d}.mp3"
-    output_mp3   = DATA_DIR / new_filename
-
-    # ── Step 1: Script ───────────────────────────────────────────────────────
-    old_meta = json.loads(PODCAST_META.read_text()) if PODCAST_META.exists() else {}
-    script   = generate_script(intel, snapshot_data, old_meta)
-    turns    = parse_script(script)
-    if not turns:
-        print("ERROR: Could not parse any speaker turns from script")
-        return 1
-
-    # ── Step 2: Summary ──────────────────────────────────────────────────────
-    try:
-        summary = generate_summary(intel)
-    except Exception as exc:
-        print(f"  ⚠ Summary failed ({exc}) — using empty summary")
-        summary = {}
-
-    # ── Step 3: Audio ────────────────────────────────────────────────────────
-    print(f"3/3  Synthesising audio ({len(turns)} turns)...")
     DATA_DIR.mkdir(exist_ok=True)
 
+    # 1. Load intelligence + snapshot data
+    print("1/4  Loading data...")
+    intel    = _load_intel()
+    snapshot = _fetch_snapshot()
+    old_meta = load_meta()
+
+    if not intel.get("generated_at"):
+        print("  ⚠ No intelligence.json found — generating without weekly data")
+
+    # 2. Generate script (two Groq calls)
+    print("2/4  Generating script...")
+    try:
+        script = generate_script(intel, snapshot, old_meta, groq_key)
+    except Exception as exc:
+        print(f"ERROR: Script generation failed: {exc}")
+        return 1
+
+    turns = parse_script(script)
+    if len(turns) < 20:
+        print(f"ERROR: Only {len(turns)} speaker turns parsed — script too short")
+        return 1
+    print(f"  ✓ {len(turns)} speaker turns")
+
+    # 3. Synthesize audio with Kokoro
+    print("3/4  Synthesizing audio (Kokoro TTS)...")
     with tempfile.TemporaryDirectory() as tmp:
-        tmp_path = Path(tmp)
-        seg_paths = asyncio.run(generate_all_audio(turns, tmp_path))
-        print(f"     → {len(seg_paths)} audio segments generated")
-        merge_audio(seg_paths, output_mp3, tmp_path)
+        tmp_dir = Path(tmp)
+        try:
+            wav_files = synthesize_kokoro(turns, tmp_dir)
+            if not wav_files:
+                raise RuntimeError("No WAV segments produced")
 
-    secs    = audio_duration(output_mp3)
-    dur_str = f"{int(secs//60)}:{int(secs%60):02d}"
-    size_kb = output_mp3.stat().st_size // 1024
-    print(f"     → {dur_str}  ({size_kb} KB)  saved to {output_mp3}")
+            # Determine output path
+            ep_num = (old_meta.get("episode", 0) or 0) + 1
+            mp3_name = f"podcast_ep{ep_num:03d}.mp3"
+            mp3_path = DATA_DIR / mp3_name
 
-    # ── Step 4: Prune old episode files ─────────────────────────────────────
-    keep = {new_filename} | {a["file"] for a in archive if a.get("file")}
-    for old_mp3 in DATA_DIR.glob("podcast_ep*.mp3"):
-        if old_mp3.name not in keep:
-            old_mp3.unlink()
-            print(f"     → Deleted old episode: {old_mp3.name}")
+            merge_wavs_to_mp3(wav_files, mp3_path)
 
-    # ── Step 5: Metadata ─────────────────────────────────────────────────────
-    meta = {
-        "episode":          episode_num,
-        "file":             new_filename,
-        "date":             now.strftime("%Y-%m-%d"),
-        "display_date":     now.strftime("%B %d, %Y"),
-        "title":            summary.get("episode_title", f"Week of {now.strftime('%B %d')}"),
-        "mood":             intel.get("market_mood", "neutral"),
-        "mood_summary":     summary.get("mood_summary", ""),
-        "duration":         dur_str,
-        "duration_seconds": int(secs),
-        "generated_at":     now.isoformat(),
-        "archive":          archive,
-        "summary":          summary,
+        except Exception as exc:
+            print(f"ERROR: Audio generation failed: {exc}")
+            import traceback; traceback.print_exc()
+            return 1
+
+    duration_str, duration_secs = audio_duration(mp3_path)
+    print(f"  ✓ Duration: {duration_str} ({mp3_path.stat().st_size / 1_048_576:.1f} MB)")
+
+    # 4. Generate summary + save metadata
+    print("4/4  Generating summary & saving metadata...")
+    summary = generate_summary(script, intel, groq_key)
+    now     = datetime.now(timezone.utc)
+
+    # Build archive
+    archive = []
+    if old_meta.get("episode") and old_meta.get("file"):
+        prev_entry = {
+            "episode":      old_meta["episode"],
+            "title":        old_meta.get("title", ""),
+            "date":         old_meta.get("date", ""),
+            "display_date": old_meta.get("display_date", ""),
+            "duration":     old_meta.get("duration", ""),
+            "mood":         old_meta.get("mood", ""),
+            "mood_summary": old_meta.get("mood_summary", ""),
+            "file":         old_meta.get("file", ""),
+            "summary":      old_meta.get("summary", {}),
+        }
+        archive = [prev_entry] + (old_meta.get("archive", []))
+    archive = archive[:MAX_EPISODES - 1]
+
+    # Clean up old MP3s not in archive
+    keep = {mp3_name} | {a["file"] for a in archive if a.get("file")}
+    for f in DATA_DIR.glob("podcast_ep*.mp3"):
+        if f.name not in keep:
+            f.unlink()
+
+    mood_val = intel.get("market_mood", "neutral")
+    mood_labels = {
+        "risk-on": "Markets favouring growth — leveraged positions in tailwind",
+        "risk-off": "Defensive positioning — reduce leverage exposure",
+        "neutral":  "Mixed signals — stay disciplined",
+        "mixed":    "Conflicting signals — watch volatility closely",
     }
-    PODCAST_META.write_text(json.dumps(meta, indent=2, ensure_ascii=False))
-    print(f"\n  ✓ Episode #{episode_num}: \"{meta['title']}\" ({dur_str})")
-    print(f"  ✓ Archive: {len(archive)} previous episode(s) kept\n")
 
-    # ── Step 6: Push notification ─────────────────────────────────────────────
-    send_podcast_notification(episode_num, meta["title"])
+    meta = {
+        "episode":      ep_num,
+        "file":         mp3_name,
+        "date":         now.strftime("%Y-%m-%d"),
+        "display_date": now.strftime("%B %d, %Y"),
+        "title":        summary.get("episode_title", f"Portfolio Pulse Ep {ep_num}"),
+        "mood":         mood_val,
+        "mood_summary": mood_labels.get(mood_val, mood_val),
+        "duration":     duration_str,
+        "duration_seconds": duration_secs,
+        "generated_at": now.isoformat(),
+        "archive":      archive,
+        "summary":      summary,
+    }
+    PODCAST_META.write_text(json.dumps(meta, indent=2))
 
+    print(f"\n  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"  ✓ Episode {ep_num}: {meta['title']}")
+    print(f"  ✓ Duration: {duration_str} | Archive: {len(archive)} previous")
     return 0
 
 

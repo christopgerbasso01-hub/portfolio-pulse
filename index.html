@@ -3838,7 +3838,7 @@ async function refreshIntelligence() {
 
   try {
     // Step 1: Trigger the GitHub Actions workflow (same as 6 AM daily run)
-    const triggerRes = await fetch(`${CONFIG.API_BASE}/api/trigger_intelligence`, {
+    const triggerRes = await fetch(`${CONFIG.API_BASE}/api/cron_tick?type=intelligence`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });

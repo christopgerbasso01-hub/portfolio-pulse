@@ -21,9 +21,13 @@ KV_TOKEN = os.environ.get("KV_REST_API_TOKEN", "")
 BASE_URL = "https://portfolio-pulse-dun.vercel.app"
 CRON_SECRET = os.environ.get("CRON_SECRET", "")
 
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+REPO         = "christopgerbasso01-hub/portfolio-pulse"
+
 RATE_LIMITS = {
-    "intraday": 480,   # 8 minutes between intraday calls
-    "eod":      1800,  # 30 minutes between EOD calls
+    "intraday":     480,   # 8 minutes between intraday calls
+    "eod":         1800,   # 30 minutes between EOD calls
+    "intelligence": 300,   # 5 minutes between intelligence triggers
 }
 
 
@@ -102,12 +106,29 @@ class handler(BaseHTTPRequestHandler):
             self._respond(200, {"ok": True, "type": "intraday", "result": result})
 
         elif tick_type == "eod":
-            # First take snapshot, then notify
-            snap = call_endpoint("/api/snapshot")
+            snap  = call_endpoint("/api/snapshot")
             notif = call_endpoint("/api/notify")
             print(f"  [cron_tick] eod snapshot→{snap.get('status')} notify→{notif.get('status')}")
             self._respond(200, {"ok": True, "type": "eod",
                                "snapshot": snap, "notify": notif})
+
+        elif tick_type == "intelligence":
+            # Trigger GitHub Actions daily-intelligence workflow
+            if not GITHUB_TOKEN:
+                self._respond(500, {"error": "GITHUB_TOKEN not configured"})
+                return
+            try:
+                r = requests.post(
+                    f"https://api.github.com/repos/{REPO}/actions/workflows/daily-intelligence.yml/dispatches",
+                    headers={"Authorization": f"token {GITHUB_TOKEN}",
+                             "Accept": "application/vnd.github.v3+json"},
+                    json={"ref": "main"}, timeout=15,
+                )
+                ok = r.status_code == 204
+                print(f"  [cron_tick] intelligence dispatch → {r.status_code}")
+                self._respond(200, {"ok": ok, "type": "intelligence", "status": r.status_code})
+            except Exception as exc:
+                self._respond(500, {"error": str(exc)})
 
     def _respond(self, code: int, body: dict):
         b = json.dumps(body).encode()

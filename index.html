@@ -2247,7 +2247,8 @@ function renderTaxProjection(data) {
       </div>
       <input type="range" min="30000" max="350000" step="5000" value="${grossSalary}"
         style="width:100%;accent-color:var(--blue-bright);cursor:pointer"
-        oninput="localStorage.setItem('pp_gross_salary',this.value); document.getElementById('taxSalaryDisplay').textContent='$'+parseInt(this.value).toLocaleString('en-CA'); renderTaxProjection(_lastLiveData||{})">
+        oninput="localStorage.setItem('pp_gross_salary',this.value); document.getElementById('taxSalaryDisplay').textContent='$'+parseInt(this.value).toLocaleString('en-CA'); renderTaxProjection(_lastLiveData||{})"
+        onchange="_syncTaxSettings()">
       <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:4px">
         <span>$30K</span><span style="color:var(--amber)">$57K</span><span style="color:var(--amber)">$102K</span><span style="color:var(--amber)">$150K</span><span>$350K</span>
       </div>
@@ -2260,7 +2261,8 @@ function renderTaxProjection(data) {
         <input type="number" min="0" max="35000" step="100" value="${rrspDeduction}"
           placeholder="0"
           style="font-family:var(--mono);font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text1);border-radius:4px;padding:3px 8px;width:90px;text-align:right"
-          oninput="localStorage.setItem('pp_rrsp_this_year',this.value||0); renderTaxProjection(_lastLiveData||{})">
+          oninput="localStorage.setItem('pp_rrsp_this_year',this.value||0); renderTaxProjection(_lastLiveData||{})"
+          onchange="_syncTaxSettings()">
       </div>
 
       <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px">
@@ -2353,20 +2355,44 @@ const TFSA_ANNUAL_2027 = 7000; // estimated
 const FHSA_ANNUAL      = 8000;
 const FHSA_LIFETIME    = 40000;
 
+function _syncTaxSettings() {
+  // Push salary + RRSP-this-year to KV so they sync across all devices
+  const salary      = localStorage.getItem('pp_gross_salary')   || '90000';
+  const rrspThisYr  = localStorage.getItem('pp_rrsp_this_year') || '0';
+  fetch(`${CONFIG.API_BASE}/api/settings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gross_salary: parseInt(salary), rrsp_this_year: parseFloat(rrspThisYr) }),
+  }).catch(() => {});
+}
+
 async function initContribRoom() {
   // Load from localStorage first (instant, no flash)
   const local = localStorage.getItem('pp_rrsp_limit');
   if (local) document.getElementById('rrspLimitInput').value = local;
   updateContribRoom();
-  // Then sync from KV (authoritative across devices)
+  // Then sync ALL settings from KV (authoritative across devices)
   try {
     const r = await fetch(`${CONFIG.API_BASE}/api/settings`);
     if (r.ok) {
       const s = await r.json();
+      // RRSP deduction limit
       if (s.rrsp_limit != null) {
         document.getElementById('rrspLimitInput').value = s.rrsp_limit;
         localStorage.setItem('pp_rrsp_limit', s.rrsp_limit);
         updateRRSPRoom();
+      }
+      // Gross salary for tax projection
+      if (s.gross_salary != null) {
+        localStorage.setItem('pp_gross_salary', s.gross_salary);
+      }
+      // RRSP this-year contributions (manual override)
+      if (s.rrsp_this_year != null) {
+        localStorage.setItem('pp_rrsp_this_year', s.rrsp_this_year);
+      }
+      // Re-render tax projection with fresh settings
+      if (s.gross_salary != null || s.rrsp_this_year != null) {
+        renderTaxProjection(_lastLiveData || {});
       }
     }
   } catch {}

@@ -38,6 +38,8 @@ CRON_SECRET   = os.environ.get("CRON_SECRET", "")
 VAPID_PRIVATE = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_SUBJECT = "mailto:noreply@portfoliopulse.app"
 MARKET_API    = "https://portfolio-pulse-dun.vercel.app/api/market"
+FMP_API_KEY   = os.environ.get("FMP_API_KEY", "")
+FMP_BASE      = "https://financialmodelingprep.com/api/v3"
 
 CRASH_THRESHOLD  = -5.0    # % — individual holding
 SPIKE_THRESHOLD  =  5.0    # %
@@ -299,6 +301,86 @@ def check_alerts(today_str: str, holdings: dict, subs: list) -> list:
     return newly_fired
 
 
+# ── Held tickers (US only — FMP free tier doesn't support .TO) ───────────────
+_US_TICKERS = [
+    "NVDA","AVGO","TSLA","TSM","SPXL","FNGU","UDOW","MSFT","AAPL","QCOM",
+    "IBKR","V","LYV","GBTC","MSTR","BYDDF","SHEL","ET",
+]
+
+
+def check_earnings_alerts(today_str: str, subs: list) -> list:
+    """
+    Fire a push notification the evening BEFORE a held ticker reports earnings.
+    Runs once per ticker per earnings date (deduplicated in KV).
+    """
+    if not FMP_API_KEY:
+        return []
+
+    fired_today = get_fired(today_str)
+    newly_fired = []
+    all_stale   = []
+    fired_payloads = []
+
+    try:
+        # Fetch earnings for the next 3 trading days
+        from datetime import timedelta
+        today_dt = datetime.now(timezone.utc)
+        end_dt   = today_dt + timedelta(days=5)
+        tomorrow_str = (today_dt + timedelta(days=1)).strftime("%Y-%m-%d")
+
+        r = requests.get(
+            f"{FMP_BASE}/earning_calendar",
+            params={
+                "from":   today_dt.strftime("%Y-%m-%d"),
+                "to":     end_dt.strftime("%Y-%m-%d"),
+                "apikey": FMP_API_KEY,
+            },
+            timeout=10,
+        )
+        if not r.ok:
+            print(f"  [intraday] FMP earnings fetch failed: {r.status_code}")
+            return []
+
+        events = r.json() if isinstance(r.json(), list) else []
+        # Filter for held US tickers reporting tomorrow or in 2 days
+        relevant = [
+            e for e in events
+            if e.get("symbol") in _US_TICKERS
+            and e.get("date") in [tomorrow_str]  # alert 1 day before
+        ]
+
+        for ev in relevant:
+            ticker  = ev["symbol"]
+            date    = ev["date"]
+            eps_est = ev.get("epsEstimated")
+            alert_id = f"earnings_{ticker}_{date}"
+
+            if alert_id not in fired_today:
+                eps_str = f" · EPS est. ${eps_est:.2f}" if eps_est else ""
+                payload = {
+                    "title": f"📅 {ticker} Reports Tomorrow",
+                    "body":  f"{ticker} earnings tomorrow ({date}){eps_str}. Review your position before close today.",
+                    "tag":   f"earnings-{ticker}-{date}",
+                }
+                sent, stale = broadcast_checked(payload, subs)
+                all_stale.extend(stale)
+                newly_fired.append(alert_id)
+                fired_payloads.append(payload)
+                print(f"  [intraday] earnings alert: {ticker} reports {date} → sent {sent}")
+
+    except Exception as exc:
+        print(f"  [intraday] earnings check error: {exc}")
+
+    if all_stale:
+        remove_stale_subs(list(set(all_stale)))
+    if newly_fired:
+        mark_fired(today_str, get_fired(today_str) + newly_fired)
+    if fired_payloads:
+        _append_history(fired_payloads, datetime.now(timezone.utc).isoformat())
+
+    return newly_fired
+
+
 def check_portfolio_alerts(today_str: str, portfolio: dict, subs: list) -> list:
     """
     Check portfolio-level real-time alerts:
@@ -465,7 +547,8 @@ class handler(BaseHTTPRequestHandler):
 
             fired_holdings  = check_alerts(today_str, holdings, subs)
             fired_portfolio = check_portfolio_alerts(today_str, portfolio, subs)
-            fired_list      = fired_holdings + fired_portfolio
+            fired_earnings  = check_earnings_alerts(today_str, subs)
+            fired_list      = fired_holdings + fired_portfolio + fired_earnings
 
             self._respond(200, {
                 "ok":     True,

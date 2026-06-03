@@ -439,6 +439,32 @@ def main() -> int:
     if missing:
         print(f"  ⚠ Missing keys in Gemini response: {missing}")
 
+    # Fetch upcoming earnings for held US tickers and add to intelligence
+    fmp_key = os.environ.get("FMP_API_KEY", "")
+    if fmp_key:
+        try:
+            from datetime import timedelta
+            end_dt = now_utc + timedelta(days=14)
+            er = requests.get(
+                "https://financialmodelingprep.com/api/v3/earning_calendar",
+                params={"from": now_utc.strftime("%Y-%m-%d"), "to": end_dt.strftime("%Y-%m-%d"), "apikey": fmp_key},
+                timeout=10,
+            )
+            if er.ok:
+                held_us = {"NVDA","AVGO","TSLA","TSM","MSFT","AAPL","QCOM","IBKR","V","LYV","GBTC","MSTR","SHEL","ET"}
+                earnings_events = [
+                    {"symbol": e["symbol"], "date": e["date"], "eps_estimate": e.get("epsEstimated")}
+                    for e in (er.json() if isinstance(er.json(), list) else [])
+                    if e.get("symbol") in held_us
+                ]
+                intelligence["upcoming_earnings"] = sorted(earnings_events, key=lambda x: x["date"])[:8]
+                print(f"  ✓ {len(intelligence['upcoming_earnings'])} earnings events fetched")
+        except Exception as exc:
+            print(f"  ⚠ Earnings fetch failed (non-fatal): {exc}")
+            intelligence["upcoming_earnings"] = []
+    else:
+        intelligence["upcoming_earnings"] = []
+
     save(intelligence)
 
     # Also push to Vercel KV via /api/intelligence so the dashboard

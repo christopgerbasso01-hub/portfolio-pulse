@@ -1191,6 +1191,9 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     <div class="card" id="glancePortfolio"><div class="skeleton skeleton-line" style="height:14px;margin-bottom:8px"></div><div class="skeleton skeleton-line short"></div></div>
     <div class="card" id="glanceMovers"><div class="skeleton skeleton-line" style="height:14px;margin-bottom:8px"></div><div class="skeleton skeleton-line short"></div></div>
     <div class="card" id="glanceMarket"><div class="skeleton skeleton-line" style="height:14px;margin-bottom:8px"></div><div class="skeleton skeleton-line short"></div></div>
+    <div class="card" id="glanceEarnings" style="display:none;grid-column:1/-1">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:6px">📅 Upcoming Earnings</div>
+    </div>
   </div>
 </div>
 
@@ -2134,6 +2137,25 @@ function updateTodayGlance(data) {
     row('S&P 500', `<span style="color:${sp500>=0?'var(--green)':'var(--red)'}">${sp500>=0?'+':''}${sp500.toFixed(2)}%</span>`, '') +
     row('NASDAQ',  `<span style="color:${nasdaq>=0?'var(--green)':'var(--red)'}">${nasdaq>=0?'+':''}${nasdaq.toFixed(2)}%</span>`, '') +
     row('VIX',     `<span style="color:var(--text2)">${vix.toFixed(1)}</span>`, vixStatus);
+
+  // Earnings card — only show when there are upcoming events from intelligence data
+  const earnings = intelligenceData?.upcoming_earnings || [];
+  const p4 = document.getElementById('glanceEarnings');
+  if (p4) {
+    if (earnings.length > 0) {
+      p4.style.display = '';
+      const today = new Date().toISOString().slice(0,10);
+      p4.innerHTML = earnings.slice(0,4).map(e => {
+        const daysOut = Math.round((new Date(e.date) - new Date(today)) / 86400000);
+        const urgency = daysOut <= 1 ? 'var(--red)' : daysOut <= 3 ? 'var(--amber)' : 'var(--text2)';
+        const label   = daysOut === 0 ? 'TODAY' : daysOut === 1 ? 'TOMORROW' : `in ${daysOut}d`;
+        const epsStr  = e.eps_estimate != null ? ` · est. $${parseFloat(e.eps_estimate).toFixed(2)}` : '';
+        return row(e.symbol, `<span style="color:${urgency}">${label}</span>`, `reports ${e.date}${epsStr}`);
+      }).join('');
+    } else {
+      p4.style.display = 'none';
+    }
+  }
 }
 
 // ── Ontario 2026 combined marginal rate lookup (federal + provincial + surtax) ──

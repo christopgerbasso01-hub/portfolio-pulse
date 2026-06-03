@@ -92,7 +92,7 @@ SCRIPT_PROMPT_PART1 = """You are writing the FIRST HALF of a weekly financial po
 EPISODE DATE: {today}
 TRADING WEEK: {week_range}
 MARKET MOOD: {mood}
-PREVIOUS EPISODE (one brief callback only — one sentence max): {prev_ep_title}
+{prev_ep_context}
 
 PORTFOLIO PERFORMANCE THIS WEEK:
 {live_portfolio}
@@ -290,11 +290,41 @@ def _build_live_portfolio(snapshot: dict) -> str:
     return "\n".join(lines)
 
 
-def _prev_ep_title(meta: dict) -> str:
-    archive = meta.get("archive", [])
-    if archive:
-        return archive[0].get("title", "last week's episode")
-    return "last week's episode"
+def _build_prev_ep_context(meta: dict) -> str:
+    """Build rich context from the last 1-2 episodes so the LLM avoids repeating
+    themes and can make one natural callback. Returns a formatted string."""
+    # The current meta IS last week's episode (we load it before writing the new one)
+    episodes = []
+    if meta.get("title"):
+        episodes.append({
+            "label": "LAST WEEK'S EPISODE",
+            "title": meta.get("title", ""),
+            "summary": meta.get("summary", {}),
+        })
+    for i, ep in enumerate(meta.get("archive", [])[:1]):
+        episodes.append({
+            "label": "TWO WEEKS AGO",
+            "title": ep.get("title", ""),
+            "summary": ep.get("summary", {}),
+        })
+
+    if not episodes:
+        return "No previous episodes — fresh start, no callbacks needed."
+
+    lines = ["=== PREVIOUS EPISODES — avoid repeating these themes ==="]
+    for ep in episodes:
+        lines.append(f"\n{ep['label']}: \"{ep['title']}\"")
+        s = ep["summary"]
+        if s.get("market_context"):
+            lines.append(f"  Market themes covered: {' | '.join(x[:120] for x in s['market_context'][:3])}")
+        if s.get("position_spotlight"):
+            lines.append(f"  Positions spotlighted: {' | '.join(x[:80] for x in s['position_spotlight'][:2])}")
+        if s.get("watch_list"):
+            lines.append(f"  Watch list items: {' | '.join(x[:80] for x in s['watch_list'][:2])}")
+
+    lines.append("\nCALLBACK RULE: Make exactly ONE natural callback reference to the last episode.")
+    lines.append("TOPIC RULE: Do NOT rehash the same macro themes or portfolio angles from either episode. Find genuinely new angles this week.")
+    return "\n".join(lines)
 
 
 # ============================================================
@@ -339,11 +369,11 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str) -
     concerns  = "\n".join(f"• {c['text'][:200]}" for c in intel.get("concerns", [])[:3])
     strategy  = "\n".join(f"• {s['text'][:200]}" for s in intel.get("strategy_short", [])[:3])
     live_port = _build_live_portfolio(snapshot)
-    prev_title = _prev_ep_title(old_meta)
+    prev_ep_context = _build_prev_ep_context(old_meta)
 
     print("2/3  Generating Part 1 (Welcome + Recap + Deep Dive 1)...")
     part1 = _groq_call(api_key, SCRIPT_PROMPT_PART1.format(
-        today=today, week_range=week, mood=mood, prev_ep_title=prev_title,
+        today=today, week_range=week, mood=mood, prev_ep_context=prev_ep_context,
         live_portfolio=live_port, outlook=outlook, macro=macro, news=news,
         portfolio=PORTFOLIO_CONTEXT,
     ), "Part 1", max_tokens=4000)

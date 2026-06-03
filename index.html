@@ -1384,6 +1384,16 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
         <div style="font-size:10px;color:var(--text3)" id="rrspRoomNote">Enter your deduction limit from your latest NOA (CRA My Account)</div>
       </div>
     </div>
+
+    <!-- ── Year-End Tax Projection ────────────────────────────── -->
+    <div style="margin-top:24px;font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">
+      2026 Year-End Tax Projection
+      <span style="font-size:9px;color:var(--text3);font-weight:normal;margin-left:6px">updates live · based on current positions</span>
+    </div>
+    <div id="taxProjectionPanel" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px">
+      <div class="skeleton skeleton-line" style="height:14px;margin-bottom:10px"></div>
+      <div class="skeleton skeleton-line short"></div>
+    </div>
   </div>
 </div>
 
@@ -2124,6 +2134,96 @@ function updateTodayGlance(data) {
     row('S&P 500', `<span style="color:${sp500>=0?'var(--green)':'var(--red)'}">${sp500>=0?'+':''}${sp500.toFixed(2)}%</span>`, '') +
     row('NASDAQ',  `<span style="color:${nasdaq>=0?'var(--green)':'var(--red)'}">${nasdaq>=0?'+':''}${nasdaq.toFixed(2)}%</span>`, '') +
     row('VIX',     `<span style="color:var(--text2)">${vix.toFixed(1)}</span>`, vixStatus);
+}
+
+// ============================================================
+// YEAR-END TAX PROJECTION
+// Entirely client-computed from live prices + holdings.
+// Updates every 5s. No external API needed.
+// ============================================================
+function renderTaxProjection(data) {
+  const el = document.getElementById('taxProjectionPanel');
+  if (!el) return;
+
+  const hPrices = data.holdings  || {};
+  const usdcad  = data.usdcad    || 1.38;
+  const MAR_RATE = 0.43;   // ~43% marginal rate at $90K income (Ontario)
+  const INCLUSION = 0.50;  // 50% capital gains inclusion rate
+  const EFF_RATE  = MAR_RATE * INCLUSION;  // ~21.5¢ tax per $1 gain
+
+  // ── 1. Realized gains already locked in (non-reg Investment account only)
+  const realizedYTD = HOLDINGS_STATIC
+    .filter(h => h.account === 'Investment')
+    .reduce((s, h) => s + (h.realized || 0), 0)
+    + CLOSED_POSITIONS_STATIC
+      .filter(h => h.account === 'Investment')
+      .reduce((s, h) => s + (h.total_pnl ?? h.realized ?? 0), 0);
+
+  // ── 2. Unrealized gains in Investment (taxable if sold today)
+  const unrealizedInv = HOLDINGS_STATIC
+    .filter(h => h.account === 'Investment' && !h.ticker?.startsWith('CASH'))
+    .reduce((s, h) => {
+      const p   = hPrices[h.ticker];
+      const mv  = (p?.price || 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      const acb = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
+      return s + Math.max(0, mv - acb);
+    }, 0);
+
+  // ── 3. Tax-loss harvest candidates (Investment account positions below ACB)
+  const harvestItems = HOLDINGS_STATIC
+    .filter(h => h.account === 'Investment' && !h.ticker?.startsWith('CASH'))
+    .map(h => {
+      const p   = hPrices[h.ticker];
+      const mv  = (p?.price || 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      const acb = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
+      const loss = acb - mv;
+      return { ticker: h.ticker, loss, mv };
+    })
+    .filter(h => h.loss > 200)
+    .sort((a, b) => b.loss - a.loss);
+
+  const totalHarvestLoss = harvestItems.reduce((s, h) => s + h.loss, 0);
+
+  // ── 4. Tax calculations
+  const taxOnRealized    = Math.round(realizedYTD * EFF_RATE);
+  const taxOnUnrealized  = Math.round(unrealizedInv * EFF_RATE);
+  const totalTaxExposure = Math.round((realizedYTD + unrealizedInv) * EFF_RATE);
+  const harvestSaving    = Math.round(totalHarvestLoss * EFF_RATE);
+
+  // ── 5. Days remaining in tax year
+  const now     = new Date();
+  const dec31   = new Date(now.getFullYear(), 11, 31);
+  const daysLeft = Math.ceil((dec31 - now) / 86400000);
+  const monthsLeft = (daysLeft / 30.4).toFixed(1);
+
+  // ── Render
+  const fmtTax = v => v >= 0 ? `+${fmt$(v)}` : fmt$(v);
+  const row = (label, val, color, note) => `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:12px;color:var(--text2)">${label}</div>
+        ${note ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">${note}</div>` : ''}
+      </div>
+      <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${color};flex-shrink:0;padding-left:12px">${val}</div>
+    </div>`;
+
+  const status = harvestSaving > 1000
+    ? `<div style="margin-top:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--amber)">⚡ ${fmt$(harvestSaving)} tax saving available — harvest ${harvestItems.slice(0,3).map(h=>h.ticker).join(', ')} before Dec 31. Re-enter after 30 days (superficial loss rule).</div>`
+    : realizedYTD > 5000
+      ? `<div style="margin-top:12px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--blue-bright)">💡 ${fmt$(taxOnRealized)} tax already owed on locked-in gains. No harvest candidates large enough to offset. Timing future dispositions toward lower-income years reduces this.</div>`
+      : `<div style="margin-top:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--green)">✅ Minimal realized gains so far. Stay the course — unrealized gains in sheltered accounts (TFSA/RRSP/FHSA) have zero tax exposure.</div>`;
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">Non-Reg Investment Account · ${daysLeft} days until Dec 31</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3)">${MAR_RATE*100}% marginal · 50% inclusion</div>
+    </div>
+    ${row('Realized gains YTD (locked in)', fmt$(Math.round(realizedYTD)), realizedYTD > 0 ? 'var(--green)' : 'var(--text2)', `Est. tax already owed: ${fmt$(taxOnRealized)}`)}
+    ${row('Unrealized gains (if sold today)', fmt$(Math.round(unrealizedInv)), 'var(--amber)', `Additional tax if fully realized: ${fmt$(taxOnUnrealized)}`)}
+    ${row('Total tax exposure (max scenario)', fmt$(totalTaxExposure), 'var(--red)', 'If all non-reg gains realized in 2026')}
+    ${harvestItems.length ? row(`Harvest loss available (${harvestItems.length} candidates)`, `-${fmt$(Math.round(totalHarvestLoss))}`, 'var(--green)', `Saves ~${fmt$(harvestSaving)} in tax · ${harvestItems.slice(0,3).map(h=>h.ticker+' -'+fmt$(Math.round(h.loss))).join(' · ')}`) : ''}
+    ${status}
+    <div style="margin-top:10px;font-size:10px;color:var(--text3)">TFSA · FHSA · RRSP gains shown above are tax-sheltered and excluded from this calculation. Only Investment (non-reg) account creates taxable events.</div>`;
 }
 
 // ── Dynamic Pie Charts ─────────────────────────────────────────────────────────
@@ -4172,6 +4272,7 @@ async function fetchMarketData() {
     if (data.portfolio) updateAccountFooters(data);
     updateTodayGlance(data);
     renderTaxSection(data);
+    renderTaxProjection(data);
     if (data.holdings) {
       updateHoldingsCells(data.holdings, data.usdcad || 1.38);
       buildTickerStrip(data.holdings);

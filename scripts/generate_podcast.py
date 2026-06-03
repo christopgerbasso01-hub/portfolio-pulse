@@ -32,11 +32,15 @@ SNAPSHOT_API  = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
 NOTIFY_API    = "https://portfolio-pulse-dun.vercel.app/api/notify"
 CRON_SECRET   = os.environ.get("CRON_SECRET", "")
 
-# Two distinct Microsoft neural voices — genuinely different character
-VOICE_ALEX = "en-US-AndrewMultilingualNeural"   # Male — the analyst, cites numbers
-VOICE_SAM  = "en-US-AvaMultilingualNeural"      # Female — the questioner, listener proxy
+# Two distinct Microsoft neural voices — genuine characters
+# Multilingual voices have the best prosody + support express-as chat style
+VOICE_ALEX = "en-US-AndrewMultilingualNeural"   # Male — warm, analytical, gets excited about numbers
+VOICE_SAM  = "en-US-AvaMultilingualNeural"      # Female — curious, challenges, listener proxy
 
-SPEECH_RATE = "+8%"   # Slightly faster = more energetic podcast feel
+# Base speech rate — adjusted dynamically per turn length (shorter = faster, longer = slower)
+SPEECH_RATE_SHORT  = "+14%"   # Reactions, affirmations, < 60 chars
+SPEECH_RATE_MEDIUM = "+8%"    # Normal conversational turns, 60–200 chars
+SPEECH_RATE_LONG   = "+3%"    # Detailed explanations, > 200 chars
 
 DATA_DIR     = Path("data")
 PODCAST_META = DATA_DIR / "podcast_meta.json"
@@ -331,24 +335,35 @@ Short-Term Strategy (0–6 months):
 SCRIPT RULES — follow every single one:
 
 1. TWO HOSTS ONLY:
-   ALEX — the sharp portfolio analyst. Cites exact numbers. Gets excited about moves.
-   SAM  — the smart investor asking exactly what the listener is wondering. Challenges Alex.
+   ALEX — sharp portfolio analyst. Specific about numbers. Gets genuinely excited. Sometimes nervous.
+   SAM  — smart investor, sounds like the listener. Pushes back, asks "but why does that matter?"
 
 2. EVERY line must start with "ALEX:" or "SAM:" — zero exceptions. No stage directions.
 
-3. NATURAL CONVERSATION — not bullet reading:
-   Use: "Right, but here's the thing...", "Wait, hold on...", "That's what I was going to say...",
-   "And the crazy part is...", "So what you're saying is...", "Exactly, and on top of that..."
-   Interrupt each other. Build on each other's points. React to surprises.
-   Vary sentence openings — do NOT start multiple consecutive lines with the same word or phrase.
+3. NATURAL CONVERSATION — strict rules:
+   a) MIX short and long turns. Minimum 20% of turns must be SHORT (1–2 sentences max, under 60 words).
+      Short turns: "Wait — how much?", "Okay that's actually huge.", "Right, and that directly affects FNGU.",
+      "Hmm. So we're saying hold?", "That number is insane.", "Exactly — that's the whole thesis."
+   b) REACTIONS: at least 6 turns must be pure reactions — just responding to what was just said.
+      Good: "Okay, but here's what worries me about that." / "See, that's exactly what I wanted to ask."
+      Bad: Starting with the same word as the previous turn. Never two consecutive "So" or "And" openers.
+   c) INTERRUPTION FEEL: Use em-dashes mid-sentence to suggest cutting in:
+      "And the crazy part is — NVDA alone moved the—" / "Wait, before you get to that—"
+   d) CONTRACTIONS always: "we're" not "we are", "it's" not "it is", "that's" not "that is".
+   e) NO FILLER PHRASES: ban "as we mentioned", "as I said", "it's important to note", "make sure to".
+   f) VARY sentence openers every single line — track what you wrote and don't repeat an opener.
 
-4. TARGET: 1,800–2,100 words total. That's 12–14 minutes spoken.
+4. TARGET: 1,600–1,900 words total. Tighter = more listenable. Quality over length.
 
 5. DO NOT explain how TFSA/FHSA/RRSP accounts work — assume listener knows.
    DO NOT dwell on past performance beyond a quick context line.
    DO NOT repeat the same point twice in the episode.
    NEVER write the same sentence or phrase more than once — every line must be unique.
+   NEVER start two consecutive lines with the same word.
+   NEVER use these phrases: "it's worth noting", "make sure", "as we mentioned", "that being said",
+     "at the end of the day", "going forward", "moving forward", "to be honest".
    BE specific: say "FNGU is up 6.2% this week" not "FNGU performed well".
+   SOUND HUMAN: read every line aloud in your head — if it sounds like an article, rewrite it.
 
 5b. PREVIOUS EPISODE CALLBACK — exactly one natural callback per episode:
     Reference ONE specific thing from last episode (a position, a prediction, an action item).
@@ -551,14 +566,65 @@ def split_long_text(text: str, max_chars: int = 480) -> list[str]:
     return chunks or [text]
 
 
+def _pick_rate(text: str) -> str:
+    """Choose speech rate based on turn length — shorter = snappier."""
+    n = len(text)
+    if n < 60:  return SPEECH_RATE_SHORT
+    if n < 200: return SPEECH_RATE_MEDIUM
+    return SPEECH_RATE_LONG
+
+
+def _to_ssml(text: str, voice: str) -> str:
+    """
+    Wrap text in SSML with express-as chat style for conversational delivery.
+    - 'chat' style on AndrewMultilingualNeural / AvaMultilingualNeural makes
+      speech warmer and less news-anchor-like.
+    - Dynamic rate based on turn length.
+    - Emphasis on dollar amounts and percentages to make numbers pop.
+    """
+    import re
+    rate = _pick_rate(text)
+    lang = voice.split("-")[0] + "-" + voice.split("-")[1]  # e.g. en-US
+
+    # Escape XML special chars
+    safe = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    # Wrap numbers with emphasis so they sound punchy
+    # e.g. "+6.2%" → <emphasis level="moderate">+6.2%</emphasis>
+    safe = re.sub(
+        r'(\+|-)?(\$[\d,]+(?:\.\d+)?[KMB]?|[\d,]+(?:\.\d+)?%)',
+        r'<emphasis level="moderate">\g<0></emphasis>',
+        safe
+    )
+
+    return f"""<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' \
+xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='{lang}'>
+<voice name='{voice}'>
+<mstts:express-as style='chat'>
+<prosody rate='{rate}'>{safe}</prosody>
+</mstts:express-as>
+</voice>
+</speak>"""
+
+
 async def synthesize_one(text: str, voice: str, path: str, retries: int = 3) -> None:
     import edge_tts
+    ssml = _to_ssml(text, voice)
     for attempt in range(retries):
         try:
-            comm = edge_tts.Communicate(text, voice, rate=SPEECH_RATE)
+            comm = edge_tts.Communicate(ssml, voice)
             await comm.save(path)
             return
         except Exception as exc:
+            # Fallback to plain text if SSML fails
+            if attempt == 1:
+                try:
+                    rate = _pick_rate(text)
+                    comm = edge_tts.Communicate(text, voice, rate=rate)
+                    await comm.save(path)
+                    return
+                except Exception:
+                    pass
             if attempt == retries - 1:
                 raise
             await asyncio.sleep(1.0 * (attempt + 1))

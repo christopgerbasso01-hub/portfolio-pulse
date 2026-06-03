@@ -3797,6 +3797,123 @@ async function renderPicksSection(picks) {
     threeCards.map((p,i) => pickCard(p, ['buy','watch','sell'][i])).join('');
 }
 
+// ============================================================
+// TAX & ACCOUNT OPTIMIZATION — always client-computed, never LLM
+// Uses live holdings, actual contribution room, residency status,
+// and real portfolio values. Updates on every market refresh.
+// ============================================================
+function renderTaxSection(data) {
+  const hPrices = data.holdings  || {};
+  const usdcad  = data.usdcad    || 1.38;
+  const accts   = data.portfolio?.accounts || {};
+  const taxItem = (icon, text) => `<div class="tax-item">${icon} ${text}</div>`;
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  const acctMV = key => accts[key] || HOLDINGS_STATIC
+    .filter(h => h.account === key)
+    .reduce((s,h) => { const p = hPrices[h.ticker]; return s + (p?.price||0)*h.shares*(h.ccy==='USD'?usdcad:1); }, 0);
+  const acctROI = (key, contrib) => {
+    const v = accts[key]; if (!v || !contrib) return null;
+    return ((v - contrib) / contrib * 100);
+  };
+  const rrspCashCAD = CASH_POSITIONS.filter(c => c.account === 'RRSP')
+    .reduce((s,c) => s + (c.ccy==='USD' ? c.amount*usdcad : c.amount), 0);
+  const harvestCandidates = HOLDINGS_STATIC
+    .filter(h => h.account === 'Investment' && ((hPrices[h.ticker]?.price || 0) * h.shares * (h.ccy==='USD'?usdcad:1)) < (h.ccy==='USD' ? h.cost_total*(h.book_rate||1) : h.cost_total) - 200)
+    .map(h => {
+      const mv = (hPrices[h.ticker]?.price||0)*h.shares*(h.ccy==='USD'?usdcad:1);
+      const acb = h.ccy==='USD' ? h.cost_total*(h.book_rate||1) : h.cost_total;
+      return { ticker: h.ticker, loss: Math.round(acb - mv) };
+    }).sort((a,b) => b.loss - a.loss);
+
+  const tfsaV = acctMV('TFSA');  const tfsaC = CONTRIB_STATE.TFSA || 44500;
+  const fhsaV = acctMV('FHSA');  const fhsaC = CONTRIB_STATE.FHSA || 24000;
+  const rrspV = acctMV('RRSP');  const rrspC  = CONTRIB_STATE.RRSP  || 16132;
+  const invV  = acctMV('Investment'); const invC = CONTRIB_STATE.Investment || 65000;
+  const tfsaROI = acctROI('TFSA', tfsaC);
+  const fhsaROI = acctROI('FHSA', fhsaC);
+  const rrspROI = acctROI('RRSP', rrspC);
+  const invROI  = acctROI('Investment', invC);
+
+  // Top holdings per account for context
+  const topInAcct = key => HOLDINGS_STATIC
+    .filter(h => h.account === key && !h.ticker.startsWith('CASH'))
+    .map(h => { const p = hPrices[h.ticker]; return { ticker: h.ticker, mv: (p?.price||0)*h.shares*(h.ccy==='USD'?usdcad:1), pct: p?.change_pct||0 }; })
+    .sort((a,b) => b.mv - a.mv).slice(0,3);
+
+  // SPXL/FNGU unrealized gains in Investment for tax liability estimate
+  const invUnrealized = HOLDINGS_STATIC
+    .filter(h => h.account === 'Investment')
+    .reduce((s,h) => { const mv=(hPrices[h.ticker]?.price||0)*h.shares*(h.ccy==='USD'?usdcad:1); const acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total; return s+(mv-acb); }, 0);
+  const deferredTax = Math.max(0, Math.round(invUnrealized * 0.5 * 0.43)); // 50% inclusion × ~43% marginal
+
+  // ── TFSA ─────────────────────────────────────────────────────────────────
+  const tfsaTop = topInAcct('TFSA');
+  const tfsaItems = [
+    taxItem('⚠️', `Non-resident 2026 — contributions suspended. $7,000 new room opens Jan 1, 2027. Maintain existing positions without adding cash.`),
+    tfsaROI != null
+      ? taxItem('✅', `+${tfsaROI.toFixed(1)}% ROI on ${fmt$(tfsaC)} contributed = ${fmt$(Math.round(tfsaV - tfsaC))} in permanently tax-free gains. Zero CRA exposure on any of it.`)
+      : taxItem('✅', `Contributions maxed — all growth permanently tax-free, no reporting required.`),
+    tfsaTop.length ? taxItem('💡', `Top holdings: ${tfsaTop.map(h => `${h.ticker} ${h.pct >= 0 ? '+':''}${h.pct.toFixed(1)}% today`).join(' · ')}. Every gain 100% yours.`)
+      : taxItem('💡', `TFSA is the portfolio's most structurally efficient account — leveraged positions here beat any other account on an after-tax basis.`),
+    taxItem('💡', `March 2027: resume contributions when Canadian resident. Prioritise highest-conviction growth names first — AVGO, AMD, or new AI semis in RRSP for now.`),
+  ];
+
+  // ── FHSA ─────────────────────────────────────────────────────────────────
+  const fhsaTop = topInAcct('FHSA');
+  const downPayEst = Math.round(fhsaV + 35000); // FHSA + RRSP HBP
+  const fhsaItems = [
+    taxItem('⚠️', `Non-resident 2026 — contributions suspended. $16,000 lifetime room remaining ($8,000/yr) resumes when Canadian resident (target: March 2027).`),
+    fhsaROI != null
+      ? taxItem('✅', `+${fhsaROI.toFixed(1)}% ROI on ${fmt$(fhsaC)} contributed. Combined with RRSP HBP ($35K) = ~${fmt$(downPayEst)} total down payment power for GTA.`)
+      : taxItem('✅', `FHSA + RRSP HBP = strong GTA down payment foundation. All FHSA gains withdrawn for qualifying home are 100% tax-free.`),
+    fhsaTop.length ? taxItem('⚠️', `Current holdings: ${fhsaTop.map(h=>h.ticker).join(', ')}. As purchase horizon tightens, shift toward lower-volatility positions to preserve the down payment.`)
+      : null,
+    taxItem('💡', `No FHSA repayment obligation on home purchase (unlike RRSP HBP which requires 15-year repayment). FHSA withdrawal is structurally superior — use it first.`),
+  ].filter(Boolean);
+
+  // ── RRSP ─────────────────────────────────────────────────────────────────
+  const rrspTop = topInAcct('RRSP');
+  const rrspItems = [
+    rrspCashCAD > 500
+      ? taxItem('⚠️', `${fmt$(Math.round(rrspCashCAD))} idle cash (${rrspV > 0 ? (rrspCashCAD/rrspV*100).toFixed(0) : 0}% of RRSP). Costs ~${fmt$(Math.round(rrspCashCAD*0.08/12))}/month in foregone returns. Deploy into ZSP.TO — 0% US dividend withholding under Canada-US treaty.`)
+      : taxItem('✅', `RRSP fully deployed — every dollar working. Ideal next buys: ZSP.TO, SCHD, or high-dividend US names that benefit most from the 0% withholding advantage.`),
+    rrspROI != null
+      ? taxItem('✅', `+${rrspROI.toFixed(1)}% ROI. RRSP's 0% US dividend withholding is worth an estimated 15% extra return vs holding US dividend payers in non-reg. No other account matches this.`)
+      : taxItem('✅', `RRSP defers taxes until withdrawal — best for high-dividend US stocks and long-horizon growth.`),
+    rrspTop.length ? taxItem('💡', `Current: ${rrspTop.map(h=>`${h.ticker} ${h.pct>=0?'+':''}${h.pct.toFixed(1)}%`).join(' · ')}. Route next RRSP buy toward ZSP.TO or a dividend ETF to leverage the treaty advantage.`)
+      : taxItem('💡', `Focus new RRSP contributions on US-dividend payers. 0% withholding under Canada-US treaty beats every other account for this asset class.`),
+    taxItem('💡', `HBP: Can withdraw up to $35K for first home purchase with 15-year repayment. Combined with FHSA (~${fmt$(Math.round(fhsaV))}) = ~${fmt$(downPayEst)} down payment power.`),
+  ];
+
+  // ── Non-Reg ───────────────────────────────────────────────────────────────
+  const invItems = [
+    invUnrealized > 5000
+      ? taxItem('⚠️', `~${fmt$(Math.round(invUnrealized))} unrealized gains. At 50% inclusion + ~43% marginal rate = ~${fmt$(deferredTax)} deferred tax liability. Plan dispositions around lower-income years to minimize.`)
+      : taxItem('⚠️', `50% inclusion rate applies to all capital gains here. Every dollar of gain will cost ~21.5¢ in tax at disposition. Factor this into position sizing vs sheltered accounts.`),
+    harvestCandidates.length
+      ? taxItem('⚠️', `Tax-loss harvest candidates: ${harvestCandidates.slice(0,3).map(h=>`${h.ticker} (-${fmt$(h.loss)})`).join(', ')}. Realize losses before Dec 31 to offset other gains. Re-enter after 30 days (superficial loss rule).`)
+      : taxItem('✅', `No significant harvest candidates today. Monitor for positions falling more than $500 below ACB as the year progresses.`),
+    invROI != null
+      ? taxItem('💡', `+${invROI.toFixed(1)}% ROI on ${fmt$(invC)} contributed. Eligible Canadian dividends (CM.TO, ENB.TO) qualify for the dividend tax credit — most tax-efficient income type in non-reg.`)
+      : taxItem('💡', `Eligible Canadian dividends get the dividend tax credit — structurally more tax-efficient than interest income or foreign dividends in non-reg.`),
+    taxItem('💡', `Long-term plan: migrate high-growth positions to TFSA/RRSP as room opens ($7K TFSA in Jan 2027). Hold only tax-efficient names (eligible CDN dividends, return-of-capital ETFs) here long-term.`),
+  ];
+
+  // Render
+  const render = (id, items) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = items.join('');
+  };
+  render('taxTFSAItems', tfsaItems);
+  render('taxFHSAItems', fhsaItems);
+  render('taxRRSPItems', rrspItems);
+  render('taxInvItems',  invItems);
+  document.getElementById('aiSec10')?.classList.remove('loading');
+  const badge = document.getElementById('ai10badge');
+  if (badge) badge.textContent = '⚡ LIVE · Updated with prices';
+}
+
 function renderAISection(analysis) {
   if (!analysis || analysis.error) return;
 
@@ -3943,13 +4060,9 @@ function renderAISection(analysis) {
   document.getElementById('ai09badge').textContent = _aiBadgeLabel;
 
   // Section 10: Tax
-  const taxItem = (t) => `<div class="tax-item">${t.icon} ${t.text}</div>`;
-  if (analysis.tax) {
-    if (analysis.tax.tfsa) document.getElementById('taxTFSAItems').innerHTML = analysis.tax.tfsa.map(taxItem).join('');
-    if (analysis.tax.fhsa) document.getElementById('taxFHSAItems').innerHTML = analysis.tax.fhsa.map(taxItem).join('');
-    if (analysis.tax.rrsp) document.getElementById('taxRRSPItems').innerHTML = analysis.tax.rrsp.map(taxItem).join('');
-    if (analysis.tax.investment) document.getElementById('taxInvItems').innerHTML = analysis.tax.investment.map(taxItem).join('');
-  }
+  // Tax section: always override with client-side computed content
+  // (LLM doesn't know your residency, room status, or live holdings)
+  renderTaxSection(_lastLiveData || {});
   document.getElementById('aiSec10').classList.remove('loading');
   document.getElementById('ai10badge').textContent = _aiBadgeLabel;
 }
@@ -4022,6 +4135,7 @@ async function fetchMarketData() {
     if (data.portfolio) updateHeaderKPIs(data);
     if (data.portfolio) updateAccountFooters(data);
     updateTodayGlance(data);
+    renderTaxSection(data);
     if (data.holdings) {
       updateHoldingsCells(data.holdings, data.usdcad || 1.38);
       buildTickerStrip(data.holdings);

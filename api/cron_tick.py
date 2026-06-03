@@ -28,6 +28,7 @@ RATE_LIMITS = {
     "intraday":     480,   # 8 minutes between intraday calls
     "eod":         1800,   # 30 minutes between EOD calls
     "intelligence": 300,   # 5 minutes between intelligence triggers
+    "podcast":     3600,   # 1 hour between podcast triggers
 }
 
 
@@ -92,7 +93,7 @@ class handler(BaseHTTPRequestHandler):
         qs = parse_qs(urlparse(self.path).query)
         tick_type = qs.get("type", ["intraday"])[0]
 
-        if tick_type not in ("intraday", "eod", "intelligence"):
+        if tick_type not in ("intraday", "eod", "intelligence", "podcast"):
             self._respond(400, {"error": f"Unknown type: {tick_type}"})
             return
 
@@ -112,21 +113,22 @@ class handler(BaseHTTPRequestHandler):
             self._respond(200, {"ok": True, "type": "eod",
                                "snapshot": snap, "notify": notif})
 
-        elif tick_type == "intelligence":
-            # Trigger GitHub Actions daily-intelligence workflow
+        elif tick_type in ("intelligence", "podcast"):
+            # Trigger GitHub Actions workflow dispatch
+            workflow = "daily-intelligence.yml" if tick_type == "intelligence" else "weekly-podcast.yml"
             if not GITHUB_TOKEN:
                 self._respond(500, {"error": "GITHUB_TOKEN not configured"})
                 return
             try:
                 r = requests.post(
-                    f"https://api.github.com/repos/{REPO}/actions/workflows/daily-intelligence.yml/dispatches",
+                    f"https://api.github.com/repos/{REPO}/actions/workflows/{workflow}/dispatches",
                     headers={"Authorization": f"token {GITHUB_TOKEN}",
                              "Accept": "application/vnd.github.v3+json"},
                     json={"ref": "main"}, timeout=15,
                 )
                 ok = r.status_code == 204
-                print(f"  [cron_tick] intelligence dispatch → {r.status_code}")
-                self._respond(200, {"ok": ok, "type": "intelligence", "status": r.status_code})
+                print(f"  [cron_tick] {tick_type} dispatch → {r.status_code}")
+                self._respond(200, {"ok": ok, "type": tick_type, "status": r.status_code})
             except Exception as exc:
                 self._respond(500, {"error": str(exc)})
 

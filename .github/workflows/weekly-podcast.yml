@@ -1,10 +1,7 @@
 name: Weekly Podcast
 
 on:
-  schedule:
-    # Every Monday 6:00 AM UTC = 8:00 AM CEST (Geneva summer)
-    - cron: '0 6 * * 1'
-  workflow_dispatch:  # Manual trigger from GitHub Actions UI
+  workflow_dispatch:  # Triggered by cron-job.org every Monday 6:00 AM UTC
 
 permissions:
   contents: write

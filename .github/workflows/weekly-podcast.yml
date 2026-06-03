@@ -20,8 +20,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install system dependencies (ffmpeg for MP3 encoding)
-        run: sudo apt-get install -y ffmpeg
+      # ffmpeg is pre-installed on GitHub Actions ubuntu-latest — no install needed
 
       - name: Cache Kokoro model files
         uses: actions/cache@v3

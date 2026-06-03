@@ -567,64 +567,23 @@ def split_long_text(text: str, max_chars: int = 480) -> list[str]:
 
 
 def _pick_rate(text: str) -> str:
-    """Choose speech rate based on turn length — shorter = snappier."""
+    """Choose speech rate based on turn length — shorter = snappier, longer = measured."""
     n = len(text)
     if n < 60:  return SPEECH_RATE_SHORT
     if n < 200: return SPEECH_RATE_MEDIUM
     return SPEECH_RATE_LONG
 
 
-def _to_ssml(text: str, voice: str) -> str:
-    """
-    Wrap text in SSML with express-as chat style for conversational delivery.
-    - 'chat' style on AndrewMultilingualNeural / AvaMultilingualNeural makes
-      speech warmer and less news-anchor-like.
-    - Dynamic rate based on turn length.
-    - Emphasis on dollar amounts and percentages to make numbers pop.
-    """
-    import re
-    rate = _pick_rate(text)
-    lang = voice.split("-")[0] + "-" + voice.split("-")[1]  # e.g. en-US
-
-    # Escape XML special chars
-    safe = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-    # Wrap numbers with emphasis so they sound punchy
-    # e.g. "+6.2%" → <emphasis level="moderate">+6.2%</emphasis>
-    safe = re.sub(
-        r'(\+|-)?(\$[\d,]+(?:\.\d+)?[KMB]?|[\d,]+(?:\.\d+)?%)',
-        r'<emphasis level="moderate">\g<0></emphasis>',
-        safe
-    )
-
-    return f"""<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' \
-xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='{lang}'>
-<voice name='{voice}'>
-<mstts:express-as style='chat'>
-<prosody rate='{rate}'>{safe}</prosody>
-</mstts:express-as>
-</voice>
-</speak>"""
-
-
 async def synthesize_one(text: str, voice: str, path: str, retries: int = 3) -> None:
+    """Synthesize one turn using plain text + dynamic rate (no SSML — edge-tts reads tags literally)."""
     import edge_tts
-    ssml = _to_ssml(text, voice)
+    rate = _pick_rate(text)
     for attempt in range(retries):
         try:
-            comm = edge_tts.Communicate(ssml, voice)
+            comm = edge_tts.Communicate(text, voice, rate=rate)
             await comm.save(path)
             return
         except Exception as exc:
-            # Fallback to plain text if SSML fails
-            if attempt == 1:
-                try:
-                    rate = _pick_rate(text)
-                    comm = edge_tts.Communicate(text, voice, rate=rate)
-                    await comm.save(path)
-                    return
-                except Exception:
-                    pass
             if attempt == retries - 1:
                 raise
             await asyncio.sleep(1.0 * (attempt + 1))

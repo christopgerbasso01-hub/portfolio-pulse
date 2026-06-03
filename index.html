@@ -2223,7 +2223,13 @@ function renderTaxProjection(data) {
     ${row('Total tax exposure (max scenario)', fmt$(totalTaxExposure), 'var(--red)', 'If all non-reg gains realized in 2026')}
     ${harvestItems.length ? row(`Harvest loss available (${harvestItems.length} candidates)`, `-${fmt$(Math.round(totalHarvestLoss))}`, 'var(--green)', `Saves ~${fmt$(harvestSaving)} in tax · ${harvestItems.slice(0,3).map(h=>h.ticker+' -'+fmt$(Math.round(h.loss))).join(' · ')}`) : ''}
     ${status}
-    <div style="margin-top:10px;font-size:10px;color:var(--text3)">TFSA · FHSA · RRSP gains shown above are tax-sheltered and excluded from this calculation. Only Investment (non-reg) account creates taxable events.</div>`;
+    <div style="margin-top:10px;font-size:10px;color:var(--text3)">
+      <b style="color:var(--text2)">Account tax treatment:</b>
+      <b style="color:var(--green)">TFSA</b> → permanently tax-free (no tax ever on gains or withdrawals).
+      <b style="color:var(--green)">FHSA</b> → tax-free on qualifying home purchase withdrawal.
+      <b style="color:var(--amber)">RRSP</b> → tax-<i>deferred</i>, not tax-free — all withdrawals taxed as income at full marginal rate (100% inclusion).
+      Only non-reg Investment creates <i>current-year</i> capital gains events.
+    </div>`;
 }
 
 // ── Dynamic Pie Charts ─────────────────────────────────────────────────────────

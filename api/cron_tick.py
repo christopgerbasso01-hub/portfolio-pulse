@@ -92,7 +92,7 @@ class handler(BaseHTTPRequestHandler):
         qs = parse_qs(urlparse(self.path).query)
         tick_type = qs.get("type", ["intraday"])[0]
 
-        if tick_type not in ("intraday", "eod"):
+        if tick_type not in ("intraday", "eod", "intelligence"):
             self._respond(400, {"error": f"Unknown type: {tick_type}"})
             return
 

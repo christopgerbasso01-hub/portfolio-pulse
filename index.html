@@ -5321,16 +5321,28 @@ async function syncTransactionsFromKV() {
     const r = await fetch(`${CONFIG.API_BASE}/api/settings`, { cache: 'no-store' });
     if (!r.ok) return;
     const s = await r.json();
-    if (!s.tx_updated_at) return;   // KV has no transaction data yet
+    if (!('transactions' in s)) return;  // KV has never stored transactions
 
-    const kvTs    = s.tx_updated_at;
+    const kvTxs   = Array.isArray(s.transactions) ? s.transactions : [];
+    const local   = getTransactions();
+    const kvTs    = s.tx_updated_at || 0;
     const localTs = parseInt(localStorage.getItem('pp_tx_ts') || '0', 10);
 
-    // KV is newer → apply it (handles both additions AND deletions/undos)
-    if (kvTs > localTs) {
-      const kvTxs = Array.isArray(s.transactions) ? s.transactions : [];
+    // Decide whether KV should overwrite local:
+    // • If both have timestamps: KV wins when newer
+    // • If no timestamps (old data): compare ID sets — apply KV if different
+    let shouldSync = false;
+    if (kvTs > 0 || localTs > 0) {
+      shouldSync = kvTs > localTs;
+    } else {
+      const kvIds    = kvTxs.map(t => t.id).sort().join(',');
+      const localIds = local.map(t => t.id).sort().join(',');
+      shouldSync = kvIds !== localIds;
+    }
+
+    if (shouldSync) {
       localStorage.setItem('pp_transactions', JSON.stringify(kvTxs));
-      localStorage.setItem('pp_tx_ts', kvTs.toString());
+      localStorage.setItem('pp_tx_ts', (kvTs || Date.now()).toString());
       applyAllTransactions();
       await refreshAfterTx();
       renderTxHistory();

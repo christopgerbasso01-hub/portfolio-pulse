@@ -2456,8 +2456,9 @@ function renderHoldingsTable(liveData) {
 
   const closedRows = CLOSED_POSITIONS_STATIC.map(h => {
     const fxRate = h.book_rate || USD_BOOK_RATE;
-    const pnl = h.total_pnl;
-    const pnlCAD = pnl * (h.ccy === 'USD' ? fxRate : 1);
+    // Support both seed data format (total_pnl) and transaction-created format (realized)
+    const pnl = h.total_pnl ?? h.realized ?? 0;
+    const pnlCAD = (h.ccy === 'USD' ? pnl * fxRate : pnl);
     const pnlColor = pnlCAD >= 0 ? 'green' : 'red';
     const pnlAttr = pnlCAD >= 0 ? 'gain' : 'loss';
     const costBasisCAD = h.cost_total > 0 ? h.cost_total * (h.ccy === 'USD' ? fxRate : 1) : 0;
@@ -5453,8 +5454,9 @@ function applyOneTx(holdings, closed, contribs, cash, tx) {
             ticker: old.ticker, name: old.name, account: old.account,
             sector: old.sector, ccy: old.ccy,
             shares: 0, cost_total: 0, book_rate: old.book_rate,
-            realized: closedRealized, dividends: old.dividends || 0,
-            unrealized: 0, weight: 0,
+            realized: closedRealized, total_pnl: closedRealized,
+            dividends: old.dividends || 0, unrealized: 0, weight: 0,
+            pct_return: null,   // calculated at display time if needed
           });
         }
         holdings.splice(idx, 1);

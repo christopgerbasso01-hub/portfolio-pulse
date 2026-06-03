@@ -20,7 +20,6 @@ import asyncio
 import json
 import os
 import re
-import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone, timedelta
@@ -34,9 +33,13 @@ GROQ_MODEL    = "llama-3.3-70b-versatile"
 SNAPSHOT_API  = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
 CRON_SECRET   = os.environ.get("CRON_SECRET", "")
 
-# Kokoro TTS voices
-VOICE_ALEX = "am_michael"   # Warm, authoritative male — the analyst who connects dots
-VOICE_SAM  = "af_heart"     # Expressive, curious female — asks the questions listeners have
+# edge-tts voices (Kokoro had persistent install issues — revisit later)
+VOICE_ALEX = "en-US-AndrewMultilingualNeural"   # Male — warm, analytical
+VOICE_SAM  = "en-US-AvaMultilingualNeural"      # Female — curious, challenges
+
+SPEECH_RATE_SHORT  = "+14%"   # Short reactions < 60 chars
+SPEECH_RATE_MEDIUM = "+8%"    # Normal turns 60-200 chars
+SPEECH_RATE_LONG   = "+3%"    # Detailed explanations > 200 chars
 
 DATA_DIR     = Path("data")
 PODCAST_META = DATA_DIR / "podcast_meta.json"
@@ -453,75 +456,56 @@ def split_long_text(text: str, max_chars: int = 400) -> list[str]:
     return chunks or [text]
 
 
-def synthesize_kokoro(turns: list[tuple[str, str]], tmp_dir: Path) -> list[Path]:
-    """Synthesize all turns with Kokoro TTS. Returns list of WAV file paths."""
-    from kokoro_onnx import Kokoro
-    import numpy as np
-    import soundfile as sf
+def _pick_rate(text: str) -> str:
+    n = len(text)
+    if n < 60:  return SPEECH_RATE_SHORT
+    if n < 200: return SPEECH_RATE_MEDIUM
+    return SPEECH_RATE_LONG
 
-    # Model files downloaded by the GitHub Actions workflow step before this runs.
-    # Files live in the working directory (repo root).
-    import os
-    script_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root
-    model_path  = os.path.join(script_dir, "kokoro-v0_19.onnx")
-    voices_path = os.path.join(script_dir, "voices-v1_0.bin")
 
-    if not os.path.exists(model_path) or not os.path.exists(voices_path):
-        raise FileNotFoundError(
-            f"Kokoro model files not found at {script_dir}. "
-            "Ensure the workflow download step ran correctly."
-        )
+async def _synthesize_one(text: str, voice: str, path: str, retries: int = 3) -> None:
+    import edge_tts
+    rate = _pick_rate(text)
+    for attempt in range(retries):
+        try:
+            comm = edge_tts.Communicate(text, voice, rate=rate)
+            await comm.save(path)
+            return
+        except Exception as exc:
+            if attempt == retries - 1:
+                raise
+            await asyncio.sleep(1.0 * (attempt + 1))
 
-    print(f"  Loading Kokoro model ({os.path.getsize(model_path)//1_048_576} MB)...")
-    kokoro = Kokoro(model_path, voices_path)
-    print("  ✓ Kokoro ready")
 
-    wav_paths = []
-    total = sum(len(split_long_text(t)) for _, t in turns)
-    done = 0
-
+async def _generate_all_audio(turns: list[tuple[str, str]], tmp_dir: Path) -> list[str]:
+    """Synthesize all turns with edge-tts, return ordered list of mp3 paths."""
+    paths, tasks = [], []
     for i, (speaker, text) in enumerate(turns):
         voice  = VOICE_ALEX if speaker == "ALEX" else VOICE_SAM
         chunks = split_long_text(text)
         for j, chunk in enumerate(chunks):
-            path = tmp_dir / f"seg_{i:04d}_{j:02d}.wav"
-            try:
-                samples, sample_rate = kokoro.create(
-                    chunk, voice=voice, speed=1.0, lang="en-us"
-                )
-                sf.write(str(path), samples, sample_rate)
-                wav_paths.append(path)
-                done += 1
-                if done % 10 == 0:
-                    print(f"    Synthesized {done}/{total} segments...")
-            except Exception as exc:
-                print(f"    ⚠ Segment {i}-{j} failed: {exc}")
-    return wav_paths
+            path = str(tmp_dir / f"seg_{i:04d}_{j:02d}.mp3")
+            paths.append(path)
+            tasks.append(_synthesize_one(chunk, voice, path))
+
+    batch = 8
+    for start in range(0, len(tasks), batch):
+        await asyncio.gather(*tasks[start:start + batch])
+        if start + batch < len(tasks):
+            await asyncio.sleep(0.3)
+        done = min(start + batch, len(tasks))
+        if done % 40 == 0 or done == len(tasks):
+            print(f"    Synthesized {done}/{len(tasks)} segments...")
+
+    return paths
 
 
-def merge_wavs_to_mp3(wav_paths: list[Path], output: Path) -> None:
-    """Concatenate WAV files into one MP3 using ffmpeg."""
-    if not wav_paths:
-        raise RuntimeError("No WAV segments to merge")
-
-    # Write ffmpeg concat list
-    concat_file = output.parent / "concat.txt"
-    with open(concat_file, "w") as f:
-        for p in wav_paths:
-            f.write(f"file '{p.absolute()}'\n")
-
-    print(f"  Merging {len(wav_paths)} segments with ffmpeg...")
-    result = subprocess.run([
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-        "-i", str(concat_file),
-        "-c:a", "libmp3lame", "-b:a", "64k", "-ar", "24000",
-        str(output)
-    ], capture_output=True, text=True)
-
-    if result.returncode != 0:
-        print(f"  ffmpeg error: {result.stderr[:500]}")
-        raise RuntimeError("ffmpeg merge failed")
-    concat_file.unlink(missing_ok=True)
+def merge_mp3s(segment_paths: list[str], output: Path) -> None:
+    """Concatenate MP3 segments using pure Python byte concatenation."""
+    with open(output, "wb") as out:
+        for path in segment_paths:
+            with open(path, "rb") as seg:
+                out.write(seg.read())
     print(f"  ✓ MP3 created: {output}")
 
 
@@ -582,21 +566,18 @@ def main() -> int:
     print(f"  ✓ {len(turns)} speaker turns")
 
     # 3. Synthesize audio with Kokoro
-    print("3/4  Synthesizing audio (Kokoro TTS)...")
+    print("3/4  Synthesizing audio (edge-tts)...")
+    ep_num   = (old_meta.get("episode", 0) or 0) + 1
+    mp3_name = f"podcast_ep{ep_num:03d}.mp3"
+    mp3_path = DATA_DIR / mp3_name
+
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
         try:
-            wav_files = synthesize_kokoro(turns, tmp_dir)
-            if not wav_files:
-                raise RuntimeError("No WAV segments produced")
-
-            # Determine output path
-            ep_num = (old_meta.get("episode", 0) or 0) + 1
-            mp3_name = f"podcast_ep{ep_num:03d}.mp3"
-            mp3_path = DATA_DIR / mp3_name
-
-            merge_wavs_to_mp3(wav_files, mp3_path)
-
+            seg_paths = asyncio.run(_generate_all_audio(turns, tmp_dir))
+            if not seg_paths:
+                raise RuntimeError("No segments produced")
+            merge_mp3s(seg_paths, mp3_path)
         except Exception as exc:
             print(f"ERROR: Audio generation failed: {exc}")
             import traceback; traceback.print_exc()

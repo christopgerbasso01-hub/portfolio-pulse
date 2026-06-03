@@ -5305,20 +5305,15 @@ function getTransactions() {
 }
 
 function _setTransactions(txs) {
+  const ts = Date.now();
   localStorage.setItem('pp_transactions', JSON.stringify(txs));
-  // Push to KV so all devices stay in sync
+  localStorage.setItem('pp_tx_ts', ts.toString());
+  // Push to KV with timestamp so other devices know this is the latest version
   fetch(`${CONFIG.API_BASE}/api/settings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ transactions: txs }),
+    body: JSON.stringify({ transactions: txs, tx_updated_at: ts }),
   }).catch(() => {});
-}
-
-function _mergeTransactions(a, b) {
-  // Union by ID, sort by date then ID
-  const byId = {};
-  [...a, ...b].forEach(tx => { if (tx.id) byId[tx.id] = tx; });
-  return Object.values(byId).sort((x, y) => (x.date||'').localeCompare(y.date||'') || (x.id||'').localeCompare(y.id||''));
 }
 
 async function syncTransactionsFromKV() {
@@ -5326,11 +5321,16 @@ async function syncTransactionsFromKV() {
     const r = await fetch(`${CONFIG.API_BASE}/api/settings`, { cache: 'no-store' });
     if (!r.ok) return;
     const s = await r.json();
-    if (!Array.isArray(s.transactions) || !s.transactions.length) return;
-    const local  = getTransactions();
-    const merged = _mergeTransactions(local, s.transactions);
-    if (merged.length !== local.length) {
-      localStorage.setItem('pp_transactions', JSON.stringify(merged));
+    if (!s.tx_updated_at) return;   // KV has no transaction data yet
+
+    const kvTs    = s.tx_updated_at;
+    const localTs = parseInt(localStorage.getItem('pp_tx_ts') || '0', 10);
+
+    // KV is newer → apply it (handles both additions AND deletions/undos)
+    if (kvTs > localTs) {
+      const kvTxs = Array.isArray(s.transactions) ? s.transactions : [];
+      localStorage.setItem('pp_transactions', JSON.stringify(kvTxs));
+      localStorage.setItem('pp_tx_ts', kvTs.toString());
       applyAllTransactions();
       await refreshAfterTx();
       renderTxHistory();

@@ -1429,6 +1429,14 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     <p>Search any stock, ETF, or index to see live data,<br>analyst ratings, EPS history, and your Portfolio Fit Score.</p>
   </div>
 
+  <!-- Your Position panel — shown when navigated from Holdings table -->
+  <div id="rsrchPositionPanel" style="display:none;margin-bottom:16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">Your Position</div>
+    <div id="rsrchPositionContent"></div>
+    <button onclick="document.getElementById('rsrchPositionPanel').style.display='none'"
+      style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0">✕ Dismiss</button>
+  </div>
+
   <!-- Results area -->
   <div class="rsrch-results" id="rsrchResults">
 
@@ -2853,7 +2861,7 @@ function renderHoldingsTable(liveData) {
     const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
 
     return `<tr data-rowtype="normal" data-ticker="${h.ticker}" data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-mv="${mktVal.toFixed(2)}" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="${unrealizedCAD.toFixed(2)}" data-div="${divCAD.toFixed(2)}" data-real="${realizedCAD.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
-      <td class="mono blue">${h.ticker}</td>
+      <td class="mono blue" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" onclick="deepDiveHolding('${h.ticker}','${h.account}')" title="Research ${h.ticker}">${h.ticker}</td>
       <td class="text2">${h.name}</td>
       <td><span class="badge ${acctBadge}">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
@@ -5314,6 +5322,74 @@ function onResearchTabClose() {
 }
 
 // ── Search ────────────────────────────────────────────────────────────────
+function deepDiveHolding(ticker, account) {
+  // Switch to Research tab
+  activateTab('research');
+
+  // Set search input and run research
+  const input = document.getElementById('rsrchInput');
+  if (input) input.value = ticker;
+  runResearch();
+
+  // Build "Your Position" summary from HOLDINGS_STATIC + live prices
+  const positions = HOLDINGS_STATIC.filter(h => h.ticker === ticker);
+  if (!positions.length) return;
+
+  const usdcad = _lastLiveData?.usdcad || 1.38;
+  const lp     = _lastLiveData?.holdings?.[ticker];
+
+  let rows = '';
+  let totalShares = 0, totalACB = 0, totalMV = 0;
+
+  positions.forEach(h => {
+    const fx    = h.ccy === 'USD' ? usdcad : 1;
+    const acb   = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
+    const mv    = lp?.price ? lp.price * h.shares * fx : acb + (h.unrealized || 0) * fx;
+    const unreal = mv - acb;
+    const ret   = acb > 0 ? (mv - acb) / acb * 100 : null;
+    const badge = { TFSA:'badge-tfsa', FHSA:'badge-fhsa', RRSP:'badge-rrsp', Investment:'badge-inv' }[h.account] || 'badge-inv';
+    totalShares += h.shares; totalACB += acb; totalMV += mv;
+    rows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="badge ${badge}" style="font-size:9px">${h.account === 'Investment' ? 'NON-REG' : h.account}</span>
+        <span class="mono text2">${h.shares} shares · ACB ${fmt$(acb)}</span>
+      </div>
+      <div style="text-align:right">
+        <span class="mono" style="color:${unreal>=0?'var(--green)':'var(--red)'}">${unreal>=0?'+':''}${fmt$(Math.round(unreal))}</span>
+        ${ret != null ? `<span class="mono text3" style="font-size:10px;margin-left:6px">${ret>=0?'+':''}${ret.toFixed(1)}%</span>` : ''}
+      </div>
+    </div>`;
+  });
+
+  // Overall summary if multiple accounts
+  const totalUnreal = totalMV - totalACB;
+  const totalRet = totalACB > 0 ? (totalMV - totalACB) / totalACB * 100 : null;
+  const dayChg = lp?.price && lp?.prev ? (lp.price - lp.prev) * totalShares * (positions[0]?.ccy === 'USD' ? usdcad : 1) : null;
+
+  const summary = positions.length > 1
+    ? `<div style="padding:6px 0;font-size:12px;font-weight:600">
+        <span class="mono text2">Total: ${totalShares} shares · ${fmt$(Math.round(totalACB))} ACB</span>
+        <span class="mono" style="float:right;color:${totalUnreal>=0?'var(--green)':'var(--red)'}">${totalUnreal>=0?'+':''}${fmt$(Math.round(totalUnreal))} ${totalRet!=null?`(${totalRet>=0?'+':''}${totalRet.toFixed(1)}%)`:''}
+        </span>
+      </div>` : '';
+
+  const today = dayChg != null
+    ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">Today: <span class="mono" style="color:${dayChg>=0?'var(--green)':'var(--red)'}">${dayChg>=0?'+':''}${fmt$(Math.round(Math.abs(dayChg)))} (${lp.change_pct>=0?'+':''}${lp.change_pct?.toFixed(2)}%)</span></div>`
+    : '';
+
+  const panel   = document.getElementById('rsrchPositionPanel');
+  const content = document.getElementById('rsrchPositionContent');
+  if (panel && content) {
+    content.innerHTML = rows + summary + today;
+    panel.style.display = 'block';
+    // Highlight the account being viewed if one was specified
+    if (account) {
+      const accountEl = content.querySelector(`[data-acct="${account}"]`);
+      if (accountEl) accountEl.style.background = 'rgba(59,130,246,.1)';
+    }
+  }
+}
+
 async function runResearch() {
   const raw    = document.getElementById('rsrchInput').value.trim();
   const ticker = raw.toUpperCase();

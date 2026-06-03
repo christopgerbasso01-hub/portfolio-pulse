@@ -2102,23 +2102,28 @@ function updateTodayGlance(data) {
   const p2 = document.getElementById('glanceMovers');
   const p3 = document.getElementById('glanceMarket');
 
-  if (p1) p1.innerHTML = `
-    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase">Portfolio Today</div>
-    <div style="font-size:22px;font-weight:700;font-family:var(--mono);color:${portColor}">${portSign}${fmt$(Math.abs(dayCAD))}</div>
-    <div style="font-size:13px;font-family:var(--mono);color:${portColor};margin-bottom:8px">${portSign}${Math.abs(dayPct).toFixed(2)}%</div>
-    <div style="font-size:11px;color:var(--text2)">${portStatus} · Total ${fmt$(totalMV)}</div>`;
+  // Compact row layout — works on both desktop (3 cols) and mobile (1 col stacked)
+  const row = (label, val, sub) =>
+    `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px">
+       <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;flex-shrink:0">${label}</span>
+       <span style="font-family:var(--mono);font-size:13px;font-weight:700;text-align:right">${val}</span>
+     </div>
+     ${sub ? `<div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-align:right">${sub}</div>` : ''}`;
 
-  if (p2) p2.innerHTML = `
-    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase">Biggest Movers</div>
-    ${best ? `<div style="margin-bottom:5px"><span class="mono green" style="font-weight:700">▲ ${best.ticker}</span> <span class="mono green">${best.pct > 0 ? '+':''}${best.pct.toFixed(2)}%</span> <span style="font-size:11px;color:var(--text2)">(${best.dayChg > 0 ? '+':''}${fmt$(Math.abs(best.dayChg))} today)</span></div>` : ''}
-    ${worst ? `<div><span class="mono red" style="font-weight:700">▼ ${worst.ticker}</span> <span class="mono red">${worst.pct.toFixed(2)}%</span> <span style="font-size:11px;color:var(--text2)">(${fmt$(Math.abs(worst.dayChg))} today)</span></div>` : ''}
-    ${!best && !worst ? '<div style="color:var(--text3);font-size:12px">No live price data yet</div>' : ''}`;
+  if (p1) p1.innerHTML =
+    row('Portfolio',
+        `<span style="color:${portColor}">${portSign}${fmt$(Math.abs(dayCAD))} (${portSign}${Math.abs(dayPct).toFixed(2)}%)</span>`,
+        `${portStatus} · Total ${fmt$(totalMV)}`);
 
-  if (p3) p3.innerHTML = `
-    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase">Market Conditions</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:4px">${marketDir}</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:4px">NASDAQ ${nasdaq >= 0 ? '+':''}${nasdaq.toFixed(2)}%</div>
-    <div style="font-size:11px;color:var(--text3)">${vixStatus} · VIX ${vix.toFixed(1)}</div>`;
+  if (p2) p2.innerHTML =
+    (best  ? row('Top gainer', `<span class="mono green">▲ ${best.ticker} +${best.pct.toFixed(2)}%</span>`,  `+${fmt$(Math.abs(best.dayChg))} today`) : '') +
+    (worst ? row('Top loser',  `<span class="mono red">▼ ${worst.ticker} ${worst.pct.toFixed(2)}%</span>`, `-${fmt$(Math.abs(worst.dayChg))} today`) : '') +
+    (!best && !worst ? '<div style="color:var(--text3);font-size:12px">No live prices yet</div>' : '');
+
+  if (p3) p3.innerHTML =
+    row('S&P 500', `<span style="color:${sp500>=0?'var(--green)':'var(--red)'}">${sp500>=0?'+':''}${sp500.toFixed(2)}%</span>`, '') +
+    row('NASDAQ',  `<span style="color:${nasdaq>=0?'var(--green)':'var(--red)'}">${nasdaq>=0?'+':''}${nasdaq.toFixed(2)}%</span>`, '') +
+    row('VIX',     `<span style="color:var(--text2)">${vix.toFixed(1)}</span>`, vixStatus);
 }
 
 // ── Dynamic Pie Charts ─────────────────────────────────────────────────────────
@@ -3540,9 +3545,9 @@ function generateAnalysis(data) {
     news.push({
       headline: `Broadcom (AVGO) — AI ASIC Wins Confirmed · Portfolio Significantly Underweight`,
       impact: 'HIGH', category: 'Sector & Stock',
-      body: `Broadcom's custom AI ASIC partnerships with Alphabet (TPU v6) and Meta (MTIA v2) are confirmed. AI chips now exceed 60% of AVGO semiconductor revenue. Analysts have price targets in the $270–$300+ range. Your 8-share TFSA position at only 1.8% of AUM is massively underweight for a top-conviction name.`,
-      exposure: `8 shares AVGO (TFSA) · ~$${(avgoP*8*usdcad).toFixed(0)} CAD MV · only 1.8% of AUM despite top-tier thesis strength.`,
-      scenarios: `🟢 Bull: Add on pullback → significant alpha on custom AI chip cycle. 🔴 Bear: Hyperscaler capex cuts → ASIC win valuations contract.`,
+      body: `Broadcom's custom AI ASIC partnerships with Alphabet (TPU v6) and Meta (MTIA v2) are confirmed. AI chips now exceed 60% of semiconductor revenue. Analysts have price targets in the $270–$300+ range. Current 8-share position at only 1.8% of AUM is massively underweight — add to RRSP on any 5-8% pullback.`,
+      exposure: `8 shares Broadcom (TFSA, existing) · ~$${(avgoP*8*usdcad).toFixed(0)} CAD MV · next add → RRSP (TFSA maxed 2026).`,
+      scenarios: `🟢 Bull: Add in RRSP on pullback → significant alpha on custom AI chip cycle. 🔴 Bear: Hyperscaler capex cuts → ASIC win valuations contract.`,
     });
   }
 
@@ -3660,10 +3665,10 @@ function generateAnalysis(data) {
   // ── STRATEGY ───────────────────────────────────────────────
   const strategy_short = [
     ...(rrspHasIdleCash ? [{ num: 1, text: `Deploy ${fmt$(rrspCashCAD)} RRSP cash immediately into ZSP.TO. 0% US dividend withholding only in RRSP. Every week of delay = ~${fmt$(Math.round(rrspCashCAD*0.08/52))} foregone compounding.` }] : []),
-    { num: 2, text: `Add AVGO on next 5-8% pullback — target 5-8 additional TFSA shares. At $${(avgoP*0.93).toFixed(0)}–$${(avgoP*0.96).toFixed(0)} entry. Current 8-share position is too small for the conviction level.` },
+    { num: 2, text: `Add Broadcom on next 5-8% pullback — target 5-8 additional RRSP shares. At $${(avgoP*0.93).toFixed(0)}–$${(avgoP*0.96).toFixed(0)} entry. TFSA maxed in 2026; RRSP captures tax-deferred growth on this high-conviction name.` },
     { num: 3, text: `Tax-loss harvest MSTR (-43.2%), BYDDF (-28.9%), GBTC (-17.5%) in Investment account before Dec 31. Realized losses offset capital gains, reducing 2026 taxable income.` },
     { num: 4, text: `Verify 2026 FHSA contribution — $8,000 annual limit. $16,000 of $40,000 lifetime room remaining. Ensure this year's limit is fully used before Dec 31.` },
-    { num: 5, text: `Initiate MU position (10-15 shares in TFSA, $95-$115). No HBM memory exposure in portfolio is a gap as AI chip cycle enters its memory-intensive phase.` },
+    { num: 5, text: `Initiate Micron position (10-15 shares in RRSP, $95-$115). No HBM memory exposure is a gap as the AI chip cycle enters its memory-intensive phase. RRSP for US growth names while TFSA room is suspended.` },
   ];
 
   const strategy_mid = [
@@ -3690,7 +3695,7 @@ function generateAnalysis(data) {
       { icon: '✅', text: `All capital gains, dividends and growth permanently sheltered — $${(tfsaVal-44500).toLocaleString('en-CA',{maximumFractionDigits:0})} unrealized gains protected from CRA.` },
       { icon: '✅', text: `NVDA +1,776% held here — optimal placement. ~$11,456 in gains permanently sheltered. This position alone justifies the TFSA-first strategy.` },
       { icon: '⚠️', text: `FNGU/SPXL/UDOW concentration at 48.7% — acceptable here given tax-free status, but monitor VIX for decay risk in volatile markets.` },
-      { icon: '💡', text: `2026 TFSA contribution room opens Jan 1 — verify with CRA. Re-contribute any withdrawals to recapture room.` },
+      { icon: '💡', text: `$7,000 TFSA room opens Jan 1, 2027 — when you return to Canada in March 2027 this room will be available. First priority: highest-conviction AI names (Broadcom, AMD) or add to existing Nvidia/FNGU positions.` },
       { icon: '💡', text: `Best account for highest-growth/highest-volatility names. AVGO and any new AI semis belong here first.` },
     ],
     fhsa: [

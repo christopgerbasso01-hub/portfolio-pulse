@@ -514,6 +514,8 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .tx-type-DIVIDEND{background:rgba(245,158,11,.12);color:#fbbf24}
 .tx-type-SPLIT{background:rgba(139,92,246,.12);color:#a78bfa}
 .tx-type-CONTRIBUTION{background:rgba(96,165,250,.12);color:var(--blue-bright)}
+.tx-type-CASH_DEPOSIT{background:rgba(16,185,129,.10);color:#6ee7b7}
+.tx-type-CASH_WITHDRAW{background:rgba(239,68,68,.10);color:#fca5a5}
 .tx-item-desc{flex:1;color:var(--text2)}
 .tx-del{background:none;border:none;color:var(--text3);cursor:pointer;padding:2px 5px;font-size:12px;border-radius:3px;transition:all .15s}
 .tx-del:hover{color:#f87171;background:rgba(239,68,68,.1)}
@@ -5311,63 +5313,173 @@ async function deleteTransaction(id) {
 
 function applyOneTx(holdings, closed, contribs, cash, tx) {
   switch (tx.type) {
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BUY — commission-inclusive ACB
+    //   USD ticker: ACB (CAD) = (price × shares × fx_rate) + commission_CAD
+    //               stored as cost_total (USD) + effective book_rate
+    //   CAD ticker: ACB (CAD) = (price × shares) + commission_CAD
+    //               stored as cost_total (CAD), no book_rate
+    // ─────────────────────────────────────────────────────────────────────────
     case 'BUY': {
+      const commission  = tx.commission != null ? tx.commission : 0;  // CAD
+      const nativeCost  = tx.price * tx.shares;                       // USD or CAD
+
+      let tradeCostCAD;
+      if (tx.ccy === 'USD') {
+        tradeCostCAD = nativeCost * (tx.rate || 1.38) + commission;
+      } else {
+        tradeCostCAD = nativeCost + commission;
+      }
+
       const idx = holdings.findIndex(h => h.ticker === tx.ticker && h.account === tx.account);
-      const addCost = tx.shares * tx.price;
+
       if (idx >= 0) {
         const old = holdings[idx];
-        if (tx.ccy === 'USD' && old.book_rate && tx.rate) {
-          const newTotal = old.cost_total + addCost;
-          holdings[idx].book_rate = (old.cost_total * old.book_rate + addCost * tx.rate) / newTotal;
-          holdings[idx].cost_total = newTotal;
+        if (tx.ccy === 'USD') {
+          // Weighted-average effective book_rate = total_CAD / total_USD
+          const oldCAD = old.cost_total * (old.book_rate || 1);
+          const newUSD = old.cost_total + nativeCost;
+          const newCAD = oldCAD + tradeCostCAD;
+          holdings[idx].cost_total = newUSD;
+          holdings[idx].book_rate  = newUSD > 0 ? newCAD / newUSD : (tx.rate || 1.38);
         } else {
-          holdings[idx].cost_total += addCost;
+          holdings[idx].cost_total += tradeCostCAD;
         }
         holdings[idx].shares += tx.shares;
       } else {
+        // New position
+        let cost_total, book_rate;
+        if (tx.ccy === 'USD') {
+          cost_total = nativeCost;
+          book_rate  = nativeCost > 0 ? tradeCostCAD / nativeCost : (tx.rate || 1.38);
+        } else {
+          cost_total = tradeCostCAD;
+          book_rate  = null;
+        }
         holdings.push({
           ticker: tx.ticker, name: tx.name || tx.ticker, account: tx.account,
-          sector: tx.sector || 'Unknown', shares: tx.shares, cost_total: addCost,
-          ccy: tx.ccy || 'USD', book_rate: tx.ccy === 'USD' ? (tx.rate || 1.38) : null,
-          dividends: 0, realized: 0, unrealized: 0, weight: 0
+          sector: tx.sector || 'Unknown', ccy: tx.ccy || 'USD',
+          shares: tx.shares, cost_total, book_rate,
+          dividends: 0, realized: 0, unrealized: 0, weight: 0,
         });
       }
       break;
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SELL — correct CAD ACB using locked buy-rate; sell proceeds at sell-rate
+    //   Realized (CAD) = proceeds_CAD − commission − ACB_of_sold_shares_CAD
+    //   ACB/share uses the position's effective book_rate (never changes)
+    // ─────────────────────────────────────────────────────────────────────────
     case 'SELL': {
       const idx = holdings.findIndex(h => h.ticker === tx.ticker && h.account === tx.account);
       if (idx < 0) break;
-      const old = holdings[idx];
+
+      const old        = holdings[idx];
       const sellShares = Math.min(tx.shares, old.shares);
-      const acbPerShare = old.cost_total / old.shares;
-      const realNative  = (tx.price - acbPerShare) * sellShares;
-      const rate        = tx.rate || old.book_rate || 1.38;
-      const realCAD     = old.ccy === 'USD' ? realNative * rate : realNative;
+      const commission = tx.commission != null ? tx.commission : 0;  // CAD
+
+      // ACB per share in CAD (locked at buy rate, includes buy-time commission)
+      const totalACB_CAD    = old.ccy === 'USD'
+        ? old.cost_total * (old.book_rate || 1)
+        : old.cost_total;
+      const acbPerShare_CAD = old.shares > 0 ? totalACB_CAD / old.shares : 0;
+
+      // Net proceeds in CAD (sell rate applied to USD, minus sell commission)
+      const sellRate   = tx.rate || old.book_rate || 1.38;
+      const proceedsCAD = old.ccy === 'USD'
+        ? tx.price * sellShares * sellRate - commission
+        : tx.price * sellShares - commission;
+
+      // Realized gain/loss
+      const realizedCAD = proceedsCAD - acbPerShare_CAD * sellShares;
+
+      // Reduce position proportionally (book_rate stays the same)
+      const fraction = sellShares / old.shares;
+      holdings[idx].cost_total -= old.cost_total * fraction;
       holdings[idx].shares     -= sellShares;
-      holdings[idx].cost_total -= acbPerShare * sellShares;
-      holdings[idx].realized    = (old.realized || 0) + realCAD;
-      if (holdings[idx].shares <= 0) holdings.splice(idx, 1);
+      holdings[idx].realized    = (old.realized || 0) + realizedCAD;
+
+      // Full close → move to closed positions
+      if (holdings[idx].shares <= 0.0001) {
+        const closedIdx = closed.findIndex(c => c.ticker === old.ticker && c.account === old.account);
+        const closedRealized = holdings[idx].realized;
+        if (closedIdx >= 0) {
+          closed[closedIdx].realized   = closedRealized;
+          closed[closedIdx].cost_total = 0;
+          closed[closedIdx].shares     = 0;
+        } else {
+          closed.push({
+            ticker: old.ticker, name: old.name, account: old.account,
+            sector: old.sector, ccy: old.ccy,
+            shares: 0, cost_total: 0, book_rate: old.book_rate,
+            realized: closedRealized, dividends: old.dividends || 0,
+            unrealized: 0, weight: 0,
+          });
+        }
+        holdings.splice(idx, 1);
+      }
       break;
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DIVIDEND — adds to ticker's dividend tally AND to cash balance
+    // ─────────────────────────────────────────────────────────────────────────
     case 'DIVIDEND': {
+      const amtNative = tx.amount;
+      const amtCAD    = tx.ccy === 'USD' ? amtNative * (tx.rate || 1.38) : amtNative;
       const idx = holdings.findIndex(h => h.ticker === tx.ticker && h.account === tx.account);
-      if (idx < 0) break;
-      const amtCAD = tx.ccy === 'USD' ? tx.amount * (tx.rate || 1.38) : tx.amount;
-      holdings[idx].dividends = (holdings[idx].dividends || 0) + amtCAD;
+      if (idx >= 0) holdings[idx].dividends = (holdings[idx].dividends || 0) + amtCAD;
+
+      // Add to cash balance in native currency
+      const cashKey = tx.ccy || 'CAD';
+      const ci = cash.findIndex(c => c.account === tx.account && c.ccy === cashKey);
+      if (ci >= 0) cash[ci].amount += amtNative;
+      else cash.push({ ticker: `CASH·${cashKey}`, account: tx.account, ccy: cashKey, amount: amtNative, name: `${cashKey} Cash` });
       break;
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SPLIT — multiply shares, divide cost_total per share (ACB/share halves)
+    //         No commission. book_rate and total ACB (CAD) unchanged.
+    // ─────────────────────────────────────────────────────────────────────────
     case 'SPLIT': {
       holdings.forEach((h, i) => {
-        if (h.ticker === tx.ticker && (!tx.account || h.account === tx.account))
+        if (h.ticker === tx.ticker && (!tx.account || h.account === tx.account)) {
           holdings[i].shares = Math.round(h.shares * tx.ratio);
+          // cost_total (USD) stays the same → ACB per share in CAD halves correctly
+        }
       });
       break;
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CONTRIBUTION — increases contribution total + adds CAD cash
+    // ─────────────────────────────────────────────────────────────────────────
     case 'CONTRIBUTION': {
       contribs[tx.account] = (contribs[tx.account] || 0) + tx.amount;
       const ci = cash.findIndex(c => c.account === tx.account && c.ccy === 'CAD');
       if (ci >= 0) cash[ci].amount += tx.amount;
       else cash.push({ ticker: 'CASH·CAD', account: tx.account, ccy: 'CAD', amount: tx.amount, name: 'CAD Cash' });
+      break;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CASH_DEPOSIT — adds cash without affecting contributions
+    // CASH_WITHDRAW — removes cash
+    // ─────────────────────────────────────────────────────────────────────────
+    case 'CASH_DEPOSIT': {
+      const ccy = tx.ccy || 'CAD';
+      const ci  = cash.findIndex(c => c.account === tx.account && c.ccy === ccy);
+      if (ci >= 0) cash[ci].amount += tx.amount;
+      else cash.push({ ticker: `CASH·${ccy}`, account: tx.account, ccy, amount: tx.amount, name: `${ccy} Cash` });
+      break;
+    }
+    case 'CASH_WITHDRAW': {
+      const ccy = tx.ccy || 'CAD';
+      const ci  = cash.findIndex(c => c.account === tx.account && c.ccy === ccy);
+      if (ci >= 0) cash[ci].amount = Math.max(0, cash[ci].amount - tx.amount);
       break;
     }
   }
@@ -5404,8 +5516,9 @@ async function refreshAfterTx() {
 let _txType = 'BUY';
 
 function openTxModal() {
-  document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('txRate').value = _liveUsdcad.toFixed(4);
+  document.getElementById('txDate').value      = new Date().toISOString().split('T')[0];
+  document.getElementById('txRate').value      = _liveUsdcad.toFixed(4);
+  document.getElementById('txCommission').value = '9.95';
   populateTickerDatalist();
   setTxType('BUY');
   renderTxHistory();
@@ -5416,26 +5529,31 @@ function closeTxModal() {
 }
 function setTxType(type) {
   _txType = type;
-  ['BUY','SELL','DIVIDEND','SPLIT','CONTRIBUTION'].forEach(t =>
+  ['BUY','SELL','DIVIDEND','SPLIT','CONTRIBUTION','CASH'].forEach(t =>
     document.getElementById('txTab-' + t).classList.toggle('active', t === type));
   updateTxForm();
 }
 
 function updateTxForm() {
-  const isBuy = _txType === 'BUY', isSell = _txType === 'SELL',
-        isDiv = _txType === 'DIVIDEND', isSplit = _txType === 'SPLIT',
-        isContrib = _txType === 'CONTRIBUTION';
+  const isBuy    = _txType === 'BUY',    isSell   = _txType === 'SELL',
+        isDiv    = _txType === 'DIVIDEND', isSplit = _txType === 'SPLIT',
+        isContrib = _txType === 'CONTRIBUTION', isCash = _txType === 'CASH';
   const show = (id, v) => { const el = document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
 
-  show('txTickerRow',     !isContrib);
+  show('txTickerRow',      !isContrib && !isCash);
   show('txSharesPriceRow', isBuy || isSell);
-  show('txCcyRateRow',    isBuy || isSell);
-  show('txDivRow',        isDiv);
-  show('txNewTickerRow',  false);   // shown dynamically
-  show('txSplitRow',      isSplit);
-  show('txContribRow',    isContrib);
+  show('txCcyRateRow',     isBuy || isSell);
+  show('txCommissionRow',  isBuy || isSell);
+  show('txDivRow',         isDiv);
+  show('txNewTickerRow',   false);   // shown dynamically via onTickerChange
+  show('txSplitRow',       isSplit);
+  show('txContribRow',     isContrib);
+  show('txCashRows',       isCash);
 
+  // Reset commission default on every switch to BUY/SELL
   if (isBuy || isSell) {
+    const commEl = document.getElementById('txCommission');
+    if (commEl && !commEl.value) commEl.value = '9.95';
     document.getElementById('txSharesLabel').textContent = isSell ? 'Shares to Sell' : 'Shares';
     document.getElementById('txPriceLabel').textContent  = isSell ? 'Sell Price / Share' : 'Price / Share';
   }
@@ -5505,19 +5623,38 @@ function renderPreview() {
     const rate   = parseFloat(document.getElementById('txRate')?.value) || _liveUsdcad;
     const existing = HOLDINGS_STATIC.find(h => h.ticker === ticker && h.account === acct);
 
+    const commission = parseFloat(document.getElementById('txCommission')?.value) || 0;
+
     if (_txType === 'BUY' && ticker && shares > 0 && price > 0) {
-      const totalNative = shares * price;
-      const totalCAD = ccy === 'USD' ? totalNative * rate : totalNative;
-      el.textContent = `→ ${shares} × ${ticker} @ $${price} ${ccy} = ${fmt$(totalCAD)} CAD total`;
+      const nativeCAD   = ccy === 'USD' ? shares * price * rate : shares * price;
+      const totalCAD    = nativeCAD + commission;
+      const acbPS_CAD   = totalCAD / shares;
+      el.textContent = `→ ${shares} × ${ticker} @ $${price} ${ccy} + $${commission.toFixed(2)} commission = ${fmt$(totalCAD)} CAD  ·  ACB/share ${fmt$(acbPS_CAD)}`;
+
     } else if (_txType === 'SELL' && existing && shares > 0 && price > 0) {
-      const acbPS = existing.cost_total / existing.shares;
-      const realN = (price - acbPS) * shares;
-      const realCAD = ccy === 'USD' ? realN * rate : realN;
-      el.textContent = `→ ACB/share $${acbPS.toFixed(2)} ${ccy}  ·  Realized: ${realCAD >= 0 ? '+' : ''}${fmt$(realCAD)} CAD`;
+      // ACB per share in CAD (locked at buy rate)
+      const totalACB_CAD  = existing.ccy === 'USD'
+        ? existing.cost_total * (existing.book_rate || 1)
+        : existing.cost_total;
+      const acbPS_CAD = existing.shares > 0 ? totalACB_CAD / existing.shares : 0;
+      const sellRate  = ccy === 'USD' ? rate : 1;
+      const proceedsCAD = price * shares * sellRate - commission;
+      const realizedCAD = proceedsCAD - acbPS_CAD * shares;
+      const remaining   = existing.shares - shares;
+      el.textContent = `→ ACB/share ${fmt$(acbPS_CAD)} CAD  ·  Proceeds ${fmt$(proceedsCAD)} CAD  ·  Realized: ${realizedCAD >= 0 ? '+' : ''}${fmt$(realizedCAD)} CAD  ·  ${remaining} shares remain`;
+
     } else if (_txType === 'CONTRIBUTION') {
       const amt = parseFloat(document.getElementById('txContribAmt')?.value) || 0;
       if (amt > 0) el.textContent = `→ ${acct} contributions: ${fmt$(CONTRIB_STATE[acct] || 0)} → ${fmt$((CONTRIB_STATE[acct] || 0) + amt)}`;
       else el.textContent = '';
+
+    } else if (_txType === 'CASH') {
+      const amt = parseFloat(document.getElementById('txCashAmt')?.value) || 0;
+      const dir = document.getElementById('txCashDir')?.value || 'DEPOSIT';
+      const ccyCash = document.getElementById('txCashCcy')?.value || 'CAD';
+      if (amt > 0) el.textContent = `→ ${dir === 'DEPOSIT' ? '+' : '-'}${fmt$(amt)} ${ccyCash} cash in ${acct}`;
+      else el.textContent = '';
+
     } else {
       el.textContent = '';
     }
@@ -5531,21 +5668,30 @@ async function submitTx() {
   let tx = { type: _txType, date, account: acct };
 
   if (_txType === 'BUY' || _txType === 'SELL') {
-    const ticker = document.getElementById('txTicker').value.trim().toUpperCase();
-    const shares = parseFloat(document.getElementById('txShares').value);
-    const price  = parseFloat(document.getElementById('txPrice').value);
-    const ccy    = document.getElementById('txCcy').value;
+    const ticker     = document.getElementById('txTicker').value.trim().toUpperCase();
+    const shares     = parseFloat(document.getElementById('txShares').value);
+    const price      = parseFloat(document.getElementById('txPrice').value);
+    const ccy        = document.getElementById('txCcy').value;
+    const commission = parseFloat(document.getElementById('txCommission').value);
     if (!ticker || !(shares > 0) || !(price > 0)) { alert('Fill in Ticker, Shares, and Price.'); return; }
+    if (!(commission >= 0))                        { alert('Commission must be 0 or greater.');   return; }
     const existing = HOLDINGS_STATIC.find(h => h.ticker === ticker && h.account === acct);
-    if (_txType === 'SELL' && existing && shares > existing.shares) {
-      alert(`Only ${existing.shares} shares of ${ticker} in ${acct}.`); return;
+    if (_txType === 'SELL') {
+      if (!existing) { alert(`No position in ${ticker} (${acct}).`); return; }
+      if (shares > existing.shares) { alert(`Only ${existing.shares} shares of ${ticker} in ${acct}.`); return; }
     }
-    tx = { ...tx, ticker, shares, price, ccy };
+    tx = { ...tx, ticker, shares, price, ccy, commission };
     if (ccy === 'USD') tx.rate = rate;
     if (_txType === 'BUY' && !HOLDINGS_STATIC.find(h => h.ticker === ticker)) {
       tx.name   = document.getElementById('txName').value.trim() || ticker;
       tx.sector = document.getElementById('txSectorSelect').value || 'Unknown';
     }
+  } else if (_txType === 'CASH') {
+    const dir    = document.getElementById('txCashDir').value;
+    const amount = parseFloat(document.getElementById('txCashAmt').value);
+    const ccy    = document.getElementById('txCashCcy').value;
+    if (!(amount > 0)) { alert('Enter a cash amount.'); return; }
+    tx = { ...tx, type: dir === 'DEPOSIT' ? 'CASH_DEPOSIT' : 'CASH_WITHDRAW', amount, ccy };
   } else if (_txType === 'DIVIDEND') {
     const ticker = document.getElementById('txTicker').value.trim().toUpperCase();
     const amount = parseFloat(document.getElementById('txDivAmt').value);
@@ -5594,13 +5740,26 @@ function renderTxHistory() {
   if (undoBtn) undoBtn.disabled = allTxs.length === 0;
   if (!txs.length) { el.innerHTML = '<div style="color:var(--text3);font-family:var(--mono);font-size:11px">No transactions yet.</div>'; return; }
   el.innerHTML = txs.map(tx => {
-    const labels = { BUY:'BUY', SELL:'SELL', DIVIDEND:'DIV', SPLIT:'SPLIT', CONTRIBUTION:'CONTRIB' };
+    const labels = {
+      BUY:'BUY', SELL:'SELL', DIVIDEND:'DIV', SPLIT:'SPLIT',
+      CONTRIBUTION:'CONTRIB', CASH_DEPOSIT:'CASH+', CASH_WITHDRAW:'CASH-'
+    };
     let desc = '';
-    if (tx.type === 'BUY')          desc = `${tx.shares} × ${tx.ticker} @ $${tx.price} ${tx.ccy||'USD'} · ${tx.account}`;
-    else if (tx.type === 'SELL')    desc = `${tx.shares} × ${tx.ticker} @ $${tx.price} ${tx.ccy||'USD'} · ${tx.account}`;
-    else if (tx.type === 'DIVIDEND')desc = `${tx.ticker} +${tx.amount} ${tx.ccy||'CAD'} · ${tx.account}`;
-    else if (tx.type === 'SPLIT')   desc = `${tx.ticker} ×${tx.ratio} split`;
-    else if (tx.type === 'CONTRIBUTION') desc = `+${fmt$(tx.amount)} CAD → ${tx.account}`;
+    const comm = tx.commission != null ? ` +$${tx.commission.toFixed(2)} comm` : '';
+    if (tx.type === 'BUY')
+      desc = `${tx.shares} × ${tx.ticker} @ $${tx.price} ${tx.ccy||'USD'}${tx.rate?` (${tx.rate} FX)`:''}${comm} · ${tx.account}`;
+    else if (tx.type === 'SELL')
+      desc = `${tx.shares} × ${tx.ticker} @ $${tx.price} ${tx.ccy||'USD'}${tx.rate?` (${tx.rate} FX)`:''}${comm} · ${tx.account}`;
+    else if (tx.type === 'DIVIDEND')
+      desc = `${tx.ticker} +${tx.amount} ${tx.ccy||'CAD'} · ${tx.account}`;
+    else if (tx.type === 'SPLIT')
+      desc = `${tx.ticker} ×${tx.ratio} split${tx.account?' · '+tx.account:''}`;
+    else if (tx.type === 'CONTRIBUTION')
+      desc = `+${fmt$(tx.amount)} CAD → ${tx.account}`;
+    else if (tx.type === 'CASH_DEPOSIT')
+      desc = `+${tx.amount} ${tx.ccy||'CAD'} → ${tx.account}`;
+    else if (tx.type === 'CASH_WITHDRAW')
+      desc = `-${tx.amount} ${tx.ccy||'CAD'} from ${tx.account}`;
     return `<div class="tx-item">
       <span class="tx-item-date">${tx.date||'—'}</span>
       <span class="tx-item-type tx-type-${tx.type}">${labels[tx.type]||tx.type}</span>
@@ -5624,10 +5783,11 @@ function renderTxHistory() {
     <!-- Type tabs -->
     <div class="tx-tabs">
       <div class="tx-tab active" id="txTab-BUY"          onclick="setTxType('BUY')">Buy</div>
-      <div class="tx-tab"       id="txTab-SELL"         onclick="setTxType('SELL')">Sell</div>
-      <div class="tx-tab"       id="txTab-DIVIDEND"     onclick="setTxType('DIVIDEND')">Dividend</div>
-      <div class="tx-tab"       id="txTab-SPLIT"        onclick="setTxType('SPLIT')">Split</div>
-      <div class="tx-tab"       id="txTab-CONTRIBUTION" onclick="setTxType('CONTRIBUTION')">Contribution</div>
+      <div class="tx-tab"        id="txTab-SELL"         onclick="setTxType('SELL')">Sell</div>
+      <div class="tx-tab"        id="txTab-DIVIDEND"     onclick="setTxType('DIVIDEND')">Dividend</div>
+      <div class="tx-tab"        id="txTab-SPLIT"        onclick="setTxType('SPLIT')">Split</div>
+      <div class="tx-tab"        id="txTab-CONTRIBUTION" onclick="setTxType('CONTRIBUTION')">Contrib</div>
+      <div class="tx-tab"        id="txTab-CASH"         onclick="setTxType('CASH')">Cash</div>
     </div>
 
     <!-- Date + Account -->
@@ -5713,6 +5873,14 @@ function renderTxHistory() {
       </div>
     </div>
 
+    <!-- Commission (BUY / SELL only) -->
+    <div class="tx-row" id="txCommissionRow" style="display:none">
+      <div class="tx-field">
+        <label>Commission (CAD)</label>
+        <input type="number" id="txCommission" min="0" step="0.01" value="9.95" placeholder="9.95" oninput="renderPreview()">
+      </div>
+    </div>
+
     <!-- Split ratio -->
     <div class="tx-field" id="txSplitRow" style="display:none">
       <label>Split Ratio (e.g. 10 = 10-for-1, shares × ratio)</label>
@@ -5723,6 +5891,30 @@ function renderTxHistory() {
     <div class="tx-field" id="txContribRow" style="display:none">
       <label>Amount (CAD)</label>
       <input type="number" id="txContribAmt" min="0" step="any" placeholder="0" oninput="renderPreview()">
+    </div>
+
+    <!-- Cash deposit / withdraw -->
+    <div id="txCashRows" style="display:none">
+      <div class="tx-row">
+        <div class="tx-field">
+          <label>Direction</label>
+          <select id="txCashDir" onchange="renderPreview()">
+            <option value="DEPOSIT">Deposit (add cash)</option>
+            <option value="WITHDRAW">Withdraw (remove cash)</option>
+          </select>
+        </div>
+        <div class="tx-field">
+          <label>Currency</label>
+          <select id="txCashCcy" onchange="renderPreview()">
+            <option value="CAD">CAD</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+      </div>
+      <div class="tx-field">
+        <label>Amount</label>
+        <input type="number" id="txCashAmt" min="0" step="any" placeholder="0.00" oninput="renderPreview()">
+      </div>
     </div>
 
     <!-- Live preview -->

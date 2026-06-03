@@ -46,6 +46,11 @@
       "config": { "maxDuration": 15 }
     },
     {
+      "src": "api/cron_tick.py",
+      "use": "@vercel/python",
+      "config": { "maxDuration": 30 }
+    },
+    {
       "src": "api/intelligence.py",
       "use": "@vercel/python",
       "config": { "maxDuration": 10 }
@@ -75,6 +80,7 @@
     { "src": "/api/watchlist",            "dest": "/api/watchlist.py"            },
     { "src": "/api/settings",             "dest": "/api/settings.py"             },
     { "src": "/api/trigger_intelligence", "dest": "/api/trigger_intelligence.py" },
+    { "src": "/api/cron_tick",            "dest": "/api/cron_tick.py"            },
     { "src": "/api/intelligence",         "dest": "/api/intelligence.py"         },
     { "src": "/api/pod_listened",         "dest": "/api/pod_listened.py"         },
     { "src": "/api/quote",                "dest": "/api/quote.py"                }

@@ -281,6 +281,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .grid-4, .acct-grid, .tax-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .contrib-room-grid { grid-template-columns: repeat(2, 1fr); }
   .grid-3, .macro-grid, .strat-grid { grid-template-columns: 1fr; gap: 10px; }
+  #glanceContent { grid-template-columns: 1fr !important; }
   .grid-2, .sc-grid { grid-template-columns: 1fr; gap: 10px; }
 
   /* Inline grids used in chart section */
@@ -1179,6 +1180,20 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   <div class="intel-banner-outlook" id="intelOutlook"></div>
 </div>
 
+<!-- ================================================================  TODAY AT A GLANCE -->
+<div class="section" id="secGlance" data-tab="insights">
+  <div class="section-header">
+    <span class="section-num">⚡</span>
+    <span class="section-title">TODAY AT A GLANCE</span>
+    <span class="ai-badge" id="glanceBadge" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--green)">LIVE</span>
+  </div>
+  <div id="glanceContent" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+    <div class="card" id="glancePortfolio"><div class="skeleton skeleton-line" style="height:14px;margin-bottom:8px"></div><div class="skeleton skeleton-line short"></div></div>
+    <div class="card" id="glanceMovers"><div class="skeleton skeleton-line" style="height:14px;margin-bottom:8px"></div><div class="skeleton skeleton-line short"></div></div>
+    <div class="card" id="glanceMarket"><div class="skeleton skeleton-line" style="height:14px;margin-bottom:8px"></div><div class="skeleton skeleton-line short"></div></div>
+  </div>
+</div>
+
 <!-- ================================================================  05: MACRO (AI) -->
 <div class="section" id="sec05" data-tab="insights">
   <div class="section-header">
@@ -2040,6 +2055,72 @@ function updateHoldingsCells(hPrices, usdcad) {
 // ============================================================
 // ACCOUNT CARD DYNAMIC FOOTERS
 // ============================================================
+// ============================================================
+// TODAY AT A GLANCE — always-live, always-fresh insight block
+// Updates every 5s with market data. No templates — every number
+// is computed from live prices so it's specific to right now.
+// ============================================================
+function updateTodayGlance(data) {
+  if (!data) return;
+  const hPrices = data.holdings  || {};
+  const bench   = data.benchmarks || {};
+  const port    = data.portfolio  || {};
+  const usdcad  = data.usdcad    || 1.38;
+
+  const dayCAD  = port.daily_change     || 0;
+  const dayPct  = port.daily_change_pct || 0;
+  const totalMV = port.total_value      || 0;
+  const vix     = bench.vix?.price      || 20;
+  const sp500   = bench.sp500?.change_pct || 0;
+  const nasdaq  = bench.nasdaq?.change_pct || 0;
+
+  // Card 1: Portfolio today
+  const portSign  = dayCAD >= 0 ? '+' : '';
+  const portColor = dayCAD >= 0 ? 'var(--green)' : 'var(--red)';
+  const portStatus = Math.abs(dayPct) > 3 ? (dayCAD > 0 ? '🔥 Strong day' : '⚠️ Rough day')
+    : Math.abs(dayPct) > 1.5 ? (dayCAD > 0 ? '📈 Solid day' : '📉 Soft day')
+    : '➡️ Quiet day';
+
+  // Card 2: Biggest movers across ALL holdings
+  const allMovers = HOLDINGS_STATIC.map(h => {
+    const p = hPrices[h.ticker];
+    if (!p?.price || !p?.change_pct) return null;
+    const mv = p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+    const dayChg = (p.price - (p.prev || p.price)) * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+    return { ticker: h.ticker, pct: p.change_pct, dayChg, mv };
+  }).filter(Boolean).sort((a,b) => Math.abs(b.pct) - Math.abs(a.pct));
+
+  const best  = allMovers.filter(h => h.pct > 0)[0];
+  const worst = allMovers.filter(h => h.pct < 0)[0];
+
+  // Card 3: Market conditions
+  const vixStatus = vix > 30 ? '🔴 Extreme fear' : vix > 22 ? '🟡 Elevated volatility' : vix < 15 ? '🟢 Calm market' : '🟢 Normal range';
+  const marketDir = sp500 > 0.5 ? `S&P ${sp500 > 1 ? '🚀' : '📈'} +${sp500.toFixed(2)}%` : sp500 < -0.5 ? `S&P 📉 ${sp500.toFixed(2)}%` : `S&P flat ${sp500 >= 0 ? '+':''}${sp500.toFixed(2)}%`;
+
+  // Render
+  const p1 = document.getElementById('glancePortfolio');
+  const p2 = document.getElementById('glanceMovers');
+  const p3 = document.getElementById('glanceMarket');
+
+  if (p1) p1.innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase">Portfolio Today</div>
+    <div style="font-size:22px;font-weight:700;font-family:var(--mono);color:${portColor}">${portSign}${fmt$(Math.abs(dayCAD))}</div>
+    <div style="font-size:13px;font-family:var(--mono);color:${portColor};margin-bottom:8px">${portSign}${Math.abs(dayPct).toFixed(2)}%</div>
+    <div style="font-size:11px;color:var(--text2)">${portStatus} · Total ${fmt$(totalMV)}</div>`;
+
+  if (p2) p2.innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase">Biggest Movers</div>
+    ${best ? `<div style="margin-bottom:5px"><span class="mono green" style="font-weight:700">▲ ${best.ticker}</span> <span class="mono green">${best.pct > 0 ? '+':''}${best.pct.toFixed(2)}%</span> <span style="font-size:11px;color:var(--text2)">(${best.dayChg > 0 ? '+':''}${fmt$(Math.abs(best.dayChg))} today)</span></div>` : ''}
+    ${worst ? `<div><span class="mono red" style="font-weight:700">▼ ${worst.ticker}</span> <span class="mono red">${worst.pct.toFixed(2)}%</span> <span style="font-size:11px;color:var(--text2)">(${fmt$(Math.abs(worst.dayChg))} today)</span></div>` : ''}
+    ${!best && !worst ? '<div style="color:var(--text3);font-size:12px">No live price data yet</div>' : ''}`;
+
+  if (p3) p3.innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase">Market Conditions</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:4px">${marketDir}</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:4px">NASDAQ ${nasdaq >= 0 ? '+':''}${nasdaq.toFixed(2)}%</div>
+    <div style="font-size:11px;color:var(--text3)">${vixStatus} · VIX ${vix.toFixed(1)}</div>`;
+}
+
 // ── Dynamic Pie Charts ─────────────────────────────────────────────────────────
 // Sector, Geo, and Asset Class pies rebuild from live HOLDINGS_STATIC + prices
 const _GEO_MAP = {
@@ -2230,89 +2311,102 @@ function updateAccountFooters(data) {
     return { acctVal, dayChgCAD, dayChgPct, holdingStats, top, topPct, bigMover, cashCAD, cashPct, roi };
   }
 
+  // ── Priority-scored message selector ─────────────────────────────────────
+  // Each account has a pool of messages, each with a condition function and priority.
+  // The highest-priority message whose condition is true wins.
+  function pickMsg(pool, ctx) {
+    const candidates = pool
+      .map(item => ({ ...item, score: item.cond(ctx) }))
+      .filter(item => item.score > 0)
+      .sort((a,b) => b.score - a.score);
+    return candidates[0]?.msg(ctx) || pool[pool.length - 1].msg(ctx);
+  }
+
   // ── TFSA ─────────────────────────────────────────────────────────────────
   {
     const m = metrics('TFSA');
-    let msg;
-    if (m.bigMover && Math.abs(m.bigMover.dayPct) > 4) {
-      const dir = m.bigMover.dayPct > 0 ? '▲' : '▼';
-      msg = `${dir} ${m.bigMover.ticker} ${s(m.bigMover.dayPct)} today (${fmt$(Math.round(m.bigMover.dayChg))}). ${m.bigMover.dayPct > 0 ? 'Let it run — every dollar of gain here is permanently tax-free.' : 'Leveraged ETFs decay faster on down days; monitor for extended drawdown.'}`;
-    } else if (m.topPct > 28) {
-      msg = `${m.top.ticker} is ${m.topPct.toFixed(0)}% of this account. High 3× ETF concentration is volatile but the risk is correctly placed — a full recovery here costs you nothing in capital gains.`;
-    } else if (m.dayChgPct > 1.5) {
-      msg = `Account up ${s(m.dayChgPct)} today (${fmt$(Math.round(m.dayChgCAD))}). Strong day compounding tax-free. At +${m.roi.toFixed(1)}% ROI this is the portfolio's highest-performing account.`;
-    } else if (m.dayChgPct < -1.5) {
-      msg = `Account down ${s(m.dayChgPct)} today (${fmt$(Math.round(m.dayChgCAD))}). No tax consequence on the dip — losses in TFSA do not create tax credits, but recovery gains are fully sheltered.`;
-    } else {
-      msg = `+${m.roi.toFixed(1)}% ROI on $44,500 contributed. Leveraged ETF compounding in a tax-free account is the single highest-structural-return decision in this portfolio — maintain allocation.`;
-    }
+    const nvda = m.holdingStats.find(h => h.ticker === 'NVDA');
+    const nvdaVal = nvda ? Math.round(nvda.mv) : 0;
+    const pool = [
+      { cond: c => c.bigMover?.dayPct > 5  ? 100 : 0,  msg: c => `▲ ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} today (${fmt$(Math.round(c.bigMover.dayChg))}). Every dollar of that gain is permanently tax-free — let it compound.` },
+      { cond: c => c.bigMover?.dayPct < -5 ? 95  : 0,  msg: c => `▼ ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} today (${fmt$(Math.abs(Math.round(c.bigMover.dayChg)))}). No tax consequence on the dip — recovery gains here cost you nothing.` },
+      { cond: c => c.dayChgPct > 3         ? 90  : 0,  msg: c => `Strong day — TFSA up ${s(c.dayChgPct)} (${fmt$(Math.round(c.dayChgCAD))}). At +${c.roi.toFixed(1)}% ROI, this is the portfolio's best-structured compounding engine.` },
+      { cond: c => c.dayChgPct < -3        ? 85  : 0,  msg: c => `Soft day — TFSA down ${s(c.dayChgPct)} (${fmt$(Math.abs(Math.round(c.dayChgCAD)))}). No tax implication. Recovery gains are 100% sheltered — stay the course.` },
+      { cond: c => nvdaVal > 0             ? 40  : 0,  msg: c => `NVDA alone is worth ~${fmt$(nvdaVal)} in this account — permanently tax-free. That's the most structurally powerful position in the entire portfolio. Never sell.` },
+      { cond: c => c.topPct > 35           ? 50  : 0,  msg: c => `${c.top.ticker} is ${c.topPct.toFixed(0)}% of TFSA. Heavy concentration — fine here since gains are tax-free regardless of size, but monitor for volatility risk.` },
+      { cond: c => c.dayChgPct > 1.5       ? 35  : 0,  msg: c => `Account up ${s(c.dayChgPct)} (${fmt$(Math.round(c.dayChgCAD))}). Gains here accrue 100% to you — no capital gains tax, no dividend tax, no reporting requirement.` },
+      { cond: c => c.roi > 100             ? 30  : 0,  msg: c => `+${c.roi.toFixed(1)}% ROI on ${fmt$(CONTRIB_STATE.TFSA || 44500)} contributed. Every dollar of that gain is permanently sheltered — zero CRA exposure on any of it.` },
+      { cond: c => Math.abs(c.bigMover?.dayPct||0) > 2 ? 20 : 0, msg: c => `${c.bigMover.dayPct > 0 ? '▲' : '▼'} ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} leading moves in TFSA. Tax-free account = ideal home for your highest-conviction names.` },
+      { cond: () => 1, msg: c => `+${c.roi.toFixed(1)}% ROI on ${fmt$(CONTRIB_STATE.TFSA || 44500)} contributed. Leveraged growth in a permanently tax-sheltered account — the single best structural advantage in this portfolio.` },
+    ];
     const el = document.getElementById('acctTFSAFooter');
-    if (el) el.textContent = msg;
+    if (el) el.textContent = pickMsg(pool, m);
   }
 
   // ── Non-Reg ───────────────────────────────────────────────────────────────
   {
     const m = metrics('Investment');
     const spxl = m.holdingStats.find(h => h.ticker === 'SPXL');
-    const fngu = m.holdingStats.find(h => h.ticker === 'FNGU');
-    const top2Pct = ((spxl?.mv || 0) + (fngu?.mv || 0)) / m.acctVal * 100;
-    let msg;
-    if (m.bigMover && m.bigMover.dayPct > 4) {
-      msg = `▲ ${m.bigMover.ticker} ${s(m.bigMover.dayPct)} today — unrealized gains growing. No tax event until disposition, but accrued capital gains liability in this account is rising.`;
-    } else if (m.bigMover && m.bigMover.dayPct < -4) {
-      msg = `▼ ${m.bigMover.ticker} ${s(m.bigMover.dayPct)} today — paper loss may be harvestable. Selling to realize the loss offsets other capital gains; re-entry after 30 days avoids superficial loss rules.`;
-    } else if (top2Pct > 58) {
-      msg = `SPXL + FNGU = ${top2Pct.toFixed(0)}% of Non-Reg. Largest capital gains exposure in the portfolio — every point higher increases future tax on disposition. Track smaller positions for harvesting opportunities.`;
-    } else if (m.dayChgPct > 1.5) {
-      msg = `Account up ${s(m.dayChgPct)} today. Gains here are unrealized — no tax until you sell. Consider whether any losers in this account could be harvested to bank a capital loss credit.`;
-    } else {
-      msg = `+${m.roi.toFixed(1)}% ROI on $65K contributed. SPXL and FNGU are your biggest tax liabilities at disposition — strategic timing of sales vs. lower-income years can meaningfully reduce the tax hit.`;
-    }
+    const fngu  = m.holdingStats.find(h => h.ticker === 'FNGU');
+    const spxlGain = spxl ? spxl.unrealized : 0;
+    const top2Pct = ((spxl?.mv||0) + (fngu?.mv||0)) / m.acctVal * 100;
+    // Underwater positions for harvest
+    const harvestCandidates = m.holdingStats.filter(h => h.unrealized < -200);
+    const pool = [
+      { cond: c => c.bigMover?.dayPct < -5     ? 100 : 0, msg: c => `▼ ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} today — paper loss of ${fmt$(Math.abs(Math.round(c.bigMover.dayChg)))} may be harvestable. Realize the loss, offset gains, re-enter after 30 days.` },
+      { cond: c => c.bigMover?.dayPct > 5      ? 95  : 0, msg: c => `▲ ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} today — accrued capital gains liability growing. No tax until you sell, but plan the eventual disposition.` },
+      { cond: () => harvestCandidates.length   ? 80  : 0, msg: () => `${harvestCandidates.map(h=>h.ticker).join(', ')} showing unrealized losses — candidates for tax-loss harvesting before Dec 31 to offset gains elsewhere.` },
+      { cond: c => c.dayChgPct < -3            ? 75  : 0, msg: c => `Account down ${s(c.dayChgPct)} today. Check if any losers are worth harvesting — realized losses offset 50% inclusion capital gains at your marginal rate.` },
+      { cond: () => top2Pct > 60              ? 60  : 0, msg: () => `SPXL + FNGU = ${top2Pct.toFixed(0)}% of Non-Reg. Biggest capital gains exposure — every point higher increases future tax liability. Track for strategic disposition.` },
+      { cond: () => spxlGain > 5000           ? 50  : 0, msg: () => `SPXL has ~${fmt$(Math.round(spxlGain))} in unrealized gains here. At 50% inclusion + ~43% marginal rate = ~${fmt$(Math.round(spxlGain * 0.22))} deferred tax. Time dispositions against income years.` },
+      { cond: c => c.dayChgPct > 3            ? 40  : 0, msg: c => `Account up ${s(c.dayChgPct)} today (${fmt$(Math.round(c.dayChgCAD))}). Gains are still unrealized — no tax event. Check losers in this account for harvest opportunities.` },
+      { cond: c => c.roi > 40                 ? 20  : 0, msg: c => `+${c.roi.toFixed(1)}% ROI on ${fmt$(CONTRIB_STATE.Investment||65000)} contributed. SPXL and FNGU carry the largest deferred tax liability — time dispositions vs lower-income years.` },
+      { cond: () => 1, msg: c => `+${c.roi.toFixed(1)}% ROI. Non-reg account is your tax-planning lever — strategic harvesting, timing of dispositions, and 50% inclusion rate are all tools to optimize the eventual tax hit.` },
+    ];
     const el = document.getElementById('acctInvFooter');
-    if (el) el.textContent = msg;
+    if (el) el.textContent = pickMsg(pool, { ...m, _harvestCandidates: harvestCandidates, _top2Pct: top2Pct });
   }
 
   // ── FHSA ─────────────────────────────────────────────────────────────────
   {
     const m = metrics('FHSA');
     const growthMult = (m.acctVal / (CONTRIB_STATE.FHSA || 24000)).toFixed(2);
-    const spxl = m.holdingStats.find(h => h.ticker === 'SPXL');
+    const spxl  = m.holdingStats.find(h => h.ticker === 'SPXL');
     const spxlPct = spxl ? (spxl.mv / m.acctVal * 100) : 0;
-    let msg;
-    if (m.bigMover && m.bigMover.dayPct < -4) {
-      msg = `▼ ${m.bigMover.ticker} ${s(m.bigMover.dayPct)} today. This is a goal-based account — a 3× ETF drawdown here directly impacts home purchase purchasing power. Monitor closely.`;
-    } else if (spxlPct > 35) {
-      msg = `SPXL is ${spxlPct.toFixed(0)}% of this home fund — a 50% drawdown on SPXL alone would cut the fund by ${(spxlPct / 2).toFixed(0)}%. Consider shifting to a lower-volatility allocation as your purchase horizon approaches.`;
-    } else if (m.roi > 100) {
-      msg = `Account has more than doubled at ${growthMult}× your $24K — all gains are 100% tax-free on a qualifying home purchase. This account must close within 15 years of your first contribution.`;
-    } else if (m.dayChgPct > 1.5) {
-      msg = `Account up ${s(m.dayChgPct)} today (${fmt$(Math.round(m.dayChgCAD))}). Growing at ${growthMult}× contributions — every dollar here is worth more than a non-reg dollar due to the tax-free home withdrawal.`;
-    } else {
-      msg = `${growthMult}× growth on $24K contributed. All gains withdrawn for a first home purchase are fully tax-free — this dollar is structurally worth more than the same dollar in Non-Reg.`;
-    }
+    const downPayTarget = Math.round(m.acctVal + 35000); // FHSA + RRSP HBP estimate
+    const pool = [
+      { cond: c => c.bigMover?.dayPct < -5  ? 100 : 0, msg: c => `▼ ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} today. Goal-based account — this directly impacts your GTA home down payment purchasing power.` },
+      { cond: c => c.bigMover?.dayPct > 5   ? 90  : 0, msg: c => `▲ ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} today (${fmt$(Math.round(c.bigMover.dayChg))}). 100% tax-free on home withdrawal — every dollar here is worth more than non-reg.` },
+      { cond: c => c.dayChgPct < -3         ? 80  : 0, msg: c => `Tough day in FHSA — down ${s(c.dayChgPct)}. As your purchase horizon tightens, consider shifting toward lower-volatility assets to preserve the down payment.` },
+      { cond: () => spxlPct > 40            ? 70  : 0, msg: () => `SPXL is ${spxlPct.toFixed(0)}% of your home fund. High leverage in a goal account — a 50% correction here cuts the fund by ${(spxlPct/2).toFixed(0)}%. Monitor as purchase approaches.` },
+      { cond: c => c.roi > 120              ? 60  : 0, msg: c => `${growthMult}× on $24K contributed. FHSA + RRSP HBP ($35K) = ~${fmt$(downPayTarget)} combined down payment power — strong position for GTA.` },
+      { cond: c => c.roi > 80              ? 45  : 0, msg: c => `${growthMult}× on $24K. All gains withdrawn for a qualifying first home are 100% tax-free — structurally worth more than any other account dollar.` },
+      { cond: c => c.dayChgPct > 2          ? 35  : 0, msg: c => `FHSA up ${s(c.dayChgPct)} today (${fmt$(Math.round(c.dayChgCAD))}). Growing toward your GTA down payment — every gain here is yours to keep, tax-free.` },
+      { cond: () => 1, msg: c => `${growthMult}× growth on $24K. FHSA + RRSP HBP = ~${fmt$(downPayTarget)} potential down payment for GTA. No tax on withdrawal for qualifying home purchase.` },
+    ];
     const el = document.getElementById('acctFHSAFooter');
-    if (el) el.textContent = msg;
+    if (el) el.textContent = pickMsg(pool, m);
   }
 
   // ── RRSP ─────────────────────────────────────────────────────────────────
   {
     const m = metrics('RRSP');
-    const rrspCashPos = CASH_POSITIONS.find(c => c.account === 'RRSP');
-    const cashCAD = rrspCashPos ? (rrspCashPos.ccy === 'USD' ? rrspCashPos.amount * usdcad : rrspCashPos.amount) : 0;
-    const cashPct = m.acctVal > 0 ? (cashCAD / m.acctVal * 100) : 0;
-    let msg;
-    if (cashPct > 20) {
-      msg = `⚠️ ${fmt$(Math.round(cashCAD))} USD cash (${cashPct.toFixed(1)}% of account) sitting idle — ZSP.TO in RRSP gets 0% US dividend withholding under Canada-US treaty, unavailable in any other account.`;
-    } else if (m.bigMover && Math.abs(m.bigMover.dayPct) > 4) {
-      const dir = m.bigMover.dayPct > 0 ? '▲' : '▼';
-      msg = `${dir} ${m.bigMover.ticker} ${s(m.bigMover.dayPct)} today. RRSP gains are tax-deferred, not tax-free — long-hold growth assets here to delay the taxable withdrawal as long as possible.`;
-    } else if (m.roi < 50) {
-      msg = `RRSP is the weakest-performing account at +${m.roi.toFixed(1)}% ROI. Cash drag is the primary cause — deploying idle funds into ZSP.TO or a dividend ETF would materially improve compounding.`;
-    } else {
-      msg = `+${m.roi.toFixed(1)}% ROI. Best assets for RRSP: high-dividend US stocks (0% withholding tax under treaty) and long-term growth holds where deferral maximizes compounding.`;
-    }
+    const rrspCashCAD = CASH_POSITIONS.filter(c => c.account === 'RRSP')
+      .reduce((sum, c) => sum + (c.ccy === 'USD' ? c.amount * usdcad : c.amount), 0);
+    const cashPct = m.acctVal > 0 ? (rrspCashCAD / m.acctVal * 100) : 0;
+    const foregoingPerYear = Math.round(rrspCashCAD * 0.08);
+    const pool = [
+      { cond: () => cashPct > 30            ? 100 : 0, msg: () => `⚠️ ${fmt$(Math.round(rrspCashCAD))} cash = ${cashPct.toFixed(0)}% of RRSP idle. ${fmt$(foregoingPerYear)}/yr foregone at 8%. ZSP.TO — 0% US dividend withholding, only available in RRSP.` },
+      { cond: () => cashPct > 15            ? 90  : 0, msg: () => `${fmt$(Math.round(rrspCashCAD))} cash sitting idle (${cashPct.toFixed(0)}% of RRSP). Every week of delay = ~${fmt$(Math.round(foregoingPerYear/52))} foregone. Deploy into ZSP.TO.` },
+      { cond: c => c.bigMover?.dayPct < -5  ? 85  : 0, msg: c => `▼ ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} today. RRSP gains are tax-deferred, not tax-free — long-hold growth assets here maximize the deferral advantage.` },
+      { cond: c => c.bigMover?.dayPct > 5   ? 80  : 0, msg: c => `▲ ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} today. RRSP is the ideal home for US-dividend payers — 0% withholding tax unavailable in any other account.` },
+      { cond: c => c.roi < 30              ? 70  : 0, msg: c => `RRSP at +${c.roi.toFixed(1)}% ROI — underperforming other accounts. Cash drag is the primary cause. US dividend ETFs (ZSP.TO, SCHD) here = optimal tax efficiency.` },
+      { cond: c => c.dayChgPct > 2          ? 40  : 0, msg: c => `RRSP up ${s(c.dayChgPct)} today (${fmt$(Math.round(c.dayChgCAD))}). Tax-deferred compounding — best used for long-horizon, high-dividend US names.` },
+      { cond: c => c.roi > 60              ? 30  : 0, msg: c => `+${c.roi.toFixed(1)}% ROI. RRSP's 0% US dividend withholding is worth an estimated 15% extra return vs holding US dividend payers in non-reg or TFSA.` },
+      { cond: () => 1, msg: c => `+${c.roi.toFixed(1)}% ROI. Route all future US-dividend purchases here — 0% withholding under Canada-US treaty is RRSP's unique structural advantage. No other account can match it.` },
+    ];
     const el = document.getElementById('acctRRSPFooter');
-    if (el) el.textContent = msg;
+    if (el) el.textContent = pickMsg(pool, m);
   }
 
   // ── Account Balance Strip ────────────────────────────────────────────────
@@ -3927,6 +4021,7 @@ async function fetchMarketData() {
     if (data.benchmarks) updateMarketWidget(data.benchmarks);
     if (data.portfolio) updateHeaderKPIs(data);
     if (data.portfolio) updateAccountFooters(data);
+    updateTodayGlance(data);
     if (data.holdings) {
       updateHoldingsCells(data.holdings, data.usdcad || 1.38);
       buildTickerStrip(data.holdings);

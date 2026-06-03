@@ -1941,40 +1941,59 @@ function updateHeaderKPIs(data) {
   const contribEl = document.getElementById('kpiContributions');
   if (contribEl) contribEl.textContent = fmt$(CONTRIB_TOTAL());
 
-  // Benchmark bars — portfolio bar + live index updates
-  const tv2 = displayMv || tv || 273825;
-  document.getElementById('bmPortfolioLabel').textContent = `${fmt$(tv2)} · +${clientRoi?.toFixed(1)}%`;
-  document.getElementById('bmPortfolioBar').textContent = fmt$(tv2);
-
-  // Update index bars using today's % change applied to contribution-weighted base values
+  // Benchmark bars — respect currentFilter so per-account view is correct
   const bench = data.benchmarks || {};
-  const _bmBases = { sp500: { val: 167218, roi: 11.8 }, tsx: { val: 171477, roi: 14.6 }, nasdaq: { val: 172760, roi: 15.5 } };
+
+  // Determine active account scope
+  const _filterAcctMap = { tfsa:'TFSA', inv:'Investment', fhsa:'FHSA', rrsp:'RRSP' };
+  const _activeAcctKey  = currentFilter !== 'all' ? _filterAcctMap[currentFilter] : null;
+
+  // Portfolio bar: use filtered account value if account tab selected
+  const _totalContrib   = CONTRIB_TOTAL() || 149632;
+  const _filteredMV     = _activeAcctKey ? (accts[_activeAcctKey] || 0) : (displayMv || tv || 273825);
+  const _filteredContrib = _activeAcctKey
+    ? (CONTRIB_STATE[_activeAcctKey] || 0)
+    : _totalContrib;
+  const _filteredRoi    = _filteredContrib > 0 ? ((_filteredMV - _filteredContrib) / _filteredContrib * 100) : clientRoi || 0;
+
+  document.getElementById('bmPortfolioLabel').textContent = `${fmt$(_filteredMV)} · +${_filteredRoi.toFixed(1)}%`;
+  document.getElementById('bmPortfolioBar').textContent   = fmt$(_filteredMV);
+
+  // Index bars: scale contribution-weighted base by account proportion when filtered
+  // Base values are for all accounts combined; scale by (filtered_contrib / total_contrib)
+  const _scale = _totalContrib > 0 ? (_filteredContrib / _totalContrib) : 1;
+  const _bmBases = {
+    sp500:  { val: 167218 * _scale, roi: 11.8 },
+    tsx:    { val: 171477 * _scale, roi: 14.6 },
+    nasdaq: { val: 172760 * _scale, roi: 15.5 },
+  };
   const _bmMap = [
     ['bmSP500Label',  'bmSP500Bar',  bench.sp500,   _bmBases.sp500,  'var(--blue-bright)'],
     ['bmTSXLabel',    'bmTSXBar',    bench.tsx,     _bmBases.tsx,    'var(--amber)'],
     ['bmNASDAQLabel', 'bmNASDAQBar', bench.nasdaq,  _bmBases.nasdaq, 'var(--purple)'],
   ];
   _bmMap.forEach(([lblId, barId, bData, base, clr]) => {
-    if (!bData || !bData.change_pct) return;
-    // Shift the base contribution-weighted value by today's index move
-    const liveVal = Math.round(base.val * (1 + bData.change_pct / 100));
-    const liveRoi = (base.roi + bData.change_pct * 0.4).toFixed(1); // rough adjustment
+    const liveVal = bData?.change_pct != null
+      ? Math.round(base.val * (1 + bData.change_pct / 100))
+      : Math.round(base.val);
+    const liveRoi = (base.roi + (bData?.change_pct || 0) * 0.4).toFixed(1);
     const lbl = document.getElementById(lblId);
     const bar = document.getElementById(barId);
     if (lbl) lbl.textContent = `${fmt$(liveVal)} · +${liveRoi}%`;
     if (bar) {
       bar.textContent = fmt$(liveVal);
-      const pct = Math.min(99, (liveVal / tv2 * 100)).toFixed(1);
-      bar.style.width = pct + '%';
+      bar.style.width = Math.min(99, _filteredMV > 0 ? (liveVal / _filteredMV * 100) : 0).toFixed(1) + '%';
     }
   });
-  // Recalculate alpha vs S&P 500
-  const sp500LiveVal = bench.sp500 ? Math.round(_bmBases.sp500.val * (1 + bench.sp500.change_pct / 100)) : _bmBases.sp500.val;
-  const spRoi = ((sp500LiveVal - 149632) / 149632 * 100);
+
+  // Alpha line
+  const sp500LiveVal = _bmBases.sp500.val * (bench.sp500 ? (1 + bench.sp500.change_pct / 100) : 1);
+  const spRoi = _filteredContrib > 0 ? ((sp500LiveVal - _filteredContrib) / _filteredContrib * 100) : 0;
   const alphaEl = document.getElementById('bmAlphaLine');
-  if (alphaEl && clientRoi != null) {
-    const alpha = (clientRoi - spRoi).toFixed(1);
-    alphaEl.textContent = `✓ Portfolio ALPHA over S&P 500: +${alpha > 0 ? alpha : '—'} percentage points`;
+  if (alphaEl) {
+    const alpha = (_filteredRoi - spRoi).toFixed(1);
+    const label = _activeAcctKey ? `${_activeAcctKey} ALPHA` : 'Portfolio ALPHA';
+    alphaEl.textContent = `✓ ${label} over S&P 500: +${parseFloat(alpha) > 0 ? alpha : '—'} percentage points`;
   }
 }
 
@@ -3172,36 +3191,10 @@ function setChartFilter(key, btn) {
   const acctFilter = key === 'all' ? null : { all:'', tfsa:'TFSA', inv:'Investment', fhsa:'FHSA', rrsp:'RRSP' }[key];
   _updatePieCharts(hPrices, usdcad, acctFilter);
 
-  // ── Benchmark bars — update portfolio bar for selected account ───────────
-  const liveAccts = _lastLiveData?.portfolio?.accounts || {};
-  const filteredMV = key === 'all'
-    ? (_lastLiveData?.portfolio?.total_value || 0)
-    : (liveAccts[{tfsa:'TFSA', inv:'Investment', fhsa:'FHSA', rrsp:'RRSP'}[key]] || 0);
-  const filteredContrib = key === 'all'
-    ? CONTRIB_TOTAL()
-    : ({ tfsa: CONTRIB_STATE.TFSA, inv: CONTRIB_STATE.Investment, fhsa: CONTRIB_STATE.FHSA, rrsp: CONTRIB_STATE.RRSP }[key] || 0);
-  if (filteredMV > 0) {
-    const roi = filteredContrib > 0 ? ((filteredMV - filteredContrib) / filteredContrib * 100).toFixed(1) : '0';
-    document.getElementById('bmPortfolioLabel').textContent = `${fmt$(filteredMV)} · +${roi}%`;
-    document.getElementById('bmPortfolioBar').textContent   = fmt$(filteredMV);
-    // Scale index bars proportionally to filtered MV
-    const scale = filteredMV / (_lastLiveData?.portfolio?.total_value || filteredMV);
-    const _bmBases2 = {
-      sp500:  { id: ['bmSP500Label','bmSP500Bar'],   baseVal: 167218, baseRoi: 11.8, color: 'var(--blue-bright)' },
-      tsx:    { id: ['bmTSXLabel','bmTSXBar'],       baseVal: 171477, baseRoi: 14.6, color: 'var(--amber)' },
-      nasdaq: { id: ['bmNASDAQLabel','bmNASDAQBar'], baseVal: 172760, baseRoi: 15.5, color: 'var(--purple)' },
-    };
-    const bench2 = _lastLiveData?.benchmarks || {};
-    Object.entries(_bmBases2).forEach(([bKey, bm]) => {
-      const bData = bench2[bKey];
-      const liveVal  = bData ? Math.round(bm.baseVal * scale * (1 + bData.change_pct / 100)) : Math.round(bm.baseVal * scale);
-      const liveRoi  = (bm.baseRoi + (bData?.change_pct || 0) * 0.4).toFixed(1);
-      const [lblId, barId] = bm.id;
-      const lblEl = document.getElementById(lblId); const barEl = document.getElementById(barId);
-      if (lblEl) lblEl.textContent = `${fmt$(liveVal)} · +${liveRoi}%`;
-      if (barEl) { barEl.textContent = fmt$(liveVal); barEl.style.width = Math.min(99, liveVal / filteredMV * 100).toFixed(1) + '%'; }
-    });
-  }
+  // Benchmark bars are now updated by updateHeaderKPIs on every refresh
+  // using currentFilter — no need to duplicate the logic here.
+  // Trigger an immediate refresh so bars update without waiting 5s.
+  if (_lastLiveData) { updateHeaderKPIs(_lastLiveData); updateAccountFooters(_lastLiveData); }
 
   // ── Contribution chart — show filtered account ────────────────────────────
   const cDataMap = { all: cAllTime, tfsa: cTFSA, inv: cInv, fhsa: cFHSA, rrsp: cRRSP };

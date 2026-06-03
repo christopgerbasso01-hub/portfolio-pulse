@@ -4192,7 +4192,8 @@ async function refreshAll() {
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
-  applyAllTransactions();   // replay saved transactions on top of base data
+  applyAllTransactions();   // replay saved transactions on top of base data (local first)
+  syncTransactionsFromKV(); // then merge from KV (catches logs from other devices)
   renderHoldingsTable(null);
   updateRowCount();
   initCharts();
@@ -4225,6 +4226,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Live prices auto-refresh; intelligence does NOT re-fetch on interval
   refreshTimer = setInterval(fetchMarketData, CONFIG.MARKET_REFRESH_MS);
+
+  // Background transaction sync — picks up logs made on other devices every 30s
+  setInterval(syncTransactionsFromKV, 30_000);
 
   // Sync notification bell state on load
   checkNotifStatus();
@@ -5298,14 +5302,49 @@ function getTransactions() {
   try { return JSON.parse(localStorage.getItem('pp_transactions') || '[]'); }
   catch(e) { return []; }
 }
+
+function _setTransactions(txs) {
+  localStorage.setItem('pp_transactions', JSON.stringify(txs));
+  // Push to KV so all devices stay in sync
+  fetch(`${CONFIG.API_BASE}/api/settings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transactions: txs }),
+  }).catch(() => {});
+}
+
+function _mergeTransactions(a, b) {
+  // Union by ID, sort by date then ID
+  const byId = {};
+  [...a, ...b].forEach(tx => { if (tx.id) byId[tx.id] = tx; });
+  return Object.values(byId).sort((x, y) => (x.date||'').localeCompare(y.date||'') || (x.id||'').localeCompare(y.id||''));
+}
+
+async function syncTransactionsFromKV() {
+  try {
+    const r = await fetch(`${CONFIG.API_BASE}/api/settings`, { cache: 'no-store' });
+    if (!r.ok) return;
+    const s = await r.json();
+    if (!Array.isArray(s.transactions) || !s.transactions.length) return;
+    const local  = getTransactions();
+    const merged = _mergeTransactions(local, s.transactions);
+    if (merged.length !== local.length) {
+      localStorage.setItem('pp_transactions', JSON.stringify(merged));
+      applyAllTransactions();
+      await refreshAfterTx();
+      renderTxHistory();
+    }
+  } catch {}
+}
+
 function saveTransaction(tx) {
   tx.id = Date.now() + '_' + Math.random().toString(36).substr(2, 5);
   const txs = getTransactions();
   txs.push(tx);
-  localStorage.setItem('pp_transactions', JSON.stringify(txs));
+  _setTransactions(txs);
 }
 async function deleteTransaction(id) {
-  localStorage.setItem('pp_transactions', JSON.stringify(getTransactions().filter(t => t.id !== id)));
+  _setTransactions(getTransactions().filter(t => t.id !== id));
   applyAllTransactions();
   await refreshAfterTx();
   renderTxHistory();
@@ -5525,6 +5564,7 @@ function openTxModal() {
   document.getElementById('txOverlay').style.display = 'flex';
 }
 function closeTxModal() {
+  hideTxSuggestions();
   document.getElementById('txOverlay').style.display = 'none';
 }
 function setTxType(type) {
@@ -5562,11 +5602,95 @@ function updateTxForm() {
 }
 
 function populateTickerDatalist() {
-  const dl = document.getElementById('txTickerDL');
-  dl.innerHTML = '';
-  [...new Set(HOLDINGS_STATIC.map(h => h.ticker))].forEach(t => {
-    const o = document.createElement('option'); o.value = t; dl.appendChild(o);
-  });
+  // datalist no longer used — autocomplete handles suggestions
+}
+
+// ── Log Modal ticker search autocomplete ─────────────────────────────────────
+let _txSuggestTimer = null;
+let _txSuggestIdx   = -1;
+
+function onTxTickerInput(q) {
+  clearTimeout(_txSuggestTimer);
+  if (q.length < 1) { hideTxSuggestions(); return; }
+
+  // Show existing holdings immediately (local search)
+  const localMatches = [...new Set(HOLDINGS_STATIC.map(h => h.ticker))]
+    .filter(t => t.startsWith(q))
+    .slice(0, 5)
+    .map(t => {
+      const h = HOLDINGS_STATIC.find(x => x.ticker === t);
+      return { ticker: t, name: h?.name || t, exchange: h?.ccy === 'CAD' ? 'TSX' : 'US', _local: true };
+    });
+  if (localMatches.length) showTxSuggestions(localMatches);
+
+  // Then fetch from research API for broader search
+  _txSuggestTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`${CONFIG.API_BASE}/api/research?type=search&q=${encodeURIComponent(q)}`);
+      if (!r.ok) return;
+      const data = await r.json();
+      const results = (data.results || []).slice(0, 8);
+      if (results.length) showTxSuggestions(results);
+    } catch {}
+  }, 250);
+}
+
+function showTxSuggestions(results) {
+  const el = document.getElementById('txSuggestions');
+  if (!el || !results.length) return;
+  _txSuggestIdx = -1;
+  el.innerHTML = results.map((r, i) => `
+    <div class="rsrch-suggest-item" data-ticker="${r.ticker}" data-name="${r.name||''}" data-exchange="${r.exchange||''}" data-idx="${i}"
+         onmousedown="selectTxSuggestion('${r.ticker}','${(r.name||r.ticker).replace(/'/g,'\\u2019')}','${r.exchange||''}')">
+      <span class="rsrch-suggest-ticker">${r.ticker}</span>
+      <span class="rsrch-suggest-name">${r.name||''}</span>
+      <span class="rsrch-suggest-exch">${r.exchange||''}</span>
+    </div>`).join('');
+  el.classList.add('open');
+}
+
+function hideTxSuggestions() {
+  const el = document.getElementById('txSuggestions');
+  if (el) { el.classList.remove('open'); el.innerHTML = ''; }
+  _txSuggestIdx = -1;
+}
+
+function selectTxSuggestion(ticker, name, exchange) {
+  document.getElementById('txTicker').value = ticker;
+  hideTxSuggestions();
+
+  // Auto-fill name if this is a new ticker
+  const nameEl = document.getElementById('txName');
+  if (nameEl) nameEl.value = name || ticker;
+
+  // Auto-detect currency from exchange
+  const isCAN = exchange.includes('TSX') || exchange.includes('CVE') || ticker.endsWith('.TO') || ticker.endsWith('.V');
+  const ccyEl = document.getElementById('txCcy');
+  if (ccyEl) { ccyEl.value = isCAN ? 'CAD' : 'USD'; onCcyChange(); }
+
+  onTickerChange();
+  renderPreview();
+}
+
+function onTxTickerKeydown(e) {
+  const el    = document.getElementById('txSuggestions');
+  const items = el?.querySelectorAll('.rsrch-suggest-item') || [];
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _txSuggestIdx = Math.min(_txSuggestIdx + 1, items.length - 1);
+    items.forEach((item, i) => item.classList.toggle('active', i === _txSuggestIdx));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _txSuggestIdx = Math.max(_txSuggestIdx - 1, -1);
+    items.forEach((item, i) => item.classList.toggle('active', i === _txSuggestIdx));
+  } else if (e.key === 'Enter' && _txSuggestIdx >= 0) {
+    e.preventDefault();
+    const item = items[_txSuggestIdx];
+    if (item) selectTxSuggestion(item.dataset.ticker, item.dataset.name, item.dataset.exchange);
+  } else if (e.key === 'Escape') {
+    hideTxSuggestions();
+  }
 }
 function populateHoldingsTickers() {
   const acct = document.getElementById('txAcct').value;
@@ -5807,13 +5931,17 @@ function renderTxHistory() {
       </div>
     </div>
 
-    <!-- Ticker -->
-    <div id="txTickerRow">
+    <!-- Ticker with autocomplete search -->
+    <div id="txTickerRow" style="position:relative">
       <div class="tx-field">
         <label>Ticker</label>
-        <input type="text" id="txTicker" list="txTickerDL" placeholder="e.g. AAPL"
-               oninput="this.value=this.value.toUpperCase();onTickerChange()" style="text-transform:uppercase">
-        <datalist id="txTickerDL"></datalist>
+        <input type="text" id="txTicker" placeholder="e.g. AAPL or type company name"
+               autocomplete="off"
+               oninput="this.value=this.value.toUpperCase();onTickerChange();onTxTickerInput(this.value)"
+               onkeydown="onTxTickerKeydown(event)"
+               onblur="setTimeout(hideTxSuggestions,180)"
+               style="text-transform:uppercase">
+        <div id="txSuggestions" class="rsrch-suggestions"></div>
       </div>
     </div>
 

@@ -459,19 +459,21 @@ def synthesize_kokoro(turns: list[tuple[str, str]], tmp_dir: Path) -> list[Path]
     import numpy as np
     import soundfile as sf
 
-    print("  Downloading Kokoro model files from HuggingFace...")
-    try:
-        from huggingface_hub import hf_hub_download
-        model_path  = hf_hub_download(repo_id="hexgrad/Kokoro-82M", filename="kokoro-v0_19.onnx")
-        voices_path = hf_hub_download(repo_id="hexgrad/Kokoro-82M", filename="voices.bin")
-        print(f"  ✓ Model: {model_path}")
-    except Exception as exc:
-        # Fallback: try no-arg constructor (older kokoro-onnx versions)
-        print(f"  ⚠ hf_hub_download failed ({exc}), trying no-arg constructor...")
-        model_path = voices_path = None
+    # Model files downloaded by the GitHub Actions workflow step before this runs.
+    # Files live in the working directory (repo root).
+    import os
+    script_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root
+    model_path  = os.path.join(script_dir, "kokoro-v0_19.onnx")
+    voices_path = os.path.join(script_dir, "voices-v1_0.bin")
 
-    print("  Loading Kokoro model...")
-    kokoro = Kokoro(model_path, voices_path) if model_path else Kokoro()
+    if not os.path.exists(model_path) or not os.path.exists(voices_path):
+        raise FileNotFoundError(
+            f"Kokoro model files not found at {script_dir}. "
+            "Ensure the workflow download step ran correctly."
+        )
+
+    print(f"  Loading Kokoro model ({os.path.getsize(model_path)//1_048_576} MB)...")
+    kokoro = Kokoro(model_path, voices_path)
     print("  ✓ Kokoro ready")
 
     wav_paths = []

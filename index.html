@@ -2136,6 +2136,19 @@ function updateTodayGlance(data) {
     row('VIX',     `<span style="color:var(--text2)">${vix.toFixed(1)}</span>`, vixStatus);
 }
 
+// ── Ontario 2026 combined marginal rate lookup (federal + provincial + surtax) ──
+function _ontarioMarginalRate(taxableIncome) {
+  // Brackets approximate for 2026 (federal + Ontario combined)
+  if (taxableIncome <=  51446) return 0.2005;  // 15.0% fed + 5.05% ON
+  if (taxableIncome <=  57375) return 0.2420;  // 15.0% fed + 9.15% ON
+  if (taxableIncome <= 102894) return 0.3148;  // 20.5% fed + 9.15% ON + surtax
+  if (taxableIncome <= 114750) return 0.3348;  // 20.5% fed + 11.16% ON + surtax
+  if (taxableIncome <= 150000) return 0.3848;  // 26.0% fed + 11.16% ON + surtax
+  if (taxableIncome <= 158519) return 0.3934;  // 26.0% fed + 12.16% ON + surtax
+  if (taxableIncome <= 220000) return 0.4341;  // 29.3% fed + 12.16% ON + surtax
+  return 0.4616;                                // 33.0% fed + 13.16% ON + surtax
+}
+
 // ============================================================
 // YEAR-END TAX PROJECTION
 // Entirely client-computed from live prices + holdings.
@@ -2145,11 +2158,23 @@ function renderTaxProjection(data) {
   const el = document.getElementById('taxProjectionPanel');
   if (!el) return;
 
-  const hPrices = data.holdings  || {};
-  const usdcad  = data.usdcad    || 1.38;
-  const MAR_RATE = 0.43;   // ~43% marginal rate at $90K income (Ontario)
-  const INCLUSION = 0.50;  // 50% capital gains inclusion rate
-  const EFF_RATE  = MAR_RATE * INCLUSION;  // ~21.5¢ tax per $1 gain
+  const hPrices   = data.holdings  || {};
+  const usdcad    = data.usdcad    || 1.38;
+  const INCLUSION = 0.50;
+
+  // ── Salary + RRSP deduction (user-configurable) ───────────────────────────
+  const grossSalary    = parseInt(localStorage.getItem('pp_gross_salary') || '90000', 10);
+  const currentYear    = new Date().getFullYear().toString();
+  // RRSP contributions logged THIS calendar year via the transaction log
+  const rrspThisYearTx = getTransactions()
+    .filter(t => t.type === 'CONTRIBUTION' && t.account === 'RRSP' && (t.date||'').startsWith(currentYear))
+    .reduce((s,t) => s + (t.amount||0), 0);
+  // Also allow a manual override stored separately
+  const rrspManual     = parseFloat(localStorage.getItem('pp_rrsp_this_year') || '0');
+  const rrspDeduction  = Math.max(rrspThisYearTx, rrspManual);
+  const taxableIncome  = Math.max(0, grossSalary - rrspDeduction);
+  const MAR_RATE       = _ontarioMarginalRate(taxableIncome);
+  const EFF_RATE       = MAR_RATE * INCLUSION;
 
   // ── 1. Realized gains already locked in (non-reg Investment account only)
   const realizedYTD = HOLDINGS_STATIC
@@ -2211,24 +2236,56 @@ function renderTaxProjection(data) {
     ? `<div style="margin-top:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--amber)">⚡ ${fmt$(harvestSaving)} tax saving available — harvest ${harvestItems.slice(0,3).map(h=>h.ticker).join(', ')} before Dec 31. Re-enter after 30 days (superficial loss rule).</div>`
     : realizedYTD > 5000
       ? `<div style="margin-top:12px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--blue-bright)">💡 ${fmt$(taxOnRealized)} tax already owed on locked-in gains. No harvest candidates large enough to offset. Timing future dispositions toward lower-income years reduces this.</div>`
-      : `<div style="margin-top:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--green)">✅ Minimal realized gains so far. Stay the course — unrealized gains in sheltered accounts (TFSA/RRSP/FHSA) have zero tax exposure.</div>`;
+      : `<div style="margin-top:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--green)">✅ Minimal realized gains so far. Stay the course — TFSA/FHSA gains are permanently tax-free; RRSP gains are tax-deferred until withdrawal.</div>`;
 
   el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">Non-Reg Investment Account · ${daysLeft} days until Dec 31</div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--text3)">${MAR_RATE*100}% marginal · 50% inclusion</div>
+    <!-- Salary slider controls -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase">Gross Salary</span>
+        <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text1)" id="taxSalaryDisplay">${fmt$(grossSalary)}</span>
+      </div>
+      <input type="range" min="30000" max="350000" step="5000" value="${grossSalary}"
+        style="width:100%;accent-color:var(--blue-bright);cursor:pointer"
+        oninput="localStorage.setItem('pp_gross_salary',this.value); document.getElementById('taxSalaryDisplay').textContent='$'+parseInt(this.value).toLocaleString('en-CA'); renderTaxProjection(_lastLiveData||{})">
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:4px">
+        <span>$30K</span><span style="color:var(--amber)">$57K</span><span style="color:var(--amber)">$102K</span><span style="color:var(--amber)">$150K</span><span>$350K</span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3)">
+          RRSP deduction (${currentYear})<br>
+          <span style="font-size:9px;color:var(--text3)">${rrspThisYearTx > 0 ? `${fmt$(rrspThisYearTx)} from transaction log` : 'none logged yet — enter manually'}</span>
+        </div>
+        <input type="number" min="0" max="35000" step="100" value="${rrspDeduction}"
+          placeholder="0"
+          style="font-family:var(--mono);font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text1);border-radius:4px;padding:3px 8px;width:90px;text-align:right"
+          oninput="localStorage.setItem('pp_rrsp_this_year',this.value||0); renderTaxProjection(_lastLiveData||{})">
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px">
+        <span style="color:var(--text3)">Taxable income after RRSP deduction</span>
+        <span style="font-family:var(--mono);color:var(--text1);font-weight:600">${fmt$(taxableIncome)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px">
+        <span style="color:var(--text3)">Ontario marginal rate → capital gains rate</span>
+        <span style="font-family:var(--mono);color:var(--blue-bright);font-weight:700">${(MAR_RATE*100).toFixed(1)}% → ${(EFF_RATE*100).toFixed(1)}%</span>
+      </div>
+    </div>
+
+    <!-- Projections table -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">Non-Reg Account · ${daysLeft} days until Dec 31</div>
     </div>
     ${row('Realized gains YTD (locked in)', fmt$(Math.round(realizedYTD)), realizedYTD > 0 ? 'var(--green)' : 'var(--text2)', `Est. tax already owed: ${fmt$(taxOnRealized)}`)}
     ${row('Unrealized gains (if sold today)', fmt$(Math.round(unrealizedInv)), 'var(--amber)', `Additional tax if fully realized: ${fmt$(taxOnUnrealized)}`)}
     ${row('Total tax exposure (max scenario)', fmt$(totalTaxExposure), 'var(--red)', 'If all non-reg gains realized in 2026')}
-    ${harvestItems.length ? row(`Harvest loss available (${harvestItems.length} candidates)`, `-${fmt$(Math.round(totalHarvestLoss))}`, 'var(--green)', `Saves ~${fmt$(harvestSaving)} in tax · ${harvestItems.slice(0,3).map(h=>h.ticker+' -'+fmt$(Math.round(h.loss))).join(' · ')}`) : ''}
+    ${harvestItems.length ? row(`Harvest loss available (${harvestItems.length} candidates)`, `-${fmt$(Math.round(totalHarvestLoss))}`, 'var(--green)', `Saves ~${fmt$(harvestSaving)} in tax · ${harvestItems.slice(0,3).map(h=>h.ticker+' −'+fmt$(Math.round(h.loss))).join(' · ')}`) : ''}
     ${status}
     <div style="margin-top:10px;font-size:10px;color:var(--text3)">
-      <b style="color:var(--text2)">Account tax treatment:</b>
-      <b style="color:var(--green)">TFSA</b> → permanently tax-free (no tax ever on gains or withdrawals).
-      <b style="color:var(--green)">FHSA</b> → tax-free on qualifying home purchase withdrawal.
-      <b style="color:var(--amber)">RRSP</b> → tax-<i>deferred</i>, not tax-free — all withdrawals taxed as income at full marginal rate (100% inclusion).
-      Only non-reg Investment creates <i>current-year</i> capital gains events.
+      <b style="color:var(--green)">TFSA</b> permanently tax-free &nbsp;·&nbsp;
+      <b style="color:var(--green)">FHSA</b> tax-free on home purchase &nbsp;·&nbsp;
+      <b style="color:var(--amber)">RRSP</b> tax-deferred (income tax on withdrawal at full marginal rate, 100% inclusion)
     </div>`;
 }
 

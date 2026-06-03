@@ -2037,11 +2037,11 @@ const _getAsset = h => {
   return 'Equities';
 };
 
-function _updatePieCharts(hPrices, usdcad) {
+function _updatePieCharts(hPrices, usdcad, acctFilter) {
   if (!sectorChart || !geoChart || !assetChart) return;
 
   const sectorTotals = {}, geoTotals = {}, assetTotals = {};
-  HOLDINGS_STATIC.forEach(h => {
+  HOLDINGS_STATIC.filter(h => !acctFilter || h.account === acctFilter).forEach(h => {
     if (h.ticker?.startsWith('CASH')) return;
     const p = hPrices?.[h.ticker];
     const price = p?.price || 0;
@@ -2333,7 +2333,9 @@ function updateAccountFooters(data) {
   });
 
   // ── Pie charts (sector / geo / asset) — fully dynamic ────────────────────
-  _updatePieCharts(hPrices, usdcad, accts);
+  // Pass current account filter (null = all accounts)
+  const _acctFilterKey = { all: null, tfsa:'TFSA', inv:'Investment', fhsa:'FHSA', rrsp:'RRSP' }[currentFilter] || null;
+  _updatePieCharts(hPrices, usdcad, _acctFilterKey);
 }
 
 // ============================================================
@@ -2981,53 +2983,89 @@ async function mergeKvChartData() {
     const pts = data.chart_points || [];
     if (!pts.length) return;
 
-    // The static data ends at "2026-05" (monthly labels).
-    // KV data uses "YYYY-MM-DD" daily labels — just append after last static point.
-    const existingMvLabels = new Set(portfolioValueChart.data.labels);
-    const existingRoiLabels = new Set(roiChart.data.labels.map ? roiChart.data.labels : []);
+    const existingMvLabels  = new Set(portfolioValueChart.data.labels);
+    const existingRoiLabels = new Set(roiChart.data.labels);
+
+    // Account contributions for ROI calculation (needed for per-account ROI)
+    const contribByAcct = {
+      TFSA: CONTRIB_STATE.TFSA || 44500, Investment: CONTRIB_STATE.Investment || 65000,
+      FHSA: CONTRIB_STATE.FHSA || 24000, RRSP: CONTRIB_STATE.RRSP || 16132,
+    };
+    // Dataset indices in roiChart: 0=All, 1=TFSA, 2=Investment, 3=FHSA, 4=RRSP
+    const ROI_DS = { all: 0, TFSA: 1, Investment: 2, FHSA: 3, RRSP: 4 };
+    // Dataset indices in portfolioValueChart for per-account lines: 0=Total, 1=Contrib, 2=TFSA, 3=Inv, 4=FHSA, 5=RRSP
+    const MV_DS  = { all: 0, TFSA: 2, Investment: 3, FHSA: 4, RRSP: 5 };
 
     let addedMv = 0, addedRoi = 0;
+
     pts.forEach(pt => {
       if (!pt.date) return;
-      // Skip if a point for this day (or its month) already exists in static data
-      const monthKey = pt.date.slice(0, 7);      // "2026-05"
-      if (existingMvLabels.has(monthKey)) {
-        // Replace the monthly point with the more-recent daily value
-        const idx = portfolioValueChart.data.labels.indexOf(monthKey);
+      const monthKey = pt.date.slice(0, 7);
+
+      // ── Portfolio Value chart ─────────────────────────────────
+      if (!existingMvLabels.has(pt.date)) {
+        let idx = portfolioValueChart.data.labels.indexOf(monthKey);
         if (idx >= 0 && pt.total_value) {
+          // Replace monthly placeholder with actual daily value
           portfolioValueChart.data.datasets[0].data[idx] = pt.total_value;
+          const accts = pt.accounts || {};
+          if (accts.TFSA)       _ensureDS(portfolioValueChart, MV_DS.TFSA,       '#10b981', 'TFSA')[idx]       = accts.TFSA;
+          if (accts.Investment) _ensureDS(portfolioValueChart, MV_DS.Investment,  '#94a3b8', 'Non-Reg')[idx]    = accts.Investment;
+          if (accts.FHSA)       _ensureDS(portfolioValueChart, MV_DS.FHSA,        '#a78bfa', 'FHSA')[idx]       = accts.FHSA;
+          if (accts.RRSP)       _ensureDS(portfolioValueChart, MV_DS.RRSP,        '#fbbf24', 'RRSP')[idx]       = accts.RRSP;
+          addedMv++;
+        } else if (!existingMvLabels.has(monthKey) && pt.total_value) {
+          portfolioValueChart.data.labels.push(pt.date);
+          portfolioValueChart.data.datasets[0].data.push(pt.total_value);
+          const lastC = portfolioValueChart.data.datasets[1].data.slice(-1)[0] || 0;
+          portfolioValueChart.data.datasets[1].data.push(lastC);
+          const accts = pt.accounts || {};
+          [['TFSA','#10b981','TFSA'], ['Investment','#94a3b8','Non-Reg'], ['FHSA','#a78bfa','FHSA'], ['RRSP','#fbbf24','RRSP']].forEach(([k,c,l]) => {
+            _ensureDS(portfolioValueChart, MV_DS[k], c, l).push(accts[k] || null);
+          });
+          existingMvLabels.add(pt.date);
           addedMv++;
         }
-        return;
-      }
-      if (existingMvLabels.has(pt.date)) return;   // already added
-
-      // Append new daily point to portfolio value chart
-      if (pt.total_value) {
-        portfolioValueChart.data.labels.push(pt.date);
-        portfolioValueChart.data.datasets[0].data.push(pt.total_value);
-        // Contributions line: hold last known value (no new contributions assumed)
-        const lastC = portfolioValueChart.data.datasets[1].data.slice(-1)[0] || 0;
-        portfolioValueChart.data.datasets[1].data.push(lastC);
-        existingMvLabels.add(pt.date);
-        addedMv++;
       }
 
-      // Append to ROI chart (all-accounts dataset, index 0)
+      // ── ROI chart ─────────────────────────────────────────────
       if (pt.roi_pct != null && !existingRoiLabels.has(pt.date)) {
         roiChart.data.labels.push(pt.date);
-        roiChart.data.datasets.forEach(ds => ds.data.push(null));  // null for per-account lines
-        roiChart.data.datasets[0].data[roiChart.data.datasets[0].data.length - 1] = pt.roi_pct;
+        roiChart.data.datasets.forEach(ds => ds.data.push(null));
+        _dsPush(roiChart, ROI_DS.all, pt.roi_pct);
+        const accts = pt.accounts || {};
+        Object.entries(ROI_DS).forEach(([k, dsIdx]) => {
+          if (k === 'all' || !accts[k]) return;
+          const c = contribByAcct[k];
+          if (c > 0) _dsPush(roiChart, dsIdx, +((accts[k] - c) / c * 100).toFixed(2));
+        });
         existingRoiLabels.add(pt.date);
         addedRoi++;
       }
     });
 
-    if (addedMv > 0) portfolioValueChart.update('none');
+    if (addedMv > 0)  portfolioValueChart.update('none');
     if (addedRoi > 0) roiChart.update('none');
   } catch (e) {
     console.warn('[KV charts] fetch failed:', e.message);
   }
+}
+
+// Ensure a dataset exists at the given index in a Chart.js chart,
+// creating hidden per-account line datasets as needed.
+function _ensureDS(chart, idx, color, label) {
+  while (chart.data.datasets.length <= idx) {
+    chart.data.datasets.push({
+      label, borderColor: color, borderWidth: 1.5, pointRadius: 0,
+      fill: false, tension: 0.3, borderDash: [3,3],
+      data: new Array(chart.data.labels.length).fill(null),
+    });
+  }
+  return chart.data.datasets[idx].data;
+}
+function _dsPush(chart, idx, val) {
+  const ds = chart.data.datasets[idx];
+  if (ds) ds.data[ds.data.length - 1] = val;
 }
 
 function initCharts() {
@@ -3126,6 +3164,54 @@ function setChartFilter(key, btn) {
   };
   portfolioValueChart.update();
   document.getElementById('mvChartTitle').textContent = `Portfolio Market Value — ${l}`;
+
+  // ── Cascade filter to pie charts ──────────────────────────
+  // Filter holdings to the selected account, then rebuild pies
+  const hPrices = _lastLiveData?.holdings || {};
+  const usdcad  = _lastLiveData?.usdcad   || 1.38;
+  const acctFilter = key === 'all' ? null : { all:'', tfsa:'TFSA', inv:'Investment', fhsa:'FHSA', rrsp:'RRSP' }[key];
+  _updatePieCharts(hPrices, usdcad, acctFilter);
+
+  // ── Benchmark bars — update portfolio bar for selected account ───────────
+  const liveAccts = _lastLiveData?.portfolio?.accounts || {};
+  const filteredMV = key === 'all'
+    ? (_lastLiveData?.portfolio?.total_value || 0)
+    : (liveAccts[{tfsa:'TFSA', inv:'Investment', fhsa:'FHSA', rrsp:'RRSP'}[key]] || 0);
+  const filteredContrib = key === 'all'
+    ? CONTRIB_TOTAL()
+    : ({ tfsa: CONTRIB_STATE.TFSA, inv: CONTRIB_STATE.Investment, fhsa: CONTRIB_STATE.FHSA, rrsp: CONTRIB_STATE.RRSP }[key] || 0);
+  if (filteredMV > 0) {
+    const roi = filteredContrib > 0 ? ((filteredMV - filteredContrib) / filteredContrib * 100).toFixed(1) : '0';
+    document.getElementById('bmPortfolioLabel').textContent = `${fmt$(filteredMV)} · +${roi}%`;
+    document.getElementById('bmPortfolioBar').textContent   = fmt$(filteredMV);
+    // Scale index bars proportionally to filtered MV
+    const scale = filteredMV / (_lastLiveData?.portfolio?.total_value || filteredMV);
+    const _bmBases2 = {
+      sp500:  { id: ['bmSP500Label','bmSP500Bar'],   baseVal: 167218, baseRoi: 11.8, color: 'var(--blue-bright)' },
+      tsx:    { id: ['bmTSXLabel','bmTSXBar'],       baseVal: 171477, baseRoi: 14.6, color: 'var(--amber)' },
+      nasdaq: { id: ['bmNASDAQLabel','bmNASDAQBar'], baseVal: 172760, baseRoi: 15.5, color: 'var(--purple)' },
+    };
+    const bench2 = _lastLiveData?.benchmarks || {};
+    Object.entries(_bmBases2).forEach(([bKey, bm]) => {
+      const bData = bench2[bKey];
+      const liveVal  = bData ? Math.round(bm.baseVal * scale * (1 + bData.change_pct / 100)) : Math.round(bm.baseVal * scale);
+      const liveRoi  = (bm.baseRoi + (bData?.change_pct || 0) * 0.4).toFixed(1);
+      const [lblId, barId] = bm.id;
+      const lblEl = document.getElementById(lblId); const barEl = document.getElementById(barId);
+      if (lblEl) lblEl.textContent = `${fmt$(liveVal)} · +${liveRoi}%`;
+      if (barEl) { barEl.textContent = fmt$(liveVal); barEl.style.width = Math.min(99, liveVal / filteredMV * 100).toFixed(1) + '%'; }
+    });
+  }
+
+  // ── Contribution chart — show filtered account ────────────────────────────
+  const cDataMap = { all: cAllTime, tfsa: cTFSA, inv: cInv, fhsa: cFHSA, rrsp: cRRSP };
+  const cKey = { all:'all', tfsa:'tfsa', inv:'inv', fhsa:'fhsa', rrsp:'rrsp' }[key] || 'all';
+  const cData = cDataMap[cKey] || cAllTime;
+  if (contribChart) {
+    contribChart.data.labels = cData.map(p => p.x);
+    contribChart.data.datasets[0].data = cData.map(p => p.y);
+    contribChart.update('none');
+  }
 }
 
 // ============================================================

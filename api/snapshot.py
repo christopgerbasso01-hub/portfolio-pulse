@@ -201,6 +201,8 @@ class handler(BaseHTTPRequestHandler):
                     "total_value":  snaps[d].get("total_value"),
                     "roi_pct":      snaps[d].get("roi_pct"),
                     "daily_change": snaps[d].get("daily_change"),
+                    # Per-account market values for individual account chart lines
+                    "accounts":     snaps[d].get("accounts", {}),
                 }
                 for d in sorted(snaps.keys())
             ]

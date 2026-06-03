@@ -1310,19 +1310,19 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   <div class="ai-section-wrap loading" id="aiSec10">
     <div class="tax-grid" id="taxGrid">
       <div class="tax-card" style="border-top:3px solid var(--blue-bright)">
-        <div class="tax-card-header"><div class="badge badge-tfsa" style="margin-bottom:6px">TFSA</div><div class="mono" style="font-size:16px" id="taxTFSAVal">$98,273</div><div class="small green">+120.84% ROI · 100% tax-free</div></div>
+        <div class="tax-card-header"><div class="badge badge-tfsa" style="margin-bottom:6px">TFSA</div><div class="mono" style="font-size:16px" id="taxTFSAVal">$98,273</div><div class="small green" id="taxTFSASub">+120.84% ROI · 100% tax-free</div></div>
         <div id="taxTFSAItems"><div class="skeleton skeleton-line" style="margin-bottom:10px"></div><div class="skeleton skeleton-line" style="margin-bottom:10px"></div><div class="skeleton skeleton-line short"></div></div>
       </div>
       <div class="tax-card" style="border-top:3px solid var(--green)">
-        <div class="tax-card-header"><div class="badge badge-fhsa" style="margin-bottom:6px">FHSA</div><div class="mono" style="font-size:16px" id="taxFHSAVal">$53,509</div><div class="small green">+122.96% ROI · Double tax win</div></div>
+        <div class="tax-card-header"><div class="badge badge-fhsa" style="margin-bottom:6px">FHSA</div><div class="mono" style="font-size:16px" id="taxFHSAVal">$53,509</div><div class="small green" id="taxFHSASub">+122.96% ROI · Double tax win</div></div>
         <div id="taxFHSAItems"><div class="skeleton skeleton-line" style="margin-bottom:10px"></div><div class="skeleton skeleton-line" style="margin-bottom:10px"></div><div class="skeleton skeleton-line short"></div></div>
       </div>
       <div class="tax-card" style="border-top:3px solid var(--amber)">
-        <div class="tax-card-header"><div class="badge badge-rrsp" style="margin-bottom:6px">RRSP</div><div class="mono" style="font-size:16px" id="taxRRSPVal">$27,771</div><div class="small green">+72.15% ROI · Deferred tax growth</div></div>
+        <div class="tax-card-header"><div class="badge badge-rrsp" style="margin-bottom:6px">RRSP</div><div class="mono" style="font-size:16px" id="taxRRSPVal">$27,771</div><div class="small green" id="taxRRSPSub">+72.15% ROI · Deferred tax growth</div></div>
         <div id="taxRRSPItems"><div class="skeleton skeleton-line" style="margin-bottom:10px"></div><div class="skeleton skeleton-line" style="margin-bottom:10px"></div><div class="skeleton skeleton-line short"></div></div>
       </div>
       <div class="tax-card" style="border-top:3px solid var(--text3)">
-        <div class="tax-card-header"><div class="badge badge-inv" style="margin-bottom:6px">NON-REG</div><div class="mono" style="font-size:16px" id="taxInvVal">$94,272</div><div class="small green">+45.03% ROI · 50% inclusion rate</div></div>
+        <div class="tax-card-header"><div class="badge badge-inv" style="margin-bottom:6px">NON-REG</div><div class="mono" style="font-size:16px" id="taxInvVal">$94,272</div><div class="small green" id="taxInvSub">+45.03% ROI · 50% inclusion rate</div></div>
         <div id="taxInvItems"><div class="skeleton skeleton-line" style="margin-bottom:10px"></div><div class="skeleton skeleton-line" style="margin-bottom:10px"></div><div class="skeleton skeleton-line short"></div></div>
       </div>
     </div>
@@ -1830,13 +1830,20 @@ function updateHeaderKPIs(data) {
   fxEl.textContent = fmt$(sumFX);
   fxEl.className = `card-value ${colorClass(sumFX)}`;
 
-  // Total dividends: open positions stored in CAD; closed positions in native ccy
+  // Add closed positions' realized gains to sumRealized (full closes move there)
+  CLOSED_POSITIONS_STATIC.forEach(h => {
+    sumRealized += (h.total_pnl ?? h.realized ?? 0);  // already stored in CAD
+  });
+  // Refresh realized card with updated total
+  if (realEl) {
+    realEl.textContent = fmt$(Math.round(sumRealized));
+    realEl.className = `card-value ${colorClass(sumRealized)}`;
+  }
+
+  // Total dividends: open + closed positions
   const totalDivCAD = [
     ...HOLDINGS_STATIC.map(h => h.dividends || 0),
-    ...CLOSED_POSITIONS_STATIC.map(h => {
-      const fx = h.book_rate || USD_BOOK_RATE;
-      return (h.dividends || 0) * (h.ccy === 'USD' ? fx : 1);
-    }),
+    ...CLOSED_POSITIONS_STATIC.map(h => (h.dividends || 0)),
   ].reduce((a, b) => a + b, 0);
   document.getElementById('cardDividends').textContent = fmt$(totalDivCAD);
 
@@ -1891,10 +1898,27 @@ function updateHeaderKPIs(data) {
   });
 
   // Tax section header values
-  if (accts.TFSA) document.getElementById('taxTFSAVal').textContent = fmt$(accts.TFSA);
-  if (accts.FHSA) document.getElementById('taxFHSAVal').textContent = fmt$(accts.FHSA);
-  if (accts.RRSP) document.getElementById('taxRRSPVal').textContent = fmt$(accts.RRSP);
-  if (accts.Investment) document.getElementById('taxInvVal').textContent = fmt$(accts.Investment);
+  const _roiStr = (v, c) => c > 0 ? `${((v-c)/c*100 >= 0 ? '+' : '') + ((v-c)/c*100).toFixed(1)}% ROI` : '—';
+  if (accts.TFSA) {
+    document.getElementById('taxTFSAVal').textContent = fmt$(accts.TFSA);
+    const s = document.getElementById('taxTFSASub');
+    if (s) s.textContent = `${_roiStr(accts.TFSA, CONTRIB_STATE.TFSA)} · 100% tax-free`;
+  }
+  if (accts.FHSA) {
+    document.getElementById('taxFHSAVal').textContent = fmt$(accts.FHSA);
+    const s = document.getElementById('taxFHSASub');
+    if (s) s.textContent = `${_roiStr(accts.FHSA, CONTRIB_STATE.FHSA)} · Double tax win`;
+  }
+  if (accts.RRSP) {
+    document.getElementById('taxRRSPVal').textContent = fmt$(accts.RRSP);
+    const s = document.getElementById('taxRRSPSub');
+    if (s) s.textContent = `${_roiStr(accts.RRSP, CONTRIB_STATE.RRSP)} · Deferred tax growth`;
+  }
+  if (accts.Investment) {
+    document.getElementById('taxInvVal').textContent = fmt$(accts.Investment);
+    const s = document.getElementById('taxInvSub');
+    if (s) s.textContent = `${_roiStr(accts.Investment, CONTRIB_STATE.Investment)} · 50% inclusion rate`;
+  }
 
   // Live account allocation doughnut
   if (acctChart && accts.TFSA) {
@@ -1997,6 +2021,60 @@ function updateHoldingsCells(hPrices, usdcad) {
 // ============================================================
 // ACCOUNT CARD DYNAMIC FOOTERS
 // ============================================================
+// ── Dynamic Pie Charts ─────────────────────────────────────────────────────────
+// Sector, Geo, and Asset Class pies rebuild from live HOLDINGS_STATIC + prices
+const _GEO_MAP = {
+  'CM.TO':'Canada','RY.TO':'Canada','ENB.TO':'Canada','BMO.TO':'Canada','BMO':'Canada',
+  'TXF.TO':'Canada','BNS.TO':'Canada','AC.TO':'Canada','GSY.TO':'Canada','BCE.TO':'Canada',
+  'TSM':'Taiwan','SHEL':'UK/Europe','BYDDF':'China',
+  'GBTC':'Crypto','MSTR':'Crypto-Adjacent',
+};
+const _getGeo = t => _GEO_MAP[t] || (t.endsWith('.TO')||t.endsWith('.V')||t.endsWith('.NE') ? 'Canada' : 'USA');
+const _getAsset = h => {
+  if (h.sector === 'Leveraged ETF') return 'Leveraged ETF';
+  if (h.ticker === 'TXF.TO') return 'Covered Call ETF';
+  if (h.sector === 'Crypto' || h.ticker === 'MSTR') return 'Crypto';
+  return 'Equities';
+};
+
+function _updatePieCharts(hPrices, usdcad) {
+  if (!sectorChart || !geoChart || !assetChart) return;
+
+  const sectorTotals = {}, geoTotals = {}, assetTotals = {};
+  HOLDINGS_STATIC.forEach(h => {
+    if (h.ticker?.startsWith('CASH')) return;
+    const p = hPrices?.[h.ticker];
+    const price = p?.price || 0;
+    const mv = price * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+    if (mv <= 0) return;
+    const sector = h.sector || 'Other';
+    const geo    = _getGeo(h.ticker);
+    const asset  = _getAsset(h);
+    sectorTotals[sector] = (sectorTotals[sector] || 0) + mv;
+    geoTotals[geo]       = (geoTotals[geo]       || 0) + mv;
+    assetTotals[asset]   = (assetTotals[asset]   || 0) + mv;
+  });
+
+  const _apply = (chart, totals, colourMap) => {
+    if (!chart) return;
+    const labels = Object.keys(totals).sort((a,b) => totals[b] - totals[a]);
+    const data   = labels.map(l => Math.round(totals[l]));
+    const colors = labels.map((l,i) => colourMap[l] || ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#94a3b8','#f472b6','#34d399'][i % 8]);
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.data.datasets[0].backgroundColor = colors;
+    chart.update('none');
+  };
+
+  const SECTOR_COLORS = { 'Leveraged ETF':'#ef4444', 'Technology':'#3b82f6', 'Financials':'#10b981', 'Energy':'#f59e0b', 'Consumer Disc.':'#8b5cf6', 'Consumer Staples':'#a78bfa', 'Comm. Services':'#f472b6', 'Crypto':'#f97316' };
+  const GEO_COLORS    = { 'USA':'#3b82f6', 'Canada':'#ef4444', 'Taiwan':'#10b981', 'China':'#f59e0b', 'UK/Europe':'#8b5cf6', 'Crypto':'#f97316', 'Crypto-Adjacent':'#fb923c' };
+  const ASSET_COLORS  = { 'Leveraged ETF':'#ef4444', 'Equities':'#3b82f6', 'Covered Call ETF':'#10b981', 'Crypto':'#f97316', 'Crypto-Adjacent':'#fb923c' };
+
+  _apply(sectorChart, sectorTotals, SECTOR_COLORS);
+  _apply(geoChart,    geoTotals,    GEO_COLORS);
+  _apply(assetChart,  assetTotals,  ASSET_COLORS);
+}
+
 // ── Contribution Room Tracker ─────────────────────────────────────────────────
 // TFSA cumulative room: user born ≤1991 → eligible from 2009. Total through 2026:
 // 2009–2012: 4×$5k=20k, 2013–2014: 2×$5.5k=11k, 2015: $10k, 2016–2018: 3×$5.5k=16.5k
@@ -2218,26 +2296,32 @@ function updateAccountFooters(data) {
     if (el) el.textContent = msg;
   }
 
-  // ── Account Balance Strip (above index widget) ──────────────────────────
+  // ── Account Balance Strip ────────────────────────────────────────────────
   const fmt$k = v => v >= 1000 ? `$${(v/1000).toFixed(1)}K` : `$${v.toFixed(0)}`;
   [
-    ['TFSA',       'abTFSAVal', 'abTFSAChg', CONTRIBS.TFSA       || 44500],
-    ['FHSA',       'abFHSAVal', 'abFHSAChg', CONTRIBS.FHSA       || 24000],
-    ['RRSP',       'abRRSPVal', 'abRRSPChg', CONTRIBS.RRSP       || 16132],
-    ['Investment', 'abInvVal',  'abInvChg',  CONTRIBS.Investment  || 65000],
-  ].forEach(([acctKey, valId, chgId, contrib]) => {
-    // Sum daily gains directly from holdings for this account (avoids cash-bug in metrics)
+    ['TFSA',       'abTFSAVal', 'abTFSAChg'],
+    ['FHSA',       'abFHSAVal', 'abFHSAChg'],
+    ['RRSP',       'abRRSPVal', 'abRRSPChg'],
+    ['Investment', 'abInvVal',  'abInvChg'],
+  ].forEach(([acctKey, valId, chgId]) => {
     const hs = HOLDINGS_STATIC.filter(h => h.account === acctKey);
     let acctDayChg = 0;
+    let prevMV     = 0;
     hs.forEach(h => {
       const p = hPrices[h.ticker];
-      if (!p?.price || !p?.prev) return;
-      const fx = h.ccy === 'USD' ? usdcad : 1;
-      acctDayChg += (p.price - p.prev) * h.shares * fx;
+      if (!p?.price) return;
+      const fx   = h.ccy === 'USD' ? usdcad : 1;
+      const prev = p.prev || p.price;
+      acctDayChg += (p.price - prev) * h.shares * fx;
+      prevMV     += prev * h.shares * fx;
     });
+    // Include cash in prevMV (cash doesn't change intraday)
+    prevMV += CASH_POSITIONS.filter(c => c.account === acctKey)
+              .reduce((s,c) => s + (c.ccy === 'USD' ? c.amount * usdcad : c.amount), 0);
+
     const m = metrics(acctKey);
-    // % = daily gain / total contributions (contribution-weighted daily %)
-    const dayPct = contrib > 0 ? (acctDayChg / contrib * 100) : 0;
+    // % = daily gain / previous-close market value (same as header KPI)
+    const dayPct = prevMV > 0 ? (acctDayChg / prevMV * 100) : 0;
     const sign   = acctDayChg >= 0 ? '+' : '';
     const valEl  = document.getElementById(valId);
     const chgEl  = document.getElementById(chgId);
@@ -2247,6 +2331,9 @@ function updateAccountFooters(data) {
       chgEl.className   = `mw-chg ${acctDayChg >= 0 ? 'green' : 'red'}`;
     }
   });
+
+  // ── Pie charts (sector / geo / asset) — fully dynamic ────────────────────
+  _updatePieCharts(hPrices, usdcad, accts);
 }
 
 // ============================================================
@@ -2976,34 +3063,11 @@ function initCharts() {
   });
 
   // Sector Pie
-  sectorChart = new Chart(document.getElementById('sectorChart').getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Leveraged ETF', 'Technology', 'Financials', 'Energy', 'Consumer', 'Other'],
-      datasets: [{ data: [126652, 65928, 28852, 9454, 13849, 15574], backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'], borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } }, datalabels: { formatter: (v,ctx) => { const t=ctx.dataset.data.reduce((a,b)=>a+b,0); const p=v/t*100; return p>=5 ? p.toFixed(1)+'%' : ''; }, color:'#fff', font:{ size:10, weight:'bold' } } } }
-  });
-
-  // Geo Pie
-  geoChart = new Chart(document.getElementById('geoChart').getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['USA', 'Canada', 'Taiwan', 'Other'],
-      datasets: [{ data: [178927, 53316, 8165, 19901], backgroundColor: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'], borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } }, datalabels: { formatter: (v,ctx) => { const t=ctx.dataset.data.reduce((a,b)=>a+b,0); const p=v/t*100; return p>=5 ? p.toFixed(1)+'%' : ''; }, color:'#fff', font:{ size:10, weight:'bold' } } } }
-  });
-
-  // Asset Pie
-  assetChart = new Chart(document.getElementById('assetChart').getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Leveraged ETF', 'Equities', 'Covered Call ETF', 'Crypto'],
-      datasets: [{ data: [126652, 119205, 33716, 3162], backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'], borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } }, datalabels: { formatter: (v,ctx) => { const t=ctx.dataset.data.reduce((a,b)=>a+b,0); const p=v/t*100; return p>=5 ? p.toFixed(1)+'%' : ''; }, color:'#fff', font:{ size:10, weight:'bold' } } } }
-  });
+  // Pie charts start empty — _updatePieCharts() fills them on first live price refresh
+  const _pieOpts = { responsive: true, maintainAspectRatio: true, aspectRatio: 1.8, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 6 } }, datalabels: { formatter: (v,ctx) => { const t=ctx.dataset.data.reduce((a,b)=>a+b,0); const p=v/t*100; return p>=5 ? p.toFixed(1)+'%' : ''; }, color:'#fff', font:{ size:10, weight:'bold' } } } };
+  sectorChart = new Chart(document.getElementById('sectorChart').getContext('2d'), { type:'doughnut', data:{ labels:[], datasets:[{ data:[], backgroundColor:[], borderWidth:0 }] }, options: _pieOpts });
+  geoChart    = new Chart(document.getElementById('geoChart').getContext('2d'),    { type:'doughnut', data:{ labels:[], datasets:[{ data:[], backgroundColor:[], borderWidth:0 }] }, options: _pieOpts });
+  assetChart  = new Chart(document.getElementById('assetChart').getContext('2d'),  { type:'doughnut', data:{ labels:[], datasets:[{ data:[], backgroundColor:[], borderWidth:0 }] }, options: _pieOpts });
 
   // Contributions Area
   const cLabels = cAllTime.map(p => p.x);
@@ -3104,6 +3168,41 @@ function generateAnalysis(data) {
   const dailyChg = port.daily_change || 0;
   const accts    = port.accounts     || {};
 
+  // ── Dynamic portfolio figures (computed, never hardcoded) ─────────────────
+  const tfsaVal   = accts.TFSA        || 0;
+  const fhsaVal   = accts.FHSA        || 0;
+  const rrspVal   = accts.RRSP        || 0;
+  const invVal    = accts.Investment   || 0;
+
+  const tfsaC = CONTRIB_STATE.TFSA        || 44500;
+  const fhsaC = CONTRIB_STATE.FHSA        || 24000;
+  const rrspC = CONTRIB_STATE.RRSP        || 16132;
+  const invC  = CONTRIB_STATE.Investment  || 65000;
+
+  const tfsaROI   = tfsaC > 0 ? ((tfsaVal - tfsaC) / tfsaC * 100).toFixed(1) : '0.0';
+  const fhsaROI   = fhsaC > 0 ? ((fhsaVal - fhsaC) / fhsaC * 100).toFixed(1) : '0.0';
+  const rrspROI   = rrspC  > 0 ? ((rrspVal  - rrspC)  / rrspC  * 100).toFixed(1) : '0.0';
+  const portROI   = CONTRIB_TOTAL() > 0 ? ((totalVal - CONTRIB_TOTAL()) / CONTRIB_TOTAL() * 100).toFixed(1) : '0.0';
+
+  const tfsaGain  = Math.round(tfsaVal - tfsaC);
+  const fhsaGain  = Math.round(fhsaVal - fhsaC);
+
+  // RRSP idle cash (live from CASH_POSITIONS)
+  const rrspCashUSD = CASH_POSITIONS.filter(c => c.account === 'RRSP')
+                       .reduce((s,c) => s + (c.ccy === 'USD' ? c.amount : 0), 0);
+  const rrspCashCAD = rrspCashUSD > 0 ? Math.round(rrspCashUSD * usdcad) : 0;
+  const rrspCashPct = rrspVal > 0 ? (rrspCashCAD / rrspVal * 100).toFixed(1) : '0';
+  const rrspHasIdleCash = rrspCashCAD > 500;
+
+  // Total dividends & NVDA live value
+  const totalDivs = Math.round([
+    ...HOLDINGS_STATIC.map(h => h.dividends || 0),
+    ...CLOSED_POSITIONS_STATIC.map(h => h.dividends || 0),
+  ].reduce((a,b) => a+b, 0));
+  const nvdaShares = HOLDINGS_STATIC.filter(h => h.ticker === 'NVDA').reduce((s,h) => s+h.shares, 0);
+  const nvdaValCAD = Math.round(nvdaP * nvdaShares * usdcad);
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Market condition flags
   const strongBull = spChg > 1.5;
   const bullish    = spChg > 0.3;
@@ -3117,8 +3216,15 @@ function generateAnalysis(data) {
   const ratesLow   = rate10y < 4.2;
   const techLead   = ndxChg > spChg + 0.5;
 
-  const levEtfPct  = 48.7;
-  const levEtfVal  = Math.round(totalVal * levEtfPct / 100);
+  // Leveraged ETF concentration — computed from live holdings
+  const _levTickers = new Set(['FNGU','SPXL','UDOW','TQQQ','TECL','LABU','SOXL']);
+  const levEtfVal = Math.round(HOLDINGS_STATIC
+    .filter(h => _levTickers.has(h.ticker))
+    .reduce((s,h) => {
+      const p = hldgs[h.ticker]; if (!p?.price) return s;
+      return s + p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+    }, 0));
+  const levEtfPct = totalVal > 0 ? (levEtfVal / totalVal * 100).toFixed(1) : '0';
 
   const s = (n, dec=2) => n == null ? '—' : (n >= 0 ? '+' : '') + n.toFixed(dec) + '%';
 
@@ -3210,10 +3316,12 @@ function generateAnalysis(data) {
       body: `With 68.7% of holdings USD-denominated, every 1-cent CAD move = ~$1,800 portfolio impact. ${cadStrong ? 'CAD is currently strong — headwind for USD positions.' : cadWeak ? 'CAD is currently weak — tailwind for USD positions.' : 'USD/CAD near neutral range.'} USMCA trade developments remain the primary CAD catalyst. Existing drag: -$2,521 cumulative.`,
     },
     {
-      title: 'RRSP Idle Cash — $10,531 Opportunity Cost',
+      title: rrspHasIdleCash ? `RRSP Idle Cash — ${fmt$(rrspCashCAD)} Opportunity Cost` : 'RRSP — Fully Deployed',
       level: 'MED',
-      context: '$10,531 idle | 39.5% of RRSP uninvested',
-      body: `$10,531 in RRSP cash earns near-zero. At 8% annualized rate = $843/year in foregone compounding. ZSP.TO in RRSP gets 0% US dividend withholding under the Canada-US treaty — unavailable in any other account. Deploying this is the single highest-priority action in the portfolio.`,
+      context: rrspHasIdleCash ? `${fmt$(rrspCashCAD)} idle | ${rrspCashPct}% of RRSP uninvested` : 'RRSP fully invested — great discipline',
+      body: rrspHasIdleCash
+        ? `${fmt$(rrspCashCAD)} in RRSP cash earns near-zero. At 8% annualized = ${fmt$(Math.round(rrspCashCAD * 0.08))}/year in foregone compounding. ZSP.TO in RRSP gets 0% US dividend withholding under the Canada-US treaty — unavailable in any other account.`
+        : `RRSP is fully deployed — every dollar is working. Maintain this discipline and continue routing new US-dividend buys here for the 0% withholding advantage.`,
     },
   ];
 
@@ -3308,8 +3416,10 @@ function generateAnalysis(data) {
     },
     {
       ticker: 'ZSP.TO', action: 'IMMEDIATE', account: 'RRSP',
-      thesis: `BMO S&P 500 ETF — $10,531 RRSP idle cash doing nothing. 0% US dividend withholding in RRSP under Canada-US treaty. MER 0.09%. Every month uninvested costs ~$70 in foregone compounding at 8%.`,
-      entry: `Deploy all $10,531 now. No timing needed — lump sum or 2 tranches.`,
+      thesis: rrspHasIdleCash
+        ? `BMO S&P 500 ETF — ${fmt$(rrspCashCAD)} RRSP idle cash doing nothing. 0% US dividend withholding in RRSP under Canada-US treaty. MER 0.09%. Every month uninvested costs ~${fmt$(Math.round(rrspCashCAD * 0.08 / 12))} in foregone compounding at 8%.`
+        : `BMO S&P 500 ETF — RRSP is fully deployed but ZSP.TO remains the ideal vehicle for future RRSP contributions. 0% US dividend withholding + CAD-hedged exposure makes this the best use of every new RRSP dollar.`,
+      entry: rrspHasIdleCash ? `Deploy all ${fmt$(rrspCashCAD)} now. No timing needed — lump sum or 2 tranches.` : `Next RRSP contribution → deploy immediately into ZSP.TO.`,
     },
   ];
 
@@ -3359,24 +3469,24 @@ function generateAnalysis(data) {
 
   // ── STRENGTHS / CONCERNS ──────────────────────────────────
   const strengths = [
-    { ticker: 'NVDA', text: `NVDA in TFSA at +1,776% on $645 cost basis — ~$${(nvdaP*40*usdcad).toFixed(0)} CAD value, 100% tax-free permanently. One of the best-documented TFSA compounders. Never sell.` },
-    { ticker: 'TFSA', text: `TFSA at +112.76% ROI on $44,500 contributed = $49,576 in pure tax-free gain. Every dollar of growth is permanently sheltered from CRA. Compounding accelerates as base grows.` },
-    { ticker: 'FHSA', text: `FHSA at +114.58% on $24,000 = $26,577 gain. Tax-deductible contribution + tax-free withdrawal = double tax win. Down payment is well-funded at ~$50,577.` },
-    { ticker: 'ALPHA', text: `Portfolio +76.1% contribution-weighted ROI vs. S&P 500 +11.8%. Alpha of +64 percentage points validates the leveraged growth approach with active management.` },
-    { ticker: 'INCOME', text: `$7,257 in dividends collected. ENB.TO, CM.TO, TXF.TO (covered calls), and ET generating passive income while growth positions compound tax-free.` },
+    { ticker: 'NVDA', text: `NVDA in TFSA at +1,776% — ~${fmt$(nvdaValCAD)} CAD value, 100% tax-free permanently. Never sell.` },
+    { ticker: 'TFSA', text: `TFSA at +${tfsaROI}% ROI on ${fmt$(tfsaC)} contributed = ${fmt$(tfsaGain)} in pure tax-free gain. Every dollar permanently sheltered from CRA.` },
+    { ticker: 'FHSA', text: `FHSA at +${fhsaROI}% ROI on ${fmt$(fhsaC)} = ${fmt$(fhsaGain)} gain. Tax-deductible contribution + tax-free withdrawal = double tax win.` },
+    { ticker: 'ALPHA', text: `Portfolio +${portROI}% ROI on ${fmt$(CONTRIB_TOTAL())} contributed. Leveraged growth + active management driving above-market returns.` },
+    { ticker: 'INCOME', text: `${fmt$(totalDivs)} in dividends collected. ENB.TO, CM.TO, TXF.TO (covered calls), and ET generating passive income.` },
   ];
 
   const concerns = [
     { ticker: 'FNGU+SPXL+UDOW', text: `${levEtfPct}% concentration in 3x ETFs (~$${levEtfVal.toLocaleString()}). A -15% S&P correction = ~-45% on these = ~$57,000 lost. ${highVol ? `VIX at ${vixVal.toFixed(1)} increases decay risk today.` : 'Monitor VIX — above 22 is the danger threshold for decay.'}` },
     { ticker: 'Investment', text: `Non-reg SPXL (+104.7%) and FNGU (+44.9%) = ~$28,000 in taxable unrealized gains. At 50% inclusion + ~50% marginal rate = ~$7,000 deferred tax liability on these positions alone.` },
-    { ticker: 'RRSP', text: `$10,531 RRSP idle cash = 39.5% of RRSP uninvested. Every month of delay = ~$70 foregone compounding at 8% annualized. Deploy to ZSP.TO immediately.` },
+    ...(rrspHasIdleCash ? [{ ticker: 'RRSP', text: `${fmt$(rrspCashCAD)} RRSP idle cash = ${rrspCashPct}% of RRSP uninvested. Every month of delay = ~${fmt$(Math.round(rrspCashCAD*0.08/12))} foregone compounding. Deploy to ZSP.TO immediately.` }] : []),
     { ticker: 'MSTR+GBTC+BYDDF', text: `Underwater positions: MSTR (-43.2%), GBTC (-17.5%), BYDDF (-28.9%). Combined unrealized loss ~$1,248. Tax-loss harvest before Dec 31 to offset capital gains.` },
     { ticker: 'AVGO', text: `AVGO under-allocation — only 8 shares = 1.8% of AUM despite being one of the highest-conviction AI infrastructure names available. If the thesis plays out, current weighting barely moves the portfolio.` },
   ];
 
   // ── STRATEGY ───────────────────────────────────────────────
   const strategy_short = [
-    { num: 1, text: `Deploy $10,531 RRSP cash immediately into ZSP.TO. 0% US dividend withholding only in RRSP. Every week of delay = ~$16 foregone compounding. No timing needed.` },
+    ...(rrspHasIdleCash ? [{ num: 1, text: `Deploy ${fmt$(rrspCashCAD)} RRSP cash immediately into ZSP.TO. 0% US dividend withholding only in RRSP. Every week of delay = ~${fmt$(Math.round(rrspCashCAD*0.08/52))} foregone compounding.` }] : []),
     { num: 2, text: `Add AVGO on next 5-8% pullback — target 5-8 additional TFSA shares. At $${(avgoP*0.93).toFixed(0)}–$${(avgoP*0.96).toFixed(0)} entry. Current 8-share position is too small for the conviction level.` },
     { num: 3, text: `Tax-loss harvest MSTR (-43.2%), BYDDF (-28.9%), GBTC (-17.5%) in Investment account before Dec 31. Realized losses offset capital gains, reducing 2026 taxable income.` },
     { num: 4, text: `Verify 2026 FHSA contribution — $8,000 annual limit. $16,000 of $40,000 lifetime room remaining. Ensure this year's limit is fully used before Dec 31.` },
@@ -3400,10 +3510,7 @@ function generateAnalysis(data) {
   ];
 
   // ── TAX ────────────────────────────────────────────────────
-  const tfsaVal = accts.TFSA || 94076;
-  const fhsaVal = accts.FHSA || 50577;
-  const rrspVal = accts.RRSP || 26642;
-  const invVal  = accts.Investment || 89014;
+  // tfsaVal / fhsaVal / rrspVal / invVal already declared above in dynamic section
 
   const tax = {
     tfsa: [
@@ -3422,7 +3529,7 @@ function generateAnalysis(data) {
     ],
     rrsp: [
       { icon: '✅', text: `0% US dividend withholding under Canada-US treaty — unique advantage unavailable in TFSA/FHSA/non-reg.` },
-      { icon: '⚠️', text: `$10,531 IDLE CASH (39.5% of RRSP) — TOP PRIORITY. Deploy into ZSP.TO immediately. Costs ~$843/year in foregone returns at 8%.` },
+      ...(rrspHasIdleCash ? [{ icon: '⚠️', text: `${fmt$(rrspCashCAD)} IDLE CASH (${rrspCashPct}% of RRSP) — TOP PRIORITY. Deploy into ZSP.TO immediately. Costs ~${fmt$(Math.round(rrspCashCAD*0.08))}/year in foregone returns at 8%.` }] : []),
       { icon: '⚠️', text: `TXF.TO (covered call ETF) not optimal here — US dividend ETFs (ZSP.TO, IVV, SCHD) benefit more from the 0% withholding advantage.` },
       { icon: '💡', text: `HBP: Can withdraw up to $35K for qualifying home purchase and repay over 15 years.` },
       { icon: '💡', text: `After ZSP.TO deployment, add SCHD or VYM for dividend growth. Build RRSP into the primary dividend income engine.` },

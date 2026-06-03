@@ -1,124 +1,123 @@
+"""
+Portfolio Pulse — Quote Fetcher
+================================
+GET /api/quote?tickers=MU,AAPL,BNS.TO
+
+Fetches live price + previous close for tickers not in the main holdings list
+(i.e. newly added via the transaction log). Uses the same Yahoo Finance v8/chart
+API as market.py so it works on Vercel without any extra dependencies.
+"""
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import time
-from urllib.parse import urlparse, parse_qs
+import requests
 
-try:
-    import yfinance as yf
-    HAS_YF = True
-except ImportError:
-    HAS_YF = False
+_YF_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Referer": "https://finance.yahoo.com",
+}
 
-_cache = {}
+_cache    = {}
 _cache_ts = {}
-CACHE_TTL = 60
+CACHE_TTL = 12   # seconds — match market.py
 
 
-def _safe_float(val):
+def _safe_float(val, default=None):
     try:
         f = float(val)
         return None if (f != f) else f
     except (TypeError, ValueError):
-        return None
+        return default
 
 
-def fetch_quotes(tickers):
-    now = time.time()
-    results = {}
+def _fetch_one(session, ticker):
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
+    try:
+        r = session.get(url, headers=_YF_HEADERS, timeout=8)
+        if not r.ok:
+            return ticker, None
+        data   = r.json()
+        result = data["chart"]["result"][0]
+        meta   = result["meta"]
+        closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
+        closes = [c for c in closes if c is not None]
+        curr = _safe_float(meta.get("regularMarketPrice") or (closes[-1] if closes else None))
+        prev = _safe_float(
+            (closes[-2] if len(closes) >= 2 else None)
+            or meta.get("chartPreviousClose")
+            or meta.get("previousClose")
+        )
+        if not curr:
+            return ticker, None
+        prev = prev or curr
+        is_fx = ticker.endswith("=X") or ticker.endswith("-CAD") or ticker.endswith("-USD")
+        dp = 4 if is_fx else 2
+        return ticker, {
+            "price":      round(curr, dp),
+            "prev":       round(prev, dp),
+            "change":     round(curr - prev, dp),
+            "change_pct": round((curr - prev) / prev * 100, 2),
+        }
+    except Exception:
+        return ticker, None
+
+
+def fetch_quotes(tickers: list) -> dict:
+    now    = time.time()
+    result = {}
     to_fetch = []
 
     for t in tickers:
         if t in _cache and (now - _cache_ts.get(t, 0)) < CACHE_TTL:
-            results[t] = _cache[t]
+            result[t] = _cache[t]
         else:
             to_fetch.append(t)
 
-    if not to_fetch or not HAS_YF:
-        return results
+    if not to_fetch:
+        return result
 
-    try:
-        raw = yf.download(
-            tickers=" ".join(to_fetch),
-            period="5d",
-            interval="1d",
-            group_by="ticker",
-            auto_adjust=True,
-            progress=False,
-            threads=True,
-        )
-        for ticker in to_fetch:
-            try:
-                df = raw["Close"].dropna() if len(to_fetch) == 1 else raw[ticker]["Close"].dropna()
-                if len(df) >= 2:
-                    curr = _safe_float(df.iloc[-1])
-                    prev = _safe_float(df.iloc[-2])
-                    if curr and prev:
-                        entry = {
-                            "price": round(curr, 2),
-                            "prev": round(prev, 2),
-                            "change": round(curr - prev, 2),
-                            "change_pct": round((curr - prev) / prev * 100, 2),
-                        }
-                        results[ticker] = entry
-                        _cache[ticker] = entry
-                        _cache_ts[ticker] = now
-                elif len(df) == 1:
-                    curr = _safe_float(df.iloc[-1])
-                    if curr:
-                        entry = {"price": round(curr, 2), "prev": None, "change": None, "change_pct": None}
-                        results[ticker] = entry
-                        _cache[ticker] = entry
-                        _cache_ts[ticker] = now
-            except Exception:
-                pass
-    except Exception:
-        # Fallback: fetch individually
-        for ticker in to_fetch:
-            try:
-                t_obj = yf.Ticker(ticker)
-                fi = t_obj.fast_info
-                curr = _safe_float(fi.last_price)
-                prev = _safe_float(fi.previous_close)
-                if curr:
-                    entry = {
-                        "price": round(curr, 2),
-                        "prev": round(prev, 2) if prev else None,
-                        "change": round(curr - prev, 2) if prev else None,
-                        "change_pct": round((curr - prev) / prev * 100, 2) if prev else None,
-                    }
-                    results[ticker] = entry
-                    _cache[ticker] = entry
-                    _cache_ts[ticker] = now
-            except Exception:
-                pass
+    session = requests.Session()
+    with ThreadPoolExecutor(max_workers=min(8, len(to_fetch))) as ex:
+        futures = {ex.submit(_fetch_one, session, t): t for t in to_fetch}
+        for future in as_completed(futures):
+            ticker, data = future.result()
+            if data:
+                result[ticker]    = data
+                _cache[ticker]    = data
+                _cache_ts[ticker] = now
 
-    return results
+    return result
 
 
 class handler(BaseHTTPRequestHandler):
+
     def do_OPTIONS(self):
         self.send_response(200)
         self._cors()
         self.end_headers()
 
     def do_GET(self):
-        params = parse_qs(urlparse(self.path).query)
-        raw_tickers = params.get("tickers", [""])[0]
-        tickers = [t.strip().upper() for t in raw_tickers.split(",") if t.strip()]
+        params  = parse_qs(urlparse(self.path).query)
+        raw     = params.get("tickers", [""])[0]
+        tickers = [t.strip().upper() for t in raw.split(",") if t.strip()]
 
         prices = fetch_quotes(tickers) if tickers else {}
 
         body = json.dumps(prices).encode()
         self.send_response(200)
-        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Type",   "application/json")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "public, max-age=60")
+        self.send_header("Cache-Control",  "no-store")
         self._cors()
         self.end_headers()
         self.wfile.write(body)
 
     def _cors(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin",  "*")
         self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
 

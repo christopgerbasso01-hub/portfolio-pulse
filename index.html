@@ -1074,6 +1074,89 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .mob-hcard-mv2{font-family:var(--mono);font-size:10px;font-weight:700;margin-top:2px;}
   .green{color:var(--green);}
   .red{color:var(--red);}
+
+  /* ═══════════════════════════════════════════════════════
+     MOBILE PANE SYSTEM
+     Dedicated mobile layouts for Insights + Podcast tabs.
+     Desktop sections hidden; mobile panes show mirrored data.
+  ══════════════════════════════════════════════════════════ */
+
+  /* Hide desktop insight/podcast sections — replaced by mob panes */
+  .section[data-tab="insights"],
+  #intelBanner,
+  .section[data-tab="podcast"]{display:none !important;}
+
+  /* Mobile pane container */
+  .mob-tab-pane{
+    display:none;flex-direction:column;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding-bottom:84px;flex:1;
+  }
+  .mob-tab-pane.mob-pane-active{display:flex;}
+
+  /* Pane header */
+  .mob-pane-hdr{
+    padding:12px 16px 4px;font-size:14px;font-weight:700;
+    color:var(--text);flex-shrink:0;
+  }
+  .mob-sec-label{
+    font-size:9px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--text3);font-weight:700;
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 16px 5px;flex-shrink:0;
+  }
+
+  /* Horizontal carousel strip */
+  .mob-carousel-strip{
+    display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    padding:0 16px 4px;
+  }
+  .mob-carousel-strip::-webkit-scrollbar{display:none;}
+  .mob-carousel-strip > *{
+    min-width:calc(100vw - 48px);flex-shrink:0;
+    scroll-snap-align:start;box-sizing:border-box;
+    margin-right:10px;
+  }
+
+  /* Glance strip */
+  .mob-glance-strip{
+    display:flex;gap:8px;overflow-x:auto;
+    padding:0 16px 8px;scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .mob-glance-strip::-webkit-scrollbar{display:none;}
+  .mob-glance-strip > *{flex-shrink:0;min-width:160px;border-radius:10px !important;}
+
+  /* Vertical content list */
+  .mob-content-list{
+    display:flex;flex-direction:column;gap:10px;padding:0 16px;
+  }
+  .mob-content-list > *{border-radius:12px !important;margin-bottom:0 !important;}
+  .mob-content-list .card{border-radius:12px !important;}
+
+  /* Macro / risk theme cards inside carousel */
+  .mob-carousel-strip .macro-card,
+  .mob-carousel-strip .risk-card,
+  .mob-carousel-strip [class*="card"]{
+    border-radius:12px !important;margin-bottom:0 !important;
+  }
+
+  /* Podcast pane */
+  .mob-pod-content{padding:0 16px;}
+  .mob-pod-content .pod-player-wrap{border-radius:14px !important;padding:16px !important;}
+  .mob-pod-content .pod-ep-items{max-height:none !important;overflow:visible !important;}
+  .mob-pod-content .pod-ep-list{
+    margin-top:12px;padding-top:10px;display:block !important;
+  }
+  .mob-pod-eps-label{
+    font-family:var(--mono);font-size:9px;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--text3);font-weight:700;
+    padding:4px 0 8px;
+  }
+}
+@media(min-width:769px){
+  .mob-tab-pane{display:none !important;}
 }
 </style>
 </head>
@@ -7663,6 +7746,127 @@ function closeMobSettings(){
 })();
 </script>
 <!-- /MOBILE UI HELPERS -->
+
+<!-- ═══════════════════════════════════════════════════════
+     MOBILE TAB PANES
+     Shown on mobile only. Populated by JS from desktop DOM.
+     Desktop sections remain intact and hidden via CSS.
+══════════════════════════════════════════════════════════ -->
+
+<!-- INSIGHTS PANE -->
+<div id="mob-pane-insights" class="mob-tab-pane" data-mob-tab="insights">
+  <div class="mob-pane-hdr">Today's Intelligence</div>
+
+  <div class="mob-sec-label">Today at a Glance</div>
+  <div id="mob-glance" class="mob-glance-strip"></div>
+
+  <div class="mob-sec-label">Global Macro <span class="mob-swipe-hint" style="font-size:9px;color:var(--text3)">swipe ›</span></div>
+  <div id="mob-macro" class="mob-carousel-strip"></div>
+
+  <div class="mob-sec-label">Risk Factors <span class="mob-swipe-hint" style="font-size:9px;color:var(--text3)">swipe ›</span></div>
+  <div id="mob-risk" class="mob-carousel-strip"></div>
+
+  <div class="mob-sec-label">Market News</div>
+  <div id="mob-news" class="mob-content-list"></div>
+
+  <div class="mob-sec-label">Stocks to Watch</div>
+  <div id="mob-picks" class="mob-content-list"></div>
+
+  <div style="height:16px;flex-shrink:0"></div>
+</div>
+
+<!-- PODCAST PANE -->
+<div id="mob-pane-podcast" class="mob-tab-pane" data-mob-tab="podcast">
+  <div class="mob-pane-hdr">Podcast</div>
+  <div class="mob-pod-content">
+    <div id="mob-pod-player"></div>
+    <div class="mob-pod-eps-label" id="mob-pod-eps-label" style="display:none">Previous Episodes</div>
+    <div id="mob-pod-eps"></div>
+  </div>
+  <div style="height:16px;flex-shrink:0"></div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   MOBILE PANE SYSTEM — mirrors desktop data into mobile panes
+   Appearance only. No data/calculations touched.
+════════════════════════════════════════════════════════ */
+(function initMobPanes(){
+  if(window.innerWidth>768)return;
+
+  /* ── mirror: copy innerHTML src→dst, keep in sync ── */
+  function mirror(srcId,dstId,wrapper){
+    var src=document.getElementById(srcId);
+    var dst=document.getElementById(dstId);
+    if(!src||!dst)return;
+    function sync(){
+      var inner=src.innerHTML;
+      dst.innerHTML=wrapper?wrapper(inner):inner;
+    }
+    sync();
+    new MutationObserver(sync).observe(src,{childList:true,subtree:true,characterData:true});
+  }
+
+  /* ── carousel: wrap each direct child for snap scrolling ── */
+  function carousel(srcId,dstId){
+    var src=document.getElementById(srcId);
+    var dst=document.getElementById(dstId);
+    if(!src||!dst)return;
+    function sync(){
+      var kids=src.children;
+      var html='';
+      for(var i=0;i<kids.length;i++){
+        html+='<div style="min-width:calc(100vw - 48px);flex-shrink:0;scroll-snap-align:start;box-sizing:border-box;margin-right:10px">'+kids[i].outerHTML+'</div>';
+      }
+      dst.innerHTML=html;
+    }
+    sync();
+    new MutationObserver(sync).observe(src,{childList:true,subtree:true});
+  }
+
+  /* ── INSIGHTS pane ── */
+  mirror('glanceContent','mob-glance');
+  carousel('macroThemes','mob-macro');
+  carousel('riskFactors','mob-risk');
+  mirror('newsSector','mob-news');
+  mirror('picksGrid','mob-picks');
+
+  /* ── PODCAST pane ── */
+  mirror('podPlayerInner','mob-pod-player');
+  function syncPodEps(){
+    var src=document.getElementById('podEpList');
+    var dst=document.getElementById('mob-pod-eps');
+    var lbl=document.getElementById('mob-pod-eps-label');
+    if(!src||!dst)return;
+    var visible=src.style.display!=='none'&&src.innerHTML.trim().length>0;
+    dst.innerHTML=visible?src.innerHTML:'';
+    if(lbl)lbl.style.display=visible?'block':'none';
+  }
+  syncPodEps();
+  var podEpSrc=document.getElementById('podEpList');
+  if(podEpSrc) new MutationObserver(syncPodEps).observe(podEpSrc,{childList:true,subtree:true,attributes:true,attributeFilter:['style']});
+
+  /* ── Tab switching: show correct mobile pane ── */
+  function switchMobPane(name){
+    document.querySelectorAll('.mob-tab-pane').forEach(function(p){
+      p.classList.toggle('mob-pane-active',p.dataset.mobTab===name);
+    });
+  }
+
+  var origActivate=window.activateTab;
+  window.activateTab=function(name){
+    if(origActivate)origActivate.apply(this,arguments);
+    switchMobPane(name);
+  };
+
+  /* Set initial pane from saved tab */
+  var initTab='portfolio';
+  try{initTab=localStorage.getItem('pp_tab')||'portfolio';}catch(e){}
+  if(initTab==='chat')initTab='portfolio';
+  switchMobPane(initTab);
+})();
+</script>
+<!-- /MOBILE PANES -->
 
 </body>
 </html>

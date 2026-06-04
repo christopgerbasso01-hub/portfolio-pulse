@@ -5323,15 +5323,26 @@ function onResearchTabClose() {
 
 // ── Search ────────────────────────────────────────────────────────────────
 function deepDiveHolding(ticker, account) {
-  // Switch to Research tab
-  activateTab('research');
+  // Mobile: switch to research tab; Desktop: scroll research section into view
+  if (typeof isMobile === 'function' && isMobile()) {
+    activateTab('research');
+    // Brief delay so tab animation completes before research loads
+    setTimeout(() => { runResearchFor(ticker); }, 120);
+  } else {
+    // Desktop — all sections visible, just scroll and search
+    const sec = document.getElementById('secResearch');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => { runResearchFor(ticker); }, 80);
+  }
+  buildPositionPanel(ticker, account);
+}
 
-  // Set search input and run research
+function runResearchFor(ticker) {
   const input = document.getElementById('rsrchInput');
-  if (input) input.value = ticker;
-  runResearch();
+  if (input) { input.value = ticker; runResearch(); }
+}
 
-  // Build "Your Position" summary from HOLDINGS_STATIC + live prices
+function buildPositionPanel(ticker, account) {
   const positions = HOLDINGS_STATIC.filter(h => h.ticker === ticker);
   if (!positions.length) return;
 

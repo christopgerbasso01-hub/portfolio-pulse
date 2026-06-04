@@ -54,17 +54,13 @@ def _fetch_tax_context() -> str:
     rrsp_room     = max(0, rrsp_limit - rrsp_contributions) if rrsp_limit > 0 else None
     tax_saving    = round(rrsp_room * 0.43) if rrsp_room else None  # ~43% marginal rate
 
-    return f"""=== REAL TAX SITUATION — use this for the "tax" section. Be specific, not generic. ===
-TFSA: MAXED. Non-resident 2026 = ZERO contributions. DO NOT suggest adding to TFSA.
-      $7,000 new room opens Jan 1, 2027. Focus: manage existing positions, plan 2027 re-entry.
-FHSA: NON-RESIDENT 2026 = zero contributions. $16,000 lifetime room remaining resumes March 2027.
-      DO NOT suggest contributing this year. Focus: protect down payment capital, plan withdrawal.
-RRSP: {'NOA deduction limit: $' + f'{rrsp_limit:,.0f}' + ' | Contributed: $' + f'{rrsp_contributions:,.0f}' + ' | Remaining room: $' + f'{rrsp_room:,.0f}' + '.' + (f' A full $' + f'{rrsp_room:,.0f}' + f' contribution saves ~${tax_saving:,.0f} in taxes at current income. October bonus = natural deployment window.' if rrsp_room else '') if rrsp_limit > 0 else f'User has not yet entered their NOA deduction limit. Contributed ${rrsp_contributions:,.0f}. Advise them to check their NOA for exact room.'}
-      RRSP cash (~$7,685 USD) idle — priority deploy into BMO S&P 500 ETF for 0% US dividend withholding.
-NON-REG: Unrealized gains on SPXL, FNGU (50% inclusion + ~43% rate = ~21.5¢ tax/$ at disposition).
-          Harvest candidates: MicroStrategy (~-43%), Grayscale Bitcoin (-17%), BYD (-28%).
-PLANNING: FHSA ($55K) + RRSP HBP ($35K) = ~$90K down payment for GTA. Use FHSA first (no repayment).
-          January 2027: $7K TFSA room opens — prioritize Broadcom, AMD, or highest-conviction growth."""
+    rrsp_str = (f"${rrsp_room:,.0f} room left, saves ~${tax_saving:,.0f} in tax. Oct bonus = deploy window."
+                if rrsp_limit > 0 and rrsp_room else
+                "Enter NOA limit to see exact room." if rrsp_limit == 0 else "Room fully used.")
+    return (f"TAX: TFSA/FHSA maxed+non-resident 2026 (no new contributions). "
+            f"RRSP: {rrsp_str} Cash ~$7,685 USD idle—deploy to BMO S&P500 ETF. "
+            f"Non-Reg: harvest MSTR/GBTC/BYD losses before Dec 31. "
+            f"FHSA($55K)+HBP($35K)=~$90K down payment. Jan 2027: $7K TFSA room opens.")
 
 
 # US tickers to pull company-specific news for (Finnhub free tier, no .TO support)

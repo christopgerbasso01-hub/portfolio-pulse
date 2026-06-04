@@ -929,6 +929,105 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   }
   .mob-toggle.on::after{left:19px;}
 
+  /* ── Market widget: mini horizontal scroll strip ─────────── */
+  .market-widget{
+    display:flex !important;overflow-x:auto !important;flex-wrap:nowrap !important;
+    gap:7px !important;background:transparent !important;border:none !important;
+    border-radius:0 !important;margin-bottom:10px !important;
+    scrollbar-width:none !important;padding:0 !important;
+  }
+  .market-widget::-webkit-scrollbar{display:none !important;}
+  .mw-item{
+    display:flex !important;flex-direction:column !important;
+    min-width:88px !important;flex-shrink:0 !important;
+    background:var(--surface2) !important;border:1px solid var(--border) !important;
+    border-radius:10px !important;padding:9px 12px !important;
+  }
+  .mw-label{font-size:9px !important;color:var(--text3) !important;margin-bottom:2px !important;font-family:var(--mono) !important;}
+  .mw-value{font-size:13px !important;font-weight:700 !important;color:var(--text) !important;font-family:var(--mono) !important;}
+  .mw-chg{font-size:10px !important;font-weight:600 !important;margin-top:1px !important;}
+
+  /* ── Portfolio account filter tabs ────────────────────────── */
+  #mobPortfolioAcctTabs{
+    display:flex;gap:6px;padding:0 0 10px;overflow-x:auto;scrollbar-width:none;
+  }
+  #mobPortfolioAcctTabs::-webkit-scrollbar{display:none;}
+  .mob-port-tab{
+    padding:5px 12px;border-radius:18px;border:1px solid var(--border);
+    font-size:10px;font-weight:700;white-space:nowrap;cursor:pointer;
+    color:var(--text2);background:var(--surface2);flex-shrink:0;
+    font-family:var(--mono);transition:all .15s;
+  }
+  .mob-port-tab.active{background:var(--teal);color:#040e1e;border-color:var(--teal);}
+
+  /* ── Today at a Glance: horizontal mini-cards ──────────────── */
+  #glanceContent{
+    display:flex !important;overflow-x:auto !important;
+    gap:8px !important;scrollbar-width:none !important;
+    margin:0 -16px !important;padding:0 16px 4px !important;
+    grid-template-columns:unset !important;-webkit-overflow-scrolling:touch;
+  }
+  #glanceContent::-webkit-scrollbar{display:none !important;}
+  #glanceContent > *{min-width:180px !important;flex-shrink:0 !important;}
+
+  /* ── News grid: vertical stack ─────────────────────────────── */
+  #newsSector{
+    display:flex !important;flex-direction:column !important;
+    gap:10px !important;grid-template-columns:unset !important;
+  }
+
+  /* ── Picks: vertical stack ─────────────────────────────────── */
+  #picksGrid{
+    display:flex !important;flex-direction:column !important;
+    gap:10px !important;grid-template-columns:unset !important;
+  }
+  #picksGrid .card{border-radius:12px !important;padding:14px !important;}
+  .pick-ticker{font-size:15px !important;font-weight:800 !important;margin-bottom:3px !important;}
+  .pick-thesis{font-size:11px !important;line-height:1.5 !important;color:var(--text2) !important;margin-bottom:8px !important;}
+  .entry-box{font-size:10px !important;font-family:var(--mono) !important;background:var(--surface) !important;padding:5px 8px !important;border-radius:5px !important;}
+
+  /* ── SWOT + Strategy: stack vertically ─────────────────────── */
+  .sc-grid,.strat-grid{
+    display:flex !important;flex-direction:column !important;
+    gap:8px !important;grid-template-columns:unset !important;
+  }
+
+  /* ── Tax grid: 2-column on mobile ──────────────────────────── */
+  .tax-grid{display:grid !important;grid-template-columns:1fr 1fr !important;gap:8px !important;}
+  .tax-card{border-radius:11px !important;padding:12px !important;}
+
+  /* ── Intel banner: compact ──────────────────────────────────── */
+  .intel-banner{
+    padding:8px 12px !important;flex-wrap:wrap !important;
+    gap:4px !important;margin-bottom:10px !important;font-size:11px !important;
+  }
+
+  /* ── Podcast: mobile-friendly ───────────────────────────────── */
+  .pod-player-wrap{border-radius:12px !important;}
+  .pod-ep-items{max-height:none !important;overflow:visible !important;}
+  #podBriefContent,#podBriefGrid{display:block !important;}
+
+  /* ── Research: mobile-friendly ──────────────────────────────── */
+  .rsrch-search-wrap{flex-direction:column !important;gap:8px !important;}
+  .rsrch-search-input{
+    width:100% !important;font-size:14px !important;
+    border-radius:10px !important;padding:10px 14px !important;
+    box-sizing:border-box !important;
+  }
+  .rsrch-search-btn{
+    width:100% !important;padding:10px !important;
+    font-size:13px !important;border-radius:10px !important;
+  }
+  .rsrch-watchlist-strip{
+    display:flex !important;overflow-x:auto !important;
+    gap:7px !important;scrollbar-width:none !important;padding-bottom:4px !important;
+  }
+  .rsrch-watchlist-strip::-webkit-scrollbar{display:none !important;}
+  .rsrch-two-col,.rsrch-stat-grid{
+    display:flex !important;flex-direction:column !important;gap:8px !important;
+    grid-template-columns:unset !important;
+  }
+
   /* ── Holdings: hide desktop table, show card view ────────── */
   #sec04 .filter-bar{display:none !important;}
   .table-wrap{display:none !important;}
@@ -7400,7 +7499,51 @@ function closeMobSettings(){
   filterBar.insertAdjacentElement('afterbegin',bar);
 })();
 
-// ── Holdings: account filter chips + card view ────────────────
+// ── Portfolio tab account filter tabs ─────────────────────
+(function injectPortfolioAcctTabs(){
+  if(window.innerWidth>768)return;
+  var strip=document.getElementById('acctBalanceStrip');
+  if(!strip||document.getElementById('mobPortfolioAcctTabs'))return;
+  var tabs=document.createElement('div');
+  tabs.id='mobPortfolioAcctTabs';
+  var accts=[
+    {key:'all',label:'All',valId:null},
+    {key:'tfsa',label:'TFSA',valId:'abTFSAVal'},
+    {key:'fhsa',label:'FHSA',valId:'abFHSAVal'},
+    {key:'rrsp',label:'RRSP',valId:'abRRSPVal'},
+    {key:'inv',label:'Non-Reg',valId:'abInvVal'}
+  ];
+  accts.forEach(function(a,i){
+    var btn=document.createElement('button');
+    btn.className='mob-port-tab'+(i===0?' active':'');
+    function updateLabel(){
+      var suffix='';
+      if(a.valId){
+        var el=document.getElementById(a.valId);
+        var txt=el?el.textContent.trim():'';
+        var num=parseFloat(txt.replace(/[$,]/g,''));
+        if(!isNaN(num)&&num>999) suffix=' · $'+Math.round(num/1000)+'K';
+      }
+      btn.textContent=a.label+suffix;
+    }
+    updateLabel();
+    if(a.valId){
+      var el=document.getElementById(a.valId);
+      if(el) new MutationObserver(updateLabel).observe(el,{childList:true,characterData:true,subtree:true});
+    }
+    btn.onclick=function(){
+      tabs.querySelectorAll('.mob-port-tab').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      var filterKey=a.key==='inv'?'inv':a.key;
+      var filterBtn=document.querySelector('#chartFilters button[onclick*="\''+filterKey+'\'"]');
+      if(filterBtn) filterBtn.click();
+    };
+    tabs.appendChild(btn);
+  });
+  strip.parentNode.insertBefore(tabs,strip);
+})();
+
+// ── Holdings: account filter chips + card view ─────────────────────────
 (function initMobHoldings(){
   if(window.innerWidth>768)return;
 

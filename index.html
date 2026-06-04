@@ -671,9 +671,9 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
    notifications, podcast, intelligence, or any backend function.
 ================================================================ */
 :root{
-  --teal:#00c8b4;
-  --teal-dim:rgba(0,200,180,.10);
-  --teal-glow:rgba(0,200,180,.22);
+  --teal:#00d4ff;
+  --teal-dim:rgba(0,212,255,.10);
+  --teal-glow:rgba(0,212,255,.22);
 }
 
 @media(min-width:769px){
@@ -733,17 +733,44 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     max-width:100% !important;
   }
 
-  /* ── Header → hero: hide title, show big portfolio total ─── */
+  /* ── Refresh btn hidden, tx-fab hidden ───────────────────── */
+  .refresh-btn{display:none !important;}
+  .tx-fab{display:none !important;}
+
+  /* ── Live bar + FAB button ────────────────────────────────── */
+  #mobFabBtn{
+    display:inline-flex !important;align-items:center;justify-content:center;
+    width:30px;height:30px;border-radius:9px;
+    background:var(--teal);color:#040e1e;
+    font-size:20px;font-weight:900;cursor:pointer;
+    border:none;line-height:1;flex-shrink:0;margin-left:4px;
+  }
+  #mobFabDropdown{
+    position:fixed;top:calc(48px + env(safe-area-inset-top,0px) + 30px);
+    right:14px;background:var(--surface2);border:1px solid var(--border);
+    border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.5);
+    z-index:9000;min-width:160px;overflow:hidden;display:none;
+  }
+  #mobFabDropdown.mob-fab-open{display:block;}
+  .mob-fab-item{
+    display:flex;align-items:center;gap:10px;padding:12px 14px;
+    font-size:12px;font-weight:700;cursor:pointer;
+    border-bottom:1px solid var(--border);color:var(--text);
+  }
+  .mob-fab-item:last-child{border-bottom:none;}
+  .mob-fab-item:active{background:var(--surface);}
+  .mob-fab-icon{font-size:16px;}
+
+  /* ── Header → transparent hero ──────────────────────────── */
   .header{
-    text-align:center !important;padding:16px 16px 14px !important;
+    text-align:center !important;padding:20px 16px 16px !important;
     margin-bottom:0 !important;border-radius:0 !important;
-    background:var(--surface2) !important;
-    border-bottom:1px solid var(--border) !important;
+    background:transparent !important;border:none !important;
   }
   .header-title,.header-meta{display:none !important;}
   .header-kpis{
     display:flex !important;flex-direction:column !important;
-    align-items:center !important;gap:6px !important;
+    align-items:center !important;gap:7px !important;
   }
   /* Hide all KPIs by default */
   .header-kpis .hkpi{display:none !important;}
@@ -754,11 +781,11 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   }
   .header-kpis .hkpi:nth-child(1) .hkpi-label{display:none !important;}
   .header-kpis .hkpi:nth-child(1) .hkpi-value{
-    font-size:40px !important;font-weight:800 !important;
+    font-size:42px !important;font-weight:800 !important;
     letter-spacing:-.5px !important;color:var(--teal) !important;
     line-height:1 !important;font-family:var(--mono) !important;
   }
-  /* 5th — Daily Change: pill chip (order:1 — appears before ROI) */
+  /* 5th — Daily Change: pill chip (order:1) */
   .header-kpis .hkpi:nth-child(5){
     display:block !important;background:none !important;
     border:none !important;padding:0 !important;order:1 !important;
@@ -766,81 +793,150 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .header-kpis .hkpi:nth-child(5) .hkpi-label{display:none !important;}
   .header-kpis .hkpi:nth-child(5) .hkpi-value{
     display:inline-block !important;
-    font-size:12px !important;font-weight:700 !important;
-    padding:4px 16px !important;border-radius:20px !important;
-    background:rgba(0,200,180,.1) !important;
-    border:1px solid rgba(0,200,180,.25) !important;
+    font-size:13px !important;font-weight:700 !important;
+    padding:5px 18px !important;border-radius:20px !important;
+    background:rgba(0,212,255,.1) !important;
+    border:1px solid rgba(0,212,255,.3) !important;
     color:var(--teal) !important;
   }
-  /* Red pill when day is negative */
   .header-kpis .hkpi:nth-child(5) .hkpi-value.red{
     background:rgba(239,68,68,.1) !important;
-    border-color:rgba(239,68,68,.35) !important;
-    color:var(--red) !important;
+    border-color:rgba(239,68,68,.35) !important;color:var(--red) !important;
   }
-  /* Green pill when day is positive */
   .header-kpis .hkpi:nth-child(5) .hkpi-value.green{
-    background:rgba(16,185,129,.1) !important;
-    border-color:rgba(16,185,129,.3) !important;
-    color:var(--green) !important;
+    background:rgba(0,230,118,.08) !important;
+    border-color:rgba(0,230,118,.25) !important;color:var(--green) !important;
   }
-  /* 4th — Total ROI: small secondary line (order:2 — appears below pill) */
-  .header-kpis .hkpi:nth-child(4){
-    display:block !important;background:none !important;
-    border:none !important;padding:0 !important;order:2 !important;
-  }
-  .header-kpis .hkpi:nth-child(4) .hkpi-label{display:none !important;}
-  .header-kpis .hkpi:nth-child(4) .hkpi-value{
-    font-size:11px !important;font-weight:600 !important;color:var(--text2) !important;
+  /* 4th — hidden; combined secondary injected by JS */
+  .header-kpis .hkpi:nth-child(4){display:none !important;}
+  /* Injected secondary line */
+  #mob-hero-secondary{
+    font-size:11px !important;font-weight:600 !important;
+    color:var(--text2) !important;order:2 !important;
+    text-align:center !important;
   }
 
   /* ── Portfolio tab: hide desktop-only content ───────────── */
-  /* Market index widget (S&P, NASDAQ, TSX etc.) */
   .market-widget{display:none !important;}
-  /* Unrealized / Realized / Dividends / FX cards */
   .grid-4{display:none !important;}
-  /* Chart filter buttons */
   .chart-filters{display:none !important;}
-  /* ROI+allocation side-by-side grid & sector/geo/asset grid */
   #sec01 .grid-3{display:none !important;}
-  /* Benchmark section (sec02) and Account breakdown (sec03) */
   #sec02,#sec03{display:none !important;}
-  /* Hide ROI + allocation side-by-side grid (no class, use :has) */
   #sec01 div:has(#roiChart){display:none !important;}
-  /* Make portfolio value chart compact on mobile */
-  #sec01 .chart-container{height:140px !important;}
-  #sec01 .chart-title{font-size:10px !important;margin-bottom:4px !important;color:var(--text3) !important;}
 
-  /* ── Section headers: hide "01 TOTAL PORTFOLIO OVERVIEW" ─── */
+  /* ── Charts: sleek cards matching mockup ─────────────────── */
+  #sec01 > div:has(#portfolioValueChart){
+    background:var(--surface2) !important;border:1px solid var(--border) !important;
+    border-radius:14px !important;padding:14px !important;margin-bottom:10px !important;
+  }
+  #sec01 .chart-container{height:150px !important;}
+  #sec01 .chart-title{
+    font-size:9px !important;text-transform:uppercase !important;
+    letter-spacing:.07em !important;font-weight:700 !important;
+    color:var(--text3) !important;margin-bottom:10px !important;font-family:var(--mono) !important;
+  }
+  /* Account filter pills inside chart card */
+  #mobChartAcctFilter{
+    display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;
+    float:right;margin-top:-20px;padding-bottom:8px;
+  }
+  #mobChartAcctFilter::-webkit-scrollbar{display:none;}
+  .mob-chart-pill{
+    font-size:8px;font-weight:700;padding:3px 8px;border-radius:6px;
+    background:var(--surface);border:1px solid var(--border);
+    color:var(--text3);cursor:pointer;white-space:nowrap;font-family:var(--mono);
+    transition:all .15s;flex-shrink:0;
+  }
+  .mob-chart-pill.active{
+    background:var(--teal);color:#040e1e;border-color:var(--teal);
+  }
+
+  /* ROI chart card */
+  #mob-roi-card{
+    background:var(--surface2);border:1px solid var(--border);
+    border-radius:14px;padding:14px;margin-bottom:10px;
+  }
+  #mob-roi-card canvas{height:120px !important;width:100% !important;}
+
+  /* Contribution breakdown: keep but style */
+  #sec01 + .section,
+  #sec01 ~ .section[id="sec02"]{display:none !important;}
+
+  /* ── Section headers: hide ────────────────────────────────── */
   .section-header{display:none !important;}
 
-  /* ── Container/sections: clean edge-to-edge cards ───────── */
+  /* ── Container/sections: clean edge-to-edge ──────────────── */
   .section{
     padding:14px 16px !important;border-radius:0 !important;
     border-left:none !important;border-right:none !important;
     margin:0 0 1px !important;
   }
 
-  /* ── Account balance strip: 2×2 card grid ───────────────── */
+  /* ── Account balance strip: 2×2 grid cards ───────────────── */
   #acctBalanceStrip{
     display:grid !important;grid-template-columns:1fr 1fr !important;
     gap:8px !important;background:transparent !important;
     border:none !important;border-radius:0 !important;
     overflow:visible !important;margin-bottom:10px !important;
   }
+  /* Card: grid layout — badge+daychg on row1, value on row2, roi on row3 */
   #acctBalanceStrip > div{
-    display:flex !important;flex-direction:column !important;gap:2px !important;
+    display:grid !important;
+    grid-template-columns:1fr auto !important;
+    grid-template-rows:auto auto auto !important;
+    gap:0 4px !important;
     padding:12px 13px !important;
-    border:1px solid var(--border) !important;border-bottom:1px solid var(--border) !important;
-    border-radius:12px !important;background:var(--surface2) !important;
+    border:1px solid var(--border) !important;
+    border-radius:14px !important;background:var(--surface2) !important;
   }
+  /* Badge (row1, col1) */
   #acctBalanceStrip > div > span:first-child{
-    font-size:9px !important;letter-spacing:.07em !important;
-    width:auto !important;margin-bottom:1px !important;
+    grid-column:1 !important;grid-row:1 !important;
+    font-size:11px !important;letter-spacing:.06em !important;
+    font-weight:800 !important;
+    width:auto !important;margin-bottom:4px !important;
+    align-self:center !important;
   }
+  /* Value (row2, full width) */
   #acctBalanceStrip > div > span:nth-child(2){
-    font-size:20px !important;font-weight:800 !important;
-    margin-left:0 !important;padding-left:0 !important;font-family:var(--mono) !important;
+    grid-column:1 / -1 !important;grid-row:2 !important;
+    font-size:22px !important;font-weight:800 !important;
+    margin:0 !important;padding:0 !important;
+    font-family:var(--mono) !important;line-height:1.1 !important;
+    color:var(--text) !important;
+  }
+  /* Day change $ (row1, col2 — top right) */
+  #acctBalanceStrip > div > span:nth-child(3){
+    grid-column:2 !important;grid-row:1 !important;
+    font-size:11px !important;font-weight:700 !important;
+    margin:0 !important;padding:0 !important;
+    text-align:right !important;align-self:center !important;
+  }
+  /* ROI line injected (row3, full width) */
+  .mob-acct-roi{
+    grid-column:1 / -1 !important;grid-row:3 !important;
+    font-size:10px !important;font-weight:600 !important;
+    margin-top:3px !important;
+  }
+
+  /* Account detail card (shown when specific account tab selected) */
+  #mob-acct-detail{
+    display:none;background:var(--surface2);border:1px solid var(--border);
+    border-radius:14px;padding:14px;margin-bottom:10px;
+  }
+  #mob-acct-detail.visible{display:block;}
+  .mob-ad-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .mob-ad-badge{font-size:12px;font-weight:800;padding:4px 10px;border-radius:7px;}
+  .mob-ad-type{font-size:9px;font-weight:800;padding:3px 8px;border-radius:5px;background:var(--surface);color:var(--text3);border:1px solid var(--border);}
+  .mob-ad-val{font-size:24px;font-weight:800;margin:4px 0 1px;font-family:var(--mono);}
+  .mob-ad-sub{font-size:10px;color:var(--text2);font-family:var(--mono);}
+  .mob-ad-tbl{width:100%;border-collapse:collapse;margin:10px 0;}
+  .mob-ad-tbl th{font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:700;padding:5px 0;border-bottom:1px solid var(--border);text-align:left;}
+  .mob-ad-tbl th:not(:first-child){text-align:right;}
+  .mob-ad-tbl td{font-size:11px;padding:6px 0;border-bottom:1px solid var(--border);}
+  .mob-ad-tbl td:not(:first-child){text-align:right;font-family:var(--mono);}
+  .mob-ad-tbl tr:last-child td{border-bottom:none;}
+  .mob-ad-insight{background:var(--surface);border-radius:8px;padding:9px 10px;margin-top:8px;font-size:10px;color:var(--text2);line-height:1.5;}
   }
   #acctBalanceStrip > div > span:nth-child(3){
     font-size:11px !important;font-weight:600 !important;
@@ -7582,6 +7678,293 @@ function closeMobSettings(){
   filterBar.insertAdjacentElement('afterbegin',bar);
 })();
 
+// ── + FAB button in live bar ───────────────────────────────
+(function injectFabBtn(){
+  if(window.innerWidth>768)return;
+  if(document.getElementById('mobFabBtn'))return;
+  var bar=document.querySelector('.market-status');
+  if(!bar)return;
+
+  // FAB button
+  var btn=document.createElement('button');
+  btn.id='mobFabBtn';btn.textContent='+';btn.setAttribute('aria-label','Actions');
+  btn.onclick=function(e){
+    e.stopPropagation();
+    var dd=document.getElementById('mobFabDropdown');
+    if(dd)dd.classList.toggle('mob-fab-open');
+  };
+  bar.appendChild(btn);
+
+  // Dropdown
+  var dd=document.createElement('div');
+  dd.id='mobFabDropdown';
+  dd.innerHTML=
+    '<div class="mob-fab-item" onclick="openTxModal();document.getElementById(\'mobFabDropdown\').classList.remove(\'mob-fab-open\')"><span class="mob-fab-icon">📋</span>Log Trade</div>'+
+    '<div class="mob-fab-item" onclick="window.print();document.getElementById(\'mobFabDropdown\').classList.remove(\'mob-fab-open\')"><span class="mob-fab-icon">📄</span>Generate Report</div>';
+  document.body.appendChild(dd);
+
+  // Close on outside tap
+  document.addEventListener('click',function(){
+    if(dd)dd.classList.remove('mob-fab-open');
+  });
+})();
+
+// ── Hero: day change pill → add "today", secondary line ───
+(function setupHero(){
+  if(window.innerWidth>768)return;
+
+  // Reformat day change: "+$1,840 +0.65%" → "+$1,840 · +0.65% today"
+  var pillEl=document.getElementById('kpiDailyChange');
+  function reformatPill(){
+    if(!pillEl)return;
+    var t=pillEl.textContent.trim();
+    if(!t||t==='—'||t.includes('today'))return;
+    var parts=t.split(' ');
+    if(parts.length>=2) pillEl.textContent=parts[0]+' · '+parts[1]+' today';
+  }
+  if(pillEl) new MutationObserver(function(){
+    var t=pillEl?pillEl.textContent.trim():'';
+    if(t&&!t.includes('today'))reformatPill();
+  }).observe(pillEl,{childList:true,characterData:true,subtree:true});
+  reformatPill();
+
+  // Combined secondary line: "ROI% all-time · $X contributed"
+  var kpis=document.querySelector('.header-kpis');
+  function updateSecondary(){
+    var roiEl=document.getElementById('kpiRoi');
+    var contribEl=document.getElementById('kpiContributions');
+    var roiTxt=roiEl?roiEl.textContent.trim():'';
+    var cTxt=contribEl?contribEl.textContent.trim():'';
+    if(!roiTxt||roiTxt==='—')return;
+    var sec=document.getElementById('mob-hero-secondary');
+    if(!sec){
+      sec=document.createElement('div');
+      sec.id='mob-hero-secondary';
+      if(kpis)kpis.appendChild(sec);
+    }
+    var line=roiTxt+' all-time';
+    if(cTxt&&cTxt!=='—') line+=' · '+cTxt+' contributed';
+    sec.textContent=line;
+  }
+  var roiEl=document.getElementById('kpiRoi');
+  var cEl=document.getElementById('kpiContributions');
+  if(roiEl) new MutationObserver(updateSecondary).observe(roiEl,{childList:true,characterData:true,subtree:true});
+  if(cEl) new MutationObserver(updateSecondary).observe(cEl,{childList:true,characterData:true,subtree:true});
+  updateSecondary();
+})();
+
+// ── Account cards: grid layout + ROI bottom line ───────────
+(function setupAccountCards(){
+  if(window.innerWidth>768)return;
+  var strip=document.getElementById('acctBalanceStrip');
+  if(!strip)return;
+
+  var items=Array.from(strip.querySelectorAll(':scope > div'));
+  var roiIds=['acctTFSARoi','acctInvRoi','acctFHSARoi','acctRRSPRoi'];
+  // sec03 card order matches strip order: TFSA, FHSA, RRSP, NON-REG
+  // But acctXRoi IDs: TFSA, Investment (NON-REG), FHSA, RRSP
+  // Strip order from HTML: TFSA, FHSA, RRSP, Investment
+  var roiMap=['acctTFSARoi','acctFHSARoi','acctRRSPRoi','acctInvRoi'];
+
+  items.forEach(function(item,i){
+    // Inject ROI span if missing
+    var roiSpan=item.querySelector('.mob-acct-roi');
+    if(!roiSpan){roiSpan=document.createElement('span');roiSpan.className='mob-acct-roi';item.appendChild(roiSpan);}
+
+    function update(){
+      var chgEl=item.querySelector('span:nth-child(3)');
+      var roiEl=document.getElementById(roiMap[i]);
+      if(!chgEl)return;
+      var chgFull=chgEl.dataset.orig||chgEl.textContent.trim();
+      // Guard: if already just one token (already split), re-read from dataset
+      var parts=chgFull.split(' ');
+      var dayDollar=parts[0]||chgFull;
+      var dayPct=parts[1]||'';
+      // Update chg span to just show the $ amount on top-right
+      if(parts.length>=2){
+        chgEl.dataset.orig=chgFull;
+        chgEl.textContent=dayDollar;
+      }
+      // Build ROI bottom line
+      var roiRaw=roiEl?roiEl.textContent.trim():''; // "+130.4% ROI · $44,500 in"
+      var roiMatch=roiRaw.match(/([+\-]?[\d.,]+%)/);
+      var roiPct=roiMatch?roiMatch[1]:'';
+      var bottom=(roiPct&&dayPct)?roiPct+' all-time · '+dayPct:(roiPct||dayPct||chgFull);
+      roiSpan.textContent=bottom;
+      var isPos=dayDollar.indexOf('-')<0&&dayDollar.indexOf('−')<0;
+      roiSpan.style.color=isPos?'var(--green)':'var(--red)';
+    }
+
+    // Watch chg element for JS updates
+    var chgEl=item.querySelector('span:nth-child(3)');
+    if(chgEl) new MutationObserver(function(){
+      var t=chgEl.textContent.trim();
+      if(t&&t!=='—'&&t.split(' ').length>=2)update();
+    }).observe(chgEl,{childList:true,characterData:true,subtree:true});
+
+    var roiEl=document.getElementById(roiMap[i]);
+    if(roiEl) new MutationObserver(update).observe(roiEl,{childList:true,characterData:true,subtree:true});
+    update();
+  });
+})();
+
+// ── Account detail view when tab is selected ───────────────
+(function setupAcctDetail(){
+  if(window.innerWidth>768)return;
+  var strip=document.getElementById('acctBalanceStrip');
+  if(!strip)return;
+
+  // Insert detail card div after strip
+  var detailDiv=document.getElementById('mob-acct-detail');
+  if(!detailDiv){
+    detailDiv=document.createElement('div');
+    detailDiv.id='mob-acct-detail';
+    strip.parentNode.insertBefore(detailDiv,strip.nextSibling);
+  }
+
+  // Account data map (reads from sec03 which is hidden but data is live)
+  var ACCT_MAP={
+    tfsa:{
+      valId:'acctTFSAValue',roiId:'acctTFSARoi',pnlId:'acctTFSAPnl',
+      label:'TFSA',color:'#4a9eff',type:'TAX-FREE',footerId:'acctTFSAFooter',
+      holdings:[
+        {tk:'FNGU',shs:'1,373',valId:'live-FNGU-TFSA',rtn:'+79.3%',rtnCls:'green'},
+        {tk:'NVDA',shs:'40',valId:'live-NVDA-TFSA',rtn:'+1,809%',rtnCls:'green'},
+        {tk:'TSLA',shs:'14',valId:'live-TSLA-TFSA',rtn:'+23.7%',rtnCls:'green'},
+        {tk:'TXF.TO',shs:'320',valId:'live-TXF.TO-TFSA',rtn:'+37.0%',rtnCls:'green'},
+        {tk:'UDOW',shs:'84',valId:'live-UDOW-TFSA',rtn:'+69.1%',rtnCls:'green'},
+      ]
+    },
+    fhsa:{
+      valId:'acctFHSAValue',roiId:'acctFHSARoi',pnlId:'acctFHSAPnl',
+      label:'FHSA',color:'var(--green)',type:'HOME BUYERS',footerId:'acctFHSAFooter',
+      holdings:[
+        {tk:'SPXL',shs:'151',valId:'live-SPXL-FHSA',rtn:'+130.2%',rtnCls:'green'},
+        {tk:'ZSP.TO',shs:'64',valId:'live-ZSP.TO-FHSA',rtn:'+38.4%',rtnCls:'green'},
+        {tk:'CM.TO',shs:'45',valId:'live-CM.TO-FHSA',rtn:'+12.5%',rtnCls:'green'},
+      ]
+    },
+    rrsp:{
+      valId:'acctRRSPValue',roiId:'acctRRSPRoi',pnlId:'acctRRSPPnl',
+      label:'RRSP',color:'var(--amber)',type:'TAX-DEFERRED',footerId:'acctRRSPFooter',
+      holdings:[
+        {tk:'AVGO',shs:'10',valId:'live-AVGO-RRSP',rtn:'+44.2%',rtnCls:'green'},
+        {tk:'TSM',shs:'5',valId:'live-TSM-RRSP',rtn:'+28.7%',rtnCls:'green'},
+        {tk:'Cash',shs:'—',valId:null,rtn:'—',rtnCls:''},
+      ]
+    },
+    inv:{
+      valId:'acctInvValue',roiId:'acctInvRoi',pnlId:'acctInvPnl',
+      label:'NON-REG',color:'var(--text2)',type:'TAXABLE',footerId:'acctInvFooter',
+      holdings:[
+        {tk:'SPXL',shs:'75',valId:'live-SPXL-Investment',rtn:'+104.7%',rtnCls:'green'},
+        {tk:'FNGU',shs:'665',valId:'live-FNGU-Investment',rtn:'+44.9%',rtnCls:'green'},
+        {tk:'CM.TO',shs:'50',valId:'live-CM.TO-Investment',rtn:'+14.5%',rtnCls:'green'},
+        {tk:'ENB.TO',shs:'200',valId:'live-ENB.TO-Investment',rtn:'+14.2%',rtnCls:'green'},
+      ]
+    }
+  };
+
+  function showDetail(key){
+    var d=ACCT_MAP[key];
+    if(!d){
+      strip.style.display='';detailDiv.classList.remove('visible');return;
+    }
+    strip.style.display='none';
+    var valEl=document.getElementById(d.valId);
+    var roiEl=document.getElementById(d.roiId);
+    var pnlEl=document.getElementById(d.pnlId);
+    var ftrEl=document.getElementById(d.footerId);
+    var valTxt=valEl?valEl.textContent.trim():'—';
+    var roiTxt=roiEl?roiEl.textContent.trim():'—';
+    var pnlTxt=pnlEl?pnlEl.textContent.trim():'';
+    var ftrTxt=ftrEl?ftrEl.textContent.trim():'';
+    var rows=d.holdings.map(function(h){
+      var vEl=h.valId?document.getElementById(h.valId):null;
+      var v=vEl?vEl.textContent.trim():'—';
+      return'<tr><td style="color:var(--teal);font-weight:700;font-family:var(--mono)">'+h.tk+'</td><td>'+h.shs+'</td><td>'+v+'</td><td class="'+h.rtnCls+'">'+h.rtn+'</td></tr>';
+    }).join('');
+    detailDiv.innerHTML=
+      '<div class="mob-ad-hdr">'
+        +'<div>'
+          +'<span class="mob-ad-badge" style="background:rgba(0,0,0,.3);color:'+d.color+';border:1.5px solid '+d.color+'">'+d.label+'</span>'
+          +'<div class="mob-ad-val">'+valTxt+(pnlTxt?' <span style="font-size:14px;color:var(--green)">'+pnlTxt+'</span>':'')+'</div>'
+          +'<div class="mob-ad-sub">'+roiTxt+'</div>'
+        +'</div>'
+        +'<span class="mob-ad-type">'+d.type+'</span>'
+      +'</div>'
+      +'<table class="mob-ad-tbl"><thead><tr><th>Ticker</th><th>Shs</th><th>Value</th><th>Rtn</th></tr></thead><tbody>'+rows+'</tbody></table>'
+      +(ftrTxt?'<div class="mob-ad-insight">▼ '+ftrTxt+'</div>':'');
+    detailDiv.classList.add('visible');
+  }
+
+  function showAll(){
+    strip.style.display='';detailDiv.classList.remove('visible');
+  }
+
+  // Expose for tab buttons
+  window.mobPortfolioAcctSelect=function(key){
+    var tabs=document.getElementById('mobPortfolioAcctTabs');
+    if(tabs){
+      tabs.querySelectorAll('.mob-port-tab').forEach(function(b){b.classList.remove('active');});
+      var active=tabs.querySelector('[data-acct="'+key+'"]');
+      if(active)active.classList.add('active');
+    }
+    if(key==='all')showAll();else showDetail(key);
+    // Also update chart filter
+    var filterKey={tfsa:'tfsa',fhsa:'fhsa',rrsp:'rrsp',inv:'inv',all:'all'}[key]||'all';
+    var chartBtn=document.querySelector('#chartFilters [onclick*="\''+filterKey+'\'"]');
+    if(chartBtn)chartBtn.click();
+  };
+})();
+
+// ── Chart account filter pills + ROI card ──────────────────
+(function setupChartArea(){
+  if(window.innerWidth>768)return;
+  var chartWrap=document.querySelector('#sec01 div:has(#portfolioValueChart)');
+  if(!chartWrap||document.getElementById('mobChartAcctFilter'))return;
+
+  // Account filter pills inside chart card
+  var pillRow=document.createElement('div');
+  pillRow.id='mobChartAcctFilter';
+  var pills=[
+    {key:'all',label:'All'},
+    {key:'tfsa',label:'TFSA'},
+    {key:'fhsa',label:'FHSA'},
+    {key:'rrsp',label:'RRSP'},
+    {key:'inv',label:'N-REG'},
+  ];
+  pills.forEach(function(p,i){
+    var btn=document.createElement('button');
+    btn.className='mob-chart-pill'+(i===0?' active':'');
+    btn.textContent=p.label;
+    btn.onclick=function(){
+      pillRow.querySelectorAll('.mob-chart-pill').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      var chartBtn=document.querySelector('#chartFilters [onclick*="\''+p.key+'\'"]');
+      if(chartBtn)chartBtn.click();
+    };
+    pillRow.appendChild(btn);
+  });
+  chartWrap.insertBefore(pillRow,chartWrap.firstChild);
+
+  // Show the ROI chart below portfolio value chart
+  var roiWrap=document.querySelector('#sec01 div:has(#roiChart)');
+  if(roiWrap){
+    roiWrap.style.cssText='display:block !important;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px';
+    var roiTitle=roiWrap.querySelector('#roiChartTitle');
+    if(roiTitle)roiTitle.style.cssText='font-size:9px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--text3);margin-bottom:10px;font-family:var(--mono)';
+    var roiCanvas=roiWrap.querySelector('#roiChart');
+    if(roiCanvas){
+      roiCanvas.parentElement.style.height='120px';
+      roiCanvas.style.height='120px';
+    }
+    // Hide allocation chart (side-by-side partner)
+    var acctCanvas=roiWrap.querySelector('#acctChart');
+    if(acctCanvas) acctCanvas.parentElement.style.display='none';
+  }
+})();
+
 // ── Portfolio tab account filter tabs ─────────────────────
 (function injectPortfolioAcctTabs(){
   if(window.innerWidth>768)return;
@@ -7599,12 +7982,14 @@ function closeMobSettings(){
   accts.forEach(function(a,i){
     var btn=document.createElement('button');
     btn.className='mob-port-tab'+(i===0?' active':'');
+    btn.dataset.acct=a.key;
     function updateLabel(){
       var suffix='';
       if(a.valId){
         var el=document.getElementById(a.valId);
         var txt=el?el.textContent.trim():'';
-        var num=parseFloat(txt.replace(/[$,]/g,''));
+        var num=parseFloat(txt.replace(/[$,K]/g,''));
+        if(txt.includes('K')) num=num*1000;
         if(!isNaN(num)&&num>999) suffix=' · $'+Math.round(num/1000)+'K';
       }
       btn.textContent=a.label+suffix;
@@ -7614,13 +7999,7 @@ function closeMobSettings(){
       var el=document.getElementById(a.valId);
       if(el) new MutationObserver(updateLabel).observe(el,{childList:true,characterData:true,subtree:true});
     }
-    btn.onclick=function(){
-      tabs.querySelectorAll('.mob-port-tab').forEach(function(b){b.classList.remove('active');});
-      btn.classList.add('active');
-      var filterKey=a.key==='inv'?'inv':a.key;
-      var filterBtn=document.querySelector('#chartFilters button[onclick*="\''+filterKey+'\'"]');
-      if(filterBtn) filterBtn.click();
-    };
+    btn.onclick=function(){ if(window.mobPortfolioAcctSelect) window.mobPortfolioAcctSelect(a.key); };
     tabs.appendChild(btn);
   });
   strip.parentNode.insertBefore(tabs,strip);

@@ -39,6 +39,80 @@ PICKS RULE: Include stocks NOT currently held. RRSP or Investment account only. 
 """
 
 
+SETTINGS_API = "https://portfolio-pulse-dun.vercel.app/api/settings"
+PICKS_HISTORY_WEEKS = 3   # avoid picks suggested in last 3 weeks
+
+
+def _load_picks_history() -> list[dict]:
+    """Fetch previous pick tickers from KV settings (last N weeks)."""
+    try:
+        r = requests.get(SETTINGS_API, timeout=8)
+        if r.ok:
+            return r.json().get("picks_history", [])
+    except Exception:
+        pass
+    return []
+
+
+def _save_picks_history(new_tickers: list[str], existing: list[dict]) -> None:
+    """Prepend today's picks and keep only the last N week entries."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    # Remove any existing entry for today
+    trimmed = [e for e in existing if e.get("date") != today]
+    updated = [{"date": today, "tickers": new_tickers}] + trimmed
+    updated = updated[:PICKS_HISTORY_WEEKS * 2]   # keep extra buffer
+    try:
+        requests.post(
+            SETTINGS_API,
+            headers={"Content-Type": "application/json"},
+            json={"picks_history": updated},
+            timeout=10,
+        )
+    except Exception as exc:
+        print(f"  ⚠ Picks history save failed (non-fatal): {exc}")
+
+
+def fetch_fmp_discovery_news(fmp_key: str) -> list[dict]:
+    """Fetch general stock news from FMP — broader than Finnhub company-specific news.
+    Returns list of {symbol, headline} covering stocks we don't currently hold."""
+    try:
+        r = requests.get(
+            "https://financialmodelingprep.com/api/v3/stock_news",
+            params={"limit": 40, "apikey": fmp_key},
+            timeout=10,
+        )
+        if not r.ok:
+            return []
+        return [
+            {"symbol": a.get("symbol", "?"), "headline": a.get("title", "")[:120]}
+            for a in (r.json() if isinstance(r.json(), list) else [])[:40]
+            if a.get("title") and a.get("symbol")
+        ]
+    except Exception:
+        return []
+
+
+def fetch_fmp_market_movers(fmp_key: str) -> dict:
+    """Fetch today's top gainers and losers — momentum context for picks."""
+    result = {"gainers": [], "losers": []}
+    for endpoint, key in [("gainers", "gainers"), ("losers", "losers")]:
+        try:
+            r = requests.get(
+                f"https://financialmodelingprep.com/api/v3/{endpoint}",
+                params={"apikey": fmp_key},
+                timeout=8,
+            )
+            if r.ok and isinstance(r.json(), list):
+                result[key] = [
+                    {"symbol": s.get("ticker",""), "pct": s.get("changesPercentage",""),
+                     "name": s.get("companyName","")}
+                    for s in r.json()[:8] if s.get("ticker")
+                ]
+        except Exception:
+            pass
+    return result
+
+
 def _fetch_tax_context() -> str:
     """Fetch the user's live tax situation from KV settings (RRSP limit).
     Returns a formatted string to inject into the LLM tax prompt."""
@@ -245,7 +319,10 @@ def _load_previous_intelligence(path: str = "data/intelligence.json") -> str:
         return ""
 
 
-def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]]) -> str:
+def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
+                 picks_history: list[dict] = None,
+                 discovery_news: list[dict] = None,
+                 movers: dict = None) -> str:
     general_block = (
         "\n".join(f"• {a['headline']}" for a in general_news[:22])
         or "(no general news fetched)"
@@ -260,6 +337,33 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]]) 
     if not company_block:
         company_block = "(no company-specific news fetched)"
 
+    # Previous picks to avoid (last 3 weeks)
+    avoid_tickers = []
+    for entry in (picks_history or [])[:PICKS_HISTORY_WEEKS]:
+        avoid_tickers.extend(entry.get("tickers", []))
+    avoid_block = (
+        f"RECENTLY SUGGESTED (DO NOT repeat these for at least 3 weeks): {', '.join(set(avoid_tickers))}"
+        if avoid_tickers else ""
+    )
+
+    # FMP broad market discovery news (non-held stocks)
+    held_set = set(COMPANY_NEWS_TICKERS)
+    fresh_news = [n for n in (discovery_news or []) if n.get("symbol") not in held_set]
+    discovery_block = ""
+    if fresh_news:
+        discovery_block = "\nMARKET DISCOVERY NEWS (use these to find picks BEYOND held positions):\n"
+        discovery_block += "\n".join(f"  • {n['symbol']}: {n['headline']}" for n in fresh_news[:20])
+
+    # Market movers
+    movers_block = ""
+    if movers:
+        if movers.get("gainers"):
+            movers_block += "\nTODAY'S TOP GAINERS (potential momentum plays):\n"
+            movers_block += "\n".join(f"  • {m['symbol']} ({m['name']}) {m['pct']}" for m in movers["gainers"][:6])
+        if movers.get("losers"):
+            movers_block += "\nTODAY'S TOP LOSERS (potential value/harvest candidates):\n"
+            movers_block += "\n".join(f"  • {m['symbol']} ({m['name']}) {m['pct']}" for m in movers["losers"][:4])
+
     today    = datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
     prev_ctx = _load_previous_intelligence()
 
@@ -272,11 +376,15 @@ TODAY'S DATE: {today}
 PORTFOLIO CONTEXT:
 {PORTFOLIO_CONTEXT}
 
+{avoid_block}
+
 TODAY'S GENERAL MARKET NEWS (latest ~22 headlines):
 {general_block}
 
 HOLDINGS-SPECIFIC NEWS (last 4 days):
 {company_block}
+{discovery_block}
+{movers_block}
 
 INSTRUCTIONS:
 1. Analyse news in context of this specific portfolio — reference actual tickers and amounts
@@ -391,10 +499,15 @@ def main() -> int:
     print(f"  {now_utc.strftime('%Y-%m-%d %H:%M UTC')}")
     print(f"{'='*60}\n")
 
-    # 1. Fetch general market news
-    print("1/3  Fetching general market news from Finnhub...")
-    general_news = fetch_general_news(finnhub_key)
-    print(f"     → {len(general_news)} headlines")
+    fmp_key = os.environ.get("FMP_API_KEY", "")
+
+    # 1. Fetch news + picks history + FMP discovery data
+    print("1/3  Fetching news and pick context...")
+    general_news   = fetch_general_news(finnhub_key)
+    picks_history  = _load_picks_history()
+    discovery_news = fetch_fmp_discovery_news(fmp_key) if fmp_key else []
+    movers         = fetch_fmp_market_movers(fmp_key)  if fmp_key else {}
+    print(f"     → {len(general_news)} Finnhub headlines | {len(discovery_news)} FMP discovery | {len(picks_history)} weeks history")
 
     # 2. Fetch company-specific news (rate-limited)
     print("2/3  Fetching holdings news...")
@@ -407,7 +520,7 @@ def main() -> int:
 
     # 3. Generate with Groq (Llama 3.3 70B)
     print(f"3/3  Generating intelligence with Groq ({GROQ_MODEL})...")
-    prompt = build_prompt(general_news, company_news)
+    prompt = build_prompt(general_news, company_news, picks_history, discovery_news, movers)
     intelligence = call_llm(groq_key, prompt)
 
     # Add metadata
@@ -427,7 +540,6 @@ def main() -> int:
         print(f"  ⚠ Missing keys in Gemini response: {missing}")
 
     # Fetch upcoming earnings for held US tickers and add to intelligence
-    fmp_key = os.environ.get("FMP_API_KEY", "")
     if fmp_key:
         try:
             from datetime import timedelta
@@ -451,6 +563,12 @@ def main() -> int:
             intelligence["upcoming_earnings"] = []
     else:
         intelligence["upcoming_earnings"] = []
+
+    # Save picks history to KV so tomorrow's run avoids repeating them
+    new_pick_tickers = [p.get("ticker","") for p in intelligence.get("picks", []) if p.get("ticker")]
+    if new_pick_tickers:
+        _save_picks_history(new_pick_tickers, picks_history)
+        print(f"  ✓ Saved pick history: {new_pick_tickers}")
 
     save(intelligence)
 

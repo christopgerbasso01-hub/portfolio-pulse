@@ -2741,7 +2741,7 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
     const retColor = retPct != null ? (retPct >= 0 ? 'green' : 'red') : '';
     const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
     return `<tr data-rowtype="summary" data-account="${g.accounts[0]}" data-sector="${g.sector}" data-pnl="${pnlAttr}" data-mv="${g.mktVal.toFixed(2)}" data-cb="${g.costBasisCAD.toFixed(2)}" data-unreal="${g.unrealizedCAD.toFixed(2)}" data-div="${g.dividends.toFixed(2)}" data-real="${g.realized.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}" data-daychg="${dayDollarCAD.toFixed(2)}">
-      <td class="mono blue">${g.ticker}</td>
+      <td class="mono blue" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" onclick="deepDiveHolding('${g.ticker}','${g.accounts[0]}')" title="Research ${g.ticker}">${g.ticker}</td>
       <td class="text2">${g.name}</td>
       <td><div style="display:flex;flex-wrap:wrap;gap:3px">${acctBadgesHtml}</div></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>

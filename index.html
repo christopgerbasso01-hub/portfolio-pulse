@@ -4062,6 +4062,11 @@ function renderTaxSection(data, llmTax) {
   const rrspROI = acctROI('RRSP', rrspC);
   const invROI  = acctROI('Investment', invC);
 
+  // Extra live data for expanded client computations
+  const vixNow   = data.benchmarks?.vix?.price  || null;
+  const sp500Chg = data.benchmarks?.sp500?.change_pct || 0;
+  const usdcadNow = usdcad;
+
   // RRSP NOA deduction limit — from the Contribution Room Tracker
   const rrspNOALimit  = parseFloat(localStorage.getItem('pp_rrsp_limit') || '0');
   const rrspRoom      = rrspNOALimit > 0 ? Math.max(0, rrspNOALimit - rrspC) : null;
@@ -4089,8 +4094,12 @@ function renderTaxSection(data, llmTax) {
       : taxItem('✅', `Contributions maxed — all growth permanently tax-free, no reporting required.`),
     tfsaTop.length ? taxItem('💡', `Top holdings: ${tfsaTop.map(h => `${h.ticker} ${h.pct >= 0 ? '+':''}${h.pct.toFixed(1)}% today`).join(' · ')}. Every gain 100% yours.`)
       : taxItem('💡', `TFSA is the portfolio's most structurally efficient account — leveraged positions here beat any other account on an after-tax basis.`),
-    taxItem('💡', `March 2027: resume contributions when Canadian resident. Prioritise highest-conviction growth names first — AVGO, AMD, or new AI semis in RRSP for now.`),
-  ];
+    taxItem('💡', `March 2027: resume contributions when Canadian resident. Prioritise highest-conviction growth names first — Broadcom, AMD, or new AI semis in RRSP for now.`),
+    // Live: VIX leverage warning (only shows when elevated)
+    ...(vixNow && vixNow > 22 ? [taxItem('⚠️', `VIX at ${vixNow.toFixed(1)} — elevated volatility. 3x ETFs in TFSA decay faster in sustained high-vol environments. Monitor daily. Above 30 = reduce new 3x exposure.`)] : []),
+    // Live: FX tailwind/headwind on USD holdings in TFSA
+    (() => { const drag = (usdcadNow - 1.3925) * HOLDINGS_STATIC.filter(h=>h.account==='TFSA'&&h.ccy==='USD').reduce((s,h)=>{const p=data.holdings?.[h.ticker];return s+(p?.price||0)*h.shares;},0); return drag !== 0 ? taxItem('💡', `USD/CAD at ${usdcadNow.toFixed(4)} — FX ${drag>0?'tailwind':'headwind'} of ~${fmt$(Math.abs(Math.round(drag)))} on USD holdings in this account vs book rate. Every 1¢ CAD change ≈ ${fmt$(Math.round(HOLDINGS_STATIC.filter(h=>h.account==='TFSA'&&h.ccy==='USD').reduce((s,h)=>{const p=data.holdings?.[h.ticker];return s+(p?.price||0)*h.shares;},0)*0.01))} impact.`) : null; })(),
+  ].filter(Boolean);
 
   // ── FHSA ─────────────────────────────────────────────────────────────────
   const fhsaTop = topInAcct('FHSA');
@@ -4103,6 +4112,8 @@ function renderTaxSection(data, llmTax) {
     fhsaTop.length ? taxItem('⚠️', `Current holdings: ${fhsaTop.map(h=>h.ticker).join(', ')}. As purchase horizon tightens, shift toward lower-volatility positions to preserve the down payment.`)
       : null,
     taxItem('💡', `No FHSA repayment obligation on home purchase (unlike RRSP HBP which requires 15-year repayment). FHSA withdrawal is structurally superior — use it first.`),
+    // Live: Home purchase progress with actual live FHSA value
+    (() => { const combinedDown = Math.round(fhsaV + 35000); const pct = Math.min(100, (combinedDown / 150000 * 100)).toFixed(0); return taxItem('🏠', `GTA down payment progress: FHSA ${fmt$(Math.round(fhsaV))} + RRSP HBP $35K = ${fmt$(combinedDown)} (${pct}% of a $150K target). Returns to Canada March 2027 — timeline aligns well.`); })(),
   ].filter(Boolean);
 
   // ── RRSP ─────────────────────────────────────────────────────────────────
@@ -4141,7 +4152,9 @@ function renderTaxSection(data, llmTax) {
       ? taxItem('💡', `+${invROI.toFixed(1)}% ROI on ${fmt$(invC)} contributed. Eligible Canadian dividends (CM.TO, ENB.TO) qualify for the dividend tax credit — most tax-efficient income type in non-reg.`)
       : taxItem('💡', `Eligible Canadian dividends get the dividend tax credit — structurally more tax-efficient than interest income or foreign dividends in non-reg.`),
     taxItem('💡', `Long-term plan: migrate high-growth positions to TFSA/RRSP as room opens ($7K TFSA in Jan 2027). Hold only tax-efficient names (eligible CDN dividends, return-of-capital ETFs) here long-term.`),
-  ];
+    // Live: Running deferred tax meter updated with live prices
+    (() => { const grossSalary = parseInt(localStorage.getItem('pp_gross_salary')||'90000'); const taxableInc = Math.max(0,grossSalary-(parseFloat(localStorage.getItem('pp_rrsp_this_year')||'0'))); const marginal = _ontarioMarginalRate(taxableInc); const effRate = marginal * 0.5; const liveUnreal = HOLDINGS_STATIC.filter(h=>h.account==='Investment').reduce((s,h)=>{const p=data.holdings?.[h.ticker];const mv=(p?.price||0)*h.shares*(h.ccy==='USD'?usdcad:1);const acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;return s+Math.max(0,mv-acb);},0); const deferred=Math.round(liveUnreal*effRate); return liveUnreal > 2000 ? taxItem('📊', `Live deferred tax meter: ${fmt$(Math.round(liveUnreal))} unrealized gains × ${(effRate*100).toFixed(1)}% (50% inclusion × ${(marginal*100).toFixed(1)}% marginal) = ~${fmt$(deferred)} owed if fully realized today. Updates every 5s.`) : null; })(),
+  ].filter(Boolean);
 
   // Render: client facts first, then LLM narrative supplement (if available and non-generic)
   const llmNarrative = (llmItems) => {
@@ -4317,7 +4330,8 @@ function renderAISection(analysis) {
   // Section 10: Tax
   // Tax section: client-side computes live numbers, LLM adds contextual narrative when available
   // Pass LLM tax items as optional narrative supplement (LLM is now given real tax context)
-  renderTaxSection(_lastLiveData || {}, analysis?.tax || null);
+  // Tax section fully handled by client-side renderTaxSection() — no LLM content
+  renderTaxSection(_lastLiveData || {}, null);
   document.getElementById('aiSec10').classList.remove('loading');
   document.getElementById('ai10badge').textContent = _aiBadgeLabel;
 }

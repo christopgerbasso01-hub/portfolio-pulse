@@ -157,12 +157,6 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
   "strategy_long": [
     {"num": "01", "text": "2–10+ year long-horizon note"}
   ],
-  "tax": {
-    "tfsa":       [{"icon": "⚠️|✅|💡", "text": "Specific note based on REAL TAX SITUATION above. NO generic advice. Must address actual 2026 non-resident status. Max 2 items."}],
-    "fhsa":       [{"icon": "⚠️|✅|💡", "text": "Specific FHSA note: non-resident 2026, home purchase timeline, actual account value context. Max 2 items."}],
-    "rrsp":       [{"icon": "⚠️|✅|💡|💰", "text": "Specific RRSP note: use actual deduction limit and room from TAX SITUATION. If room > 0: quantify tax savings. If cash idle: name the ETF. Max 2 items."}],
-    "investment": [{"icon": "⚠️|✅|💡", "text": "Specific non-reg note: reference actual harvest candidates by name, estimate deferred tax, migration plan. Max 2 items."}]
-  },
   "daily_outlook": "2–3 sentences on today's overall portfolio outlook",
   "market_mood": "risk-on|risk-off|neutral|mixed"
 }
@@ -171,7 +165,7 @@ Quantity limits — STRICTLY ENFORCE:
   macro: EXACTLY 3 (no more, no fewer)
   risks: EXACTLY 3 (no more, no fewer)
   news: EXACTLY 3 (no more, no fewer)
-  picks: 2–3 | strengths: 4–5 | concerns: 4–5 | strategy items: 3–4 each | tax items: 2–3 each
+  picks: 2–3 | strengths: 4–5 | concerns: 4–5 | strategy items: 3–4 each
 
 CRITICAL RULE — news vs macro separation:
   "macro" array = broad macro/geopolitical themes (US-Iran, Fed policy, tariffs, inflation, FX).
@@ -270,7 +264,6 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]]) 
     prev_ctx = _load_previous_intelligence()
 
     prev_section = f"\n{prev_ctx}\n" if prev_ctx else ""
-    tax_context  = _fetch_tax_context()
 
     return f"""You are a portfolio intelligence analyst generating a daily briefing for a personal Canadian investment portfolio.
 
@@ -278,8 +271,6 @@ TODAY'S DATE: {today}
 {prev_section}
 PORTFOLIO CONTEXT:
 {PORTFOLIO_CONTEXT}
-
-{tax_context}
 
 TODAY'S GENERAL MARKET NEWS (latest ~22 headlines):
 {general_block}
@@ -429,7 +420,7 @@ def main() -> int:
         "macro", "risks", "news", "picks",
         "strengths", "concerns",
         "strategy_short", "strategy_mid", "strategy_long",
-        "tax", "daily_outlook", "market_mood",
+        "daily_outlook", "market_mood",
     ]
     missing = [k for k in required if k not in intelligence]
     if missing:

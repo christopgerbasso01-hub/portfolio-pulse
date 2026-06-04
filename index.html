@@ -718,6 +718,15 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     cursor:pointer;font-size:14px;color:var(--text2);margin-left:4px;flex-shrink:0;
   }
 
+  /* ── Ticker strip: fixed directly below live bar ─────────── */
+  .ticker-strip{
+    position:fixed !important;
+    top:calc(48px + env(safe-area-inset-top,0px)) !important;
+    left:0;right:0;z-index:199 !important;
+    background:var(--bg) !important;
+    border-bottom:1px solid rgba(255,255,255,.05) !important;
+  }
+
   /* ── Push content below fixed live bar + ticker ──────────── */
   .container{
     padding:calc(48px + env(safe-area-inset-top,0px) + 26px + 4px) 0 0 !important;
@@ -738,10 +747,10 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   }
   /* Hide all KPIs by default */
   .header-kpis .hkpi{display:none !important;}
-  /* 1st — Total Market Value: giant teal hero number */
+  /* 1st — Total Market Value: giant teal hero number (order:0) */
   .header-kpis .hkpi:nth-child(1){
     display:block !important;background:none !important;
-    border:none !important;padding:0 !important;
+    border:none !important;padding:0 !important;order:0 !important;
   }
   .header-kpis .hkpi:nth-child(1) .hkpi-label{display:none !important;}
   .header-kpis .hkpi:nth-child(1) .hkpi-value{
@@ -749,28 +758,58 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     letter-spacing:-.5px !important;color:var(--teal) !important;
     line-height:1 !important;font-family:var(--mono) !important;
   }
-  /* 5th — Daily Change: pill chip */
+  /* 5th — Daily Change: pill chip (order:1 — appears before ROI) */
   .header-kpis .hkpi:nth-child(5){
     display:block !important;background:none !important;
-    border:none !important;padding:0 !important;
+    border:none !important;padding:0 !important;order:1 !important;
   }
   .header-kpis .hkpi:nth-child(5) .hkpi-label{display:none !important;}
   .header-kpis .hkpi:nth-child(5) .hkpi-value{
     display:inline-block !important;
     font-size:12px !important;font-weight:700 !important;
-    padding:3px 14px !important;border-radius:20px !important;
+    padding:4px 16px !important;border-radius:20px !important;
     background:rgba(0,200,180,.1) !important;
     border:1px solid rgba(0,200,180,.25) !important;
+    color:var(--teal) !important;
   }
-  /* 4th — Total ROI: small secondary line */
+  /* Red pill when day is negative */
+  .header-kpis .hkpi:nth-child(5) .hkpi-value.red{
+    background:rgba(239,68,68,.1) !important;
+    border-color:rgba(239,68,68,.35) !important;
+    color:var(--red) !important;
+  }
+  /* Green pill when day is positive */
+  .header-kpis .hkpi:nth-child(5) .hkpi-value.green{
+    background:rgba(16,185,129,.1) !important;
+    border-color:rgba(16,185,129,.3) !important;
+    color:var(--green) !important;
+  }
+  /* 4th — Total ROI: small secondary line (order:2 — appears below pill) */
   .header-kpis .hkpi:nth-child(4){
     display:block !important;background:none !important;
-    border:none !important;padding:0 !important;
+    border:none !important;padding:0 !important;order:2 !important;
   }
   .header-kpis .hkpi:nth-child(4) .hkpi-label{display:none !important;}
   .header-kpis .hkpi:nth-child(4) .hkpi-value{
     font-size:11px !important;font-weight:600 !important;color:var(--text2) !important;
   }
+
+  /* ── Portfolio tab: hide desktop-only content ───────────── */
+  /* Market index widget (S&P, NASDAQ, TSX etc.) */
+  .market-widget{display:none !important;}
+  /* Unrealized / Realized / Dividends / FX cards */
+  .grid-4{display:none !important;}
+  /* Chart filter buttons */
+  .chart-filters{display:none !important;}
+  /* ROI+allocation side-by-side grid & sector/geo/asset grid */
+  #sec01 .grid-3{display:none !important;}
+  /* Benchmark section (sec02) and Account breakdown (sec03) */
+  #sec02,#sec03{display:none !important;}
+  /* Hide ROI + allocation side-by-side grid (no class, use :has) */
+  #sec01 div:has(#roiChart){display:none !important;}
+  /* Make portfolio value chart compact on mobile */
+  #sec01 .chart-container{height:140px !important;}
+  #sec01 .chart-title{font-size:10px !important;margin-bottom:4px !important;color:var(--text3) !important;}
 
   /* ── Section headers: hide "01 TOTAL PORTFOLIO OVERVIEW" ─── */
   .section-header{display:none !important;}

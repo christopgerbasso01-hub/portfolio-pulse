@@ -664,6 +664,196 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .rsrch-two-col{grid-template-columns:1fr}
   .rsrch-price{font-size:26px}
 }
+
+/* ================================================================
+   MOBILE VISUAL REFRESH — June 2026
+   APPEARANCE ONLY — no changes to data, calculations, API calls,
+   notifications, podcast, intelligence, or any backend function.
+================================================================ */
+:root{
+  --teal:#00c8b4;
+  --teal-dim:rgba(0,200,180,.10);
+  --teal-glow:rgba(0,200,180,.22);
+}
+
+@media(max-width:768px){
+
+  /* ── Tab bar: teal active accent, glassy background ─────── */
+  .mobile-tabs{
+    background:rgba(6,11,20,.97) !important;
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border-top:1px solid rgba(255,255,255,.06) !important;
+  }
+  .tab-btn{font-weight:600 !important;font-size:9px !important;}
+  .tab-btn.active{color:var(--teal) !important;}
+  .tab-icon{font-size:20px !important;}
+
+  /* ── Live bar: cleaner on mobile ────────────────────────── */
+  .live-bar{
+    background:rgba(6,11,20,.95) !important;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    padding:calc(8px + env(safe-area-inset-top,0px)) 14px 8px !important;
+  }
+  #marketStatusBadge,#lastUpdated{display:none !important;}
+  #usdcadRate{font-size:10px !important;}
+
+  /* ── Account balance strip: 2×2 card grid ───────────────── */
+  #acctBalanceStrip{
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    gap:8px !important;
+    background:transparent !important;
+    border:none !important;
+    border-radius:0 !important;
+    overflow:visible !important;
+    margin-bottom:12px !important;
+  }
+  #acctBalanceStrip > div{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:1px !important;
+    padding:12px 13px !important;
+    border:1px solid var(--border) !important;
+    border-bottom:1px solid var(--border) !important;
+    border-radius:12px !important;
+    background:var(--surface2) !important;
+  }
+  #acctBalanceStrip > div > span:first-child{
+    font-size:9px !important;
+    letter-spacing:.07em !important;
+    width:auto !important;
+    flex-shrink:0 !important;
+    margin-bottom:2px !important;
+  }
+  #acctBalanceStrip > div > span:nth-child(2){
+    font-size:18px !important;
+    font-weight:700 !important;
+    margin-left:0 !important;
+    padding-left:0 !important;
+  }
+  #acctBalanceStrip > div > span:nth-child(3){
+    font-size:11px !important;
+    margin-left:0 !important;
+    padding-left:0 !important;
+  }
+
+  /* ── Macro themes + risk factors: one card per swipe ─────── */
+  #macroThemes,#riskFactors{
+    display:flex !important;
+    overflow-x:auto !important;
+    scroll-snap-type:x mandatory !important;
+    gap:0 !important;
+    scrollbar-width:none !important;
+    margin:0 -14px 8px !important;
+    padding:0 !important;
+    -webkit-overflow-scrolling:touch;
+    grid-template-columns:unset !important;
+  }
+  #macroThemes::-webkit-scrollbar,
+  #riskFactors::-webkit-scrollbar{display:none !important;}
+  #macroThemes > *,
+  #riskFactors > *{
+    min-width:calc(100vw - 24px) !important;
+    max-width:calc(100vw - 24px) !important;
+    scroll-snap-align:start !important;
+    flex-shrink:0 !important;
+    box-sizing:border-box !important;
+    overflow-wrap:break-word !important;
+    word-break:break-word !important;
+  }
+
+  /* ── Section header: compact on mobile ──────────────────── */
+  .section-header{margin-bottom:12px !important;}
+  .section-num{font-size:9px !important;}
+  .section-title{font-size:11px !important;letter-spacing:.06em !important;}
+
+  /* ── Holdings sort bar (injected by JS) ─────────────────── */
+  #mobHoldingsSortBar{
+    display:flex;gap:5px;padding:0 0 10px;
+    overflow-x:auto;scrollbar-width:none;flex-shrink:0;
+  }
+  #mobHoldingsSortBar::-webkit-scrollbar{display:none;}
+  .mob-sort-chip{
+    padding:4px 11px;border-radius:14px;font-size:9px;font-weight:700;
+    white-space:nowrap;border:1px solid var(--border);color:var(--text3);
+    background:var(--surface2);cursor:pointer;flex-shrink:0;
+    font-family:var(--mono);letter-spacing:.03em;transition:all .15s;
+  }
+  .mob-sort-chip.active{
+    background:var(--teal);color:#060b14;border-color:var(--teal);
+  }
+
+  /* ── Settings panel: full-screen iOS-style sheet ────────── */
+  #mobSettingsPanel{
+    position:fixed;inset:0;z-index:10000;
+    background:var(--bg);
+    display:none;flex-direction:column;overflow:hidden;
+  }
+  #mobSettingsPanel.mob-open{display:flex !important;}
+  .mob-set-hdr{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:calc(14px + env(safe-area-inset-top,0px)) 16px 12px;
+    background:var(--surface2);border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .mob-set-title{
+    font-family:var(--mono);font-size:13px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.07em;color:var(--teal);
+  }
+  .mob-set-close{
+    font-size:20px;cursor:pointer;background:none;border:none;
+    color:var(--text3);line-height:1;padding:2px 6px;
+  }
+  .mob-set-scroll{
+    flex:1;overflow-y:auto;padding:14px 16px;
+    scrollbar-width:none;
+  }
+  .mob-set-scroll::-webkit-scrollbar{display:none;}
+  .mob-set-section{
+    font-family:var(--mono);font-size:9px;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--text3);font-weight:700;
+    margin:14px 0 7px;
+  }
+  .mob-set-section:first-child{margin-top:0;}
+  .mob-set-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:11px 13px;background:var(--surface2);
+    border:1px solid var(--border);border-radius:10px;margin-bottom:6px;
+  }
+  .mob-set-lbl{font-size:12px;font-weight:600;color:var(--text);}
+  .mob-set-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+  .mob-set-val{
+    font-family:var(--mono);font-size:11px;font-weight:700;color:var(--teal);
+  }
+  .mob-toggle{
+    width:38px;height:22px;background:var(--border2);border-radius:11px;
+    position:relative;cursor:pointer;border:none;padding:0;flex-shrink:0;
+    transition:background .2s;
+  }
+  .mob-toggle.on{background:var(--teal);}
+  .mob-toggle::after{
+    content:'';position:absolute;top:3px;left:3px;
+    width:16px;height:16px;border-radius:50%;background:#fff;
+    transition:left .15s;
+  }
+  .mob-toggle.on::after{left:19px;}
+
+  /* ── Settings gear button in live-bar ───────────────────── */
+  #mobSettingsBtn{
+    display:inline-flex !important;
+    align-items:center;justify-content:center;
+    width:28px;height:28px;border-radius:7px;
+    background:var(--surface2);border:1px solid var(--border);
+    cursor:pointer;font-size:14px;color:var(--text2);
+    margin-left:4px;flex-shrink:0;
+  }
+}
+/* Desktop: hide mobile-only additions ───────────────────────── */
+@media(min-width:769px){
+  #mobSettingsPanel,#mobHoldingsSortBar,#mobSettingsBtn{display:none !important;}
+}
 </style>
 </head>
 <body>
@@ -680,6 +870,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     <span id="lastUpdated">—</span>
     <button class="refresh-btn" onclick="refreshAll()">↻ REFRESH</button>
     <button class="notif-btn" id="notifBtn" onclick="openNotifPanel()" title="Notifications" aria-label="Open notifications">🔕</button>
+    <button id="mobSettingsBtn" onclick="openMobSettings()" title="Settings" aria-label="Open settings">⚙️</button>
   </div>
 </div>
 
@@ -6948,6 +7139,160 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- MOBILE SETTINGS PANEL — visual overlay only, reads live settings values -->
+<div id="mobSettingsPanel" role="dialog" aria-modal="true" aria-label="Settings">
+  <div class="mob-set-hdr">
+    <span class="mob-set-title">⚙ Settings</span>
+    <button class="mob-set-close" onclick="closeMobSettings()" aria-label="Close settings">✕</button>
+  </div>
+  <div class="mob-set-scroll">
+
+    <div class="mob-set-section">Appearance</div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">Dark Mode</div><div class="mob-set-sub">Toggle light / dark theme</div></div>
+      <button class="mob-toggle on" id="mobDarkToggle" onclick="this.classList.toggle('on')" aria-label="Toggle dark mode"></button>
+    </div>
+
+    <div class="mob-set-section">Tax &amp; Income</div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">Gross Salary</div><div class="mob-set-sub">Used for tax projection</div></div>
+      <span class="mob-set-val" id="mobSetSalary">—</span>
+    </div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">RRSP Contribution</div><div class="mob-set-sub">This tax year</div></div>
+      <span class="mob-set-val" id="mobSetRrspContrib">—</span>
+    </div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">Province</div><div class="mob-set-sub">Tax bracket lookup</div></div>
+      <span class="mob-set-val">Ontario</span>
+    </div>
+
+    <div class="mob-set-section">Account Limits</div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">TFSA Cumulative Room</div><div class="mob-set-sub">Lifetime limit as of 2026</div></div>
+      <span class="mob-set-val" id="mobSetTfsa">—</span>
+    </div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">RRSP Deduction Limit</div><div class="mob-set-sub">Current year limit</div></div>
+      <span class="mob-set-val" id="mobSetRrspLim">—</span>
+    </div>
+
+    <div class="mob-set-section">Trading</div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">Default Commission</div><div class="mob-set-sub">Per trade (CAD)</div></div>
+      <span class="mob-set-val" id="mobSetCommission">$9.95</span>
+    </div>
+
+    <div class="mob-set-section">Notifications</div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">Push Notifications</div><div class="mob-set-sub">Price alerts, milestones</div></div>
+      <button class="mob-toggle on" onclick="this.classList.toggle('on')" aria-label="Toggle push notifications"></button>
+    </div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">End-of-Day Digest</div><div class="mob-set-sub">Daily portfolio summary</div></div>
+      <button class="mob-toggle on" onclick="this.classList.toggle('on')" aria-label="Toggle EOD digest"></button>
+    </div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">Price Spike Alerts</div><div class="mob-set-sub">±5% intraday moves</div></div>
+      <button class="mob-toggle on" onclick="this.classList.toggle('on')" aria-label="Toggle spike alerts"></button>
+    </div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">Milestone Alerts</div><div class="mob-set-sub">$5K value jumps</div></div>
+      <button class="mob-toggle on" onclick="this.classList.toggle('on')" aria-label="Toggle milestone alerts"></button>
+    </div>
+
+    <div class="mob-set-section">Intelligence</div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">Weekly Podcast</div><div class="mob-set-sub">Auto-generate each Monday</div></div>
+      <button class="mob-toggle on" onclick="this.classList.toggle('on')" aria-label="Toggle weekly podcast"></button>
+    </div>
+    <div class="mob-set-row">
+      <div><div class="mob-set-lbl">Daily Intelligence</div><div class="mob-set-sub">AI market brief each morning</div></div>
+      <button class="mob-toggle on" onclick="this.classList.toggle('on')" aria-label="Toggle daily intelligence"></button>
+    </div>
+
+    <div style="height:24px"></div>
+  </div>
+</div>
+<!-- /MOBILE SETTINGS PANEL -->
+
+<script>
+/* ================================================================
+   MOBILE UI HELPERS — visual only
+   Does NOT modify any data, calculations, or existing functions.
+================================================================ */
+
+// ── Settings panel ────────────────────────────────────────────
+function openMobSettings(){
+  var p=document.getElementById('mobSettingsPanel');
+  if(!p)return;
+  // Pull live values from the existing settings elements if available
+  var sal=document.getElementById('salaryInput');
+  if(sal)document.getElementById('mobSetSalary').textContent='$'+Number(sal.value||90000).toLocaleString();
+  var rrspC=document.getElementById('rrspThisYearInput');
+  if(rrspC)document.getElementById('mobSetRrspContrib').textContent='$'+Number(rrspC.value||0).toLocaleString();
+  var tfsa=document.getElementById('tfsaRoomInput');
+  if(tfsa)document.getElementById('mobSetTfsa').textContent='$'+Number(tfsa.value||0).toLocaleString();
+  var rrspL=document.getElementById('rrspLimitInput');
+  if(rrspL)document.getElementById('mobSetRrspLim').textContent='$'+Number(rrspL.value||0).toLocaleString();
+  p.classList.add('mob-open');
+  document.body.style.overflow='hidden';
+}
+function closeMobSettings(){
+  var p=document.getElementById('mobSettingsPanel');
+  if(p)p.classList.remove('mob-open');
+  document.body.style.overflow='';
+}
+
+// ── Holdings sort bar (injected on mobile only) ───────────────
+(function injectMobSortBar(){
+  if(window.innerWidth>768)return;
+  var filterBar=document.querySelector('#sec04 .filter-bar');
+  if(!filterBar)return;
+  var bar=document.createElement('div');
+  bar.id='mobHoldingsSortBar';
+  var chips=[
+    {key:'mv',label:'Mkt Val ↓'},
+    {key:'cost',label:'Cost'},
+    {key:'dayd',label:'Day $'},
+    {key:'dayp',label:'Day %'},
+    {key:'pld',label:'P&L $'},
+    {key:'plp',label:'P&L %'}
+  ];
+  chips.forEach(function(c,i){
+    var btn=document.createElement('button');
+    btn.className='mob-sort-chip'+(i===0?' active':'');
+    btn.textContent=c.label;
+    btn.onclick=function(){
+      bar.querySelectorAll('.mob-sort-chip').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      // Delegate to existing sort if available
+      var sortSel=document.getElementById('holdingsSortSelect');
+      if(sortSel){
+        var map={mv:'mv_desc',cost:'cost_desc',dayd:'daychg_desc',dayp:'daypct_desc',pld:'pnl_desc',plp:'pnlpct_desc'};
+        if(map[c.key]){sortSel.value=map[c.key];sortSel.dispatchEvent(new Event('change'));}
+      }
+    };
+    bar.appendChild(btn);
+  });
+  filterBar.insertAdjacentElement('afterbegin',bar);
+})();
+
+// ── Swipe hint labels for macro carousels ─────────────────────
+(function addCarouselHints(){
+  if(window.innerWidth>768)return;
+  ['macroThemes','riskFactors'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el||el.dataset.hinted)return;
+    el.dataset.hinted='1';
+    var hint=document.createElement('div');
+    hint.style.cssText='font-size:9px;color:var(--text3);text-align:right;margin-bottom:3px;font-family:var(--mono)';
+    hint.textContent='swipe ›';
+    el.parentElement.insertBefore(hint,el);
+  });
+})();
+</script>
+<!-- /MOBILE UI HELPERS -->
 
 </body>
 </html>

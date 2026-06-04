@@ -889,6 +889,53 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;
   }
   .mob-toggle.on::after{left:19px;}
+
+  /* ── Holdings: hide desktop table, show card view ────────── */
+  #sec04 .filter-bar{display:none !important;}
+  .table-wrap{display:none !important;}
+
+  /* Account filter chip row */
+  #mobHoldingsAcctTabs{
+    display:flex;gap:5px;padding:0 0 8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;
+  }
+  #mobHoldingsAcctTabs::-webkit-scrollbar{display:none;}
+  .mob-acct-chip{
+    padding:5px 12px;border-radius:16px;font-size:10px;font-weight:700;
+    white-space:nowrap;border:1px solid var(--border);color:var(--text3);
+    background:var(--surface2);cursor:pointer;flex-shrink:0;
+    font-family:var(--mono);letter-spacing:.03em;transition:all .15s;
+  }
+  .mob-acct-chip.active{
+    background:rgba(0,200,180,.12);color:var(--teal);border-color:rgba(0,200,180,.35);
+  }
+
+  /* Holdings card list */
+  #mobHoldingsCards{display:flex;flex-direction:column;gap:8px;padding-top:4px;}
+  .mob-holding-card{
+    background:var(--surface2);border:1px solid var(--border);
+    border-radius:12px;padding:12px 13px;
+  }
+  .mob-hcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+  .mob-hcard-left{min-width:0;}
+  .mob-hcard-ticker{
+    font-family:var(--mono);font-size:14px;font-weight:800;color:var(--text);
+    display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+  }
+  .mob-hcard-name{font-size:10px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
+  .mob-hcard-right{text-align:right;flex-shrink:0;margin-left:8px;}
+  .mob-hcard-mv{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--text);}
+  .mob-hcard-day{font-size:10px;font-weight:600;margin-top:2px;}
+  .mob-hcard-metrics{
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;
+    padding-top:8px;border-top:1px solid var(--border);
+  }
+  .mob-hcard-metric{text-align:center;}
+  .mob-hcard-metric:first-child{text-align:left;}
+  .mob-hcard-metric:last-child{text-align:right;}
+  .mob-hcard-ml{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-family:var(--mono);}
+  .mob-hcard-mv2{font-family:var(--mono);font-size:10px;font-weight:700;margin-top:2px;}
+  .green{color:var(--green);}
+  .red{color:var(--red);}
 }
 </style>
 </head>
@@ -7312,6 +7359,111 @@ function closeMobSettings(){
     bar.appendChild(btn);
   });
   filterBar.insertAdjacentElement('afterbegin',bar);
+})();
+
+// ── Holdings: account filter chips + card view ────────────────
+(function initMobHoldings(){
+  if(window.innerWidth>768)return;
+
+  // 1) Account filter chips (inserted before sort bar)
+  var sortBar=document.getElementById('mobHoldingsSortBar');
+  if(sortBar&&!document.getElementById('mobHoldingsAcctTabs')){
+    var tabs=document.createElement('div');
+    tabs.id='mobHoldingsAcctTabs';
+    var accts=[
+      {v:'',label:'All'},
+      {v:'TFSA',label:'TFSA'},
+      {v:'FHSA',label:'FHSA'},
+      {v:'RRSP',label:'RRSP'},
+      {v:'Investment',label:'Non-Reg'}
+    ];
+    accts.forEach(function(a,i){
+      var btn=document.createElement('button');
+      btn.className='mob-acct-chip'+(i===0?' active':'');
+      btn.textContent=a.label;
+      btn.onclick=function(){
+        tabs.querySelectorAll('.mob-acct-chip').forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var sel=document.getElementById('acctFilter');
+        if(sel){sel.value=a.v;sel.dispatchEvent(new Event('change'));}
+      };
+      tabs.appendChild(btn);
+    });
+    sortBar.parentNode.insertBefore(tabs,sortBar);
+  }
+
+  // 2) Card view container (inserted after .table-wrap)
+  var tableWrap=document.querySelector('#sec04 .table-wrap');
+  if(tableWrap&&!document.getElementById('mobHoldingsCards')){
+    var cardView=document.createElement('div');
+    cardView.id='mobHoldingsCards';
+    tableWrap.insertAdjacentElement('afterend',cardView);
+  }
+
+  // 3) Card builder — reads visible rows from the table body
+  function buildCards(){
+    var cv=document.getElementById('mobHoldingsCards');
+    if(!cv)return;
+    var rows=Array.from(document.querySelectorAll('#holdingsBody tr'));
+    var visible=rows.filter(function(r){
+      return r.style.display!=='none'&&r.getAttribute('data-rowtype')!=='summary'&&r.getAttribute('data-closed')!=='true';
+    });
+    if(!visible.length){
+      cv.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px;font-family:var(--mono)">Loading…</div>';
+      return;
+    }
+    cv.innerHTML=visible.map(function(r){
+      var cells=r.querySelectorAll('td');
+      if(cells.length<13)return'';
+      var ticker=cells[0].textContent.trim();
+      var name=cells[1].textContent.trim();
+      var mv=cells[8].textContent.trim();
+      var dayD=cells[9].textContent.trim();
+      var dayP=cells[10].textContent.trim();
+      var cost=cells[7].textContent.trim();
+      var pnl=cells[11].textContent.trim();
+      var ret=cells[12].textContent.trim();
+      var badgeEl=cells[2].querySelector('.badge');
+      var badgeHtml=badgeEl?badgeEl.outerHTML:'';
+      var isCash=r.getAttribute('data-cash')==='true';
+      var pnlVal=parseFloat(r.getAttribute('data-pnlval')||0);
+      var pnlCls=pnlVal>=0?'green':'red';
+      var dayStr=dayD!=='—'&&dayP!=='—'?dayD+' · '+dayP:(dayD!=='—'?dayD:'');
+      var dayCls=dayStr.indexOf('+')===0?'green':(dayStr.indexOf('−')===0||dayStr.indexOf('-')===0?'red':'');
+      return'<div class="mob-holding-card">'
+        +'<div class="mob-hcard-top">'
+        +'<div class="mob-hcard-left">'
+        +'<div class="mob-hcard-ticker">'+ticker+' '+badgeHtml+'</div>'
+        +'<div class="mob-hcard-name">'+name+'</div>'
+        +'</div>'
+        +'<div class="mob-hcard-right">'
+        +'<div class="mob-hcard-mv">'+mv+'</div>'
+        +(dayStr?'<div class="mob-hcard-day '+dayCls+'">'+dayStr+'</div>':'')
+        +'</div>'
+        +'</div>'
+        +(isCash?'':
+          '<div class="mob-hcard-metrics">'
+          +'<div class="mob-hcard-metric"><div class="mob-hcard-ml">Cost</div><div class="mob-hcard-mv2">'+cost+'</div></div>'
+          +'<div class="mob-hcard-metric"><div class="mob-hcard-ml">P&L</div><div class="mob-hcard-mv2 '+pnlCls+'">'+pnl+'</div></div>'
+          +'<div class="mob-hcard-metric"><div class="mob-hcard-ml">Return</div><div class="mob-hcard-mv2 '+pnlCls+'">'+ret+'</div></div>'
+          +'</div>')
+        +'</div>';
+    }).join('');
+  }
+
+  // Rebuild when table data changes (initial load & live refresh)
+  var tbody=document.getElementById('holdingsBody');
+  if(tbody){
+    new MutationObserver(buildCards).observe(tbody,{childList:true});
+    if(tbody.children.length)buildCards();
+  }
+
+  // Rebuild after filter/sort changes (wrap existing filterTable)
+  var origFilter=window.filterTable;
+  window.filterTable=function(){
+    if(origFilter)origFilter.apply(this,arguments);
+    buildCards();
+  };
 })();
 
 // ── Swipe hint labels for macro carousels ─────────────────────

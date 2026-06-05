@@ -7397,7 +7397,7 @@ var CHART_OPTS_BASE={
   responsive:true,
   maintainAspectRatio:false,
   animation:false,
-  plugins:{legend:{display:false},tooltip:{enabled:false}}
+  plugins:{legend:{display:false},tooltip:{enabled:false},datalabels:{display:false}}
 };
 
 function makeMvOpts(){
@@ -7911,56 +7911,83 @@ function initCarouselDots(carousel,dotsId){
 /* ════ INIT ═════════════════════════════════════════════════ */
 if(window.innerWidth>768)return;
 
-/* Wire up time range filter buttons */
-document.querySelectorAll('.m-tr-cf').forEach(function(btn){
-  btn.addEventListener('click',function(e){
-    e.stopPropagation();
+/* ──────────────────────────────────────────────────────────
+   EVENT DELEGATION on document.
+   The mobile HTML (#m-app) is parsed AFTER this script runs,
+   so direct querySelector finds nothing. Delegation works
+   because it catches bubbled events from any element added later.
+──────────────────────────────────────────────────────────── */
+var _sortCols={mv:8,cost:7,dayd:9,dayp:10,pld:11,plp:12};
+
+document.addEventListener('click',function(e){
+  var t=e.target;
+
+  /* Period filter: 1M / 3M / 6M / 1Y / All */
+  var trBtn=t.closest('.m-tr-cf');
+  if(trBtn){
     document.querySelectorAll('.m-tr-cf').forEach(function(b){b.classList.remove('on');});
-    btn.classList.add('on');
-    mTimeRange=parseInt(btn.dataset.months)||0;
+    trBtn.classList.add('on');
+    mTimeRange=parseInt(trBtn.dataset.months)||0;
     applyMobileTimeRange();
-  });
-});
+    return;
+  }
 
-/* Wire up account tabs */
-var ptabs=document.getElementById('m-port-tabs');
-if(ptabs){
-  Array.from(ptabs.children).forEach(function(btn,i){
-    var key=ACCTS[i]?ACCTS[i].key:'all';
-    btn.dataset.key=key;
-    btn.addEventListener('click',function(e){
-      e.stopPropagation();
-      window.mSelectAcct(key,btn);
-    });
-  });
-}
+  /* Portfolio account tabs */
+  var portTab=t.closest('#m-port-tabs .m-atab');
+  if(portTab){
+    var key=portTab.dataset.key||'all';
+    window.mSelectAcct(key,portTab);
+    return;
+  }
 
-/* Wire up holdings filter chips */
-document.querySelectorAll('.m-hold-acct').forEach(function(btn){
-  btn.addEventListener('click',function(e){
-    e.stopPropagation();
+  /* Holdings account filter chips */
+  var holdAcct=t.closest('.m-hold-acct');
+  if(holdAcct){
     document.querySelectorAll('.m-hold-acct').forEach(function(b){b.classList.remove('on');});
-    btn.classList.add('on');
+    holdAcct.classList.add('on');
     var af=document.getElementById('acctFilter');
-    if(af){af.value=btn.dataset.acct;if(window.filterTable)window.filterTable();}
+    if(af){af.value=holdAcct.dataset.acct;if(window.filterTable)window.filterTable();}
     buildCards();
-  });
-});
+    return;
+  }
 
-/* Wire up holdings sort chips — sortTable(colIndex) */
-var sortCols={mv:8,cost:7,dayd:9,dayp:10,pld:11,plp:12};
-document.querySelectorAll('.m-hold-sort').forEach(function(btn){
-  btn.addEventListener('click',function(e){
-    e.stopPropagation();
+  /* Holdings sort chips */
+  var holdSort=t.closest('.m-hold-sort');
+  if(holdSort){
     document.querySelectorAll('.m-hold-sort').forEach(function(b){b.classList.remove('on');});
-    btn.classList.add('on');
-    var col=sortCols[btn.dataset.sort];
+    holdSort.classList.add('on');
+    var col=_sortCols[holdSort.dataset.sort];
     if(col!=null&&window.sortTable)sortTable(col);
     setTimeout(buildCards,100);
-  });
-});
+    return;
+  }
 
-/* Holdings: watch tbody for data load + wrap filterTable */
+  /* Dark mode toggle */
+  var dtToggle=t.closest('#m-dark-toggle');
+  if(dtToggle){
+    dtToggle.classList.toggle('on');
+    document.documentElement.setAttribute('data-theme',dtToggle.classList.contains('on')?'dark':'light');
+    return;
+  }
+
+  /* Other settings toggles */
+  var sToggle=t.closest('#m-settings .m-toggle');
+  if(sToggle&&sToggle.id!=='m-dark-toggle'){sToggle.classList.toggle('on');return;}
+
+  /* Tab bar */
+  var tabBtn=t.closest('#m-app .m-tab');
+  if(tabBtn&&tabBtn.dataset.tab){window.mTab(tabBtn.dataset.tab,tabBtn);return;}
+
+  /* Close FAB on outside click */
+  var dd=document.querySelector('#m-app .m-fab-dropdown');
+  if(dd&&!t.closest('.m-fab-dropdown')&&!t.closest('#m-add-btn')){
+    dd.classList.remove('open');
+    var fabBtn=document.getElementById('m-add-btn');
+    if(fabBtn&&fabBtn.textContent==='✕')fabBtn.textContent='+';
+  }
+},true); /* useCapture:true so we intercept before any inline onclick */
+
+/* Holdings: watch tbody + wrap filterTable (desktop elements, exist now) */
 var holdBody=document.getElementById('holdingsBody');
 if(holdBody)new MutationObserver(buildCards).observe(holdBody,{childList:true});
 var origFilter=window.filterTable;
@@ -7988,24 +8015,11 @@ window.refreshAll=function(){
   return r;
 };
 
-/* Dark mode toggle */
-var dt=document.getElementById('m-dark-toggle');
-if(dt){
-  var isDark=document.documentElement.getAttribute('data-theme')!=='light';
-  if(isDark)dt.classList.add('on');else dt.classList.remove('on');
-  dt.addEventListener('click',function(e){
-    e.stopPropagation();
-    dt.classList.toggle('on');
-    document.documentElement.setAttribute('data-theme',dt.classList.contains('on')?'dark':'light');
-  });
-}
+/* Ensure acctFilter not stuck on _summary (desktop element, exists now) */
+var af0=document.getElementById('acctFilter');
+if(af0&&af0.value==='_summary'){af0.value='';if(window.filterTable)window.filterTable();}
 
-/* Settings toggles */
-document.querySelectorAll('#m-settings .m-toggle:not(#m-dark-toggle)').forEach(function(t){
-  t.addEventListener('click',function(e){e.stopPropagation();t.classList.toggle('on');});
-});
-
-/* Podcast audio sync */
+/* Podcast audio sync (desktop element, exists now) */
 var podAudio=document.getElementById('podAudio');
 if(podAudio){
   podAudio.addEventListener('timeupdate',function(){
@@ -8019,9 +8033,15 @@ if(podAudio){
   });
 }
 
-/* Ensure acctFilter not stuck on _summary */
-var af0=document.getElementById('acctFilter');
-if(af0&&af0.value==='_summary'){af0.value='';if(window.filterTable)window.filterTable();}
+/* DOMContentLoaded: set initial dark mode state on #m-app elements */
+document.addEventListener('DOMContentLoaded',function(){
+  if(window.innerWidth>768)return;
+  var dt=document.getElementById('m-dark-toggle');
+  if(dt){
+    var isDark=document.documentElement.getAttribute('data-theme')!=='light';
+    if(isDark)dt.classList.add('on');else dt.classList.remove('on');
+  }
+});
 
 /* Initial sync + scheduled retries */
 syncMobile();
@@ -8029,18 +8049,21 @@ setTimeout(syncMobile,1200);
 setTimeout(syncMobile,3500);
 setTimeout(syncMobile,8000);
 
-/* Periodic sync every 5s (light — uses dataset.synced guards) */
+/* Periodic sync every 5s */
 setInterval(syncMobile,5000);
 
-/* Chart creation (waits for desktop charts) */
+/* Chart creation (waits for desktop charts to initialize) */
 setTimeout(createMobileCharts,1000);
-setTimeout(createMobileCharts,3000); // retry in case first attempt fails
+setTimeout(createMobileCharts,3000);
 
-/* Restore last tab */
-var saved='portfolio';
-try{saved=localStorage.getItem('pp_m_tab')||'portfolio';}catch(e){}
-var initBtn=document.querySelector('#m-app .m-tab[data-tab="'+saved+'"]');
-window.mTab(saved,initBtn);
+/* Restore last tab — use DOMContentLoaded since mTab touches #m-app */
+document.addEventListener('DOMContentLoaded',function(){
+  if(window.innerWidth>768)return;
+  var saved='portfolio';
+  try{saved=localStorage.getItem('pp_m_tab')||'portfolio';}catch(e){}
+  var initBtn=document.querySelector('#m-app .m-tab[data-tab="'+saved+'"]');
+  window.mTab(saved,initBtn);
+});
 
 })();
 </script>

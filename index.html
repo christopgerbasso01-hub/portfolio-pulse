@@ -7777,125 +7777,179 @@ window.mToggleFab=function(e){
   dd.classList.toggle('open');
   if(btn)btn.textContent=dd.classList.contains('open')?'✕':'+';
 };
-/* generatePortfolioReport — builds a live-data report and opens print preview */
-window.generatePortfolioReport = function() {
-  var ld = window._lastLiveData || {};
-  var usdcad = ld.usdcad || 1.38;
-  var hPrices = ld.holdings || {};
+/* generatePortfolioReport — fetches live prices then builds accurate report */
+window.generatePortfolioReport = async function() {
+  /* ── Loading overlay ─────────────────────────────────────────────────── */
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(4,14,30,.93);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;';
+  overlay.innerHTML =
+    '<div style="font-family:monospace;font-size:15px;font-weight:800;color:#00d4ff;letter-spacing:.1em">⚡ GENERATING REPORT</div>'+
+    '<div id="rpt-msg" style="font-size:12px;color:#7eb3d4;text-align:center">Fetching live prices for all positions…</div>'+
+    '<div style="width:200px;height:4px;background:#1a2d4a;border-radius:2px;overflow:hidden"><div id="rpt-prog" style="height:100%;background:#00d4ff;width:0%;transition:width .5s ease"></div></div>'+
+    '<div style="font-size:10px;color:#3d6d8e">This may take a few seconds</div>';
+  document.body.appendChild(overlay);
+  var setMsg = function(m){var el=document.getElementById('rpt-msg');if(el)el.textContent=m;};
+  var setP   = function(p){var el=document.getElementById('rpt-prog');if(el)el.style.width=p+'%';};
 
-  function acctMV(acctKey) {
-    var mv = 0;
-    HOLDINGS_STATIC.filter(function(h){return h.account===acctKey;}).forEach(function(h) {
+  try {
+    /* ── Step 1: fresh live-price fetch ─────────────────────────────────── */
+    setP(10); setMsg('Fetching live prices for all positions…');
+    var data = await fetchMarketData();
+    if (!data) data = window._lastLiveData || {};
+
+    setP(50); setMsg('Computing portfolio values…');
+    var hPrices = data.holdings || {};
+
+    /* ── Exact same formulas as renderHoldingsTable ──────────────────────── */
+    var tfsaC=CONTRIB_STATE.TFSA||44500, fhsaC=CONTRIB_STATE.FHSA||24000,
+        rrspC=CONTRIB_STATE.RRSP||16132, invC=CONTRIB_STATE.Investment||65000;
+
+    /* Enrich each holding with computed values */
+    var enriched = HOLDINGS_STATIC.map(function(h) {
       var p = hPrices[h.ticker];
-      var fx = h.ccy==='USD' ? usdcad : 1;
-      if (p && p.price) mv += p.price * h.shares * fx;
-      else mv += ((h.unrealized||0)+(h.cost_total||0)) * (h.ccy==='USD'?(h.book_rate||usdcad):1);
+      var lp = p && p.price ? p.price : null;
+      var prev = p && p.prev ? p.prev : lp;
+      var fx = h.ccy === 'USD' ? usdcad : 1;
+      var fxBook = h.book_rate || null;  /* historical rate; null for CAD positions */
+      var costBasisCAD = fxBook ? h.cost_total * fxBook : h.cost_total;
+      var mv, prevMv;
+      if (lp) {
+        mv     = lp   * h.shares * fx;
+        prevMv = prev * h.shares * fx;
+      } else {
+        /* No live price: use static unrealized+cost converted at current rate */
+        mv     = ((h.unrealized || 0) + (h.cost_total || 0)) * fx;
+        prevMv = mv;
+      }
+      var unrealCAD = lp ? mv - costBasisCAD : (h.unrealized || 0) * (fxBook || 1);
+      var dayDollar = mv - prevMv;
+      return Object.assign({}, h, {lp:lp, prev:prev, dayChgPct:p&&p.change_pct, fx:fx,
+        fxBook:fxBook, costBasisCAD:costBasisCAD, mv:mv, prevMv:prevMv,
+        unrealCAD:unrealCAD, dayDollar:dayDollar,
+        realCAD: h.realized   || 0,
+        divCAD:  h.dividends  || 0});
     });
-    CASH_POSITIONS.filter(function(c){return c.account===acctKey;}).forEach(function(c) {
-      mv += c.ccy==='USD' ? c.amount*usdcad : c.amount;
+
+    /* Total portfolio value: same sum as renderHoldingsTable */
+    var holdMvSum = enriched.reduce(function(s,h){return s+h.mv;}, 0);
+    var cashSum   = CASH_POSITIONS.reduce(function(s,c){
+      return s + (c.ccy==='USD' ? c.amount*usdcad : c.amount);
+    }, 0);
+    var totalVal  = holdMvSum + cashSum;
+
+    /* Aggregate totals */
+    var totalContrib   = CONTRIB_TOTAL();
+    var totalGain      = totalVal - totalContrib;
+    var roiPct         = totalContrib > 0 ? totalGain / totalContrib * 100 : 0;
+    var totalDayChg    = enriched.reduce(function(s,h){return s+h.dayDollar;}, 0);
+    var totalDayChgPct = (totalVal-totalDayChg) > 0 ? totalDayChg/(totalVal-totalDayChg)*100 : 0;
+    var totalUnreal    = enriched.reduce(function(s,h){return s+h.unrealCAD;}, 0);
+
+    /* Per-account market values */
+    function acctMV(key) {
+      var mv = enriched.filter(function(h){return h.account===key;})
+                        .reduce(function(s,h){return s+h.mv;}, 0);
+      mv += CASH_POSITIONS.filter(function(c){return c.account===key;})
+                           .reduce(function(s,c){return s+(c.ccy==='USD'?c.amount*usdcad:c.amount);}, 0);
+      return mv;
+    }
+    var tfsaVal=acctMV('TFSA'), fhsaVal=acctMV('FHSA'),
+        rrspVal=acctMV('RRSP'), invVal=acctMV('Investment');
+    var tfsaGain=tfsaVal-tfsaC, fhsaGain=fhsaVal-fhsaC,
+        rrspGain=rrspVal-rrspC, invGain=invVal-invC;
+    var tfsaRoi=tfsaC>0?tfsaGain/tfsaC*100:0, fhsaRoi=fhsaC>0?fhsaGain/fhsaC*100:0,
+        rrspRoi=rrspC>0?rrspGain/rrspC*100:0, invRoi=invC>0?invGain/invC*100:0;
+
+    setP(70); setMsg('Building report…');
+
+    var now = new Date();
+    var reportDate = now.toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
+    var reportTime = now.toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
+
+    function fmt$(n){return (n<0?'−':'')+'$'+Math.abs(Math.round(n)).toLocaleString('en-CA');}
+    function fmtS$(n){return (n>=0?'+':'−')+'$'+Math.abs(Math.round(n)).toLocaleString('en-CA');}
+    function fmtP(n){return (n>=0?'+':'')+n.toFixed(1)+'%';}
+    function clUp(n){return n>=0?'up':'dn';}
+
+    /* ── Holdings rows ───────────────────────────────────────────────────── */
+    var aBadge={TFSA:'bt',FHSA:'bf',RRSP:'br',Investment:'bn'};
+    var aLabel={TFSA:'TFSA',FHSA:'FHSA',RRSP:'RRSP',Investment:'NON-REG'};
+    var sOrder=['Leveraged ETF','Technology','Financials','Energy','Consumer Staples',
+                'Consumer Disc.','Industrials','Healthcare','Utilities','Comm. Services','Other'];
+
+    var sectors={};
+    enriched.forEach(function(h){
+      var s=h.sector||'Other'; if(!sectors[s])sectors[s]=[]; sectors[s].push(h);
     });
-    return mv;
-  }
 
-  var tfsaVal = acctMV('TFSA');
-  var fhsaVal = acctMV('FHSA');
-  var rrspVal = acctMV('RRSP');
-  var invVal  = acctMV('Investment');
-  var totalVal = tfsaVal + fhsaVal + rrspVal + invVal;
-  var totalContrib = CONTRIB_TOTAL();
-  var totalGain = totalVal - totalContrib;
-  var roiPct = totalContrib > 0 ? (totalGain/totalContrib*100) : 0;
-  var tfsaC=CONTRIB_STATE.TFSA||44500, fhsaC=CONTRIB_STATE.FHSA||24000,
-      rrspC=CONTRIB_STATE.RRSP||16132, invC=CONTRIB_STATE.Investment||65000;
-  var tfsaGain=tfsaVal-tfsaC, fhsaGain=fhsaVal-fhsaC, rrspGain=rrspVal-rrspC, invGain=invVal-invC;
-  var tfsaRoi=tfsaC>0?tfsaGain/tfsaC*100:0, fhsaRoi=fhsaC>0?fhsaGain/fhsaC*100:0,
-      rrspRoi=rrspC>0?rrspGain/rrspC*100:0, invRoi=invC>0?invGain/invC*100:0;
-
-  var totalDayChg = 0;
-  HOLDINGS_STATIC.forEach(function(h) {
-    var p=hPrices[h.ticker];
-    if(p&&p.price&&p.prev) totalDayChg += (p.price-p.prev)*h.shares*(h.ccy==='USD'?usdcad:1);
-  });
-  var totalDayChgPct = (totalVal-totalDayChg)>0 ? totalDayChg/(totalVal-totalDayChg)*100 : 0;
-
-  var now=new Date();
-  var reportDate=now.toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
-
-  function fmtD(n){var abs=Math.abs(n);return '$'+Math.round(abs).toLocaleString();}
-  function fmt$(n){return (n<0?'−':'')+fmtD(n);}
-  function fmtS$(n){return (n>=0?'+':'−')+'$'+Math.abs(Math.round(n)).toLocaleString();}
-  function fmtP(n){return (n>=0?'+':'')+n.toFixed(1)+'%';}
-
-  /* Holdings rows grouped by sector */
-  var sectors={};
-  HOLDINGS_STATIC.forEach(function(h){
-    var s=h.sector||'Other';
-    if(!sectors[s])sectors[s]=[];
-    sectors[s].push(h);
-  });
-  var sOrder=['Leveraged ETF','Technology','Financials','Energy','Consumer Staples','Consumer Disc.','Industrials','Healthcare','Utilities','Comm. Services','Other'];
-  var aBadge={TFSA:'bt',FHSA:'bf',RRSP:'br',Investment:'bn'};
-  var aLabel={TFSA:'TFSA',FHSA:'FHSA',RRSP:'RRSP',Investment:'NON-REG'};
-  var holdingRows='';
-  sOrder.forEach(function(sector){
-    var hs=sectors[sector];
-    if(!hs||!hs.length)return;
-    hs.sort(function(a,b){
-      var pA=hPrices[a.ticker],pB=hPrices[b.ticker];
-      var mvA=pA&&pA.price?pA.price*a.shares*(a.ccy==='USD'?usdcad:1):(a.unrealized||0)+(a.cost_total||0);
-      var mvB=pB&&pB.price?pB.price*b.shares*(b.ccy==='USD'?usdcad:1):(b.unrealized||0)+(b.cost_total||0);
-      return mvB-mvA;
+    var holdingRows='';
+    sOrder.forEach(function(sector){
+      var hs=sectors[sector]; if(!hs||!hs.length)return;
+      hs.sort(function(a,b){return b.mv-a.mv;});
+      holdingRows+='<tr><td colspan="10" class="sec-group">'+sector+'</td></tr>';
+      hs.forEach(function(h){
+        var ps  = h.lp ? '$'+h.lp.toFixed(2)+(h.ccy==='USD'?' USD':' CAD') : '—';
+        var dcs = h.dayDollar!==0 ? fmtS$(h.dayDollar) : '—';
+        var retPct = h.costBasisCAD>0 ? (h.mv-h.costBasisCAD)/h.costBasisCAD*100 : null;
+        var retStr = retPct!=null ? (retPct>=0?'+':'')+retPct.toFixed(1)+'%' : '—';
+        var wt  = totalVal>0 ? (h.mv/totalVal*100).toFixed(1) : '0.0';
+        holdingRows+='<tr>'+
+          '<td><span class="ticker">'+h.ticker+'</span>'+
+          '<span class="badge '+(aBadge[h.account]||'bn')+'">'+aLabel[h.account]+'</span></td>'+
+          '<td>'+h.name+'</td>'+
+          '<td class="r">'+h.shares+'</td>'+
+          '<td class="r">'+ps+'</td>'+
+          '<td class="r"><b>'+fmt$(h.mv)+'</b></td>'+
+          '<td class="r">'+fmt$(h.costBasisCAD)+'</td>'+
+          '<td class="r '+clUp(h.dayDollar)+'">'+dcs+'</td>'+
+          '<td class="r '+clUp(h.unrealCAD)+'">'+fmtS$(h.unrealCAD)+'</td>'+
+          '<td class="r '+(retPct!=null?clUp(retPct):'')+'">'+retStr+'</td>'+
+          '<td class="r">'+wt+'%</td>'+
+        '</tr>';
+      });
     });
-    holdingRows+='<tr><td colspan="10" class="sec-group">'+sector+'</td></tr>';
-    hs.forEach(function(h){
-      var p=hPrices[h.ticker], lp=p&&p.price, pp=p&&(p.prev||p.price);
-      var fx=h.ccy==='USD'?usdcad:1, bfx=h.book_rate||fx;
-      var costCAD=h.ccy==='USD'?h.cost_total*bfx:h.cost_total;
-      var mv=lp?lp*h.shares*fx:((h.unrealized||0)+(h.cost_total||0))*bfx;
-      var dc=lp?(lp-pp)*h.shares*fx:0;
-      var ug=mv-costCAD, ret=costCAD>0?ug/costCAD*100:0, wt=totalVal>0?mv/totalVal*100:0;
-      var ps=lp?'$'+lp.toFixed(2)+(h.ccy==='USD'?' USD':' CAD'):'—';
-      var dcs=dc!==0?fmtS$(dc):'—';
+
+    /* Cash rows */
+    CASH_POSITIONS.forEach(function(c){
+      var mv  = c.ccy==='USD' ? c.amount*usdcad : c.amount;
+      var wt  = totalVal>0 ? (mv/totalVal*100).toFixed(1) : '0.0';
+      var abl = aLabel[c.account]||c.account;
       holdingRows+='<tr>'+
-        '<td><span class="ticker">'+h.ticker+'</span><span class="badge '+aBadge[h.account]+'">'+aLabel[h.account]+'</span></td>'+
-        '<td>'+h.name+'</td>'+
-        '<td class="r">'+h.shares+'</td>'+
-        '<td class="r">'+ps+'</td>'+
+        '<td><span class="ticker" style="color:#94a3b8">CASH</span>'+
+        '<span class="badge '+(aBadge[c.account]||'bn')+'">'+abl+'</span></td>'+
+        '<td>'+c.name+'</td><td class="r">—</td>'+
+        '<td class="r">'+(c.ccy==='USD'?'USD':'CAD')+'</td>'+
         '<td class="r"><b>'+fmt$(mv)+'</b></td>'+
-        '<td class="r">'+fmt$(costCAD)+'</td>'+
-        '<td class="r '+(dc>=0?'up':'dn')+'">'+dcs+'</td>'+
-        '<td class="r '+(ug>=0?'up':'dn')+'">'+(ug>=0?'+':'−')+'$'+Math.abs(Math.round(ug)).toLocaleString()+'</td>'+
-        '<td class="r '+(ret>=0?'up':'dn')+'">'+(ret>=0?'+':'')+ret.toFixed(1)+'%</td>'+
-        '<td class="r">'+wt.toFixed(1)+'%</td>'+
+        '<td class="r">—</td><td class="r">—</td><td class="r">—</td><td class="r">—</td>'+
+        '<td class="r">'+wt+'%</td>'+
       '</tr>';
     });
-  });
 
-  /* Account cards */
-  var acctDefs=[
-    {key:'TFSA',val:tfsaVal,gain:tfsaGain,roi:tfsaRoi,contrib:tfsaC,cls:'ta',badge:'ab-t',label:'TFSA',
-     note:'100% permanently tax-free. All growth, dividends and capital gains sheltered — no CRA exposure on any dollar. Never sell highest-returning TFSA positions.'},
-    {key:'FHSA',val:fhsaVal,gain:fhsaGain,roi:fhsaRoi,contrib:fhsaC,cls:'fh',badge:'ab-f',label:'FHSA',
-     note:'Tax-deductible contributions + tax-free home purchase withdrawal. Combined with RRSP HBP $35K for GTA down payment. No repayment obligation unlike HBP.'},
-    {key:'RRSP',val:rrspVal,gain:rrspGain,roi:rrspRoi,contrib:rrspC,cls:'rs',badge:'ab-r',label:'RRSP',
-     note:'Tax-deferred growth. 0% US dividend withholding under Canada-US treaty — unavailable in any other account. Deploy idle cash immediately.'},
-    {key:'Investment',val:invVal,gain:invGain,roi:invRoi,contrib:invC,cls:'iv',badge:'ab-n',label:'NON-REG',
-     note:'50% capital gains inclusion rate. Review for tax-loss harvesting before Dec 31 to offset realized gains. Strategically time dispositions to lower-income years.'},
-  ];
-  var acctCards=acctDefs.map(function(a){
-    var barW=Math.max(0,Math.min(100,a.roi));
-    var barClr={ta:'#2563eb',fh:'#059669',rs:'#d97706',iv:'#94a3b8'}[a.cls];
-    var pct=totalVal>0?a.val/totalVal*100:0;
-    return '<div class="acct-card '+a.cls+'">'+
-      '<div class="acct-badge '+a.badge+'">'+a.label+'</div>'+
-      '<div class="acct-value">'+fmt$(Math.round(a.val))+'</div>'+
-      '<div class="acct-gain '+(a.gain>=0?'up':'dn')+'">'+fmtS$(a.gain)+' all-time gain</div>'+
-      '<div class="acct-roi '+(a.roi>=0?'up':'dn')+'">'+fmtP(a.roi)+' ROI</div>'+
-      '<div class="acct-bar-bg"><div class="acct-bar-fill" style="width:'+barW+'%;background:'+barClr+'"></div></div>'+
-      '<div class="acct-contrib">'+fmt$(Math.round(a.contrib))+' contributed · '+pct.toFixed(1)+'% of portfolio</div>'+
-      '<div class="acct-note">'+a.note+'</div>'+
-    '</div>';
-  }).join('');
+    /* ── Account cards ───────────────────────────────────────────────────── */
+    var acctDefs=[
+      {val:tfsaVal,gain:tfsaGain,roi:tfsaRoi,c:tfsaC,cls:'ta',badge:'ab-t',label:'TFSA',
+       note:'100% permanently tax-free. All growth, dividends and capital gains sheltered — no CRA exposure on any dollar.'},
+      {val:fhsaVal,gain:fhsaGain,roi:fhsaRoi,c:fhsaC,cls:'fh',badge:'ab-f',label:'FHSA',
+       note:'Tax-deductible contributions + tax-free home purchase withdrawal. FHSA + RRSP HBP $35K = GTA down payment. No repayment obligation.'},
+      {val:rrspVal,gain:rrspGain,roi:rrspRoi,c:rrspC,cls:'rs',badge:'ab-r',label:'RRSP',
+       note:'Tax-deferred growth. 0% US dividend withholding under Canada-US treaty — unavailable in any other account. Deploy idle cash immediately.'},
+      {val:invVal, gain:invGain, roi:invRoi, c:invC, cls:'iv',badge:'ab-n',label:'NON-REG',
+       note:'50% capital gains inclusion. Review for tax-loss harvesting before Dec 31. Time dispositions to lower-income years to minimize tax.'},
+    ];
+    var acctCards=acctDefs.map(function(a){
+      var barW=Math.max(0,Math.min(100,Math.abs(a.roi)));
+      var barClr={ta:'#2563eb',fh:'#059669',rs:'#d97706',iv:'#94a3b8'}[a.cls];
+      var pct=totalVal>0?a.val/totalVal*100:0;
+      return '<div class="acct-card '+a.cls+'">'+
+        '<div class="acct-badge '+a.badge+'">'+a.label+'</div>'+
+        '<div class="acct-value">'+fmt$(Math.round(a.val))+'</div>'+
+        '<div class="acct-gain '+clUp(a.gain)+'">'+fmtS$(a.gain)+' all-time gain</div>'+
+        '<div class="acct-roi '+clUp(a.roi)+'">'+fmtP(a.roi)+' ROI</div>'+
+        '<div class="acct-bar-bg"><div class="acct-bar-fill" style="width:'+barW+'%;background:'+barClr+'"></div></div>'+
+        '<div class="acct-contrib">'+fmt$(Math.round(a.c))+' contributed \xB7 '+pct.toFixed(1)+'% of portfolio</div>'+
+        '<div class="acct-note">'+a.note+'</div>'+
+      '</div>';
+    }).join('');
 
   var css='@page{size:letter;margin:.55in .6in}@media print{.no-print{display:none!important}body{background:#fff!important}.page-break{page-break-before:always}section,div{page-break-inside:avoid}}*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Helvetica Neue",Arial,sans-serif;font-size:11px;color:#0a1628;background:#f0f4f8;line-height:1.5}.page{max-width:810px;margin:0 auto;background:#fff}.print-bar{background:#050f1d;color:#e8f4fd;padding:10px 20px;display:flex;justify-content:space-between;align-items:center}.print-bar p{font-size:11px;color:#7eb3d4}.print-btn{background:#00d4ff;color:#050f1d;border:none;padding:7px 18px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer}.cover{background:linear-gradient(140deg,#07192e 0%,#0f2d52 60%,#1a3a5c 100%);color:#fff;padding:44px 50px 34px;position:relative;overflow:hidden}.cover::after{content:"";position:absolute;top:0;right:0;width:3px;height:100%;background:linear-gradient(180deg,#00d4ff,#4a9eff,#b39ddb)}.cover-logo{font-family:"Courier New",monospace;font-size:12px;letter-spacing:.12em;color:#00d4ff;margin-bottom:40px}.cover h1{font-size:26px;font-weight:800;margin-bottom:5px}.cover-sub{font-size:13px;color:#7eb3d4;margin-bottom:28px}.cover-meta{display:flex;gap:36px;flex-wrap:wrap}.cm-label{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#3d6d8e}.cm-value{font-size:13px;font-weight:600;color:#e8f4fd;margin-top:2px}.sec{padding:24px 50px;border-bottom:1px solid #e2e8f0}.sec:last-child{border-bottom:none}.sec-header{display:flex;align-items:center;gap:9px;margin-bottom:16px;padding-bottom:7px;border-bottom:2px solid #e2e8f0}.sec-num{width:22px;height:22px;background:#07192e;color:#fff;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}.sec-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#07192e}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:13px 14px;border-top:3px solid}.kpi.c1{border-top-color:#00d4ff}.kpi.c2{border-top-color:#059669}.kpi.c3{border-top-color:#d97706}.kpi.c4{border-top-color:#dc2626}.kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:4px}.kpi-val{font-size:17px;font-weight:700}.kpi-sub{font-size:9px;color:#64748b;margin-top:3px}.kpi-chg{font-size:10px;font-weight:600;margin-top:2px}.up{color:#059669}.dn{color:#dc2626}.cy{color:#0066cc}.am{color:#d97706}.acct-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}.acct-card{border:1px solid #e2e8f0;border-radius:10px;padding:14px;border-top:3px solid}.acct-card.ta{border-top-color:#2563eb}.acct-card.fh{border-top-color:#059669}.acct-card.rs{border-top-color:#d97706}.acct-card.iv{border-top-color:#94a3b8}.acct-badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;margin-bottom:7px}.ab-t{background:#eff6ff;color:#1d4ed8}.ab-f{background:#f0fdf4;color:#166534}.ab-r{background:#fffbeb;color:#92400e}.ab-n{background:#f8fafc;color:#475569}.acct-value{font-size:16px;font-weight:700;font-family:"Courier New",monospace;margin-bottom:1px}.acct-gain{font-size:12px;font-weight:700;margin-bottom:4px}.acct-roi{font-size:10px;font-weight:600;margin-bottom:6px}.acct-bar-bg{background:#e2e8f0;border-radius:2px;height:3px;overflow:hidden;margin-bottom:6px}.acct-bar-fill{height:100%;border-radius:2px}.acct-contrib{font-size:9px;color:#64748b}.acct-note{font-size:9px;color:#64748b;margin-top:5px;line-height:1.4}table{width:100%;border-collapse:collapse}thead tr{background:#f1f5f9}th{padding:6px 9px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#475569;border-bottom:1px solid #cbd5e1}th.r,td.r{text-align:right}td{padding:5px 9px;border-bottom:1px solid #f1f5f9;color:#334155;font-size:10px;vertical-align:middle}tr:last-child td{border-bottom:none}.ticker{font-family:"Courier New",monospace;font-weight:700;color:#07192e;font-size:11px}.badge{display:inline-block;font-size:7px;font-weight:700;padding:1px 4px;border-radius:2px;margin-left:3px;vertical-align:middle}.bt{background:#eff6ff;color:#1d4ed8}.bf{background:#f0fdf4;color:#166534}.br{background:#fffbeb;color:#92400e}.bn{background:#f1f5f9;color:#475569}.subtot td{background:#f1f5f9;font-weight:700;border-top:1px solid #cbd5e1}.sec-group td{background:#f8fafc;font-size:9px;font-weight:700;color:#475569;padding:4px 9px;letter-spacing:.05em;border-bottom:1px solid #e2e8f0}.commentary{background:#f8fafc;border-left:3px solid #0066cc;padding:11px 13px;font-size:10px;color:#334155;line-height:1.6;border-radius:0 6px 6px 0}.hl{background:#eff6ff;padding:0 2px;border-radius:2px;font-weight:600;color:#1d4ed8}.tax-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.titem{background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:12px}.titem-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:4px}.titem-val{font-size:15px;font-weight:700;font-family:"Courier New",monospace;margin-bottom:3px}.titem-note{font-size:9px;color:#64748b;line-height:1.4}.footer{background:#f8fafc;padding:14px 50px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}.foot-l{font-size:9px;color:#94a3b8}.foot-r{font-size:9px;color:#94a3b8;text-align:right}.disc{font-size:8px;color:#94a3b8;line-height:1.5;padding:14px 50px;border-top:1px solid #e2e8f0}';
 
@@ -7946,11 +8000,22 @@ window.generatePortfolioReport = function() {
   '<div class="disc"><b>Important Disclosures:</b> This report is generated automatically from personal portfolio tracking data for the account holder’s personal review only. All figures are estimates based on market prices as of the report date and may differ from official brokerage statements. Tax calculations are estimates only — consult a registered CPA for tax filing. This report does not constitute financial advice, investment recommendations, or an official account statement. Historical returns are not indicative of future results. Leveraged ETF products carry significant risk of loss.</div>'+
   '</div></body></html>';
 
-  var win=window.open('','_blank');
-  if(!win){alert('Please allow pop-ups to generate the report.');return;}
-  win.document.write(html);
-  win.document.close();
-  setTimeout(function(){win.print();},600);
+    setP(95); setMsg('Opening print preview…');
+    var win = window.open('','_blank');
+    if (!win) {
+      overlay.remove();
+      alert('Please allow pop-ups to generate the report.');
+      return;
+    }
+    win.document.write(html);
+    win.document.close();
+    setTimeout(function(){ overlay.remove(); win.print(); }, 700);
+
+  } catch(err) {
+    overlay.remove();
+    console.error('Report generation failed:', err);
+    alert('Report generation failed. Please try again.');
+  }
 };
 
 /* ════ SETTINGS: save/discard logic ═══════════════════════ */

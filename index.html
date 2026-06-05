@@ -7798,6 +7798,7 @@ window.generatePortfolioReport = async function() {
     if (!data) data = window._lastLiveData || {};
 
     setP(50); setMsg('Computing portfolio values…');
+    var usdcad  = data.usdcad   || 1.38;
     var hPrices = data.holdings || {};
 
     /* ── Exact same formulas as renderHoldingsTable ──────────────────────── */
@@ -7951,7 +7952,90 @@ window.generatePortfolioReport = async function() {
       '</div>';
     }).join('');
 
-  var css='@page{size:letter;margin:.55in .6in}@media print{.no-print{display:none!important}body{background:#fff!important}.page-break{page-break-before:always}section,div{page-break-inside:avoid}}*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Helvetica Neue",Arial,sans-serif;font-size:11px;color:#0a1628;background:#f0f4f8;line-height:1.5}.page{max-width:810px;margin:0 auto;background:#fff}.print-bar{background:#050f1d;color:#e8f4fd;padding:10px 20px;display:flex;justify-content:space-between;align-items:center}.print-bar p{font-size:11px;color:#7eb3d4}.print-btn{background:#00d4ff;color:#050f1d;border:none;padding:7px 18px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer}.cover{background:linear-gradient(140deg,#07192e 0%,#0f2d52 60%,#1a3a5c 100%);color:#fff;padding:44px 50px 34px;position:relative;overflow:hidden}.cover::after{content:"";position:absolute;top:0;right:0;width:3px;height:100%;background:linear-gradient(180deg,#00d4ff,#4a9eff,#b39ddb)}.cover-logo{font-family:"Courier New",monospace;font-size:12px;letter-spacing:.12em;color:#00d4ff;margin-bottom:40px}.cover h1{font-size:26px;font-weight:800;margin-bottom:5px}.cover-sub{font-size:13px;color:#7eb3d4;margin-bottom:28px}.cover-meta{display:flex;gap:36px;flex-wrap:wrap}.cm-label{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#3d6d8e}.cm-value{font-size:13px;font-weight:600;color:#e8f4fd;margin-top:2px}.sec{padding:24px 50px;border-bottom:1px solid #e2e8f0}.sec:last-child{border-bottom:none}.sec-header{display:flex;align-items:center;gap:9px;margin-bottom:16px;padding-bottom:7px;border-bottom:2px solid #e2e8f0}.sec-num{width:22px;height:22px;background:#07192e;color:#fff;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}.sec-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#07192e}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:13px 14px;border-top:3px solid}.kpi.c1{border-top-color:#00d4ff}.kpi.c2{border-top-color:#059669}.kpi.c3{border-top-color:#d97706}.kpi.c4{border-top-color:#dc2626}.kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:4px}.kpi-val{font-size:17px;font-weight:700}.kpi-sub{font-size:9px;color:#64748b;margin-top:3px}.kpi-chg{font-size:10px;font-weight:600;margin-top:2px}.up{color:#059669}.dn{color:#dc2626}.cy{color:#0066cc}.am{color:#d97706}.acct-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}.acct-card{border:1px solid #e2e8f0;border-radius:10px;padding:14px;border-top:3px solid}.acct-card.ta{border-top-color:#2563eb}.acct-card.fh{border-top-color:#059669}.acct-card.rs{border-top-color:#d97706}.acct-card.iv{border-top-color:#94a3b8}.acct-badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;margin-bottom:7px}.ab-t{background:#eff6ff;color:#1d4ed8}.ab-f{background:#f0fdf4;color:#166534}.ab-r{background:#fffbeb;color:#92400e}.ab-n{background:#f8fafc;color:#475569}.acct-value{font-size:16px;font-weight:700;font-family:"Courier New",monospace;margin-bottom:1px}.acct-gain{font-size:12px;font-weight:700;margin-bottom:4px}.acct-roi{font-size:10px;font-weight:600;margin-bottom:6px}.acct-bar-bg{background:#e2e8f0;border-radius:2px;height:3px;overflow:hidden;margin-bottom:6px}.acct-bar-fill{height:100%;border-radius:2px}.acct-contrib{font-size:9px;color:#64748b}.acct-note{font-size:9px;color:#64748b;margin-top:5px;line-height:1.4}table{width:100%;border-collapse:collapse}thead tr{background:#f1f5f9}th{padding:6px 9px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#475569;border-bottom:1px solid #cbd5e1}th.r,td.r{text-align:right}td{padding:5px 9px;border-bottom:1px solid #f1f5f9;color:#334155;font-size:10px;vertical-align:middle}tr:last-child td{border-bottom:none}.ticker{font-family:"Courier New",monospace;font-weight:700;color:#07192e;font-size:11px}.badge{display:inline-block;font-size:7px;font-weight:700;padding:1px 4px;border-radius:2px;margin-left:3px;vertical-align:middle}.bt{background:#eff6ff;color:#1d4ed8}.bf{background:#f0fdf4;color:#166534}.br{background:#fffbeb;color:#92400e}.bn{background:#f1f5f9;color:#475569}.subtot td{background:#f1f5f9;font-weight:700;border-top:1px solid #cbd5e1}.sec-group td{background:#f8fafc;font-size:9px;font-weight:700;color:#475569;padding:4px 9px;letter-spacing:.05em;border-bottom:1px solid #e2e8f0}.commentary{background:#f8fafc;border-left:3px solid #0066cc;padding:11px 13px;font-size:10px;color:#334155;line-height:1.6;border-radius:0 6px 6px 0}.hl{background:#eff6ff;padding:0 2px;border-radius:2px;font-weight:600;color:#1d4ed8}.tax-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.titem{background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:12px}.titem-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:4px}.titem-val{font-size:15px;font-weight:700;font-family:"Courier New",monospace;margin-bottom:3px}.titem-note{font-size:9px;color:#64748b;line-height:1.4}.footer{background:#f8fafc;padding:14px 50px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}.foot-l{font-size:9px;color:#94a3b8}.foot-r{font-size:9px;color:#94a3b8;text-align:right}.disc{font-size:8px;color:#94a3b8;line-height:1.5;padding:14px 50px;border-top:1px solid #e2e8f0}';
+    /* ── Portfolio value chart SVG from live chart data ─────────────────── */
+    var chartSVG = (function() {
+      var cd = window.portfolioValueChart && window.portfolioValueChart.data;
+      if (!cd || !cd.labels || cd.labels.length < 3) return '<p style="font-size:10px;color:#94a3b8;text-align:center;padding:24px">Chart data loading — open the dashboard, wait for the chart to render, then regenerate the report.</p>';
+      var labels = cd.labels;
+      var mvRaw  = cd.datasets[0] ? cd.datasets[0].data : [];
+      var crRaw  = cd.datasets[1] ? cd.datasets[1].data : [];
+      var validMV = mvRaw.filter(function(v){return v!=null&&!isNaN(v)&&v>0;});
+      if (validMV.length < 3) return '<p style="font-size:10px;color:#94a3b8;text-align:center;padding:24px">Not enough historical data points yet.</p>';
+      var maxV = Math.max.apply(null,validMV)*1.08, minV=0;
+      var W=710,H=150,pL=52,pB=22,pT=10,pR=8;
+      var pw=W-pL-pR, ph=H-pT-pB;
+      var n=labels.length;
+      function px(i){return pL+i/(n-1)*pw;}
+      function py(v){return pT+ph-(v-minV)/(maxV-minV)*ph;}
+      /* Build point strings, skipping nulls */
+      var mvPts=[], crPts=[];
+      for(var i=0;i<n;i++){
+        if(mvRaw[i]!=null&&!isNaN(mvRaw[i]))mvPts.push(px(i).toFixed(1)+','+py(mvRaw[i]).toFixed(1));
+        if(crRaw[i]!=null&&!isNaN(crRaw[i]))crPts.push(px(i).toFixed(1)+','+py(crRaw[i]).toFixed(1));
+      }
+      /* Filled polygon for MV area */
+      var lastI=mvPts.length-1;
+      /* find last valid MV index */
+      var lastValidI=0; for(var j=n-1;j>=0;j--){if(mvRaw[j]!=null&&!isNaN(mvRaw[j])){lastValidI=j;break;}}
+      var polyPts=mvPts.join(' ')+' '+px(lastValidI).toFixed(1)+','+py(0).toFixed(1)+' '+pL+','+py(0).toFixed(1);
+      /* Grid */
+      var gridSteps=4, grid='';
+      for(var g=0;g<=gridSteps;g++){
+        var gv=maxV*g/gridSteps;
+        var gy=py(gv).toFixed(1);
+        var gl=gv>=1000000?'$'+(gv/1000000).toFixed(1)+'M':'$'+(gv/1000).toFixed(0)+'K';
+        grid+='<line x1="'+pL+'" y1="'+gy+'" x2="'+(pL+pw)+'" y2="'+gy+'" stroke="#e2e8f0" stroke-width="0.5"/>'+
+              '<text x="'+(pL-4)+'" y="'+(parseFloat(gy)+3)+'" text-anchor="end" font-size="7.5" fill="#94a3b8">'+gl+'</text>';
+      }
+      /* X labels — show up to 7 evenly spaced */
+      var xLbl='', step=Math.max(1,Math.floor(n/7));
+      for(var k=0;k<n;k+=step){
+        var lbl=labels[k]||''; if(!lbl)continue;
+        /* show only year portion */
+        var yr=typeof lbl==='string'?lbl.slice(0,7):lbl;
+        xLbl+='<text x="'+px(k).toFixed(1)+'" y="'+(H-5)+'" font-size="7" fill="#94a3b8" text-anchor="middle">'+yr+'</text>';
+      }
+      /* Current value annotation */
+      var lastMV=mvRaw[lastValidI]||0;
+      var lastLbl=lastMV>=1000000?'$'+(lastMV/1000000).toFixed(2)+'M':'$'+(lastMV/1000).toFixed(0)+'K';
+      return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">'+
+        '<defs><linearGradient id="rGrd" x1="0" y1="0" x2="0" y2="1">'+
+        '<stop offset="0%" stop-color="#0066cc" stop-opacity="0.18"/><stop offset="100%" stop-color="#0066cc" stop-opacity="0"/>'+
+        '</linearGradient></defs>'+
+        grid+xLbl+
+        (crPts.length>1?'<polyline points="'+crPts.join(' ')+'" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>':'')+
+        '<polygon points="'+polyPts+'" fill="url(#rGrd)"/>'+
+        '<polyline points="'+mvPts.join(' ')+'" fill="none" stroke="#0066cc" stroke-width="2" stroke-linejoin="round"/>'+
+        '<circle cx="'+px(lastValidI).toFixed(1)+'" cy="'+py(lastMV).toFixed(1)+'" r="4" fill="#0066cc"/>'+
+        '<text x="'+px(lastValidI).toFixed(1)+'" y="'+(py(lastMV)-8).toFixed(1)+'" font-size="8" fill="#0066cc" font-weight="700" text-anchor="end">'+lastLbl+'</text>'+
+      '</svg>';
+    })();
+
+    /* ── Benchmark (contribution-weighted, same bases as dashboard) ──────── */
+    var bench = data.benchmarks || {};
+    var bmContrib = totalContrib || 149632;
+    var bmScale   = bmContrib / 149632;
+    var bmBases   = { sp500:{val:167218*bmScale,roi:11.8}, tsx:{val:171477*bmScale,roi:14.6}, nasdaq:{val:172760*bmScale,roi:15.5} };
+    function bmLive(base, bData) {
+      return bData && bData.change_pct != null ? Math.round(base.val*(1+bData.change_pct/100)) : Math.round(base.val);
+    }
+    var sp500Val  = bmLive(bmBases.sp500,  bench.sp500);
+    var tsxVal    = bmLive(bmBases.tsx,    bench.tsx);
+    var nasdaqVal = bmLive(bmBases.nasdaq, bench.nasdaq);
+    var sp500Roi  = bmContrib>0?(sp500Val-bmContrib)/bmContrib*100:0;
+    var tsxRoi    = bmContrib>0?(tsxVal-bmContrib)/bmContrib*100:0;
+    var nasdaqRoi = bmContrib>0?(nasdaqVal-bmContrib)/bmContrib*100:0;
+    var alpha     = roiPct - sp500Roi;
+    /* bar widths relative to portfolio (max) */
+    function bmBar(val, clr, lbl) {
+      var w = totalVal>0 ? Math.min(99,(val/totalVal*100)).toFixed(1) : '0';
+      var roi = bmContrib>0?((val-bmContrib)/bmContrib*100).toFixed(1):0;
+      return '<div class="bench-row"><div class="bench-lbl">'+lbl+'</div>'+
+        '<div class="bench-bar-bg"><div class="bench-bar-fill" style="width:'+w+'%;background:'+clr+'">'+fmt$(val)+'</div></div>'+
+        '<div class="bench-val">'+fmt$(val)+' \xB7 +'+roi+'%</div></div>';
+    }
+
+    var css='@page{size:letter;margin:.55in .6in}@media print{.no-print{display:none!important}body{background:#fff!important}.page-break{page-break-before:always}section,div{page-break-inside:avoid}}*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Helvetica Neue",Arial,sans-serif;font-size:11px;color:#0a1628;background:#f0f4f8;line-height:1.5}.page{max-width:810px;margin:0 auto;background:#fff}.print-bar{background:#050f1d;color:#e8f4fd;padding:10px 20px;display:flex;justify-content:space-between;align-items:center}.print-bar p{font-size:11px;color:#7eb3d4}.print-btn{background:#00d4ff;color:#050f1d;border:none;padding:7px 18px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer}.cover{background:linear-gradient(140deg,#07192e 0%,#0f2d52 60%,#1a3a5c 100%);color:#fff;padding:44px 50px 34px;position:relative;overflow:hidden}.cover::after{content:"";position:absolute;top:0;right:0;width:3px;height:100%;background:linear-gradient(180deg,#00d4ff,#4a9eff,#b39ddb)}.cover-logo{font-family:"Courier New",monospace;font-size:12px;letter-spacing:.12em;color:#00d4ff;margin-bottom:40px}.cover h1{font-size:26px;font-weight:800;margin-bottom:5px}.cover-sub{font-size:13px;color:#7eb3d4;margin-bottom:28px}.cover-meta{display:flex;gap:36px;flex-wrap:wrap}.cm-label{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#3d6d8e}.cm-value{font-size:13px;font-weight:600;color:#e8f4fd;margin-top:2px}.sec{padding:24px 50px;border-bottom:1px solid #e2e8f0}.sec:last-child{border-bottom:none}.sec-header{display:flex;align-items:center;gap:9px;margin-bottom:16px;padding-bottom:7px;border-bottom:2px solid #e2e8f0}.sec-num{width:22px;height:22px;background:#07192e;color:#fff;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}.sec-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#07192e}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:13px 14px;border-top:3px solid}.kpi.c1{border-top-color:#00d4ff}.kpi.c2{border-top-color:#059669}.kpi.c3{border-top-color:#d97706}.kpi.c4{border-top-color:#dc2626}.kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:4px}.kpi-val{font-size:17px;font-weight:700}.kpi-sub{font-size:9px;color:#64748b;margin-top:3px}.kpi-chg{font-size:10px;font-weight:600;margin-top:2px}.up{color:#059669}.dn{color:#dc2626}.cy{color:#0066cc}.am{color:#d97706}.acct-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}.acct-card{border:1px solid #e2e8f0;border-radius:10px;padding:14px;border-top:3px solid}.acct-card.ta{border-top-color:#2563eb}.acct-card.fh{border-top-color:#059669}.acct-card.rs{border-top-color:#d97706}.acct-card.iv{border-top-color:#94a3b8}.acct-badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;margin-bottom:7px}.ab-t{background:#eff6ff;color:#1d4ed8}.ab-f{background:#f0fdf4;color:#166534}.ab-r{background:#fffbeb;color:#92400e}.ab-n{background:#f8fafc;color:#475569}.acct-value{font-size:16px;font-weight:700;font-family:"Courier New",monospace;margin-bottom:1px}.acct-gain{font-size:12px;font-weight:700;margin-bottom:4px}.acct-roi{font-size:10px;font-weight:600;margin-bottom:6px}.acct-bar-bg{background:#e2e8f0;border-radius:2px;height:3px;overflow:hidden;margin-bottom:6px}.acct-bar-fill{height:100%;border-radius:2px}.acct-contrib{font-size:9px;color:#64748b}.acct-note{font-size:9px;color:#64748b;margin-top:5px;line-height:1.4}table{width:100%;border-collapse:collapse}thead tr{background:#f1f5f9}th{padding:6px 9px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#475569;border-bottom:1px solid #cbd5e1}th.r,td.r{text-align:right}td{padding:5px 9px;border-bottom:1px solid #f1f5f9;color:#334155;font-size:10px;vertical-align:middle}tr:last-child td{border-bottom:none}.ticker{font-family:"Courier New",monospace;font-weight:700;color:#07192e;font-size:11px}.badge{display:inline-block;font-size:7px;font-weight:700;padding:1px 4px;border-radius:2px;margin-left:3px;vertical-align:middle}.bt{background:#eff6ff;color:#1d4ed8}.bf{background:#f0fdf4;color:#166534}.br{background:#fffbeb;color:#92400e}.bn{background:#f1f5f9;color:#475569}.subtot td{background:#f1f5f9;font-weight:700;border-top:1px solid #cbd5e1}.sec-group td{background:#f8fafc;font-size:9px;font-weight:700;color:#475569;padding:4px 9px;letter-spacing:.05em;border-bottom:1px solid #e2e8f0}.commentary{background:#f8fafc;border-left:3px solid #0066cc;padding:11px 13px;font-size:10px;color:#334155;line-height:1.6;border-radius:0 6px 6px 0}.hl{background:#eff6ff;padding:0 2px;border-radius:2px;font-weight:600;color:#1d4ed8}.tax-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.titem{background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:12px}.titem-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:4px}.titem-val{font-size:15px;font-weight:700;font-family:"Courier New",monospace;margin-bottom:3px}.titem-note{font-size:9px;color:#64748b;line-height:1.4}.bench-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}.bench-lbl{width:130px;font-size:10px;color:#475569;flex-shrink:0}.bench-bar-bg{flex:1;background:#e2e8f0;border-radius:3px;height:13px;overflow:hidden}.bench-bar-fill{height:100%;border-radius:3px;display:flex;align-items:center;padding-left:6px;font-size:8px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden}.bench-val{width:120px;text-align:right;font-family:"Courier New",monospace;font-size:10px;font-weight:700;flex-shrink:0}.chart-wrap{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:12px}.chart-legend{display:flex;gap:14px;margin-bottom:10px}.leg-item{display:flex;align-items:center;gap:5px;font-size:9px;color:#64748b}.leg-dot{width:8px;height:8px;border-radius:50%}.footer{background:#f8fafc;padding:14px 50px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}.foot-l{font-size:9px;color:#94a3b8}.foot-r{font-size:9px;color:#94a3b8;text-align:right}.disc{font-size:8px;color:#94a3b8;line-height:1.5;padding:14px 50px;border-top:1px solid #e2e8f0}';
 
   var html='<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Portfolio Report — '+reportDate+'</title><style>'+css+'</style></head><body>'+
   '<div class="print-bar no-print"><p>📄 Portfolio Report — '+reportDate+' \xB7 Live data as at time of generation</p><button class="print-btn" onclick="window.print()">⬇ Print / Save PDF</button></div>'+
@@ -7973,8 +8057,23 @@ window.generatePortfolioReport = async function() {
   '</div>'+
   '<div class="commentary">Portfolio stands at <span class="hl">'+fmt$(Math.round(totalVal))+' CAD</span> with an all-time return of <span class="hl">'+fmtP(roiPct)+'</span> on '+fmt$(Math.round(totalContrib))+' contributed. TFSA holds '+fmt$(Math.round(tfsaVal))+' permanently tax-free at '+fmtP(tfsaRoi)+' ROI. The FHSA + RRSP Home Buyers’ Plan down payment fund stands at approximately <span class="hl">'+fmt$(Math.round(fhsaVal+35000))+' CAD</span>, targeting the GTA home purchase on return in March 2027. Non-Reg at '+fmt$(Math.round(invVal))+' ('+fmtP(invRoi)+' ROI) is the primary tax-optimization opportunity — review for loss harvesting before Dec 31. USD/CAD: '+usdcad.toFixed(4)+'.</div>'+
   '</div>'+
-  '<div class="sec"><div class="sec-header"><div class="sec-num">02</div><div class="sec-title">Account Summary</div></div><div class="acct-grid">'+acctCards+'</div></div>'+
-  '<div class="sec page-break"><div class="sec-header"><div class="sec-num">03</div><div class="sec-title">Complete Holdings Detail</div></div>'+
+  /* ── Section 02: Portfolio Value Historical Growth ──────────────────── */
+  '<div class="sec"><div class="sec-header"><div class="sec-num">02</div><div class="sec-title">Portfolio Value — Historical Growth</div></div>'+
+  '<div class="chart-wrap">'+
+  '<div class="chart-legend">'+
+  '<div class="leg-item"><div class="leg-dot" style="background:#0066cc"></div>Portfolio Value</div>'+
+  '<div class="leg-item"><div class="leg-dot" style="background:#94a3b8;border:2px dashed #94a3b8"></div>Total Contributions</div>'+
+  '</div>'+
+  chartSVG+
+  '</div>'+
+  '<div class="commentary">Total portfolio value of <span class="hl">'+fmt$(Math.round(totalVal))+'</span> vs <span class="hl">'+fmt$(Math.round(totalContrib))+'</span> contributed. The gap between the solid blue line and the dashed contributions line represents <span class="hl">'+fmtS$(Math.round(totalGain))+' ('+fmtP(roiPct)+' ROI)</span> in all-time unrealized gains. Data sourced directly from your Portfolio Pulse dashboard.</div>'+
+  '</div>'+
+
+  /* ── Section 03: Account Summary ───────────────────────────────────── */
+  '<div class="sec"><div class="sec-header"><div class="sec-num">03</div><div class="sec-title">Account Summary</div></div><div class="acct-grid">'+acctCards+'</div></div>'+
+
+  /* ── Section 04: Complete Holdings Detail ──────────────────────────── */
+  '<div class="sec page-break"><div class="sec-header"><div class="sec-num">04</div><div class="sec-title">Complete Holdings Detail</div></div>'+
   '<table><thead><tr><th>Ticker / Account</th><th>Name</th><th class="r">Shares</th><th class="r">Price</th><th class="r">Market Value</th><th class="r">Cost Basis</th><th class="r">Day P&L</th><th class="r">Unreal. Gain</th><th class="r">Return %</th><th class="r">Weight</th></tr></thead>'+
   '<tbody>'+holdingRows+'</tbody>'+
   '<tfoot><tr class="subtot"><td colspan="4"><b>TOTAL — '+HOLDINGS_STATIC.length+' Positions</b></td>'+
@@ -7985,7 +8084,33 @@ window.generatePortfolioReport = async function() {
   '<td class="r '+(roiPct>=0?'up':'dn')+'"><b>'+fmtP(roiPct)+'</b></td>'+
   '<td class="r"><b>100%</b></td></tr></tfoot></table>'+
   '<p style="font-size:9px;color:#94a3b8;margin-top:8px">All prices as of '+reportDate+'. USD holdings converted at USD/CAD '+usdcad.toFixed(4)+'. Cost basis in CAD using weighted-average FX rate at time of purchase.</p></div>'+
-  '<div class="sec"><div class="sec-header"><div class="sec-num">04</div><div class="sec-title">Tax & Account Optimization Summary</div></div>'+
+
+  /* ── Section 05: Benchmark Comparison ──────────────────────────────── */
+  '<div class="sec"><div class="sec-header"><div class="sec-num">05</div><div class="sec-title">Benchmark Comparison — Contribution-Weighted</div></div>'+
+  '<p style="font-size:9px;color:#64748b;margin-bottom:12px">Benchmarks are contribution-weighted: each index is assumed to have received the same deposits as your portfolio at the same times. Base values calibrated to '+fmt$(Math.round(bmContrib))+' total contributions.</p>'+
+  '<div class="bench-row"><div class="bench-lbl"><b>Your Portfolio</b></div>'+
+  '<div class="bench-bar-bg"><div class="bench-bar-fill" style="width:100%;background:#0066cc">'+fmt$(Math.round(totalVal))+'</div></div>'+
+  '<div class="bench-val '+(roiPct>=0?'up':'dn')+'">'+fmtS$(Math.round(totalGain))+' \xB7 '+fmtP(roiPct)+'</div></div>'+
+  '<div class="bench-row"><div class="bench-lbl">S&P 500 (USD)</div>'+
+  '<div class="bench-bar-bg"><div class="bench-bar-fill" style="width:'+(totalVal>0?Math.min(99,(sp500Val/totalVal*100)).toFixed(1):0)+'%;background:#f59e0b">'+fmt$(Math.round(sp500Val))+'</div></div>'+
+  '<div class="bench-val">'+fmt$(Math.round(sp500Val))+' \xB7 +'+sp500Roi.toFixed(1)+'%</div></div>'+
+  '<div class="bench-row"><div class="bench-lbl">TSX Composite</div>'+
+  '<div class="bench-bar-bg"><div class="bench-bar-fill" style="width:'+(totalVal>0?Math.min(99,(tsxVal/totalVal*100)).toFixed(1):0)+'%;background:#059669">'+fmt$(Math.round(tsxVal))+'</div></div>'+
+  '<div class="bench-val">'+fmt$(Math.round(tsxVal))+' \xB7 +'+tsxRoi.toFixed(1)+'%</div></div>'+
+  '<div class="bench-row"><div class="bench-lbl">NASDAQ 100 (USD)</div>'+
+  '<div class="bench-bar-bg"><div class="bench-bar-fill" style="width:'+(totalVal>0?Math.min(99,(nasdaqVal/totalVal*100)).toFixed(1):0)+'%;background:#8b5cf6">'+fmt$(Math.round(nasdaqVal))+'</div></div>'+
+  '<div class="bench-val">'+fmt$(Math.round(nasdaqVal))+' \xB7 +'+nasdaqRoi.toFixed(1)+'%</div></div>'+
+  '<div style="margin-top:12px;display:flex;gap:16px;flex-wrap:wrap">'+
+  '<div class="titem" style="flex:1;min-width:140px"><div class="titem-lbl">vs S&P 500 Alpha</div><div class="titem-val '+(alpha>=0?'up':'dn')+'">'+fmtP(alpha)+'</div><div class="titem-note">'+(alpha>=0?'You beat':'You trail')+' the S&P 500 by '+Math.abs(alpha).toFixed(1)+'% on a contribution-weighted basis.</div></div>'+
+  '<div class="titem" style="flex:1;min-width:140px"><div class="titem-lbl">S&P 500 Would Be</div><div class="titem-val am">'+fmt$(Math.round(sp500Val))+'</div><div class="titem-note">'+fmtP(sp500Roi)+' ROI on same contributions today.</div></div>'+
+  '<div class="titem" style="flex:1;min-width:140px"><div class="titem-lbl">NASDAQ 100 Would Be</div><div class="titem-val" style="color:#8b5cf6">'+fmt$(Math.round(nasdaqVal))+'</div><div class="titem-note">'+fmtP(nasdaqRoi)+' ROI on same contributions today.</div></div>'+
+  '<div class="titem" style="flex:1;min-width:140px"><div class="titem-lbl">TSX Would Be</div><div class="titem-val" style="color:#059669">'+fmt$(Math.round(tsxVal))+'</div><div class="titem-note">'+fmtP(tsxRoi)+' ROI on same contributions today.</div></div>'+
+  '</div>'+
+  '<div class="commentary" style="margin-top:12px">Your portfolio\'s <span class="hl">'+fmtP(roiPct)+' ROI</span> '+(alpha>=0?'outperforms':'underperforms')+' the contribution-weighted S&P 500 benchmark of <span class="hl">'+fmtP(sp500Roi)+'</span> by <span class="hl">'+fmtP(Math.abs(alpha))+' alpha</span>. Leveraged ETFs in the TFSA drive outsized returns relative to passive indices. Benchmark data sourced via Yahoo Finance at time of report generation.</div>'+
+  '</div>'+
+
+  /* ── Section 06: Tax & Account Optimization ─────────────────────────── */
+  '<div class="sec"><div class="sec-header"><div class="sec-num">06</div><div class="sec-title">Tax & Account Optimization Summary</div></div>'+
   '<div class="tax-grid3" style="margin-bottom:16px">'+
   '<div class="titem"><div class="titem-lbl">TFSA Tax-Free Gains</div><div class="titem-val up">'+fmtS$(Math.round(tfsaGain))+'</div><div class="titem-note">Permanently sheltered — no CRA exposure ever. All growth, dividends and capital gains are 100% tax-free. Never sell highest-returning TFSA positions.</div></div>'+
   '<div class="titem"><div class="titem-lbl">FHSA Down Payment Power</div><div class="titem-val" style="color:#059669">'+fmt$(Math.round(fhsaVal))+'</div><div class="titem-note">+ RRSP HBP $35K = ~'+fmt$(Math.round(fhsaVal+35000))+' combined. No FHSA repayment obligation. Use FHSA first on qualifying purchase. Returns to Canada March 2027.</div></div>'+
@@ -7996,6 +8121,7 @@ window.generatePortfolioReport = async function() {
   '</div>'+
   '<div class="commentary"><b>Priority Action Items:</b> (1) TFSA — never sell highest-performing leveraged ETF positions; tax-free compounding is maximally efficient here. (2) Non-Reg — review for tax-loss harvesting candidates before Dec 31. (3) RRSP — ensure idle cash is deployed immediately; opportunity cost ~8%/year. (4) FHSA + RRSP HBP = '+fmt$(Math.round(fhsaVal+35000))+' combined down payment power for GTA purchase on return in March 2027.</div>'+
   '</div>'+
+
   '<div class="footer"><div class="foot-l"><b>Portfolio Pulse</b> \xB7 Personal Portfolio Analysis<br>Generated '+reportDate+' \xB7 '+HOLDINGS_STATIC.length+' open positions</div><div class="foot-r">USD/CAD '+usdcad.toFixed(4)+' \xB7 Prices via Yahoo Finance<br><b style="color:#dc2626">Personal use only — not financial advice</b></div></div>'+
   '<div class="disc"><b>Important Disclosures:</b> This report is generated automatically from personal portfolio tracking data for the account holder’s personal review only. All figures are estimates based on market prices as of the report date and may differ from official brokerage statements. Tax calculations are estimates only — consult a registered CPA for tax filing. This report does not constitute financial advice, investment recommendations, or an official account statement. Historical returns are not indicative of future results. Leveraged ETF products carry significant risk of loss.</div>'+
   '</div></body></html>';

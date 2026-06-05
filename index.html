@@ -698,6 +698,21 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .notif-overlay,.notif-panel{z-index:5000 !important;}
   /* Offline banner */
   #offlineBanner{display:none !important;}
+  /* Carousel cards: constrain desktop content to phone width */
+  .m-carousel-card{overflow:hidden !important;box-sizing:border-box !important;}
+  .m-carousel-card>*{max-width:100% !important;overflow:hidden !important;word-wrap:break-word !important;box-sizing:border-box !important;}
+  /* Outcomes grid: stack vertically in carousel (not 3 desktop columns) */
+  .m-carousel-card .outcomes-grid{display:flex !important;flex-direction:column !important;gap:6px !important;}
+  .m-carousel-card .outcome-card{width:100% !important;box-sizing:border-box !important;margin-bottom:0 !important;}
+  .m-carousel-card .outcome-prob{font-size:22px !important;}
+  .m-carousel-card .outcome-scenario{font-size:10px !important;}
+  .m-carousel-card .outcome-estimate{font-size:10px !important;}
+  /* News cards in carousel */
+  .m-carousel-card .news-card,.m-carousel-card .macro-card,.m-carousel-card .risk-card{width:100% !important;box-sizing:border-box !important;}
+  /* Conf meter full width */
+  .m-carousel-card .conf-meter{width:100% !important;}
+  /* m-card inside carousel */
+  .m-carousel-card .m-card{margin-bottom:0 !important;}
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -7712,11 +7727,17 @@ window.mTab=function(name,el){
 };
 
 window.mToggleFab=function(e){
-  if(e)e.stopPropagation();
+  if(e&&e.stopPropagation)e.stopPropagation();
   var dd=document.querySelector('#m-app .m-fab-dropdown');
   if(!dd)return;
-  dd.classList.toggle('open');
+  /* Position dropdown relative to button before showing */
   var btn=document.getElementById('m-add-btn');
+  if(btn){
+    var r=btn.getBoundingClientRect();
+    dd.style.top=(r.bottom+4)+'px';
+    dd.style.right=(window.innerWidth-r.right)+'px';
+  }
+  dd.classList.toggle('open');
   if(btn)btn.textContent=dd.classList.contains('open')?'✕':'+';
 };
 document.addEventListener('click',function(){
@@ -7900,7 +7921,9 @@ function syncMobile(){
         var rp=rm?rm[1]:'';
         var dp=!isNaN(rawPctNum)?(rawPctNum>=0?'+':'')+rawPctNum.toFixed(2)+'%':(parts[1]||'');
         sD.textContent=(rp&&dp)?rp+' · '+dp:(rp||dp||cf);
-        sD.className=cD.className;
+        /* Color from all-time ROI sign — not from day change direction */
+        var subTxt=sD.textContent;
+        sD.className=subTxt.startsWith('+')?'up':(subTxt.startsWith('-')||subTxt.startsWith('−'))?'dn':'';
       }
     }
   });
@@ -7936,16 +7959,14 @@ function syncMobile(){
   }
   safeCarousel('macroThemes','m-macro-carousel','m-macro-carousel-dots');
   safeCarousel('riskFactors','m-risk-carousel','m-risk-carousel-dots');
-  safeSync('newsSector','m-news-list');
+  safeCarousel('newsSector','m-news-carousel','m-news-carousel-dots');
 
-  // Picks: sync both insights + research
+  // Picks: research tab only
   var picksS=document.getElementById('picksGrid');
   if(picksS){
     var pNi=picksS.innerHTML.trim();
     if(pNi){
-      var pd1=document.getElementById('m-picks-list');
       var pd2=document.getElementById('m-rsrch-picks');
-      if(pd1&&pd1.dataset.synced!==pNi){pd1.dataset.synced=pNi;pd1.innerHTML=pNi;}
       if(pd2&&pd2.dataset.synced!==pNi){pd2.dataset.synced=pNi;pd2.innerHTML=pNi;}
     }
   }
@@ -7993,6 +8014,42 @@ function syncMobile(){
     var s=document.getElementById(m[0]),d=document.getElementById(m[1]);
     if(s&&d){var v=m[2]+Number(s.value||0).toLocaleString();if(d.textContent!==v)d.textContent=v;}
   });
+
+  /* Tax & Accounts section */
+  function syncTax(){
+    var tfsaR=document.getElementById('tfsaRoomAmt');
+    var fhsaR=document.getElementById('fhsaRoomAmt');
+    var rrspR=document.getElementById('rrspRoomAmt');
+    var unrealEl=document.getElementById('cardUnrealized');
+    if(tfsaR){
+      var tr=tfsaR.textContent.trim();
+      var trD=document.getElementById('m-tax-tfsa-room');
+      if(trD&&tr)trD.textContent=tr;
+    }
+    if(fhsaR){
+      var fr=fhsaR.textContent.trim();
+      var frD=document.getElementById('m-tax-fhsa-room');
+      if(frD&&fr)frD.textContent=fr;
+    }
+    if(rrspR){
+      var rr=rrspR.textContent.trim();
+      var rrD=document.getElementById('m-tax-rrsp-limit');
+      if(rrD&&rr)rrD.textContent=rr;
+    }
+    if(unrealEl){
+      var ur=unrealEl.textContent.trim();
+      var urD=document.getElementById('m-tax-unrealized');
+      if(urD&&ur)urD.textContent=ur;
+    }
+    /* Mirror tax projection panel */
+    var projSrc=document.getElementById('taxProjectionPanel');
+    var projDst=document.getElementById('m-tax-proj-content');
+    if(projSrc&&projDst){
+      var pNi=projSrc.innerHTML.trim();
+      if(pNi&&projDst.dataset.synced!==pNi){projDst.dataset.synced=pNi;projDst.innerHTML=pNi;}
+    }
+  }
+  syncTax();
 
   /* Charts */
   if(!mMvChart||!mRoiChart)createMobileCharts();
@@ -8425,11 +8482,34 @@ document.addEventListener('DOMContentLoaded',function(){
         <div class="m-sec-hdr" style="margin-bottom:0">Market News</div>
         <div style="font-size:9px;color:var(--t3)">swipe ›</div>
       </div>
-      <div class="m-carousel" id="m-news-carousel"><div id="m-news-list"></div></div>
+      <div class="m-carousel" id="m-news-carousel"></div>
       <div class="m-carousel-dots" id="m-news-carousel-dots"></div>
-      <!-- Key action / picks -->
-      <div class="m-sec-hdr" style="margin-top:8px">Stocks to Watch</div>
-      <div id="m-picks-list"></div>
+      <!-- Tax & Accounts section -->
+      <div class="m-sec-hdr" style="margin-top:12px">Tax &amp; Accounts</div>
+      <div class="m-tax-grid" id="m-tax-mini-grid">
+        <div class="m-tax-mini" style="border-top-color:#4a9eff">
+          <div class="m-tax-mini-l">TFSA Room</div>
+          <div class="m-tax-mini-v" id="m-tax-tfsa-room">—</div>
+          <div class="m-tax-mini-sub" id="m-tax-tfsa-sub">of limit · 2026</div>
+        </div>
+        <div class="m-tax-mini" style="border-top-color:var(--green)">
+          <div class="m-tax-mini-l">FHSA Room</div>
+          <div class="m-tax-mini-v" id="m-tax-fhsa-room">—</div>
+          <div class="m-tax-mini-sub" id="m-tax-fhsa-sub">of $8,000/yr · tax-free</div>
+        </div>
+        <div class="m-tax-mini" style="border-top-color:var(--amber)">
+          <div class="m-tax-mini-l">RRSP Limit</div>
+          <div class="m-tax-mini-v" id="m-tax-rrsp-limit">—</div>
+          <div class="m-tax-mini-sub" id="m-tax-rrsp-sub">deductible</div>
+        </div>
+        <div class="m-tax-mini" style="border-top-color:var(--red)">
+          <div class="m-tax-mini-l">Unrealized Gain</div>
+          <div class="m-tax-mini-v up" id="m-tax-unrealized">—</div>
+          <div class="m-tax-mini-sub" id="m-tax-unrealized-sub">Non-reg exposure</div>
+        </div>
+      </div>
+      <!-- Tax projection: mirror from desktop taxProjectionPanel -->
+      <div class="m-tax-proj" id="m-tax-proj-content"></div>
     </div>
   </div>
 

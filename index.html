@@ -7777,12 +7777,182 @@ window.mToggleFab=function(e){
   dd.classList.toggle('open');
   if(btn)btn.textContent=dd.classList.contains('open')?'✕':'+';
 };
-document.addEventListener('click',function(){
-  var dd=document.querySelector('#m-app .m-fab-dropdown');
-  if(dd)dd.classList.remove('open');
-  var btn=document.getElementById('m-add-btn');
-  if(btn&&btn.textContent==='✕')btn.textContent='+';
-});
+/* generatePortfolioReport — builds a live-data report and opens print preview */
+window.generatePortfolioReport = function() {
+  var ld = window._lastLiveData || {};
+  var usdcad = ld.usdcad || 1.38;
+  var hPrices = ld.holdings || {};
+
+  function acctMV(acctKey) {
+    var mv = 0;
+    HOLDINGS_STATIC.filter(function(h){return h.account===acctKey;}).forEach(function(h) {
+      var p = hPrices[h.ticker];
+      var fx = h.ccy==='USD' ? usdcad : 1;
+      if (p && p.price) mv += p.price * h.shares * fx;
+      else mv += ((h.unrealized||0)+(h.cost_total||0)) * (h.ccy==='USD'?(h.book_rate||usdcad):1);
+    });
+    CASH_POSITIONS.filter(function(c){return c.account===acctKey;}).forEach(function(c) {
+      mv += c.ccy==='USD' ? c.amount*usdcad : c.amount;
+    });
+    return mv;
+  }
+
+  var tfsaVal = acctMV('TFSA');
+  var fhsaVal = acctMV('FHSA');
+  var rrspVal = acctMV('RRSP');
+  var invVal  = acctMV('Investment');
+  var totalVal = tfsaVal + fhsaVal + rrspVal + invVal;
+  var totalContrib = CONTRIB_TOTAL();
+  var totalGain = totalVal - totalContrib;
+  var roiPct = totalContrib > 0 ? (totalGain/totalContrib*100) : 0;
+  var tfsaC=CONTRIB_STATE.TFSA||44500, fhsaC=CONTRIB_STATE.FHSA||24000,
+      rrspC=CONTRIB_STATE.RRSP||16132, invC=CONTRIB_STATE.Investment||65000;
+  var tfsaGain=tfsaVal-tfsaC, fhsaGain=fhsaVal-fhsaC, rrspGain=rrspVal-rrspC, invGain=invVal-invC;
+  var tfsaRoi=tfsaC>0?tfsaGain/tfsaC*100:0, fhsaRoi=fhsaC>0?fhsaGain/fhsaC*100:0,
+      rrspRoi=rrspC>0?rrspGain/rrspC*100:0, invRoi=invC>0?invGain/invC*100:0;
+
+  var totalDayChg = 0;
+  HOLDINGS_STATIC.forEach(function(h) {
+    var p=hPrices[h.ticker];
+    if(p&&p.price&&p.prev) totalDayChg += (p.price-p.prev)*h.shares*(h.ccy==='USD'?usdcad:1);
+  });
+  var totalDayChgPct = (totalVal-totalDayChg)>0 ? totalDayChg/(totalVal-totalDayChg)*100 : 0;
+
+  var now=new Date();
+  var reportDate=now.toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
+
+  function fmtD(n){var abs=Math.abs(n);return '$'+Math.round(abs).toLocaleString();}
+  function fmt$(n){return (n<0?'−':'')+fmtD(n);}
+  function fmtS$(n){return (n>=0?'+':'−')+'$'+Math.abs(Math.round(n)).toLocaleString();}
+  function fmtP(n){return (n>=0?'+':'')+n.toFixed(1)+'%';}
+
+  /* Holdings rows grouped by sector */
+  var sectors={};
+  HOLDINGS_STATIC.forEach(function(h){
+    var s=h.sector||'Other';
+    if(!sectors[s])sectors[s]=[];
+    sectors[s].push(h);
+  });
+  var sOrder=['Leveraged ETF','Technology','Financials','Energy','Consumer Staples','Consumer Disc.','Industrials','Healthcare','Utilities','Comm. Services','Other'];
+  var aBadge={TFSA:'bt',FHSA:'bf',RRSP:'br',Investment:'bn'};
+  var aLabel={TFSA:'TFSA',FHSA:'FHSA',RRSP:'RRSP',Investment:'NON-REG'};
+  var holdingRows='';
+  sOrder.forEach(function(sector){
+    var hs=sectors[sector];
+    if(!hs||!hs.length)return;
+    hs.sort(function(a,b){
+      var pA=hPrices[a.ticker],pB=hPrices[b.ticker];
+      var mvA=pA&&pA.price?pA.price*a.shares*(a.ccy==='USD'?usdcad:1):(a.unrealized||0)+(a.cost_total||0);
+      var mvB=pB&&pB.price?pB.price*b.shares*(b.ccy==='USD'?usdcad:1):(b.unrealized||0)+(b.cost_total||0);
+      return mvB-mvA;
+    });
+    holdingRows+='<tr><td colspan="10" class="sec-group">'+sector+'</td></tr>';
+    hs.forEach(function(h){
+      var p=hPrices[h.ticker], lp=p&&p.price, pp=p&&(p.prev||p.price);
+      var fx=h.ccy==='USD'?usdcad:1, bfx=h.book_rate||fx;
+      var costCAD=h.ccy==='USD'?h.cost_total*bfx:h.cost_total;
+      var mv=lp?lp*h.shares*fx:((h.unrealized||0)+(h.cost_total||0))*bfx;
+      var dc=lp?(lp-pp)*h.shares*fx:0;
+      var ug=mv-costCAD, ret=costCAD>0?ug/costCAD*100:0, wt=totalVal>0?mv/totalVal*100:0;
+      var ps=lp?'$'+lp.toFixed(2)+(h.ccy==='USD'?' USD':' CAD'):'—';
+      var dcs=dc!==0?fmtS$(dc):'—';
+      holdingRows+='<tr>'+
+        '<td><span class="ticker">'+h.ticker+'</span><span class="badge '+aBadge[h.account]+'">'+aLabel[h.account]+'</span></td>'+
+        '<td>'+h.name+'</td>'+
+        '<td class="r">'+h.shares+'</td>'+
+        '<td class="r">'+ps+'</td>'+
+        '<td class="r"><b>'+fmt$(mv)+'</b></td>'+
+        '<td class="r">'+fmt$(costCAD)+'</td>'+
+        '<td class="r '+(dc>=0?'up':'dn')+'">'+dcs+'</td>'+
+        '<td class="r '+(ug>=0?'up':'dn')+'">'+(ug>=0?'+':'−')+'$'+Math.abs(Math.round(ug)).toLocaleString()+'</td>'+
+        '<td class="r '+(ret>=0?'up':'dn')+'">'+(ret>=0?'+':'')+ret.toFixed(1)+'%</td>'+
+        '<td class="r">'+wt.toFixed(1)+'%</td>'+
+      '</tr>';
+    });
+  });
+
+  /* Account cards */
+  var acctDefs=[
+    {key:'TFSA',val:tfsaVal,gain:tfsaGain,roi:tfsaRoi,contrib:tfsaC,cls:'ta',badge:'ab-t',label:'TFSA',
+     note:'100% permanently tax-free. All growth, dividends and capital gains sheltered — no CRA exposure on any dollar. Never sell highest-returning TFSA positions.'},
+    {key:'FHSA',val:fhsaVal,gain:fhsaGain,roi:fhsaRoi,contrib:fhsaC,cls:'fh',badge:'ab-f',label:'FHSA',
+     note:'Tax-deductible contributions + tax-free home purchase withdrawal. Combined with RRSP HBP $35K for GTA down payment. No repayment obligation unlike HBP.'},
+    {key:'RRSP',val:rrspVal,gain:rrspGain,roi:rrspRoi,contrib:rrspC,cls:'rs',badge:'ab-r',label:'RRSP',
+     note:'Tax-deferred growth. 0% US dividend withholding under Canada-US treaty — unavailable in any other account. Deploy idle cash immediately.'},
+    {key:'Investment',val:invVal,gain:invGain,roi:invRoi,contrib:invC,cls:'iv',badge:'ab-n',label:'NON-REG',
+     note:'50% capital gains inclusion rate. Review for tax-loss harvesting before Dec 31 to offset realized gains. Strategically time dispositions to lower-income years.'},
+  ];
+  var acctCards=acctDefs.map(function(a){
+    var barW=Math.max(0,Math.min(100,a.roi));
+    var barClr={ta:'#2563eb',fh:'#059669',rs:'#d97706',iv:'#94a3b8'}[a.cls];
+    var pct=totalVal>0?a.val/totalVal*100:0;
+    return '<div class="acct-card '+a.cls+'">'+
+      '<div class="acct-badge '+a.badge+'">'+a.label+'</div>'+
+      '<div class="acct-value">'+fmt$(Math.round(a.val))+'</div>'+
+      '<div class="acct-gain '+(a.gain>=0?'up':'dn')+'">'+fmtS$(a.gain)+' all-time gain</div>'+
+      '<div class="acct-roi '+(a.roi>=0?'up':'dn')+'">'+fmtP(a.roi)+' ROI</div>'+
+      '<div class="acct-bar-bg"><div class="acct-bar-fill" style="width:'+barW+'%;background:'+barClr+'"></div></div>'+
+      '<div class="acct-contrib">'+fmt$(Math.round(a.contrib))+' contributed · '+pct.toFixed(1)+'% of portfolio</div>'+
+      '<div class="acct-note">'+a.note+'</div>'+
+    '</div>';
+  }).join('');
+
+  var css='@page{size:letter;margin:.55in .6in}@media print{.no-print{display:none!important}body{background:#fff!important}.page-break{page-break-before:always}section,div{page-break-inside:avoid}}*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Helvetica Neue",Arial,sans-serif;font-size:11px;color:#0a1628;background:#f0f4f8;line-height:1.5}.page{max-width:810px;margin:0 auto;background:#fff}.print-bar{background:#050f1d;color:#e8f4fd;padding:10px 20px;display:flex;justify-content:space-between;align-items:center}.print-bar p{font-size:11px;color:#7eb3d4}.print-btn{background:#00d4ff;color:#050f1d;border:none;padding:7px 18px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer}.cover{background:linear-gradient(140deg,#07192e 0%,#0f2d52 60%,#1a3a5c 100%);color:#fff;padding:44px 50px 34px;position:relative;overflow:hidden}.cover::after{content:"";position:absolute;top:0;right:0;width:3px;height:100%;background:linear-gradient(180deg,#00d4ff,#4a9eff,#b39ddb)}.cover-logo{font-family:"Courier New",monospace;font-size:12px;letter-spacing:.12em;color:#00d4ff;margin-bottom:40px}.cover h1{font-size:26px;font-weight:800;margin-bottom:5px}.cover-sub{font-size:13px;color:#7eb3d4;margin-bottom:28px}.cover-meta{display:flex;gap:36px;flex-wrap:wrap}.cm-label{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#3d6d8e}.cm-value{font-size:13px;font-weight:600;color:#e8f4fd;margin-top:2px}.sec{padding:24px 50px;border-bottom:1px solid #e2e8f0}.sec:last-child{border-bottom:none}.sec-header{display:flex;align-items:center;gap:9px;margin-bottom:16px;padding-bottom:7px;border-bottom:2px solid #e2e8f0}.sec-num{width:22px;height:22px;background:#07192e;color:#fff;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}.sec-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#07192e}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:13px 14px;border-top:3px solid}.kpi.c1{border-top-color:#00d4ff}.kpi.c2{border-top-color:#059669}.kpi.c3{border-top-color:#d97706}.kpi.c4{border-top-color:#dc2626}.kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:4px}.kpi-val{font-size:17px;font-weight:700}.kpi-sub{font-size:9px;color:#64748b;margin-top:3px}.kpi-chg{font-size:10px;font-weight:600;margin-top:2px}.up{color:#059669}.dn{color:#dc2626}.cy{color:#0066cc}.am{color:#d97706}.acct-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}.acct-card{border:1px solid #e2e8f0;border-radius:10px;padding:14px;border-top:3px solid}.acct-card.ta{border-top-color:#2563eb}.acct-card.fh{border-top-color:#059669}.acct-card.rs{border-top-color:#d97706}.acct-card.iv{border-top-color:#94a3b8}.acct-badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;margin-bottom:7px}.ab-t{background:#eff6ff;color:#1d4ed8}.ab-f{background:#f0fdf4;color:#166534}.ab-r{background:#fffbeb;color:#92400e}.ab-n{background:#f8fafc;color:#475569}.acct-value{font-size:16px;font-weight:700;font-family:"Courier New",monospace;margin-bottom:1px}.acct-gain{font-size:12px;font-weight:700;margin-bottom:4px}.acct-roi{font-size:10px;font-weight:600;margin-bottom:6px}.acct-bar-bg{background:#e2e8f0;border-radius:2px;height:3px;overflow:hidden;margin-bottom:6px}.acct-bar-fill{height:100%;border-radius:2px}.acct-contrib{font-size:9px;color:#64748b}.acct-note{font-size:9px;color:#64748b;margin-top:5px;line-height:1.4}table{width:100%;border-collapse:collapse}thead tr{background:#f1f5f9}th{padding:6px 9px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#475569;border-bottom:1px solid #cbd5e1}th.r,td.r{text-align:right}td{padding:5px 9px;border-bottom:1px solid #f1f5f9;color:#334155;font-size:10px;vertical-align:middle}tr:last-child td{border-bottom:none}.ticker{font-family:"Courier New",monospace;font-weight:700;color:#07192e;font-size:11px}.badge{display:inline-block;font-size:7px;font-weight:700;padding:1px 4px;border-radius:2px;margin-left:3px;vertical-align:middle}.bt{background:#eff6ff;color:#1d4ed8}.bf{background:#f0fdf4;color:#166534}.br{background:#fffbeb;color:#92400e}.bn{background:#f1f5f9;color:#475569}.subtot td{background:#f1f5f9;font-weight:700;border-top:1px solid #cbd5e1}.sec-group td{background:#f8fafc;font-size:9px;font-weight:700;color:#475569;padding:4px 9px;letter-spacing:.05em;border-bottom:1px solid #e2e8f0}.commentary{background:#f8fafc;border-left:3px solid #0066cc;padding:11px 13px;font-size:10px;color:#334155;line-height:1.6;border-radius:0 6px 6px 0}.hl{background:#eff6ff;padding:0 2px;border-radius:2px;font-weight:600;color:#1d4ed8}.tax-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.titem{background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:12px}.titem-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:4px}.titem-val{font-size:15px;font-weight:700;font-family:"Courier New",monospace;margin-bottom:3px}.titem-note{font-size:9px;color:#64748b;line-height:1.4}.footer{background:#f8fafc;padding:14px 50px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}.foot-l{font-size:9px;color:#94a3b8}.foot-r{font-size:9px;color:#94a3b8;text-align:right}.disc{font-size:8px;color:#94a3b8;line-height:1.5;padding:14px 50px;border-top:1px solid #e2e8f0}';
+
+  var html='<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Portfolio Report — '+reportDate+'</title><style>'+css+'</style></head><body>'+
+  '<div class="print-bar no-print"><p>📄 Portfolio Report — '+reportDate+' \xB7 Live data as at time of generation</p><button class="print-btn" onclick="window.print()">⬇ Print / Save PDF</button></div>'+
+  '<div class="page">'+
+  '<div class="cover"><div class="cover-logo">⚡ PORTFOLIO PULSE</div><h1>Portfolio Analysis Report</h1><p class="cover-sub">Comprehensive Performance & Account Review — As at '+reportDate+'</p>'+
+  '<div class="cover-meta">'+
+  '<div><div class="cm-label">Report Date</div><div class="cm-value">'+reportDate+'</div></div>'+
+  '<div><div class="cm-label">Portfolio Value</div><div class="cm-value">'+fmt$(Math.round(totalVal))+' CAD</div></div>'+
+  '<div><div class="cm-label">All-Time Return</div><div class="cm-value">'+fmtP(roiPct)+' ROI</div></div>'+
+  '<div><div class="cm-label">Accounts</div><div class="cm-value">TFSA \xB7 FHSA \xB7 RRSP \xB7 Non-Reg</div></div>'+
+  '<div><div class="cm-label">USD/CAD Rate</div><div class="cm-value">'+usdcad.toFixed(4)+'</div></div>'+
+  '</div></div>'+
+  '<div class="sec"><div class="sec-header"><div class="sec-num">01</div><div class="sec-title">Executive Summary</div></div>'+
+  '<div class="kpi-grid">'+
+  '<div class="kpi c1"><div class="kpi-lbl">Total Portfolio Value</div><div class="kpi-val cy">'+fmt$(Math.round(totalVal))+'</div><div class="kpi-chg '+(totalDayChg>=0?'up':'dn')+'">'+fmtS$(totalDayChg)+' today ('+fmtP(totalDayChgPct)+')</div><div class="kpi-sub">CAD \xB7 All accounts combined</div></div>'+
+  '<div class="kpi c2"><div class="kpi-lbl">All-Time Unrealized Gains</div><div class="kpi-val '+(totalGain>=0?'up':'dn')+'">'+fmtS$(totalGain)+'</div><div class="kpi-chg '+(roiPct>=0?'up':'dn')+'">'+fmtP(roiPct)+' ROI on '+fmt$(Math.round(totalContrib))+'</div><div class="kpi-sub">vs total contributions</div></div>'+
+  '<div class="kpi c3"><div class="kpi-lbl">TFSA (Tax-Free)</div><div class="kpi-val up">'+fmt$(Math.round(tfsaVal))+'</div><div class="kpi-sub">'+fmt$(Math.round(tfsaC))+' contributed \xB7 '+fmtP(tfsaRoi)+' ROI</div><div class="kpi-chg up">100% permanently tax-free</div></div>'+
+  '<div class="kpi c4"><div class="kpi-lbl">Down Payment Fund</div><div class="kpi-val up">'+fmt$(Math.round(fhsaVal+35000))+'</div><div class="kpi-chg up">FHSA '+fmt$(Math.round(fhsaVal))+' + RRSP HBP $35K</div><div class="kpi-sub">GTA home purchase goal</div></div>'+
+  '</div>'+
+  '<div class="commentary">Portfolio stands at <span class="hl">'+fmt$(Math.round(totalVal))+' CAD</span> with an all-time return of <span class="hl">'+fmtP(roiPct)+'</span> on '+fmt$(Math.round(totalContrib))+' contributed. TFSA holds '+fmt$(Math.round(tfsaVal))+' permanently tax-free at '+fmtP(tfsaRoi)+' ROI. The FHSA + RRSP Home Buyers’ Plan down payment fund stands at approximately <span class="hl">'+fmt$(Math.round(fhsaVal+35000))+' CAD</span>, targeting the GTA home purchase on return in March 2027. Non-Reg at '+fmt$(Math.round(invVal))+' ('+fmtP(invRoi)+' ROI) is the primary tax-optimization opportunity — review for loss harvesting before Dec 31. USD/CAD: '+usdcad.toFixed(4)+'.</div>'+
+  '</div>'+
+  '<div class="sec"><div class="sec-header"><div class="sec-num">02</div><div class="sec-title">Account Summary</div></div><div class="acct-grid">'+acctCards+'</div></div>'+
+  '<div class="sec page-break"><div class="sec-header"><div class="sec-num">03</div><div class="sec-title">Complete Holdings Detail</div></div>'+
+  '<table><thead><tr><th>Ticker / Account</th><th>Name</th><th class="r">Shares</th><th class="r">Price</th><th class="r">Market Value</th><th class="r">Cost Basis</th><th class="r">Day P&L</th><th class="r">Unreal. Gain</th><th class="r">Return %</th><th class="r">Weight</th></tr></thead>'+
+  '<tbody>'+holdingRows+'</tbody>'+
+  '<tfoot><tr class="subtot"><td colspan="4"><b>TOTAL — '+HOLDINGS_STATIC.length+' Positions</b></td>'+
+  '<td class="r"><b>'+fmt$(Math.round(totalVal))+'</b></td>'+
+  '<td class="r"><b>'+fmt$(Math.round(totalContrib))+'</b></td>'+
+  '<td class="r '+(totalDayChg>=0?'up':'dn')+'"><b>'+fmtS$(Math.round(totalDayChg))+'</b></td>'+
+  '<td class="r '+(totalGain>=0?'up':'dn')+'"><b>'+fmtS$(Math.round(totalGain))+'</b></td>'+
+  '<td class="r '+(roiPct>=0?'up':'dn')+'"><b>'+fmtP(roiPct)+'</b></td>'+
+  '<td class="r"><b>100%</b></td></tr></tfoot></table>'+
+  '<p style="font-size:9px;color:#94a3b8;margin-top:8px">All prices as of '+reportDate+'. USD holdings converted at USD/CAD '+usdcad.toFixed(4)+'. Cost basis in CAD using weighted-average FX rate at time of purchase.</p></div>'+
+  '<div class="sec"><div class="sec-header"><div class="sec-num">04</div><div class="sec-title">Tax & Account Optimization Summary</div></div>'+
+  '<div class="tax-grid3" style="margin-bottom:16px">'+
+  '<div class="titem"><div class="titem-lbl">TFSA Tax-Free Gains</div><div class="titem-val up">'+fmtS$(Math.round(tfsaGain))+'</div><div class="titem-note">Permanently sheltered — no CRA exposure ever. All growth, dividends and capital gains are 100% tax-free. Never sell highest-returning TFSA positions.</div></div>'+
+  '<div class="titem"><div class="titem-lbl">FHSA Down Payment Power</div><div class="titem-val" style="color:#059669">'+fmt$(Math.round(fhsaVal))+'</div><div class="titem-note">+ RRSP HBP $35K = ~'+fmt$(Math.round(fhsaVal+35000))+' combined. No FHSA repayment obligation. Use FHSA first on qualifying purchase. Returns to Canada March 2027.</div></div>'+
+  '<div class="titem"><div class="titem-lbl">RRSP Tax-Deferred Value</div><div class="titem-val am">'+fmt$(Math.round(rrspVal))+'</div><div class="titem-note">Tax-deferred (not tax-free). 0% US dividend withholding under Canada-US treaty. Best home for US dividend ETFs — unavailable in any other account type.</div></div>'+
+  '<div class="titem"><div class="titem-lbl">Non-Reg Unrealized Gains</div><div class="titem-val '+(invGain>=0?'up':'dn')+'">'+fmtS$(Math.round(invGain))+'</div><div class="titem-note">50% capital gains inclusion rate. Deferred tax grows with portfolio. Harvest losses before Dec 31 to offset realized gains and reduce taxable income.</div></div>'+
+  '<div class="titem"><div class="titem-lbl">Total Portfolio Gain</div><div class="titem-val '+(totalGain>=0?'up':'dn')+'">'+fmtS$(Math.round(totalGain))+'</div><div class="titem-note">All-time gain vs '+fmt$(Math.round(totalContrib))+' contributed. TFSA portion ('+fmtS$(Math.round(tfsaGain))+') is permanently tax-free. Non-reg portion carries deferred tax liability.</div></div>'+
+  '<div class="titem"><div class="titem-lbl">All-Time ROI</div><div class="titem-val '+(roiPct>=0?'up':'dn')+'">'+fmtP(roiPct)+'</div><div class="titem-note">Overall portfolio return vs total contributions. Driven primarily by leveraged ETF positions and high-conviction tech names permanently sheltered in TFSA.</div></div>'+
+  '</div>'+
+  '<div class="commentary"><b>Priority Action Items:</b> (1) TFSA — never sell highest-performing leveraged ETF positions; tax-free compounding is maximally efficient here. (2) Non-Reg — review for tax-loss harvesting candidates before Dec 31. (3) RRSP — ensure idle cash is deployed immediately; opportunity cost ~8%/year. (4) FHSA + RRSP HBP = '+fmt$(Math.round(fhsaVal+35000))+' combined down payment power for GTA purchase on return in March 2027.</div>'+
+  '</div>'+
+  '<div class="footer"><div class="foot-l"><b>Portfolio Pulse</b> \xB7 Personal Portfolio Analysis<br>Generated '+reportDate+' \xB7 '+HOLDINGS_STATIC.length+' open positions</div><div class="foot-r">USD/CAD '+usdcad.toFixed(4)+' \xB7 Prices via Yahoo Finance<br><b style="color:#dc2626">Personal use only — not financial advice</b></div></div>'+
+  '<div class="disc"><b>Important Disclosures:</b> This report is generated automatically from personal portfolio tracking data for the account holder’s personal review only. All figures are estimates based on market prices as of the report date and may differ from official brokerage statements. Tax calculations are estimates only — consult a registered CPA for tax filing. This report does not constitute financial advice, investment recommendations, or an official account statement. Historical returns are not indicative of future results. Leveraged ETF products carry significant risk of loss.</div>'+
+  '</div></body></html>';
+
+  var win=window.open('','_blank');
+  if(!win){alert('Please allow pop-ups to generate the report.');return;}
+  win.document.write(html);
+  win.document.close();
+  setTimeout(function(){win.print();},600);
+};
+
 /* ════ SETTINGS: save/discard logic ═══════════════════════ */
 var _settingsSaved={salary:90000,rrspContrib:0,tfsaRoom:0,rrspLimit:0,
                     dark:true,notifPush:true,notifEod:true,notifSpike:true,notifMilestone:true,
@@ -8480,11 +8650,11 @@ document.addEventListener('DOMContentLoaded',function(){
     <div id="m-live-row" class="m-live-row"><div class="m-live-dot"></div> LIVE</div>
     <div class="m-hdr-actions">
       <div class="m-icon-btn" onclick="openNotifPanel()" title="Notifications">🔔</div>
-      <button class="m-add-btn" id="m-add-btn" onclick="mToggleFab()">+</button>
+      <button class="m-add-btn" id="m-add-btn" onclick="mToggleFab(event)">+</button>
       <div class="m-icon-btn" id="m-settings-icon" onclick="document.getElementById('m-settings').classList.contains('open')?mCloseSettings():mOpenSettings()">⚙️</div>
       <div class="m-fab-dropdown">
-        <div class="m-fab-drop-item" onclick="openTxModal();mToggleFab()"><span class="m-fab-drop-icon">📋</span>Log Trade</div>
-        <div class="m-fab-drop-item" onclick="window.open('mockup-report.html','_blank');mToggleFab()"><span class="m-fab-drop-icon">📄</span>Generate Report</div>
+        <div class="m-fab-drop-item" onclick="openTxModal();mToggleFab()"><span class="m-fab-drop-icon">📋</span>Log</div>
+        <div class="m-fab-drop-item" onclick="generatePortfolioReport();mToggleFab()"><span class="m-fab-drop-icon">📄</span>Generate Report</div>
       </div>
     </div>
   </div>

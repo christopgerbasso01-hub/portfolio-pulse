@@ -7793,8 +7793,32 @@ function initInsights(){
 
 /* ════════════════════════ PODCAST ═══════════════════════════ */
 function initPodcast(){
-  // Mirror player inner
-  mirrorHTML('podPlayerInner','m-pod-player');
+  // Build podcast card: artwork + title + controls
+  function buildPodCard(){
+    var titleEl=document.getElementById('podTitle');
+    var epBadge=document.getElementById('podEpBadge');
+    var moodBadge=document.getElementById('podMoodBadge');
+    var dateBadge=document.getElementById('podDateBadge');
+    var dst=document.getElementById('m-pod-player');
+    if(!dst)return;
+    var title=titleEl?titleEl.textContent.trim():'';
+    var ep=epBadge&&epBadge.style.display!=='none'?epBadge.textContent.trim():'';
+    var mood=moodBadge&&moodBadge.style.display!=='none'?moodBadge.textContent.trim():'';
+    var date=dateBadge?dateBadge.textContent.trim():'';
+    var infoLine=[ep,date,mood].filter(Boolean).join(' · ');
+    dst.innerHTML=
+      '<div class="m-pod-card">'
+      +'<div class="m-pod-art">🎙️</div>'
+      +(infoLine?'<div class="m-pod-ep">'+infoLine+'</div>':'')
+      +'<div class="m-pod-title">'+(title||'Portfolio Pulse Weekly')+'</div>'
+      +'</div>';
+  }
+  buildPodCard();
+  var titleEl=document.getElementById('podTitle');
+  if(titleEl) new MutationObserver(buildPodCard).observe(titleEl,{childList:true,characterData:true,subtree:true});
+  var epBadge=document.getElementById('podEpBadge');
+  if(epBadge) new MutationObserver(buildPodCard).observe(epBadge,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['style']});
+
   // Episode list
   var epSrc=document.getElementById('podEpList');
   var epDst=document.getElementById('m-pod-eps');
@@ -7808,20 +7832,21 @@ function initPodcast(){
   syncEps();
   if(epSrc) new MutationObserver(syncEps).observe(epSrc,{childList:true,subtree:true,attributes:true,attributeFilter:['style']});
 
-  // Progress bar sync with actual audio
+  // Progress bar: sync with actual audio element
   var audio=document.getElementById('podAudio');
   var fill=document.getElementById('m-pod-fill-bar');
   var timeEl=document.getElementById('m-pod-time');
-  if(audio&&fill){
+  if(audio){
     audio.addEventListener('timeupdate',function(){
-      if(audio.duration){
-        fill.style.width=(audio.currentTime/audio.duration*100)+'%';
-      }
+      if(audio.duration&&fill) fill.style.width=(audio.currentTime/audio.duration*100)+'%';
       if(timeEl){
         var fmt=function(s){return Math.floor(s/60)+':'+('0'+Math.floor(s%60)).slice(-2);};
         timeEl.textContent=fmt(audio.currentTime||0)+' / '+fmt(audio.duration||0);
       }
     });
+    // Play/pause button visual state
+    audio.addEventListener('play',function(){var b=document.querySelector('#m-pane-podcast .m-pod-ctrl span:nth-child(2)');if(b)b.textContent='⏸';});
+    audio.addEventListener('pause',function(){var b=document.querySelector('#m-pane-podcast .m-pod-ctrl span:nth-child(2)');if(b)b.textContent='▶';});
   }
 }
 
@@ -7835,7 +7860,7 @@ function initResearch(){
 
 /* ════════════════════════ SETTINGS ══════════════════════════ */
 function initSettings(){
-  // Sync values from existing settings inputs
+  // Sync salary/RRSP/TFSA/limit values from existing inputs
   var mappings=[
     ['salaryInput','m-set-salary','$'],
     ['rrspThisYearInput','m-set-rrsp','$'],
@@ -7850,19 +7875,37 @@ function initSettings(){
     sync();
     src.addEventListener('change',sync);src.addEventListener('input',sync);
   });
-  // Dark mode toggle syncs with app theme
+
+  // Dark mode: toggle data-theme on html element
   var darkToggle=document.getElementById('m-dark-toggle');
   if(darkToggle){
+    // Set initial state from current theme
+    var isDark=document.documentElement.getAttribute('data-theme')!=='light';
+    if(isDark) darkToggle.classList.add('on'); else darkToggle.classList.remove('on');
     darkToggle.onclick=function(){
       darkToggle.classList.toggle('on');
       var dark=darkToggle.classList.contains('on');
       document.documentElement.setAttribute('data-theme',dark?'dark':'light');
     };
   }
-  // Notification toggles (visual only, wire to existing system)
-  document.querySelectorAll('.m-toggle:not(#m-dark-toggle)').forEach(function(t){
-    t.onclick=function(){t.classList.toggle('on');};
-  });
+
+  // Push notifications toggle: wire to existing notifToggle checkbox
+  var notifRow=document.querySelector('.m-settings-row:has(#m-notif-push-toggle)');
+  var pushToggle=document.getElementById('m-notif-push-toggle');
+  if(!pushToggle){
+    // Find the push notification toggle row and wire it
+    var allToggles=document.querySelectorAll('#m-settings .m-toggle');
+    // toggles: [0]=dark(already set), [1]=push, [2]=eod, [3]=spike, [4]=milestone, [5]=podcast, [6]=intelligence
+    var toggleMap=[null,'openNotifPanel',null,null,null,null,null];
+    allToggles.forEach(function(t,i){
+      if(t===darkToggle)return;
+      t.onclick=function(){
+        t.classList.toggle('on');
+        // For push notifications (first notif toggle), open the panel
+        if(i===1) { if(window.openNotifPanel) window.openNotifPanel(); }
+      };
+    });
+  }
 }
 
 /* ════════════════════════ CAROUSEL DOTS ════════════════════ */
@@ -7930,6 +7973,187 @@ function positionFabDropdown(){
 }
 document.getElementById('m-add-btn') && document.getElementById('m-add-btn').addEventListener('click',positionFabDropdown);
 
+/* ════════════════════════ DIRECT SYNC ══════════════════════ */
+/* Reads current DOM state and pushes to mobile elements — */
+/* called immediately + on every refreshAll + on intervals  */
+function syncMobile(){
+  if(window.innerWidth>768)return;
+
+  /* Hero: total value */
+  var totalSrc=document.getElementById('kpiTotalValue');
+  var totalDst=document.getElementById('m-total');
+  if(totalSrc&&totalDst){
+    var t=totalSrc.textContent.trim();
+    if(t&&t!=='') totalDst.textContent=t;
+  }
+
+  /* Day chip */
+  var pillSrc=document.getElementById('kpiDailyChange');
+  var pillDst=document.getElementById('m-day-chip');
+  if(pillSrc&&pillDst){
+    var pt=pillSrc.textContent.trim();
+    if(pt&&pt!=='—'){
+      if(!pt.includes('today')){
+        var pp=pt.split(' ');
+        if(pp.length>=2) pt=pp[0]+' · '+pp[1]+' today';
+      }
+      pillDst.textContent=pt;
+      pillDst.className='m-day-chip '+(pillSrc.classList.contains('green')||pt.startsWith('+'))?'up':
+                        (pillSrc.classList.contains('red')||pt.startsWith('-')||pt.startsWith('−'))?'dn':'neu';
+    }
+  }
+
+  /* Hero secondary */
+  var roiSrc=document.getElementById('kpiRoi');
+  var cSrc=document.getElementById('kpiContributions');
+  var subDst=document.getElementById('m-hero-sub');
+  if(roiSrc&&subDst){
+    var r=roiSrc.textContent.trim();
+    var c=cSrc?cSrc.textContent.trim():'';
+    if(r&&r!=='—') subDst.textContent=r+' all-time'+(c&&c!=='—'?' · '+c+' contributed':'');
+  }
+
+  /* Live bar status */
+  var rateSrc=document.getElementById('usdcadRate');
+  var statusDst=document.getElementById('m-live-row');
+  if(rateSrc&&statusDst){
+    var rv=rateSrc.textContent.trim().replace('USD/CAD ','').replace('USD/CAD','').trim();
+    statusDst.innerHTML='<div class="m-live-dot"></div> LIVE'+(rv?' · '+rv:'');
+  }
+
+  /* Account tab labels */
+  var tabBar=document.getElementById('m-port-tabs');
+  if(tabBar){
+    var tabSrcIds=['kpiTotalValue','abTFSAVal','abFHSAVal','abRRSPVal','abInvVal'];
+    Array.from(tabBar.children).forEach(function(btn,i){
+      var el=document.getElementById(tabSrcIds[i]);
+      if(!el)return;
+      var v=toK(el.textContent.trim());
+      var span=btn.querySelector('span');
+      if(span&&v&&v!=='—') span.textContent=v;
+    });
+  }
+
+  /* Account cards */
+  var acctMap=[
+    {val:'abTFSAVal',chg:'abTFSAChg',roi:'acctTFSARoi',id:'m-tfsa'},
+    {val:'abFHSAVal',chg:'abFHSAChg',roi:'acctFHSARoi',id:'m-fhsa'},
+    {val:'abRRSPVal',chg:'abRRSPChg',roi:'acctRRSPRoi',id:'m-rrsp'},
+    {val:'abInvVal', chg:'abInvChg', roi:'acctInvRoi', id:'m-inv'},
+  ];
+  acctMap.forEach(function(a){
+    var vSrc=document.getElementById(a.val);
+    var cSrc=document.getElementById(a.chg);
+    var rSrc=document.getElementById(a.roi);
+    var vDst=document.getElementById(a.id+'-val');
+    var cDst=document.getElementById(a.id+'-chg');
+    var sDst=document.getElementById(a.id+'-sub');
+    if(vSrc&&vDst&&vSrc.textContent.trim()) vDst.textContent=vSrc.textContent.trim();
+    if(cSrc&&cDst){
+      var cf=cSrc.textContent.trim();
+      var parts=cf.split(' ');
+      var dayDollar=parts[0]||cf;
+      var dayPct=parts[1]||'';
+      cDst.textContent=dayDollar;
+      cDst.className=cSrc.classList.contains('green')?'up':cSrc.classList.contains('red')?'dn':'';
+      if(rSrc&&sDst){
+        var rr=rSrc.textContent.trim();
+        var rm=rr.match(/([+\-]?[\d.,]+%)/);
+        var rp=rm?rm[1]:'';
+        sDst.textContent=(rp&&dayPct)?rp+' · '+dayPct:(rp||dayPct||cf);
+        sDst.className=cDst.className;
+      }
+    }
+  });
+
+  /* Contribution bar */
+  var tvEl=document.getElementById('kpiTotalValue');
+  var ctEl=document.getElementById('kpiContributions');
+  var pnlEl=document.getElementById('kpiTotalPnl');
+  if(tvEl&&ctEl){
+    var tvTxt=tvEl.textContent.trim();
+    var ctTxt=ctEl.textContent.trim();
+    var ctTotalDst=document.getElementById('m-contrib-total');
+    if(ctTotalDst&&tvTxt) ctTotalDst.textContent=tvTxt+' total';
+    var tv=parseFloat(tvTxt.replace(/[$,K]/g,''));
+    if(tvTxt.includes('K'))tv*=1000;
+    var cv=parseFloat(ctTxt.replace(/[$,K]/g,''));
+    if(ctTxt.includes('K'))cv*=1000;
+    if(tv>0&&cv>0){
+      var p=Math.min(99,(cv/tv*100)).toFixed(1);
+      var gp=(100-parseFloat(p)).toFixed(1);
+      var filledEl=document.getElementById('m-contrib-filled');
+      var gainsEl=document.getElementById('m-contrib-gains');
+      if(filledEl) filledEl.style.width=p+'%';
+      if(gainsEl) gainsEl.style.width=gp+'%';
+      var cLeg=document.getElementById('m-contrib-contrib-leg');
+      var gLeg=document.getElementById('m-contrib-gains-leg');
+      if(cLeg) cLeg.textContent='Contributed '+ctTxt+' ('+p+'%)';
+      if(gLeg&&pnlEl) gLeg.textContent='Gains '+pnlEl.textContent.trim()+' ('+gp+'%)';
+    }
+  }
+
+  /* Ticker */
+  var tkSrc=document.getElementById('tickerTrack');
+  var tkDst=document.getElementById('m-ticker-track');
+  if(tkSrc&&tkDst&&tkSrc.innerHTML.trim()) tkDst.innerHTML=tkSrc.innerHTML;
+
+  /* Holdings: fix filter then rebuild cards */
+  var acctFilter=document.getElementById('acctFilter');
+  if(acctFilter&&acctFilter.value==='_summary'){
+    acctFilter.value='';
+    if(window.filterTable) window.filterTable();
+  }
+
+  /* Insights */
+  var glanceSrc=document.getElementById('glanceContent');
+  var glanceDst=document.getElementById('m-glance-content');
+  if(glanceSrc&&glanceDst&&glanceSrc.innerHTML.trim()) glanceDst.innerHTML=glanceSrc.innerHTML;
+
+  function syncCarousel(srcId,dstId,dotsId){
+    var src=document.getElementById(srcId);
+    var dst=document.getElementById(dstId);
+    if(!src||!dst||!src.children.length)return;
+    dst.innerHTML=Array.from(src.children).map(function(k){
+      return'<div class="m-carousel-card">'+k.outerHTML+'</div>';
+    }).join('');
+    initCarouselDots(dst,dotsId);
+  }
+  syncCarousel('macroThemes','m-macro-carousel','m-macro-carousel-dots');
+  syncCarousel('riskFactors','m-risk-carousel','m-risk-carousel-dots');
+
+  var newsSrc=document.getElementById('newsSector');
+  var newsDst=document.getElementById('m-news-list');
+  if(newsSrc&&newsDst&&newsSrc.innerHTML.trim()) newsDst.innerHTML=newsSrc.innerHTML;
+
+  var picksSrc=document.getElementById('picksGrid');
+  var picksDst1=document.getElementById('m-picks-list');
+  var picksDst2=document.getElementById('m-rsrch-picks');
+  if(picksSrc&&picksSrc.innerHTML.trim()){
+    if(picksDst1) picksDst1.innerHTML=picksSrc.innerHTML;
+    if(picksDst2) picksDst2.innerHTML=picksSrc.innerHTML;
+  }
+
+  /* Podcast: mirror episode info */
+  var podSrc=document.getElementById('podPlayerInner');
+  var podDst=document.getElementById('m-pod-player');
+  if(podSrc&&podDst&&podSrc.innerHTML.trim()) podDst.innerHTML=podSrc.innerHTML;
+
+  /* Research watchlist */
+  var wlSrc=document.getElementById('rsrchWatchlistStrip');
+  var wlDst=document.getElementById('m-rsrch-watchlist');
+  if(wlSrc&&wlDst&&wlSrc.innerHTML.trim()) wlDst.innerHTML=wlSrc.innerHTML;
+
+  /* Settings values */
+  var sMap=[['salaryInput','m-set-salary','$'],['rrspThisYearInput','m-set-rrsp','$'],
+            ['tfsaRoomInput','m-set-tfsa-room','$'],['rrspLimitInput','m-set-rrsp-limit','$']];
+  sMap.forEach(function(m){
+    var s=document.getElementById(m[0]);
+    var d=document.getElementById(m[1]);
+    if(s&&d) d.textContent=m[2]+Number(s.value||0).toLocaleString();
+  });
+}
+
 /* ════════════════════════ INIT ══════════════════════════════ */
 if(window.innerWidth>768)return; // Only run on mobile
 
@@ -7945,6 +8169,29 @@ initInsights();
 initPodcast();
 initResearch();
 initSettings();
+
+// Fix acctFilter default so holdings show all rows on mobile
+var _mAcctFilter=document.getElementById('acctFilter');
+if(_mAcctFilter&&_mAcctFilter.value==='_summary'){
+  _mAcctFilter.value='';
+  if(window.filterTable) window.filterTable();
+}
+
+// Run immediate + delayed syncs to catch data at any load stage
+syncMobile();
+setTimeout(syncMobile,1000);
+setTimeout(syncMobile,3000);
+setTimeout(syncMobile,7000);
+setTimeout(syncMobile,15000);
+
+// Hook into refreshAll so every data refresh also updates mobile
+var _origRefreshAll=window.refreshAll;
+window.refreshAll=function(){
+  var r=_origRefreshAll?_origRefreshAll.apply(this,arguments):null;
+  if(r&&r.then) r.then(function(){setTimeout(syncMobile,500);});
+  else setTimeout(syncMobile,500);
+  return r;
+};
 
 // Init carousels
 setTimeout(function(){

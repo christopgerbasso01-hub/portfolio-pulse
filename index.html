@@ -717,6 +717,23 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .m-carousel-card .macro-card,.m-carousel-card .risk-card,
   .m-carousel-card .news-card,.m-carousel-card .m-card{
     width:100% !important;min-width:0 !important;margin-bottom:0 !important;}
+
+  /* Today at a Glance — holdings tab */
+  .m-hold-glance{
+    background:var(--surf2);border:1px solid var(--cyan-b);
+    border-radius:13px;padding:11px 14px 10px;
+    margin:4px 14px 8px;flex-shrink:0;
+  }
+  .m-hold-glance-hdr{
+    font-size:8px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--cyan);font-weight:800;margin-bottom:8px;
+  }
+  .m-hold-glance-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;}
+  .m-hold-glance-col{padding-right:4px;}
+  .m-hold-glance-col:last-child{padding-right:0;}
+  .m-hold-glance-lbl{font-size:9px;color:var(--t3);margin-bottom:3px;font-weight:600;}
+  .m-hold-glance-val{font-size:16px;font-weight:800;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .m-hold-glance-sub{font-size:9px;margin-top:2px;}
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -8045,38 +8062,64 @@ function syncMobile(){
     if(s&&d){var v=m[2]+Number(s.value||0).toLocaleString();if(d.textContent!==v)d.textContent=v;}
   });
 
-  /* Tax & Accounts section */
+  /* Tax & Accounts section — fully live data */
   function syncTax(){
+    /* TFSA Room */
     var tfsaR=document.getElementById('tfsaRoomAmt');
+    var tfsaD=document.getElementById('m-tax-tfsa-room');
+    var tfsaSub=document.getElementById('m-tax-tfsa-sub');
+    if(tfsaR&&tfsaD&&tfsaR.textContent.trim()){tfsaD.textContent=tfsaR.textContent.trim();}
+    /* Sub-text: get TFSA lifetime limit from input */
+    var tfsaRoom=document.getElementById('tfsaRoomInput');
+    if(tfsaRoom&&tfsaSub){
+      var lim=Number(tfsaRoom.value||0);
+      if(lim>0)tfsaSub.textContent='of $'+lim.toLocaleString()+' limit · 2026';
+    }
+
+    /* FHSA Room */
     var fhsaR=document.getElementById('fhsaRoomAmt');
-    var rrspR=document.getElementById('rrspRoomAmt');
+    var fhsaD=document.getElementById('m-tax-fhsa-room');
+    if(fhsaR&&fhsaD&&fhsaR.textContent.trim()){fhsaD.textContent=fhsaR.textContent.trim();}
+
+    /* RRSP Limit — show deduction limit, not remaining room */
+    var rrspLim=document.getElementById('rrspLimitInput');
+    var rrspD=document.getElementById('m-tax-rrsp-limit');
+    var rrspSub=document.getElementById('m-tax-rrsp-sub');
+    if(rrspLim&&rrspD){
+      var limVal=Number(rrspLim.value||0);
+      if(limVal>0)rrspD.textContent='$'+limVal.toLocaleString();
+    }
+    /* Extract idle cash from RRSP footer text e.g. "$10,618 cash" */
+    var rrspFtr=document.getElementById('acctRRSPFooter');
+    if(rrspFtr&&rrspSub){
+      var ftrTxt=rrspFtr.textContent;
+      var idleMatch=ftrTxt.match(/\$[\d,]+(?:\.\d+)?(?:K)?\s*(?:cash|idle)/i);
+      if(idleMatch){rrspSub.textContent='deductible · '+idleMatch[0].split(/\s/)[0]+' idle';}
+      else{rrspSub.textContent='deductible';}
+    }
+
+    /* Unrealized Gain — from Non-Reg investment account */
     var unrealEl=document.getElementById('cardUnrealized');
-    if(tfsaR){
-      var tr=tfsaR.textContent.trim();
-      var trD=document.getElementById('m-tax-tfsa-room');
-      if(trD&&tr)trD.textContent=tr;
+    var unrealD=document.getElementById('m-tax-unrealized');
+    var unrealSub=document.getElementById('m-tax-unrealized-sub');
+    if(unrealEl&&unrealD&&unrealEl.textContent.trim()){
+      unrealD.textContent=unrealEl.textContent.trim();
+      unrealD.className='m-tax-mini-v '+(unrealEl.classList.contains('green')||unrealEl.textContent.startsWith('$')?'up':'');
     }
-    if(fhsaR){
-      var fr=fhsaR.textContent.trim();
-      var frD=document.getElementById('m-tax-fhsa-room');
-      if(frD&&fr)frD.textContent=fr;
+    /* Sub-text: non-reg exposure from cardFX or from FX card */
+    if(unrealSub){
+      var fxEl=document.getElementById('cardFX');
+      unrealSub.textContent=fxEl?'FX impact: '+fxEl.textContent.trim():'Non-reg exposure';
     }
-    if(rrspR){
-      var rr=rrspR.textContent.trim();
-      var rrD=document.getElementById('m-tax-rrsp-limit');
-      if(rrD&&rr)rrD.textContent=rr;
-    }
-    if(unrealEl){
-      var ur=unrealEl.textContent.trim();
-      var urD=document.getElementById('m-tax-unrealized');
-      if(urD&&ur)urD.textContent=ur;
-    }
-    /* Mirror tax projection panel */
+
+    /* Mirror tax projection panel — live calculations from desktop */
     var projSrc=document.getElementById('taxProjectionPanel');
     var projDst=document.getElementById('m-tax-proj-content');
     if(projSrc&&projDst){
       var pNi=projSrc.innerHTML.trim();
-      if(pNi&&projDst.dataset.synced!==pNi){projDst.dataset.synced=pNi;projDst.innerHTML=pNi;}
+      if(pNi&&pNi.length>20&&projDst.dataset.synced!==pNi){
+        projDst.dataset.synced=pNi;projDst.innerHTML=pNi;
+      }
     }
   }
   syncTax();
@@ -8087,7 +8130,79 @@ function syncMobile(){
 
   /* Benchmark */
   syncBenchmark();
+
+  /* Holdings glance (refreshes gainer/loser on every data refresh) */
+  updateHoldingsGlance(window._holdGlanceAcct||'_summary');
 }
+
+/* ════ HOLDINGS GLANCE ══════════════════════════════════════ */
+function updateHoldingsGlance(acctKey){
+  var portValEl=document.getElementById('m-hg-port-val');
+  var portSubEl=document.getElementById('m-hg-port-sub');
+  var portLblEl=document.getElementById('m-hg-port-lbl');
+  if(!portValEl)return;
+  var acctLbl='Portfolio';
+  var dayDolTxt='—',dayPctTxt='—',isPos=true;
+  if(!acctKey||acctKey===''||acctKey==='_summary'){
+    acctLbl='Portfolio';
+    var dce=document.getElementById('kpiDailyChange');
+    if(dce){
+      var dcRaw=dce.textContent.trim().replace(' today','');
+      var parts=dcRaw.split(' · ');
+      dayDolTxt=parts[0]||'—';dayPctTxt=parts[1]||'—';
+      isPos=!dayDolTxt.startsWith('-')&&!dayDolTxt.startsWith('−');
+    }
+  } else {
+    var prefixMap={TFSA:'m-tfsa',FHSA:'m-fhsa',RRSP:'m-rrsp',Investment:'m-inv'};
+    var prefix=prefixMap[acctKey];
+    acctLbl=acctKey==='Investment'?'Non-Reg':acctKey;
+    if(prefix){
+      var chgEl=document.getElementById(prefix+'-chg');
+      if(chgEl){dayDolTxt=chgEl.textContent.trim();isPos=chgEl.classList.contains('up');}
+      var abKey='ab'+(acctKey==='Investment'?'Inv':acctKey)+'Chg';
+      var srcChg=document.getElementById(abKey);
+      if(srcChg&&srcChg.dataset.rawPct!==undefined){
+        var rpn=parseFloat(srcChg.dataset.rawPct);
+        dayPctTxt=(rpn>=0?'+':'')+rpn.toFixed(2)+'%';
+      }
+    }
+  }
+  if(portLblEl)portLblEl.textContent=acctLbl;
+  portValEl.textContent=dayDolTxt;portValEl.className='m-hold-glance-val '+(isPos?'up':'dn');
+  portSubEl.textContent=dayPctTxt;portSubEl.className='m-hold-glance-sub '+(isPos?'up':'dn');
+
+  /* Find top gainer and loser */
+  var rows=Array.from(document.querySelectorAll('#holdingsBody tr'));
+  var filtered=rows.filter(function(r){
+    if(r.style.display==='none')return false;
+    var rt=r.getAttribute('data-rowtype');
+    if(rt==='cash')return false;
+    if(!acctKey||acctKey===''||acctKey==='_summary') return rt==='summary'||rt==='normal';
+    return rt==='normal'&&r.getAttribute('data-account')===acctKey;
+  });
+  var best=null,worst=null,bestPct=-Infinity,worstPct=Infinity;
+  filtered.forEach(function(r){
+    var cells=r.querySelectorAll('td');
+    if(cells.length<11)return;
+    var ticker=cells[0].textContent.trim();
+    if(ticker==='CASH'||ticker==='Subtotal')return;
+    var dayDStr=cells[9].textContent.trim();
+    var dayPStr=cells[10].textContent.trim();
+    if(dayPStr==='—'||!dayPStr)return;
+    var num=parseFloat(dayPStr.replace(/[^0-9.]/g,''));
+    if(isNaN(num))return;
+    var signed=(dayPStr.startsWith('-')||dayPStr.startsWith('−'))?-Math.abs(num):Math.abs(num);
+    if(signed>bestPct){bestPct=signed;best={t:ticker,pStr:dayPStr,dStr:dayDStr,pos:signed>=0};}
+    if(signed<worstPct){worstPct=signed;worst={t:ticker,pStr:dayPStr,dStr:dayDStr,pos:signed>=0};}
+  });
+  var gainTkr=document.getElementById('m-hg-gain-tkr');var gainSub=document.getElementById('m-hg-gain-sub');
+  var lossTkr=document.getElementById('m-hg-loss-tkr');var lossSub=document.getElementById('m-hg-loss-sub');
+  if(gainTkr){gainTkr.textContent=best?best.t:'—';gainTkr.className='m-hold-glance-val '+(best&&best.pos?'up':'dn');}
+  if(gainSub){gainSub.textContent=best?best.pStr+' · '+best.dStr:'—';gainSub.className='m-hold-glance-sub '+(best&&best.pos?'up':'dn');}
+  if(lossTkr){lossTkr.textContent=worst?worst.t:'—';lossTkr.className='m-hold-glance-val '+(worst&&!worst.pos?'dn':'up');}
+  if(lossSub){lossSub.textContent=worst?worst.pStr+' · '+worst.dStr:'—';lossSub.className='m-hold-glance-sub '+(worst&&!worst.pos?'dn':'up');}
+}
+window._holdGlanceAcct='_summary';
 
 /* ════ HOLDINGS CARD BUILDER ════════════════════════════════ */
 function buildCards(){
@@ -8202,12 +8317,12 @@ document.addEventListener('click',function(e){
   if(holdAcct){
     document.querySelectorAll('.m-hold-acct').forEach(function(b){b.classList.remove('on');});
     holdAcct.classList.add('on');
+    var acctVal=holdAcct.dataset.acct;
+    window._holdGlanceAcct=acctVal;
     var af=document.getElementById('acctFilter');
-    if(af){
-      af.value=holdAcct.dataset.acct; /* includes _summary, empty, or account name */
-      if(window.filterTable)window.filterTable();
-    }
+    if(af){af.value=acctVal;if(window.filterTable)window.filterTable();}
     buildCards();
+    setTimeout(function(){updateHoldingsGlance(acctVal);},150);
     return;
   }
 
@@ -8263,7 +8378,10 @@ document.addEventListener('click',function(e){
 
 /* Holdings: watch tbody + wrap filterTable (desktop elements, exist now) */
 var holdBody=document.getElementById('holdingsBody');
-if(holdBody)new MutationObserver(buildCards).observe(holdBody,{childList:true});
+if(holdBody)new MutationObserver(function(){
+  buildCards();
+  setTimeout(function(){updateHoldingsGlance(window._holdGlanceAcct||'_summary');},200);
+}).observe(holdBody,{childList:true});
 var origFilter=window.filterTable;
 window.filterTable=function(){if(origFilter)origFilter.apply(this,arguments);buildCards();};
 
@@ -8465,9 +8583,30 @@ document.addEventListener('DOMContentLoaded',function(){
 
   <!-- ── HOLDINGS TAB ─────────────────────────────── -->
   <div class="m-pane" id="m-pane-holdings">
-    <div style="padding:10px 14px 6px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+    <div style="padding:10px 14px 4px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
       <span style="font-size:13px;font-weight:700">Holdings</span>
       <span id="m-hold-count" style="font-size:10px;color:var(--t3)">—</span>
+    </div>
+    <!-- Today at a Glance -->
+    <div class="m-hold-glance" id="m-hold-glance">
+      <div class="m-hold-glance-hdr">⚡ TODAY AT A GLANCE</div>
+      <div class="m-hold-glance-grid">
+        <div class="m-hold-glance-col">
+          <div class="m-hold-glance-lbl" id="m-hg-port-lbl">Portfolio</div>
+          <div class="m-hold-glance-val up" id="m-hg-port-val">—</div>
+          <div class="m-hold-glance-sub up" id="m-hg-port-sub">—</div>
+        </div>
+        <div class="m-hold-glance-col">
+          <div class="m-hold-glance-lbl">Top Gainer</div>
+          <div class="m-hold-glance-val up" id="m-hg-gain-tkr">—</div>
+          <div class="m-hold-glance-sub" id="m-hg-gain-sub">—</div>
+        </div>
+        <div class="m-hold-glance-col">
+          <div class="m-hold-glance-lbl">Top Loser</div>
+          <div class="m-hold-glance-val dn" id="m-hg-loss-tkr">—</div>
+          <div class="m-hold-glance-sub" id="m-hg-loss-sub">—</div>
+        </div>
+      </div>
     </div>
     <div class="m-acct-tabs">
       <div class="m-atab on m-hold-acct" data-acct="_summary">Summary</div>

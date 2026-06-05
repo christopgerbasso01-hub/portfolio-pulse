@@ -7400,28 +7400,62 @@ var CHART_OPTS_BASE={
   plugins:{legend:{display:false},tooltip:{enabled:false},datalabels:{display:false}}
 };
 
+/* Resolve --t3 CSS variable for axis tick color (Chart.js can't read CSS vars) */
+function getAxisColor(){
+  return getComputedStyle(document.documentElement).getPropertyValue('--t3').trim()||'#3d6d8e';
+}
+
 function makeMvOpts(){
+  var axCol=getAxisColor();
   return Object.assign({},CHART_OPTS_BASE,{
+    interaction:{mode:'index',intersect:false},
+    plugins:Object.assign({},CHART_OPTS_BASE.plugins,{
+      tooltip:{
+        enabled:true,
+        backgroundColor:'rgba(5,12,24,0.95)',
+        titleColor:'#00d4ff',
+        bodyColor:'#7eb3d4',
+        borderColor:'#1a3a5c',
+        borderWidth:1,
+        padding:{x:10,y:8},
+        titleFont:{size:10,weight:'bold'},
+        bodyFont:{size:10},
+        callbacks:{
+          title:function(items){
+            var l=items[0].label||'';
+            if(!l)return'';
+            var d=new Date(l+'T00:00:00');
+            return isNaN(d)?l:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+          },
+          label:function(item){
+            var v=item.raw;
+            if(v==null)return null;
+            return(item.dataset.label||'')+': '+fmtCur(v);
+          }
+        }
+      }
+    }),
     scales:{
       x:{
         display:true,
         grid:{display:false},
         ticks:{
           maxTicksLimit:5,maxRotation:0,autoSkip:true,
-          font:{size:8},color:'var(--t3)',
+          font:{size:8},color:axCol,
           callback:function(v){
             var l=this.getLabelForValue(v);
             if(!l)return'';
             var d=new Date(l+'T00:00:00');
-            return d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+            return isNaN(d)?l:d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
           }
         }
       },
       y:{
         display:true,position:'right',
+        title:{display:false},
         grid:{color:'rgba(255,255,255,0.04)'},
         ticks:{
-          maxTicksLimit:4,font:{size:8},color:'var(--t3)',
+          maxTicksLimit:4,font:{size:8},color:axCol,
           callback:function(v){return fmtCur(v);}
         }
       }
@@ -7430,28 +7464,57 @@ function makeMvOpts(){
 }
 
 function makeRoiOpts(){
+  var axCol=getAxisColor();
   return Object.assign({},CHART_OPTS_BASE,{
+    interaction:{mode:'index',intersect:false},
+    plugins:Object.assign({},CHART_OPTS_BASE.plugins,{
+      tooltip:{
+        enabled:true,
+        backgroundColor:'rgba(5,12,24,0.95)',
+        titleColor:'#00d4ff',
+        bodyColor:'#7eb3d4',
+        borderColor:'#1a3a5c',
+        borderWidth:1,
+        padding:{x:10,y:8},
+        titleFont:{size:10,weight:'bold'},
+        bodyFont:{size:10},
+        callbacks:{
+          title:function(items){
+            var l=items[0].label||'';
+            if(!l)return'';
+            var d=new Date(l+'T00:00:00');
+            return isNaN(d)?l:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+          },
+          label:function(item){
+            var v=item.raw;
+            if(v==null)return null;
+            return(item.dataset.label||'')+': '+(v>=0?'+':'')+v.toFixed(1)+'%';
+          }
+        }
+      }
+    }),
     scales:{
       x:{
         display:true,
         grid:{display:false},
         ticks:{
           maxTicksLimit:4,maxRotation:0,autoSkip:true,
-          font:{size:8},color:'var(--t3)',
+          font:{size:8},color:axCol,
           callback:function(v){
             var l=this.getLabelForValue(v);
             if(!l)return'';
             var d=new Date(l+'T00:00:00');
-            return d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+            return isNaN(d)?l:d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
           }
         }
       },
       y:{
         display:true,position:'right',
+        title:{display:false},
         grid:{color:'rgba(255,255,255,0.04)'},
         ticks:{
-          maxTicksLimit:3,font:{size:8},color:'var(--t3)',
-          callback:function(v){return v.toFixed(0)+'%';}
+          maxTicksLimit:3,font:{size:8},color:axCol,
+          callback:function(v){return(v>=0?'+':'')+v.toFixed(0)+'%';}
         }
       }
     }
@@ -7746,17 +7809,6 @@ function syncMobile(){
       }
     }
   });
-
-  /* Ticker — only update if content actually changed */
-  var tkS=document.getElementById('tickerTrack');
-  var tkD=document.getElementById('m-ticker-track');
-  if(tkS&&tkD){
-    var newInner=tkS.innerHTML.trim();
-    if(newInner&&tkD.dataset.lastContent!==newInner){
-      tkD.dataset.lastContent=newInner;
-      tkD.innerHTML=newInner;
-    }
-  }
 
   /* Holdings: ensure acct filter is not on _summary */
   var af=document.getElementById('acctFilter');
@@ -8088,9 +8140,6 @@ document.addEventListener('DOMContentLoaded',function(){
     </div>
   </div>
 
-  <!-- Ticker strip (data synced from live tickerTrack) -->
-  <div class="m-ticker-strip"><div class="m-ticker-track" id="m-ticker-track"></div></div>
-
   <!-- ── PORTFOLIO TAB ─────────────────────────────── -->
   <div class="m-pane on" id="m-pane-portfolio">
     <div class="m-hero">
@@ -8110,9 +8159,8 @@ document.addEventListener('DOMContentLoaded',function(){
     <div class="m-scroll">
       <!-- Account detail card (shown when specific account selected) -->
       <div id="m-acct-detail-card" style="display:none"></div>
-      <!-- All accounts content -->
+      <!-- All accounts: 2×2 cards (hidden when specific account selected) -->
       <div id="m-acct-all">
-        <!-- 2×2 Account cards -->
         <div class="m-acct-grid">
           <div class="m-card" style="padding:12px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
@@ -8147,38 +8195,39 @@ document.addEventListener('DOMContentLoaded',function(){
             <div id="m-inv-sub" style="font-size:10px;font-weight:600" class="up">—</div>
           </div>
         </div>
-
-        <!-- Portfolio value chart -->
-        <div class="m-chart-wrap">
-          <div class="m-chart-top">
-            <span class="m-chart-lbl" id="m-mv-chart-title">Portfolio Value</span>
-            <div class="m-chart-filter">
-              <div class="m-tr-cf m-cf" data-months="1">1M</div>
-              <div class="m-tr-cf m-cf" data-months="3">3M</div>
-              <div class="m-tr-cf m-cf on" data-months="6">6M</div>
-              <div class="m-tr-cf m-cf" data-months="12">1Y</div>
-              <div class="m-tr-cf m-cf" data-months="0">All</div>
-            </div>
-          </div>
-          <div style="position:relative;height:150px"><canvas id="m-mv-canvas"></canvas></div>
-          <div id="m-mv-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:4px"></div>
-        </div>
-
-        <!-- ROI chart -->
-        <div class="m-chart-wrap">
-          <div class="m-chart-top">
-            <span class="m-chart-lbl" id="m-roi-chart-title">ROI %</span>
-            <span style="font-size:9px;color:var(--t2)" id="m-roi-period">6 months</span>
-          </div>
-          <div style="position:relative;height:120px"><canvas id="m-roi-canvas"></canvas></div>
-        </div>
-
-        <!-- Contribution-Weighted Benchmark (mirrored from desktop sec02) -->
-        <div class="m-chart-wrap" id="m-benchmark-wrap" style="padding-bottom:12px">
-          <div class="m-chart-lbl" style="margin-bottom:8px">Contribution-Weighted Benchmark</div>
-          <div id="m-benchmark-content"></div>
-        </div>
       </div><!-- /m-acct-all -->
+
+      <!-- Charts: always visible, data filters to selected account -->
+      <!-- Portfolio value chart -->
+      <div class="m-chart-wrap">
+        <div class="m-chart-top">
+          <span class="m-chart-lbl" id="m-mv-chart-title">Portfolio Value</span>
+          <div class="m-chart-filter">
+            <div class="m-tr-cf m-cf" data-months="1">1M</div>
+            <div class="m-tr-cf m-cf" data-months="3">3M</div>
+            <div class="m-tr-cf m-cf on" data-months="6">6M</div>
+            <div class="m-tr-cf m-cf" data-months="12">1Y</div>
+            <div class="m-tr-cf m-cf" data-months="0">All</div>
+          </div>
+        </div>
+        <div style="position:relative;height:150px"><canvas id="m-mv-canvas"></canvas></div>
+        <div id="m-mv-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:4px"></div>
+      </div>
+
+      <!-- ROI chart -->
+      <div class="m-chart-wrap">
+        <div class="m-chart-top">
+          <span class="m-chart-lbl" id="m-roi-chart-title">ROI %</span>
+          <span style="font-size:9px;color:var(--t2)" id="m-roi-period">6 months</span>
+        </div>
+        <div style="position:relative;height:120px"><canvas id="m-roi-canvas"></canvas></div>
+      </div>
+
+      <!-- Contribution-Weighted Benchmark -->
+      <div class="m-chart-wrap" id="m-benchmark-wrap" style="padding-bottom:12px">
+        <div class="m-chart-lbl" style="margin-bottom:8px">Contribution-Weighted Benchmark</div>
+        <div id="m-benchmark-content"></div>
+      </div>
     </div>
   </div>
 

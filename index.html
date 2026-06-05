@@ -666,589 +666,315 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 }
 
 /* ================================================================
-   MOBILE VISUAL REFRESH — June 2026
-   APPEARANCE ONLY — no changes to data, calculations, API calls,
-   notifications, podcast, intelligence, or any backend function.
+   MOBILE APP — based on mockup-ui.html exact CSS
+   Desktop unchanged. Mobile shows dedicated pane system.
 ================================================================ */
+
+/* ── Variable aliases so mockup CSS vars work in live app ─── */
 :root{
-  --teal:#00d4ff;
-  --teal-dim:rgba(0,212,255,.10);
-  --teal-glow:rgba(0,212,255,.22);
+  --cyan:#00d4ff;--cyan-d:rgba(0,212,255,.1);--cyan-b:rgba(0,212,255,.25);
+  --surf:var(--surface2);--surf2:var(--surface);--bd:var(--border);--bd2:var(--border2);
+  --t1:var(--text);--t2:var(--text2);--t3:var(--text3);
+  --bg2:#081628;
 }
 
+/* ── Desktop: hide mobile app ──────────────────────────────── */
 @media(min-width:769px){
-  /* Desktop: hide mobile-only elements */
+  #m-app{display:none !important;}
   #mobSettingsPanel,#mobHoldingsSortBar,#mobSettingsBtn{display:none !important;}
 }
 
+/* ── Mobile: hide desktop, show mobile app ─────────────────── */
 @media(max-width:768px){
-
-  /* ── Show ticker on mobile ───────────────────────────────── */
-  .ticker-strip{display:flex !important;height:26px !important;}
-  .tick-item{font-size:10px !important;padding:0 10px !important;}
-
-  /* ── Live bar → minimal app-style top bar ────────────────── */
-  .live-bar{
-    padding:calc(10px + env(safe-area-inset-top,0px)) 14px 8px !important;
-    background:rgba(5,12,24,.98) !important;
-    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-    border-bottom:1px solid rgba(255,255,255,.05) !important;
-    position:fixed !important;top:0;left:0;right:0;z-index:200 !important;
-    height:calc(48px + env(safe-area-inset-top,0px));
-    align-items:flex-end !important;
-  }
-  .live-dot{width:6px !important;height:6px !important;}
-  #liveStatus{
-    font-size:13px !important;font-weight:800 !important;
-    letter-spacing:.06em !important;color:var(--teal) !important;
-  }
-  #marketStatusBadge,#lastUpdated{display:none !important;}
-  #usdcadRate{font-size:10px !important;color:var(--text2) !important;}
-  .refresh-btn{
-    font-size:0 !important;width:28px !important;height:28px !important;
-    padding:0 !important;border-radius:7px !important;
-    display:inline-flex !important;align-items:center;justify-content:center;
-  }
-  .refresh-btn::before{content:'↻';font-size:16px;color:var(--text2);}
-  .notif-btn{font-size:15px !important;padding:4px !important;}
-  #mobSettingsBtn{
-    display:inline-flex !important;align-items:center;justify-content:center;
-    width:28px;height:28px;border-radius:7px;
-    background:var(--surface2);border:1px solid var(--border);
-    cursor:pointer;font-size:14px;color:var(--text2);margin-left:4px;flex-shrink:0;
-  }
-
-  /* ── Ticker strip: fixed directly below live bar ─────────── */
-  .ticker-strip{
-    position:fixed !important;
-    top:calc(48px + env(safe-area-inset-top,0px)) !important;
-    left:0;right:0;z-index:199 !important;
-    background:var(--bg) !important;
-    border-bottom:1px solid rgba(255,255,255,.05) !important;
-  }
-
-  /* ── Push content below fixed live bar + ticker ──────────── */
+  /* Move desktop off-screen (not display:none so Chart.js still renders) */
   .container{
-    padding:calc(48px + env(safe-area-inset-top,0px) + 26px + 4px) 0 0 !important;
-    max-width:100% !important;
-  }
-
-  /* ── Refresh btn hidden, tx-fab hidden ───────────────────── */
-  .refresh-btn{display:none !important;}
-  .tx-fab{display:none !important;}
-
-  /* ── Live bar + FAB button ────────────────────────────────── */
-  #mobFabBtn{
-    display:inline-flex !important;align-items:center;justify-content:center;
-    width:30px;height:30px;border-radius:9px;
-    background:var(--teal);color:#040e1e;
-    font-size:20px;font-weight:900;cursor:pointer;
-    border:none;line-height:1;flex-shrink:0;margin-left:4px;
-  }
-  #mobFabDropdown{
-    position:fixed;top:calc(48px + env(safe-area-inset-top,0px) + 30px);
-    right:14px;background:var(--surface2);border:1px solid var(--border);
-    border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.5);
-    z-index:9000;min-width:160px;overflow:hidden;display:none;
-  }
-  #mobFabDropdown.mob-fab-open{display:block;}
-  .mob-fab-item{
-    display:flex;align-items:center;gap:10px;padding:12px 14px;
-    font-size:12px;font-weight:700;cursor:pointer;
-    border-bottom:1px solid var(--border);color:var(--text);
-  }
-  .mob-fab-item:last-child{border-bottom:none;}
-  .mob-fab-item:active{background:var(--surface);}
-  .mob-fab-icon{font-size:16px;}
-
-  /* ── Header → transparent hero ──────────────────────────── */
-  .header{
-    text-align:center !important;padding:20px 16px 16px !important;
-    margin-bottom:0 !important;border-radius:0 !important;
-    background:transparent !important;border:none !important;
-  }
-  .header-title,.header-meta{display:none !important;}
-  .header-kpis{
-    display:flex !important;flex-direction:column !important;
-    align-items:center !important;gap:7px !important;
-  }
-  /* Hide all KPIs by default */
-  .header-kpis .hkpi{display:none !important;}
-  /* 1st — Total Market Value: giant teal hero number (order:0) */
-  .header-kpis .hkpi:nth-child(1){
-    display:block !important;background:none !important;
-    border:none !important;padding:0 !important;order:0 !important;
-  }
-  .header-kpis .hkpi:nth-child(1) .hkpi-label{display:none !important;}
-  .header-kpis .hkpi:nth-child(1) .hkpi-value{
-    font-size:42px !important;font-weight:800 !important;
-    letter-spacing:-.5px !important;color:var(--teal) !important;
-    line-height:1 !important;font-family:var(--mono) !important;
-  }
-  /* 5th — Daily Change: pill chip (order:1) */
-  .header-kpis .hkpi:nth-child(5){
-    display:block !important;background:none !important;
-    border:none !important;padding:0 !important;order:1 !important;
-  }
-  .header-kpis .hkpi:nth-child(5) .hkpi-label{display:none !important;}
-  .header-kpis .hkpi:nth-child(5) .hkpi-value{
-    display:inline-block !important;
-    font-size:13px !important;font-weight:700 !important;
-    padding:5px 18px !important;border-radius:20px !important;
-    background:rgba(0,212,255,.1) !important;
-    border:1px solid rgba(0,212,255,.3) !important;
-    color:var(--teal) !important;
-  }
-  .header-kpis .hkpi:nth-child(5) .hkpi-value.red{
-    background:rgba(239,68,68,.1) !important;
-    border-color:rgba(239,68,68,.35) !important;color:var(--red) !important;
-  }
-  .header-kpis .hkpi:nth-child(5) .hkpi-value.green{
-    background:rgba(0,230,118,.08) !important;
-    border-color:rgba(0,230,118,.25) !important;color:var(--green) !important;
-  }
-  /* 4th — hidden; combined secondary injected by JS */
-  .header-kpis .hkpi:nth-child(4){display:none !important;}
-  /* Injected secondary line */
-  #mob-hero-secondary{
-    font-size:11px !important;font-weight:600 !important;
-    color:var(--text2) !important;order:2 !important;
-    text-align:center !important;
-  }
-
-  /* ── Portfolio tab: hide desktop-only content ───────────── */
-  .market-widget{display:none !important;}
-  .grid-4{display:none !important;}
-  .chart-filters{display:none !important;}
-  #sec01 .grid-3{display:none !important;}
-  #sec02,#sec03{display:none !important;}
-  #sec01 div:has(#roiChart){display:none !important;}
-
-  /* ── Charts: sleek cards matching mockup ─────────────────── */
-  #sec01 > div:has(#portfolioValueChart){
-    background:var(--surface2) !important;border:1px solid var(--border) !important;
-    border-radius:14px !important;padding:14px !important;margin-bottom:10px !important;
-  }
-  #sec01 .chart-container{height:150px !important;}
-  #sec01 .chart-title{
-    font-size:9px !important;text-transform:uppercase !important;
-    letter-spacing:.07em !important;font-weight:700 !important;
-    color:var(--text3) !important;margin-bottom:10px !important;font-family:var(--mono) !important;
-  }
-  /* Account filter pills inside chart card */
-  #mobChartAcctFilter{
-    display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;
-    float:right;margin-top:-20px;padding-bottom:8px;
-  }
-  #mobChartAcctFilter::-webkit-scrollbar{display:none;}
-  .mob-chart-pill{
-    font-size:8px;font-weight:700;padding:3px 8px;border-radius:6px;
-    background:var(--surface);border:1px solid var(--border);
-    color:var(--text3);cursor:pointer;white-space:nowrap;font-family:var(--mono);
-    transition:all .15s;flex-shrink:0;
-  }
-  .mob-chart-pill.active{
-    background:var(--teal);color:#040e1e;border-color:var(--teal);
-  }
-
-  /* ROI chart card */
-  #mob-roi-card{
-    background:var(--surface2);border:1px solid var(--border);
-    border-radius:14px;padding:14px;margin-bottom:10px;
-  }
-  #mob-roi-card canvas{height:120px !important;width:100% !important;}
-
-  /* Contribution breakdown: keep but style */
-  #sec01 + .section,
-  #sec01 ~ .section[id="sec02"]{display:none !important;}
-
-  /* ── Section headers: hide ────────────────────────────────── */
-  .section-header{display:none !important;}
-
-  /* ── Container/sections: clean edge-to-edge ──────────────── */
-  .section{
-    padding:14px 16px !important;border-radius:0 !important;
-    border-left:none !important;border-right:none !important;
-    margin:0 0 1px !important;
-  }
-
-  /* ── Account balance strip: 2×2 grid cards ───────────────── */
-  #acctBalanceStrip{
-    display:grid !important;grid-template-columns:1fr 1fr !important;
-    gap:8px !important;background:transparent !important;
-    border:none !important;border-radius:0 !important;
-    overflow:visible !important;margin-bottom:10px !important;
-  }
-  /* Card: grid layout — badge+daychg on row1, value on row2, roi on row3 */
-  #acctBalanceStrip > div{
-    display:grid !important;
-    grid-template-columns:1fr auto !important;
-    grid-template-rows:auto auto auto !important;
-    gap:0 4px !important;
-    padding:12px 13px !important;
-    border:1px solid var(--border) !important;
-    border-radius:14px !important;background:var(--surface2) !important;
-  }
-  /* Badge (row1, col1) */
-  #acctBalanceStrip > div > span:first-child{
-    grid-column:1 !important;grid-row:1 !important;
-    font-size:11px !important;letter-spacing:.06em !important;
-    font-weight:800 !important;
-    width:auto !important;margin-bottom:4px !important;
-    align-self:center !important;
-  }
-  /* Value (row2, full width) */
-  #acctBalanceStrip > div > span:nth-child(2){
-    grid-column:1 / -1 !important;grid-row:2 !important;
-    font-size:22px !important;font-weight:800 !important;
-    margin:0 !important;padding:0 !important;
-    font-family:var(--mono) !important;line-height:1.1 !important;
-    color:var(--text) !important;
-  }
-  /* Day change $ (row1, col2 — top right) */
-  #acctBalanceStrip > div > span:nth-child(3){
-    grid-column:2 !important;grid-row:1 !important;
-    font-size:11px !important;font-weight:700 !important;
-    margin:0 !important;padding:0 !important;
-    text-align:right !important;align-self:center !important;
-  }
-  /* ROI line injected (row3, full width) */
-  .mob-acct-roi{
-    grid-column:1 / -1 !important;grid-row:3 !important;
-    font-size:10px !important;font-weight:600 !important;
-    margin-top:3px !important;
-  }
-
-  /* Account detail card (shown when specific account tab selected) */
-  #mob-acct-detail{
-    display:none;background:var(--surface2);border:1px solid var(--border);
-    border-radius:14px;padding:14px;margin-bottom:10px;
-  }
-  #mob-acct-detail.visible{display:block;}
-  .mob-ad-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
-  .mob-ad-badge{font-size:12px;font-weight:800;padding:4px 10px;border-radius:7px;}
-  .mob-ad-type{font-size:9px;font-weight:800;padding:3px 8px;border-radius:5px;background:var(--surface);color:var(--text3);border:1px solid var(--border);}
-  .mob-ad-val{font-size:24px;font-weight:800;margin:4px 0 1px;font-family:var(--mono);}
-  .mob-ad-sub{font-size:10px;color:var(--text2);font-family:var(--mono);}
-  .mob-ad-tbl{width:100%;border-collapse:collapse;margin:10px 0;}
-  .mob-ad-tbl th{font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:700;padding:5px 0;border-bottom:1px solid var(--border);text-align:left;}
-  .mob-ad-tbl th:not(:first-child){text-align:right;}
-  .mob-ad-tbl td{font-size:11px;padding:6px 0;border-bottom:1px solid var(--border);}
-  .mob-ad-tbl td:not(:first-child){text-align:right;font-family:var(--mono);}
-  .mob-ad-tbl tr:last-child td{border-bottom:none;}
-  .mob-ad-insight{background:var(--surface);border-radius:8px;padding:9px 10px;margin-top:8px;font-size:10px;color:var(--text2);line-height:1.5;}
-
-  /* ── Macro / risk: swipe carousel (one card per screen) ─── */
-  #macroThemes,#riskFactors{
-    display:flex !important;overflow-x:auto !important;
-    scroll-snap-type:x mandatory !important;gap:0 !important;
-    scrollbar-width:none !important;
-    margin:0 -16px 8px !important;padding:0 !important;
-    -webkit-overflow-scrolling:touch;grid-template-columns:unset !important;
-  }
-  #macroThemes::-webkit-scrollbar,#riskFactors::-webkit-scrollbar{display:none !important;}
-  #macroThemes > *,#riskFactors > *{
-    min-width:100vw !important;max-width:100vw !important;
-    scroll-snap-align:start !important;flex-shrink:0 !important;
-    padding-left:16px !important;padding-right:16px !important;
-    box-sizing:border-box !important;
-    overflow-wrap:break-word !important;word-break:break-word !important;
-  }
-
-  /* ── Holdings sort bar (injected by JS) ─────────────────── */
-  #mobHoldingsSortBar{
-    display:flex;gap:5px;padding:0 0 10px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;
-  }
-  #mobHoldingsSortBar::-webkit-scrollbar{display:none;}
-  .mob-sort-chip{
-    padding:4px 11px;border-radius:14px;font-size:9px;font-weight:700;
-    white-space:nowrap;border:1px solid var(--border);color:var(--text3);
-    background:var(--surface2);cursor:pointer;flex-shrink:0;
-    font-family:var(--mono);letter-spacing:.03em;transition:all .15s;
-  }
-  .mob-sort-chip.active{background:var(--teal);color:#060b14;border-color:var(--teal);}
-
-  /* ── Tab bar ─────────────────────────────────────────────── */
-  .mobile-tabs{
-    background:rgba(5,12,24,.97) !important;
-    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-    border-top:1px solid rgba(255,255,255,.06) !important;
-  }
-  .tab-btn{font-weight:600 !important;font-size:9px !important;color:var(--text3) !important;}
-  .tab-btn.active{color:var(--teal) !important;}
-  .tab-icon{font-size:20px !important;}
-
-  /* ── Settings panel ──────────────────────────────────────── */
-  #mobSettingsPanel{
-    position:fixed;inset:0;z-index:10000;background:var(--bg);
-    display:none;flex-direction:column;overflow:hidden;
-  }
-  #mobSettingsPanel.mob-open{display:flex !important;}
-  .mob-set-hdr{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:calc(14px + env(safe-area-inset-top,0px)) 16px 12px;
-    background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0;
-  }
-  .mob-set-title{
-    font-family:var(--mono);font-size:13px;font-weight:700;
-    text-transform:uppercase;letter-spacing:.07em;color:var(--teal);
-  }
-  .mob-set-close{font-size:20px;cursor:pointer;background:none;border:none;color:var(--text3);line-height:1;padding:2px 6px;}
-  .mob-set-scroll{flex:1;overflow-y:auto;padding:14px 16px;scrollbar-width:none;}
-  .mob-set-scroll::-webkit-scrollbar{display:none;}
-  .mob-set-section{
-    font-family:var(--mono);font-size:9px;text-transform:uppercase;
-    letter-spacing:.07em;color:var(--text3);font-weight:700;margin:14px 0 7px;
-  }
-  .mob-set-section:first-child{margin-top:0;}
-  .mob-set-row{
-    display:flex;justify-content:space-between;align-items:center;
-    padding:11px 13px;background:var(--surface2);
-    border:1px solid var(--border);border-radius:10px;margin-bottom:6px;
-  }
-  .mob-set-lbl{font-size:12px;font-weight:600;color:var(--text);}
-  .mob-set-sub{font-size:10px;color:var(--text3);margin-top:1px;}
-  .mob-set-val{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--teal);}
-  .mob-toggle{
-    width:38px;height:22px;background:var(--border2);border-radius:11px;
-    position:relative;cursor:pointer;border:none;padding:0;flex-shrink:0;transition:background .2s;
-  }
-  .mob-toggle.on{background:var(--teal);}
-  .mob-toggle::after{
-    content:'';position:absolute;top:3px;left:3px;
-    width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;
-  }
-  .mob-toggle.on::after{left:19px;}
-
-  /* ── Market widget: mini horizontal scroll strip ─────────── */
-  .market-widget{
-    display:flex !important;overflow-x:auto !important;flex-wrap:nowrap !important;
-    gap:7px !important;background:transparent !important;border:none !important;
-    border-radius:0 !important;margin-bottom:10px !important;
-    scrollbar-width:none !important;padding:0 !important;
-  }
-  .market-widget::-webkit-scrollbar{display:none !important;}
-  .mw-item{
-    display:flex !important;flex-direction:column !important;
-    min-width:88px !important;flex-shrink:0 !important;
-    background:var(--surface2) !important;border:1px solid var(--border) !important;
-    border-radius:10px !important;padding:9px 12px !important;
-  }
-  .mw-label{font-size:9px !important;color:var(--text3) !important;margin-bottom:2px !important;font-family:var(--mono) !important;}
-  .mw-value{font-size:13px !important;font-weight:700 !important;color:var(--text) !important;font-family:var(--mono) !important;}
-  .mw-chg{font-size:10px !important;font-weight:600 !important;margin-top:1px !important;}
-
-  /* ── Portfolio account filter tabs ────────────────────────── */
-  #mobPortfolioAcctTabs{
-    display:flex;gap:6px;padding:0 0 10px;overflow-x:auto;scrollbar-width:none;
-  }
-  #mobPortfolioAcctTabs::-webkit-scrollbar{display:none;}
-  .mob-port-tab{
-    padding:5px 12px;border-radius:18px;border:1px solid var(--border);
-    font-size:10px;font-weight:700;white-space:nowrap;cursor:pointer;
-    color:var(--text2);background:var(--surface2);flex-shrink:0;
-    font-family:var(--mono);transition:all .15s;
-  }
-  .mob-port-tab.active{background:var(--teal);color:#040e1e;border-color:var(--teal);}
-
-  /* ── Today at a Glance: horizontal mini-cards ──────────────── */
-  #glanceContent{
-    display:flex !important;overflow-x:auto !important;
-    gap:8px !important;scrollbar-width:none !important;
-    margin:0 -16px !important;padding:0 16px 4px !important;
-    grid-template-columns:unset !important;-webkit-overflow-scrolling:touch;
-  }
-  #glanceContent::-webkit-scrollbar{display:none !important;}
-  #glanceContent > *{min-width:180px !important;flex-shrink:0 !important;}
-
-  /* ── News grid: vertical stack ─────────────────────────────── */
-  #newsSector{
-    display:flex !important;flex-direction:column !important;
-    gap:10px !important;grid-template-columns:unset !important;
-  }
-
-  /* ── Picks: vertical stack ─────────────────────────────────── */
-  #picksGrid{
-    display:flex !important;flex-direction:column !important;
-    gap:10px !important;grid-template-columns:unset !important;
-  }
-  #picksGrid .card{border-radius:12px !important;padding:14px !important;}
-  .pick-ticker{font-size:15px !important;font-weight:800 !important;margin-bottom:3px !important;}
-  .pick-thesis{font-size:11px !important;line-height:1.5 !important;color:var(--text2) !important;margin-bottom:8px !important;}
-  .entry-box{font-size:10px !important;font-family:var(--mono) !important;background:var(--surface) !important;padding:5px 8px !important;border-radius:5px !important;}
-
-  /* ── SWOT + Strategy: stack vertically ─────────────────────── */
-  .sc-grid,.strat-grid{
-    display:flex !important;flex-direction:column !important;
-    gap:8px !important;grid-template-columns:unset !important;
-  }
-
-  /* ── Tax grid: 2-column on mobile ──────────────────────────── */
-  .tax-grid{display:grid !important;grid-template-columns:1fr 1fr !important;gap:8px !important;}
-  .tax-card{border-radius:11px !important;padding:12px !important;}
-
-  /* ── Intel banner: compact ──────────────────────────────────── */
-  .intel-banner{
-    padding:8px 12px !important;flex-wrap:wrap !important;
-    gap:4px !important;margin-bottom:10px !important;font-size:11px !important;
-  }
-
-  /* ── Podcast: mobile-friendly ───────────────────────────────── */
-  .pod-player-wrap{border-radius:12px !important;}
-  .pod-ep-items{max-height:none !important;overflow:visible !important;}
-  #podBriefContent,#podBriefGrid{display:block !important;}
-
-  /* ── Research: mobile-friendly ──────────────────────────────── */
-  .rsrch-search-wrap{flex-direction:column !important;gap:8px !important;}
-  .rsrch-search-input{
-    width:100% !important;font-size:14px !important;
-    border-radius:10px !important;padding:10px 14px !important;
-    box-sizing:border-box !important;
-  }
-  .rsrch-search-btn{
-    width:100% !important;padding:10px !important;
-    font-size:13px !important;border-radius:10px !important;
-  }
-  .rsrch-watchlist-strip{
-    display:flex !important;overflow-x:auto !important;
-    gap:7px !important;scrollbar-width:none !important;padding-bottom:4px !important;
-  }
-  .rsrch-watchlist-strip::-webkit-scrollbar{display:none !important;}
-  .rsrch-two-col,.rsrch-stat-grid{
-    display:flex !important;flex-direction:column !important;gap:8px !important;
-    grid-template-columns:unset !important;
-  }
-
-  /* ── Holdings: hide desktop table, show card view ────────── */
-  #sec04 .filter-bar{display:none !important;}
-  .table-wrap{display:none !important;}
-
-  /* Account filter chip row */
-  #mobHoldingsAcctTabs{
-    display:flex;gap:5px;padding:0 0 8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;
-  }
-  #mobHoldingsAcctTabs::-webkit-scrollbar{display:none;}
-  .mob-acct-chip{
-    padding:5px 12px;border-radius:16px;font-size:10px;font-weight:700;
-    white-space:nowrap;border:1px solid var(--border);color:var(--text3);
-    background:var(--surface2);cursor:pointer;flex-shrink:0;
-    font-family:var(--mono);letter-spacing:.03em;transition:all .15s;
-  }
-  .mob-acct-chip.active{
-    background:rgba(0,200,180,.12);color:var(--teal);border-color:rgba(0,200,180,.35);
-  }
-
-  /* Holdings card list */
-  #mobHoldingsCards{display:flex;flex-direction:column;gap:8px;padding-top:4px;}
-  .mob-holding-card{
-    background:var(--surface2);border:1px solid var(--border);
-    border-radius:12px;padding:12px 13px;
-  }
-  .mob-hcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
-  .mob-hcard-left{min-width:0;}
-  .mob-hcard-ticker{
-    font-family:var(--mono);font-size:14px;font-weight:800;color:var(--text);
-    display:flex;align-items:center;gap:5px;flex-wrap:wrap;
-  }
-  .mob-hcard-name{font-size:10px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
-  .mob-hcard-right{text-align:right;flex-shrink:0;margin-left:8px;}
-  .mob-hcard-mv{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--text);}
-  .mob-hcard-day{font-size:10px;font-weight:600;margin-top:2px;}
-  .mob-hcard-metrics{
-    display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;
-    padding-top:8px;border-top:1px solid var(--border);
-  }
-  .mob-hcard-metric{text-align:center;}
-  .mob-hcard-metric:first-child{text-align:left;}
-  .mob-hcard-metric:last-child{text-align:right;}
-  .mob-hcard-ml{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-family:var(--mono);}
-  .mob-hcard-mv2{font-family:var(--mono);font-size:10px;font-weight:700;margin-top:2px;}
-  .green{color:var(--green);}
-  .red{color:var(--red);}
-
-  /* ═══════════════════════════════════════════════════════
-     MOBILE PANE SYSTEM
-     Dedicated mobile layouts for Insights + Podcast tabs.
-     Desktop sections hidden; mobile panes show mirrored data.
-  ══════════════════════════════════════════════════════════ */
-
-  /* Hide desktop insight/podcast sections — replaced by mob panes */
-  .section[data-tab="insights"],
-  #intelBanner,
-  .section[data-tab="podcast"]{display:none !important;}
-
-  /* Mobile pane container */
-  .mob-tab-pane{
-    display:none;flex-direction:column;
-    overflow-y:auto;-webkit-overflow-scrolling:touch;
-    padding-bottom:84px;flex:1;
-  }
-  .mob-tab-pane.mob-pane-active{display:flex;}
-
-  /* Pane header */
-  .mob-pane-hdr{
-    padding:12px 16px 4px;font-size:14px;font-weight:700;
-    color:var(--text);flex-shrink:0;
-  }
-  .mob-sec-label{
-    font-size:9px;text-transform:uppercase;letter-spacing:.07em;
-    color:var(--text3);font-weight:700;
-    display:flex;justify-content:space-between;align-items:center;
-    padding:10px 16px 5px;flex-shrink:0;
-  }
-
-  /* Horizontal carousel strip */
-  .mob-carousel-strip{
-    display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
-    scrollbar-width:none;-webkit-overflow-scrolling:touch;
-    padding:0 16px 4px;
-  }
-  .mob-carousel-strip::-webkit-scrollbar{display:none;}
-  .mob-carousel-strip > *{
-    min-width:calc(100vw - 48px);flex-shrink:0;
-    scroll-snap-align:start;box-sizing:border-box;
-    margin-right:10px;
-  }
-
-  /* Glance strip */
-  .mob-glance-strip{
-    display:flex;gap:8px;overflow-x:auto;
-    padding:0 16px 8px;scrollbar-width:none;
-    -webkit-overflow-scrolling:touch;
-  }
-  .mob-glance-strip::-webkit-scrollbar{display:none;}
-  .mob-glance-strip > *{flex-shrink:0;min-width:160px;border-radius:10px !important;}
-
-  /* Vertical content list */
-  .mob-content-list{
-    display:flex;flex-direction:column;gap:10px;padding:0 16px;
-  }
-  .mob-content-list > *{border-radius:12px !important;margin-bottom:0 !important;}
-  .mob-content-list .card{border-radius:12px !important;}
-
-  /* Macro / risk theme cards inside carousel */
-  .mob-carousel-strip .macro-card,
-  .mob-carousel-strip .risk-card,
-  .mob-carousel-strip [class*="card"]{
-    border-radius:12px !important;margin-bottom:0 !important;
-  }
-
-  /* Podcast pane */
-  .mob-pod-content{padding:0 16px;}
-  .mob-pod-content .pod-player-wrap{border-radius:14px !important;padding:16px !important;}
-  .mob-pod-content .pod-ep-items{max-height:none !important;overflow:visible !important;}
-  .mob-pod-content .pod-ep-list{
-    margin-top:12px;padding-top:10px;display:block !important;
-  }
-  .mob-pod-eps-label{
-    font-family:var(--mono);font-size:9px;text-transform:uppercase;
-    letter-spacing:.07em;color:var(--text3);font-weight:700;
-    padding:4px 0 8px;
-  }
+    position:fixed !important;left:-9999px !important;
+    width:390px !important;top:0 !important;
+    overflow:hidden !important;pointer-events:none !important;z-index:-1 !important;
+  }
+  /* Hide desktop live bar and ticker (replaced by #m-app header) */
+  .live-bar,.ticker-strip,.mobile-tabs,.tx-fab{display:none !important;}
+  /* Notification panel sits above mobile app */
+  .notif-overlay,.notif-panel{z-index:5000 !important;}
+  /* Offline banner */
+  #offlineBanner{display:none !important;}
 }
-@media(min-width:769px){
-  .mob-tab-pane{display:none !important;}
+
+/* ════════════════════════════════════════════════════════════
+   MOCKUP CSS — exact copy from mockup-ui.html mobile styles
+   Uses --cyan,--surf,--bd,--t1/2/3 aliased above.
+════════════════════════════════════════════════════════════ */
+
+/* App wrapper — full-screen fixed overlay on mobile */
+#m-app{
+  display:flex;flex-direction:column;
+  position:fixed;inset:0;z-index:200;
+  background:var(--bg);overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;
 }
+
+/* App header */
+.m-hdr{
+  padding:calc(env(safe-area-inset-top,0px) + 8px) 14px 6px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  background:var(--bg);border-bottom:1px solid var(--bd);
+}
+.m-logo{font-size:12px;font-weight:800;letter-spacing:.07em;color:var(--cyan);}
+.m-live-row{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t2);}
+.m-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);
+            box-shadow:0 0 5px var(--green);animation:blink 2s infinite;flex-shrink:0;}
+.m-icon-btn{width:30px;height:30px;background:var(--surf);border:1px solid var(--bd);
+            border-radius:9px;display:flex;align-items:center;justify-content:center;
+            font-size:14px;cursor:pointer;flex-shrink:0;}
+.m-hdr-actions{display:flex;align-items:center;gap:5px;position:relative;}
+.m-add-btn{width:30px;height:30px;background:var(--cyan);color:#040e1e;border-radius:9px;
+           display:flex;align-items:center;justify-content:center;font-size:18px;
+           font-weight:900;cursor:pointer;border:none;line-height:1;}
+.m-fab-dropdown{
+  position:fixed;background:var(--surf);border:1px solid var(--bd);
+  border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.5);
+  z-index:9999;min-width:160px;overflow:hidden;display:none;
+}
+.m-fab-dropdown.open{display:block;}
+.m-fab-drop-item{display:flex;align-items:center;gap:9px;padding:12px 14px;font-size:12px;
+                 font-weight:700;cursor:pointer;border-bottom:1px solid var(--bd);color:var(--t1);}
+.m-fab-drop-item:last-child{border-bottom:none;}
+.m-fab-drop-item:active{background:var(--surf2);}
+.m-fab-drop-icon{font-size:16px;}
+
+/* Ticker strip */
+.m-ticker-strip{
+  height:26px;overflow:hidden;white-space:nowrap;flex-shrink:0;
+  background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;
+}
+.m-ticker-track{display:inline-flex;animation:scroll 30s linear infinite;}
+.m-ti{display:inline-flex;align-items:center;gap:5px;padding:0 14px;
+      border-right:1px solid var(--bd);font-size:10px;height:26px;}
+
+/* Pane system */
+.m-pane{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.m-pane.on{display:flex;}
+
+/* Hero */
+.m-hero{padding:14px 18px 10px;text-align:center;flex-shrink:0;}
+.m-total{font-size:38px;font-weight:800;letter-spacing:-.5px;color:var(--cyan);}
+.m-day-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px;}
+.m-day-chip{font-size:13px;font-weight:700;padding:4px 16px;border-radius:20px;}
+.m-day-chip.up{background:rgba(0,230,118,.08);color:var(--green);border:1px solid rgba(0,230,118,.25);}
+.m-day-chip.dn{background:rgba(255,82,82,.08);color:var(--red);border:1px solid rgba(255,82,82,.25);}
+.m-day-chip.neu{background:var(--surf2);color:var(--t2);border:1px solid var(--bd);}
+.m-hero-sub{font-size:11px;color:var(--t2);margin-top:5px;}
+
+/* Account tabs */
+.m-acct-tabs{display:flex;gap:6px;padding:0 14px 10px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.m-acct-tabs::-webkit-scrollbar{display:none;}
+.m-atab{padding:5px 12px;border-radius:18px;border:1px solid var(--bd);font-size:10px;font-weight:700;
+        white-space:nowrap;cursor:pointer;color:var(--t2);background:var(--surf);flex-shrink:0;transition:all .15s;}
+.m-atab.on{background:var(--cyan);color:#040e1e;border-color:var(--cyan);}
+
+/* Scroll area */
+.m-scroll{flex:1;overflow-y:auto;padding:0 14px calc(10px + env(safe-area-inset-bottom,0px)) 14px;scrollbar-width:none;}
+.m-scroll::-webkit-scrollbar{display:none;}
+
+/* Account 2x2 grid */
+.m-acct-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+
+/* Card */
+.m-card{background:var(--surf);border:1px solid var(--bd);border-radius:14px;padding:14px 15px;margin-bottom:10px;}
+.m-card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.m-ticker-sym{font-size:16px;font-weight:800;color:var(--t1);}
+.m-name{font-size:10px;color:var(--t3);margin-top:1px;}
+.m-card-val{text-align:right;}
+.m-mv{font-size:16px;font-weight:700;font-family:var(--mono);}
+.m-dchg{font-size:11px;font-weight:700;margin-top:2px;}
+.m-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:10px;border-top:1px solid var(--bd);}
+.m-metric-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:2px;}
+.m-metric-v{font-size:13px;font-weight:700;font-family:var(--mono);}
+
+/* Insight card */
+.m-insight{background:var(--surf);border:1px solid var(--bd);border-radius:13px;padding:13px 14px;margin-bottom:10px;}
+.m-insight-l{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);font-weight:700;margin-bottom:6px;}
+.m-insight-body{font-size:11px;color:var(--t2);line-height:1.6;}
+
+/* Macro card */
+.m-macro{background:var(--surf);border:1px solid var(--bd);border-radius:13px;padding:12px 14px;margin-bottom:9px;}
+.m-macro-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
+.m-macro-title{font-size:12px;font-weight:700;flex:1;}
+.m-macro-imp{font-size:8px;font-weight:800;padding:2px 6px;border-radius:3px;flex-shrink:0;}
+.m-macro-body{font-size:11px;color:var(--t2);line-height:1.5;margin-bottom:8px;}
+.m-scenarios-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.m-sc{border-radius:7px;padding:6px 8px;text-align:center;}
+.m-sc-pct{font-size:18px;font-weight:800;line-height:1;}
+.m-sc-lbl{font-size:9px;font-weight:700;margin-top:1px;}
+.m-sc-est{font-size:10px;font-weight:700;margin-top:3px;font-family:monospace;}
+
+/* Carousel */
+.m-carousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+            scrollbar-width:none;margin:0 -14px;-webkit-overflow-scrolling:touch;}
+.m-carousel::-webkit-scrollbar{display:none;}
+.m-carousel-card{min-width:calc(100% + 28px);scroll-snap-align:start;flex-shrink:0;
+                  padding:0 14px;box-sizing:border-box;}
+.m-carousel-dots{display:flex;justify-content:center;gap:4px;margin:5px 0 10px;}
+.m-dot{width:5px;height:5px;border-radius:50%;background:var(--bd);transition:all .2s;}
+.m-dot.on{background:var(--cyan);width:14px;border-radius:3px;}
+.m-swipe-hint{font-size:9px;color:var(--t3);text-align:right;margin-bottom:3px;}
+
+/* Chart wrap */
+.m-chart-wrap{background:var(--surf);border:1px solid var(--bd);border-radius:12px;
+               padding:10px 12px 8px;margin-bottom:10px;overflow:hidden;}
+.m-chart-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.m-chart-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);font-weight:700;}
+.m-chart-filter{display:flex;gap:4px;}
+.m-cf{font-size:8px;font-weight:700;padding:2px 7px;border-radius:6px;
+      background:var(--surf2);color:var(--t3);cursor:pointer;transition:all .15s;}
+.m-cf.on{background:var(--cyan);color:#040e1e;}
+/* Chart.js canvas in mobile wrap */
+.m-chart-wrap canvas{height:150px !important;width:100% !important;display:block !important;}
+
+/* Contribution bar */
+.m-contrib{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:11px 13px;margin-bottom:10px;}
+.m-contrib-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+.m-contrib-title{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);font-weight:700;}
+.m-contrib-total{font-size:11px;font-weight:700;}
+.m-contrib-bar{height:10px;border-radius:5px;background:var(--surf2);overflow:hidden;display:flex;margin-bottom:6px;}
+.m-contrib-filled{height:100%;background:var(--cyan);}
+.m-contrib-gains{height:100%;background:var(--green);}
+.m-contrib-leg{display:flex;gap:12px;flex-wrap:wrap;}
+.m-contrib-li{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--t2);}
+.m-contrib-dot{width:7px;height:7px;border-radius:2px;}
+
+/* News card */
+.m-news{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:12px 13px;}
+.m-news-tag{font-size:8px;font-weight:800;padding:2px 6px;border-radius:3px;display:inline-block;margin-bottom:5px;}
+.m-news-hl{font-size:12px;font-weight:700;margin-bottom:4px;line-height:1.4;}
+.m-news-body{font-size:10px;color:var(--t2);line-height:1.5;margin-bottom:8px;}
+.m-news-scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.m-ns{border-radius:7px;padding:6px 5px;text-align:center;}
+.m-ns-pct{font-size:16px;font-weight:800;line-height:1;}
+.m-ns-lbl{font-size:8px;font-weight:700;margin-top:1px;}
+.m-ns-est{font-size:9px;font-weight:700;margin-top:3px;font-family:monospace;}
+
+/* Pick cards */
+.m-pick{background:var(--surf);border:1px solid var(--bd);border-radius:13px;padding:13px;margin-bottom:9px;border-left:3px solid;}
+.m-pick.buy{border-left-color:var(--green);}
+.m-pick.watch{border-left-color:var(--amber);}
+.m-pick.sell{border-left-color:var(--red);}
+.m-pick-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.m-pick-name{font-size:14px;font-weight:800;}
+.m-pick-ticker{font-size:11px;color:var(--t3);font-weight:400;margin-left:4px;}
+.m-pick-thesis{font-size:11px;color:var(--t2);line-height:1.5;margin-bottom:7px;}
+.m-pick-entry{font-size:10px;font-family:monospace;background:var(--surf2);padding:5px 8px;border-radius:5px;}
+.m-score{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
+
+/* Podcast */
+.m-pod-card{background:var(--surf);border:1px solid var(--bd);border-radius:14px;padding:15px;margin-bottom:10px;overflow:hidden;}
+.m-pod-art{width:60px;height:60px;border-radius:11px;background:var(--cyan-d);border:1px solid var(--cyan-b);
+           display:flex;align-items:center;justify-content:center;font-size:24px;float:left;margin-right:12px;flex-shrink:0;}
+.m-pod-ep{font-size:9px;color:var(--t3);margin-bottom:2px;}
+.m-pod-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.m-pod-dur{font-size:10px;color:var(--t2);}
+.m-pod-prog{height:3px;background:var(--surf2);border-radius:2px;margin-top:10px;clear:both;cursor:pointer;}
+.m-pod-fill{height:100%;background:var(--cyan);border-radius:2px;transition:width .15s linear;pointer-events:none;}
+.m-pod-ctrl{display:flex;justify-content:center;gap:22px;margin-top:11px;font-size:22px;cursor:pointer;}
+.m-pod-brief{background:var(--surf2);border-radius:9px;padding:10px;margin-top:10px;}
+.m-pod-brief-l{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);font-weight:700;margin-bottom:6px;}
+.m-pod-brief-item{font-size:10px;color:var(--t2);padding:4px 0;border-bottom:1px solid var(--bd);display:flex;gap:6px;line-height:1.4;}
+.m-pod-brief-item:last-child{border-bottom:none;}
+.m-ep-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer;}
+.m-ep-row:last-child{border-bottom:none;}
+.m-ep-num{width:24px;height:24px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.m-ep-title{font-size:12px;font-weight:600;color:var(--t1);}
+.m-ep-meta{font-size:9px;color:var(--t3);margin-top:1px;}
+.m-ep-dur{font-size:10px;color:var(--t2);font-weight:600;margin-left:auto;flex-shrink:0;}
+
+/* Holdings sort bar */
+.m-sort-bar{display:flex;gap:5px;padding:0 14px 8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.m-sort-bar::-webkit-scrollbar{display:none;}
+.m-sort-chip{padding:4px 10px;border-radius:16px;font-size:9px;font-weight:700;white-space:nowrap;
+              border:1px solid var(--bd);color:var(--t3);background:var(--surf);cursor:pointer;flex-shrink:0;transition:all .15s;}
+.m-sort-chip.on{background:var(--cyan);color:#040e1e;border-color:var(--cyan);}
+
+/* Account detail card */
+.m-acct-detail{background:var(--surf);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:10px;}
+.m-acct-detail-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.m-acct-badge-lg{font-size:11px;font-weight:800;padding:4px 10px;border-radius:6px;}
+.m-acct-type{font-size:9px;font-weight:800;padding:3px 8px;border-radius:4px;background:var(--surf2);color:var(--t3);border:1px solid var(--bd);}
+.m-acct-total{font-size:22px;font-weight:800;margin:4px 0 2px;font-family:var(--mono);}
+.m-acct-sub{font-size:10px;color:var(--t2);}
+.m-acct-tbl{width:100%;border-collapse:collapse;margin:10px 0;}
+.m-acct-tbl th{font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);font-weight:700;
+                padding:5px 0;border-bottom:1px solid var(--bd);text-align:left;}
+.m-acct-tbl th:not(:first-child){text-align:right;}
+.m-acct-tbl td{font-size:11px;padding:6px 0;border-bottom:1px solid var(--bd);}
+.m-acct-tbl td:not(:first-child){text-align:right;}
+.m-acct-tbl tr:last-child td{border-bottom:none;}
+.m-acct-tbl .t-tk{color:var(--cyan);font-weight:700;font-family:var(--mono);}
+.m-acct-insight{background:var(--surf2);border-radius:8px;padding:9px 10px;margin-top:8px;font-size:10px;color:var(--t2);line-height:1.5;}
+
+/* Tax section */
+.m-sec-hdr{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);font-weight:700;margin-bottom:7px;}
+.m-tax-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;}
+.m-tax-mini{background:var(--surf);border:1px solid var(--bd);border-radius:11px;padding:10px 11px;border-top:3px solid;}
+.m-tax-mini-l{font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);font-weight:700;margin-bottom:3px;}
+.m-tax-mini-v{font-size:16px;font-weight:800;font-family:var(--mono);}
+.m-tax-mini-sub{font-size:9px;color:var(--t2);margin-top:2px;}
+.m-tax-proj{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:12px 13px;margin-bottom:10px;}
+.m-tax-proj-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bd);}
+.m-tax-proj-row:last-child{border-bottom:none;}
+.m-tax-proj-l{font-size:10px;color:var(--t2);}
+.m-tax-proj-v{font-size:11px;font-weight:700;font-family:var(--mono);}
+
+/* Settings panel */
+.m-settings-panel{position:absolute;inset:0;background:var(--bg);z-index:400;display:none;flex-direction:column;overflow:hidden;}
+.m-settings-panel.open{display:flex;}
+.m-settings-hdr{display:flex;align-items:center;justify-content:space-between;
+                 padding:calc(env(safe-area-inset-top,0px)+14px) 16px 10px;
+                 border-bottom:1px solid var(--bd);flex-shrink:0;}
+.m-settings-title{font-size:14px;font-weight:800;}
+.m-settings-close{font-size:18px;cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;}
+.m-settings-scroll{flex:1;overflow-y:auto;padding:12px 14px;scrollbar-width:none;}
+.m-settings-scroll::-webkit-scrollbar{display:none;}
+.m-settings-section{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);font-weight:700;margin:14px 0 7px;}
+.m-settings-section:first-child{margin-top:0;}
+.m-settings-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;
+                  background:var(--surf);border:1px solid var(--bd);border-radius:10px;margin-bottom:6px;}
+.m-settings-lbl{font-size:11px;font-weight:600;color:var(--t1);}
+.m-settings-sub{font-size:9px;color:var(--t3);margin-top:1px;}
+.m-settings-val{font-size:11px;font-weight:700;color:var(--cyan);}
+.m-toggle{width:36px;height:20px;background:var(--surf2);border-radius:10px;position:relative;
+          cursor:pointer;border:1px solid var(--bd);transition:background .2s;flex-shrink:0;}
+.m-toggle.on{background:var(--cyan);}
+.m-toggle-knob{width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:1px;left:1px;transition:left .15s;}
+.m-toggle.on .m-toggle-knob{left:17px;}
+
+/* Tab bar */
+.m-tabs{display:flex;background:var(--surf);border-top:1px solid var(--bd);
+        padding:8px 0 calc(10px + env(safe-area-inset-bottom,0px));flex-shrink:0;}
+.m-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;}
+.m-tab-ico{font-size:19px;}
+.m-tab-lbl{font-size:9px;font-weight:600;color:var(--t3);}
+.m-tab.on .m-tab-lbl{color:var(--cyan);}
+.m-tab.on .m-tab-ico{filter:drop-shadow(0 0 6px var(--cyan));}
+
+/* Utility classes from mockup */
+.cy{color:var(--cyan);}
+.up{color:var(--green);}
+.dn{color:var(--red);}
+.am{color:var(--amber);}
+.neu{color:var(--t2);}
+.sc-bull{background:rgba(0,230,118,.08);}
+.sc-base{background:rgba(255,179,0,.08);}
+.sc-bear{background:rgba(255,82,82,.08);}
+.imp-h{background:rgba(255,82,82,.15);color:var(--red);}
+.imp-m{background:rgba(255,179,0,.15);color:var(--amber);}
+.imp-l{background:rgba(0,230,118,.15);color:var(--green);}
+.green-dim{background:rgba(0,230,118,.08);}
+.b{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:800;margin-left:3px;}
+.abt,.bt2{background:rgba(74,158,255,.2);color:#4a9eff;}
+.abf,.bf2{background:rgba(0,230,118,.15);color:var(--green);}
+.abr,.br2{background:rgba(255,179,0,.15);color:var(--amber);}
+.abn,.bn2{background:rgba(100,116,139,.2);color:var(--t3);}
+
 </style>
 </head>
 <body>
@@ -7613,445 +7339,395 @@ if ('serviceWorker' in navigator) {
 
 <script>
 /* ================================================================
-   MOBILE UI HELPERS — visual only
-   Does NOT modify any data, calculations, or existing functions.
+   MOBILE APP ENGINE — wires mockup HTML to live data
+   All data comes from existing JS (unchanged).
+   No calculations modified. Appearance only.
 ================================================================ */
+(function(){
+'use strict';
 
-// ── Settings panel ────────────────────────────────────────────
-function openMobSettings(){
-  var p=document.getElementById('mobSettingsPanel');
-  if(!p)return;
-  // Pull live values from the existing settings elements if available
-  var sal=document.getElementById('salaryInput');
-  if(sal)document.getElementById('mobSetSalary').textContent='$'+Number(sal.value||90000).toLocaleString();
-  var rrspC=document.getElementById('rrspThisYearInput');
-  if(rrspC)document.getElementById('mobSetRrspContrib').textContent='$'+Number(rrspC.value||0).toLocaleString();
-  var tfsa=document.getElementById('tfsaRoomInput');
-  if(tfsa)document.getElementById('mobSetTfsa').textContent='$'+Number(tfsa.value||0).toLocaleString();
-  var rrspL=document.getElementById('rrspLimitInput');
-  if(rrspL)document.getElementById('mobSetRrspLim').textContent='$'+Number(rrspL.value||0).toLocaleString();
-  p.classList.add('mob-open');
-  document.body.style.overflow='hidden';
-}
-function closeMobSettings(){
-  var p=document.getElementById('mobSettingsPanel');
-  if(p)p.classList.remove('mob-open');
-  document.body.style.overflow='';
+/* ── util: sync text from srcEl to dstEl, watch for updates ── */
+function syncText(srcId, dstId, transform){
+  var src=document.getElementById(srcId);
+  var dst=document.getElementById(dstId);
+  if(!src||!dst)return;
+  function copy(){
+    var t=src.textContent.trim();
+    dst.textContent=transform?transform(t):t;
+    // Copy color classes
+    var cls=['green','red','up','dn','am','cy','neu'];
+    cls.forEach(function(c){
+      if(src.classList.contains(c)) dst.classList.add(c);
+      else dst.classList.remove(c);
+    });
+  }
+  copy();
+  new MutationObserver(copy).observe(src,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['class']});
 }
 
-// ── Holdings sort bar (injected on mobile only) ───────────────
-(function injectMobSortBar(){
-  if(window.innerWidth>768)return;
-  var filterBar=document.querySelector('#sec04 .filter-bar');
-  if(!filterBar)return;
-  var bar=document.createElement('div');
-  bar.id='mobHoldingsSortBar';
-  var chips=[
-    {key:'mv',label:'Mkt Val ↓'},
-    {key:'cost',label:'Cost'},
-    {key:'dayd',label:'Day $'},
-    {key:'dayp',label:'Day %'},
-    {key:'pld',label:'P&L $'},
-    {key:'plp',label:'P&L %'}
-  ];
-  chips.forEach(function(c,i){
-    var btn=document.createElement('button');
-    btn.className='mob-sort-chip'+(i===0?' active':'');
-    btn.textContent=c.label;
-    btn.onclick=function(){
-      bar.querySelectorAll('.mob-sort-chip').forEach(function(b){b.classList.remove('active');});
-      btn.classList.add('active');
-      // Delegate to existing sort if available
-      var sortSel=document.getElementById('holdingsSortSelect');
-      if(sortSel){
-        var map={mv:'mv_desc',cost:'cost_desc',dayd:'daychg_desc',dayp:'daypct_desc',pld:'pnl_desc',plp:'pnlpct_desc'};
-        if(map[c.key]){sortSel.value=map[c.key];sortSel.dispatchEvent(new Event('change'));}
+/* ── util: mirror innerHTML ── */
+function mirrorHTML(srcId, dstId){
+  var src=document.getElementById(srcId);
+  var dst=document.getElementById(dstId);
+  if(!src||!dst)return;
+  function copy(){ dst.innerHTML=src.innerHTML; }
+  copy();
+  new MutationObserver(copy).observe(src,{childList:true,subtree:true,characterData:true});
+}
+
+/* ── util: k-format a dollar value ── */
+function toK(txt){
+  if(!txt||txt==='—')return txt;
+  var n=parseFloat(txt.replace(/[$,K]/g,''));
+  if(txt.includes('K'))n*=1000;
+  if(isNaN(n))return txt;
+  return n>=1000?'$'+Math.round(n/1000)+'K':txt;
+}
+
+/* ════════════════════════ HERO ═══════════════════════════════ */
+function initHero(){
+  // Total value
+  syncText('kpiTotalValue','m-total');
+  // Day change chip
+  var pillSrc=document.getElementById('kpiDailyChange');
+  var pillDst=document.getElementById('m-day-chip');
+  if(pillSrc&&pillDst){
+    function updatePill(){
+      var t=pillSrc.textContent.trim();
+      if(!t||t==='—'){pillDst.textContent='—';return;}
+      // Reformat "+$1,840 +0.65%" → "+$1,840 · +0.65% today"
+      if(!t.includes('today')){
+        var parts=t.split(' ');
+        if(parts.length>=2) t=parts[0]+' · '+parts[1]+' today';
       }
-    };
-    bar.appendChild(btn);
-  });
-  filterBar.insertAdjacentElement('afterbegin',bar);
-})();
-
-// ── + FAB button in live bar ───────────────────────────────
-(function injectFabBtn(){
-  if(window.innerWidth>768)return;
-  if(document.getElementById('mobFabBtn'))return;
-  var bar=document.querySelector('.market-status');
-  if(!bar)return;
-
-  // FAB button
-  var btn=document.createElement('button');
-  btn.id='mobFabBtn';btn.textContent='+';btn.setAttribute('aria-label','Actions');
-  btn.onclick=function(e){
-    e.stopPropagation();
-    var dd=document.getElementById('mobFabDropdown');
-    if(dd)dd.classList.toggle('mob-fab-open');
-  };
-  bar.appendChild(btn);
-
-  // Dropdown
-  var dd=document.createElement('div');
-  dd.id='mobFabDropdown';
-  dd.innerHTML=
-    '<div class="mob-fab-item" onclick="openTxModal();document.getElementById(\'mobFabDropdown\').classList.remove(\'mob-fab-open\')"><span class="mob-fab-icon">📋</span>Log Trade</div>'+
-    '<div class="mob-fab-item" onclick="window.print();document.getElementById(\'mobFabDropdown\').classList.remove(\'mob-fab-open\')"><span class="mob-fab-icon">📄</span>Generate Report</div>';
-  document.body.appendChild(dd);
-
-  // Close on outside tap
-  document.addEventListener('click',function(){
-    if(dd)dd.classList.remove('mob-fab-open');
-  });
-})();
-
-// ── Hero: day change pill → add "today", secondary line ───
-(function setupHero(){
-  if(window.innerWidth>768)return;
-
-  // Reformat day change: "+$1,840 +0.65%" → "+$1,840 · +0.65% today"
-  var pillEl=document.getElementById('kpiDailyChange');
-  function reformatPill(){
-    if(!pillEl)return;
-    var t=pillEl.textContent.trim();
-    if(!t||t==='—'||t.includes('today'))return;
-    var parts=t.split(' ');
-    if(parts.length>=2) pillEl.textContent=parts[0]+' · '+parts[1]+' today';
-  }
-  if(pillEl) new MutationObserver(function(){
-    var t=pillEl?pillEl.textContent.trim():'';
-    if(t&&!t.includes('today'))reformatPill();
-  }).observe(pillEl,{childList:true,characterData:true,subtree:true});
-  reformatPill();
-
-  // Combined secondary line: "ROI% all-time · $X contributed"
-  var kpis=document.querySelector('.header-kpis');
-  function updateSecondary(){
-    var roiEl=document.getElementById('kpiRoi');
-    var contribEl=document.getElementById('kpiContributions');
-    var roiTxt=roiEl?roiEl.textContent.trim():'';
-    var cTxt=contribEl?contribEl.textContent.trim():'';
-    if(!roiTxt||roiTxt==='—')return;
-    var sec=document.getElementById('mob-hero-secondary');
-    if(!sec){
-      sec=document.createElement('div');
-      sec.id='mob-hero-secondary';
-      if(kpis)kpis.appendChild(sec);
+      pillDst.textContent=t;
+      // Set direction class
+      pillDst.classList.remove('up','dn','neu');
+      if(pillSrc.classList.contains('green')||t.startsWith('+')) pillDst.classList.add('up');
+      else if(pillSrc.classList.contains('red')||t.startsWith('-')||t.startsWith('−')) pillDst.classList.add('dn');
+      else pillDst.classList.add('neu');
     }
-    var line=roiTxt+' all-time';
-    if(cTxt&&cTxt!=='—') line+=' · '+cTxt+' contributed';
-    sec.textContent=line;
+    updatePill();
+    new MutationObserver(function(){
+      var t=pillSrc.textContent.trim();
+      if(t&&!t.includes('today'))updatePill();
+    }).observe(pillSrc,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['class']});
   }
+  // Secondary line: ROI + contributions
   var roiEl=document.getElementById('kpiRoi');
   var cEl=document.getElementById('kpiContributions');
-  if(roiEl) new MutationObserver(updateSecondary).observe(roiEl,{childList:true,characterData:true,subtree:true});
-  if(cEl) new MutationObserver(updateSecondary).observe(cEl,{childList:true,characterData:true,subtree:true});
-  updateSecondary();
-})();
-
-// ── Account cards: grid layout + ROI bottom line ───────────
-(function setupAccountCards(){
-  if(window.innerWidth>768)return;
-  var strip=document.getElementById('acctBalanceStrip');
-  if(!strip)return;
-
-  var items=Array.from(strip.querySelectorAll(':scope > div'));
-  var roiIds=['acctTFSARoi','acctInvRoi','acctFHSARoi','acctRRSPRoi'];
-  // sec03 card order matches strip order: TFSA, FHSA, RRSP, NON-REG
-  // But acctXRoi IDs: TFSA, Investment (NON-REG), FHSA, RRSP
-  // Strip order from HTML: TFSA, FHSA, RRSP, Investment
-  var roiMap=['acctTFSARoi','acctFHSARoi','acctRRSPRoi','acctInvRoi'];
-
-  items.forEach(function(item,i){
-    // Inject ROI span if missing
-    var roiSpan=item.querySelector('.mob-acct-roi');
-    if(!roiSpan){roiSpan=document.createElement('span');roiSpan.className='mob-acct-roi';item.appendChild(roiSpan);}
-
-    function update(){
-      var chgEl=item.querySelector('span:nth-child(3)');
-      var roiEl=document.getElementById(roiMap[i]);
-      if(!chgEl)return;
-      var chgFull=chgEl.dataset.orig||chgEl.textContent.trim();
-      // Guard: if already just one token (already split), re-read from dataset
-      var parts=chgFull.split(' ');
-      var dayDollar=parts[0]||chgFull;
-      var dayPct=parts[1]||'';
-      // Update chg span to just show the $ amount on top-right
-      if(parts.length>=2){
-        chgEl.dataset.orig=chgFull;
-        chgEl.textContent=dayDollar;
-      }
-      // Build ROI bottom line
-      var roiRaw=roiEl?roiEl.textContent.trim():''; // "+130.4% ROI · $44,500 in"
-      var roiMatch=roiRaw.match(/([+\-]?[\d.,]+%)/);
-      var roiPct=roiMatch?roiMatch[1]:'';
-      var bottom=(roiPct&&dayPct)?roiPct+' all-time · '+dayPct:(roiPct||dayPct||chgFull);
-      roiSpan.textContent=bottom;
-      var isPos=dayDollar.indexOf('-')<0&&dayDollar.indexOf('−')<0;
-      roiSpan.style.color=isPos?'var(--green)':'var(--red)';
-    }
-
-    // Watch chg element for JS updates
-    var chgEl=item.querySelector('span:nth-child(3)');
-    if(chgEl) new MutationObserver(function(){
-      var t=chgEl.textContent.trim();
-      if(t&&t!=='—'&&t.split(' ').length>=2)update();
-    }).observe(chgEl,{childList:true,characterData:true,subtree:true});
-
-    var roiEl=document.getElementById(roiMap[i]);
-    if(roiEl) new MutationObserver(update).observe(roiEl,{childList:true,characterData:true,subtree:true});
-    update();
-  });
-})();
-
-// ── Account detail view when tab is selected ───────────────
-(function setupAcctDetail(){
-  if(window.innerWidth>768)return;
-  var strip=document.getElementById('acctBalanceStrip');
-  if(!strip)return;
-
-  // Insert detail card div after strip
-  var detailDiv=document.getElementById('mob-acct-detail');
-  if(!detailDiv){
-    detailDiv=document.createElement('div');
-    detailDiv.id='mob-acct-detail';
-    strip.parentNode.insertBefore(detailDiv,strip.nextSibling);
+  var subEl=document.getElementById('m-hero-sub');
+  function updateSub(){
+    if(!subEl)return;
+    var r=roiEl?roiEl.textContent.trim():'';
+    var c=cEl?cEl.textContent.trim():'';
+    if(!r||r==='—')return;
+    var line=r+' all-time';
+    if(c&&c!=='—')line+=' · '+c+' contributed';
+    subEl.textContent=line;
   }
+  if(roiEl) new MutationObserver(updateSub).observe(roiEl,{childList:true,characterData:true,subtree:true});
+  if(cEl) new MutationObserver(updateSub).observe(cEl,{childList:true,characterData:true,subtree:true});
+  updateSub();
+}
 
-  // Account data map (reads from sec03 which is hidden but data is live)
-  var ACCT_MAP={
-    tfsa:{
-      valId:'acctTFSAValue',roiId:'acctTFSARoi',pnlId:'acctTFSAPnl',
-      label:'TFSA',color:'#4a9eff',type:'TAX-FREE',footerId:'acctTFSAFooter',
-      holdings:[
-        {tk:'FNGU',shs:'1,373',valId:'live-FNGU-TFSA',rtn:'+79.3%',rtnCls:'green'},
-        {tk:'NVDA',shs:'40',valId:'live-NVDA-TFSA',rtn:'+1,809%',rtnCls:'green'},
-        {tk:'TSLA',shs:'14',valId:'live-TSLA-TFSA',rtn:'+23.7%',rtnCls:'green'},
-        {tk:'TXF.TO',shs:'320',valId:'live-TXF.TO-TFSA',rtn:'+37.0%',rtnCls:'green'},
-        {tk:'UDOW',shs:'84',valId:'live-UDOW-TFSA',rtn:'+69.1%',rtnCls:'green'},
-      ]
-    },
-    fhsa:{
-      valId:'acctFHSAValue',roiId:'acctFHSARoi',pnlId:'acctFHSAPnl',
-      label:'FHSA',color:'var(--green)',type:'HOME BUYERS',footerId:'acctFHSAFooter',
-      holdings:[
-        {tk:'SPXL',shs:'151',valId:'live-SPXL-FHSA',rtn:'+130.2%',rtnCls:'green'},
-        {tk:'ZSP.TO',shs:'64',valId:'live-ZSP.TO-FHSA',rtn:'+38.4%',rtnCls:'green'},
-        {tk:'CM.TO',shs:'45',valId:'live-CM.TO-FHSA',rtn:'+12.5%',rtnCls:'green'},
-      ]
-    },
-    rrsp:{
-      valId:'acctRRSPValue',roiId:'acctRRSPRoi',pnlId:'acctRRSPPnl',
-      label:'RRSP',color:'var(--amber)',type:'TAX-DEFERRED',footerId:'acctRRSPFooter',
-      holdings:[
-        {tk:'AVGO',shs:'10',valId:'live-AVGO-RRSP',rtn:'+44.2%',rtnCls:'green'},
-        {tk:'TSM',shs:'5',valId:'live-TSM-RRSP',rtn:'+28.7%',rtnCls:'green'},
-        {tk:'Cash',shs:'—',valId:null,rtn:'—',rtnCls:''},
-      ]
-    },
-    inv:{
-      valId:'acctInvValue',roiId:'acctInvRoi',pnlId:'acctInvPnl',
-      label:'NON-REG',color:'var(--text2)',type:'TAXABLE',footerId:'acctInvFooter',
-      holdings:[
-        {tk:'SPXL',shs:'75',valId:'live-SPXL-Investment',rtn:'+104.7%',rtnCls:'green'},
-        {tk:'FNGU',shs:'665',valId:'live-FNGU-Investment',rtn:'+44.9%',rtnCls:'green'},
-        {tk:'CM.TO',shs:'50',valId:'live-CM.TO-Investment',rtn:'+14.5%',rtnCls:'green'},
-        {tk:'ENB.TO',shs:'200',valId:'live-ENB.TO-Investment',rtn:'+14.2%',rtnCls:'green'},
-      ]
+/* ════════════════════════ ACCOUNT TABS + CARDS ═══════════════ */
+var ACCTS=[
+  {key:'all',  label:'All',    valId:'kpiTotalValue',  chgId:null,        roiId:null},
+  {key:'tfsa', label:'TFSA',   valId:'abTFSAVal',      chgId:'abTFSAChg', roiId:'acctTFSARoi'},
+  {key:'fhsa', label:'FHSA',   valId:'abFHSAVal',      chgId:'abFHSAChg', roiId:'acctFHSARoi'},
+  {key:'rrsp', label:'RRSP',   valId:'abRRSPVal',      chgId:'abRRSPChg', roiId:'acctRRSPRoi'},
+  {key:'inv',  label:'Non-Reg',valId:'abInvVal',       chgId:'abInvChg',  roiId:'acctInvRoi'}
+];
+
+// Data for account detail cards (holdings from desktop sec03)
+var ACCT_DATA={
+  tfsa:{label:'TFSA',cls:'abt',color:'#4a9eff',type:'TAX-FREE',
+    valId:'acctTFSAValue',roiId:'acctTFSARoi',pnlId:'acctTFSAPnl',footerId:'acctTFSAFooter',
+    hdgs:[['FNGU','1,373','live-FNGU-TFSA','+79.3%','up'],['NVDA','40','live-NVDA-TFSA','+1,809%','up'],
+          ['TSLA','14','live-TSLA-TFSA','+23.7%','up'],['TXF.TO','320','live-TXF.TO-TFSA','+37.0%','up'],
+          ['UDOW','84','live-UDOW-TFSA','+69.1%','up']]},
+  fhsa:{label:'FHSA',cls:'abf',color:'var(--green)',type:'HOME BUYERS',
+    valId:'acctFHSAValue',roiId:'acctFHSARoi',pnlId:'acctFHSAPnl',footerId:'acctFHSAFooter',
+    hdgs:[['SPXL','151','live-SPXL-FHSA','+130.2%','up'],['ZSP.TO','64','live-ZSP.TO-FHSA','+38.4%','up'],
+          ['CM.TO','45','live-CM.TO-FHSA','+12.5%','up']]},
+  rrsp:{label:'RRSP',cls:'abr',color:'var(--amber)',type:'TAX-DEFERRED',
+    valId:'acctRRSPValue',roiId:'acctRRSPRoi',pnlId:'acctRRSPPnl',footerId:'acctRRSPFooter',
+    hdgs:[['AVGO','10','live-AVGO-RRSP','+44.2%','up'],['TSM','5','live-TSM-RRSP','+28.7%','up'],
+          ['Cash','—',null,'—','neu']]},
+  inv:{label:'NON-REG',cls:'abn',color:'var(--t3)',type:'TAXABLE',
+    valId:'acctInvValue',roiId:'acctInvRoi',pnlId:'acctInvPnl',footerId:'acctInvFooter',
+    hdgs:[['SPXL','75','live-SPXL-Investment','+104.7%','up'],['FNGU','665','live-FNGU-Investment','+44.9%','up'],
+          ['CM.TO','50','live-CM.TO-Investment','+14.5%','up'],['ENB.TO','200','live-ENB.TO-Investment','+14.2%','up']]}
+};
+
+function initAcctTabs(){
+  var tabBar=document.getElementById('m-port-tabs');
+  if(!tabBar)return;
+  ACCTS.forEach(function(a,i){
+    var btn=tabBar.children[i];
+    if(!btn)return;
+    btn.dataset.key=a.key;
+    // Update label with live value
+    var valSpan=btn.querySelector('span');
+    function updateTab(){
+      var el=document.getElementById(a.valId);
+      if(!el)return;
+      var v=toK(el.textContent.trim());
+      if(valSpan) valSpan.textContent=a.key==='all'?v:v;
+      else btn.firstChild.textContent=a.label+(v&&v!=='—'?' · '+v:'');
     }
-  };
-
-  function showDetail(key){
-    var d=ACCT_MAP[key];
-    if(!d){
-      strip.style.display='';detailDiv.classList.remove('visible');return;
-    }
-    strip.style.display='none';
-    var valEl=document.getElementById(d.valId);
-    var roiEl=document.getElementById(d.roiId);
-    var pnlEl=document.getElementById(d.pnlId);
-    var ftrEl=document.getElementById(d.footerId);
-    var valTxt=valEl?valEl.textContent.trim():'—';
-    var roiTxt=roiEl?roiEl.textContent.trim():'—';
-    var pnlTxt=pnlEl?pnlEl.textContent.trim():'';
-    var ftrTxt=ftrEl?ftrEl.textContent.trim():'';
-    var rows=d.holdings.map(function(h){
-      var vEl=h.valId?document.getElementById(h.valId):null;
-      var v=vEl?vEl.textContent.trim():'—';
-      return'<tr><td style="color:var(--teal);font-weight:700;font-family:var(--mono)">'+h.tk+'</td><td>'+h.shs+'</td><td>'+v+'</td><td class="'+h.rtnCls+'">'+h.rtn+'</td></tr>';
-    }).join('');
-    detailDiv.innerHTML=
-      '<div class="mob-ad-hdr">'
-        +'<div>'
-          +'<span class="mob-ad-badge" style="background:rgba(0,0,0,.3);color:'+d.color+';border:1.5px solid '+d.color+'">'+d.label+'</span>'
-          +'<div class="mob-ad-val">'+valTxt+(pnlTxt?' <span style="font-size:14px;color:var(--green)">'+pnlTxt+'</span>':'')+'</div>'
-          +'<div class="mob-ad-sub">'+roiTxt+'</div>'
-        +'</div>'
-        +'<span class="mob-ad-type">'+d.type+'</span>'
-      +'</div>'
-      +'<table class="mob-ad-tbl"><thead><tr><th>Ticker</th><th>Shs</th><th>Value</th><th>Rtn</th></tr></thead><tbody>'+rows+'</tbody></table>'
-      +(ftrTxt?'<div class="mob-ad-insight">▼ '+ftrTxt+'</div>':'');
-    detailDiv.classList.add('visible');
-  }
-
-  function showAll(){
-    strip.style.display='';detailDiv.classList.remove('visible');
-  }
-
-  // Expose for tab buttons
-  window.mobPortfolioAcctSelect=function(key){
-    var tabs=document.getElementById('mobPortfolioAcctTabs');
-    if(tabs){
-      tabs.querySelectorAll('.mob-port-tab').forEach(function(b){b.classList.remove('active');});
-      var active=tabs.querySelector('[data-acct="'+key+'"]');
-      if(active)active.classList.add('active');
-    }
-    if(key==='all')showAll();else showDetail(key);
-    // Also update chart filter
-    var filterKey={tfsa:'tfsa',fhsa:'fhsa',rrsp:'rrsp',inv:'inv',all:'all'}[key]||'all';
-    var chartBtn=document.querySelector('#chartFilters [onclick*="\''+filterKey+'\'"]');
-    if(chartBtn)chartBtn.click();
-  };
-})();
-
-// ── Chart account filter pills + ROI card ──────────────────
-(function setupChartArea(){
-  if(window.innerWidth>768)return;
-  var chartWrap=document.querySelector('#sec01 div:has(#portfolioValueChart)');
-  if(!chartWrap||document.getElementById('mobChartAcctFilter'))return;
-
-  // Account filter pills inside chart card
-  var pillRow=document.createElement('div');
-  pillRow.id='mobChartAcctFilter';
-  var pills=[
-    {key:'all',label:'All'},
-    {key:'tfsa',label:'TFSA'},
-    {key:'fhsa',label:'FHSA'},
-    {key:'rrsp',label:'RRSP'},
-    {key:'inv',label:'N-REG'},
-  ];
-  pills.forEach(function(p,i){
-    var btn=document.createElement('button');
-    btn.className='mob-chart-pill'+(i===0?' active':'');
-    btn.textContent=p.label;
-    btn.onclick=function(){
-      pillRow.querySelectorAll('.mob-chart-pill').forEach(function(b){b.classList.remove('active');});
-      btn.classList.add('active');
-      var chartBtn=document.querySelector('#chartFilters [onclick*="\''+p.key+'\'"]');
-      if(chartBtn)chartBtn.click();
-    };
-    pillRow.appendChild(btn);
-  });
-  chartWrap.insertBefore(pillRow,chartWrap.firstChild);
-
-  // Show the ROI chart below portfolio value chart
-  var roiWrap=document.querySelector('#sec01 div:has(#roiChart)');
-  if(roiWrap){
-    roiWrap.style.cssText='display:block !important;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px';
-    var roiTitle=roiWrap.querySelector('#roiChartTitle');
-    if(roiTitle)roiTitle.style.cssText='font-size:9px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--text3);margin-bottom:10px;font-family:var(--mono)';
-    var roiCanvas=roiWrap.querySelector('#roiChart');
-    if(roiCanvas){
-      roiCanvas.parentElement.style.height='120px';
-      roiCanvas.style.height='120px';
-    }
-    // Hide allocation chart (side-by-side partner)
-    var acctCanvas=roiWrap.querySelector('#acctChart');
-    if(acctCanvas) acctCanvas.parentElement.style.display='none';
-  }
-})();
-
-// ── Portfolio tab account filter tabs ─────────────────────
-(function injectPortfolioAcctTabs(){
-  if(window.innerWidth>768)return;
-  var strip=document.getElementById('acctBalanceStrip');
-  if(!strip||document.getElementById('mobPortfolioAcctTabs'))return;
-  var tabs=document.createElement('div');
-  tabs.id='mobPortfolioAcctTabs';
-  var accts=[
-    {key:'all',label:'All',valId:null},
-    {key:'tfsa',label:'TFSA',valId:'abTFSAVal'},
-    {key:'fhsa',label:'FHSA',valId:'abFHSAVal'},
-    {key:'rrsp',label:'RRSP',valId:'abRRSPVal'},
-    {key:'inv',label:'Non-Reg',valId:'abInvVal'}
-  ];
-  accts.forEach(function(a,i){
-    var btn=document.createElement('button');
-    btn.className='mob-port-tab'+(i===0?' active':'');
-    btn.dataset.acct=a.key;
-    function updateLabel(){
-      var suffix='';
-      if(a.valId){
-        var el=document.getElementById(a.valId);
-        var txt=el?el.textContent.trim():'';
-        var num=parseFloat(txt.replace(/[$,K]/g,''));
-        if(txt.includes('K')) num=num*1000;
-        if(!isNaN(num)&&num>999) suffix=' · $'+Math.round(num/1000)+'K';
-      }
-      btn.textContent=a.label+suffix;
-    }
-    updateLabel();
+    updateTab();
     if(a.valId){
       var el=document.getElementById(a.valId);
-      if(el) new MutationObserver(updateLabel).observe(el,{childList:true,characterData:true,subtree:true});
+      if(el) new MutationObserver(updateTab).observe(el,{childList:true,characterData:true,subtree:true});
     }
-    btn.onclick=function(){ if(window.mobPortfolioAcctSelect) window.mobPortfolioAcctSelect(a.key); };
-    tabs.appendChild(btn);
+    btn.onclick=function(){ window.mSelectAcct(a.key,btn); };
   });
-  strip.parentNode.insertBefore(tabs,strip);
-})();
+}
 
-// ── Holdings: account filter chips + card view ─────────────────────────
-(function initMobHoldings(){
-  if(window.innerWidth>768)return;
+function initAcctCards(){
+  // Sync 2x2 account grid cards
+  var cardIds=['m-tfsa','m-fhsa','m-rrsp','m-inv'];
+  var acctKeys=['tfsa','fhsa','rrsp','inv'];
+  cardIds.forEach(function(id,i){
+    var key=acctKeys[i];
+    var a=ACCTS.find(function(x){return x.key===key;});
+    if(!a)return;
+    var chgEl=document.getElementById(a.chgId);
+    var roiEl=document.getElementById(a.roiId);
+    function update(){
+      var valDst=document.getElementById(id+'-val');
+      var chgDst=document.getElementById(id+'-chg');
+      var subDst=document.getElementById(id+'-sub');
+      var valSrc=document.getElementById(a.valId);
+      if(valDst&&valSrc) valDst.textContent=valSrc.textContent.trim();
+      if(chgDst&&chgEl){
+        var chgFull=chgEl.textContent.trim();
+        var parts=chgFull.split(' ');
+        chgDst.textContent=parts[0]||chgFull;
+        chgDst.className=chgEl.classList.contains('green')?'up':'dn';
+      }
+      if(subDst&&chgEl&&roiEl){
+        var chgFull=chgEl.textContent.trim();
+        var parts=chgFull.split(' ');
+        var dayPct=parts[1]||'';
+        var roiRaw=roiEl.textContent.trim();
+        var roiMatch=roiRaw.match(/([+\-]?[\d.,]+%)/);
+        var roiPct=roiMatch?roiMatch[1]:'';
+        var line=(roiPct&&dayPct)?roiPct+' · '+dayPct:(roiPct||dayPct||chgFull);
+        subDst.textContent=line;
+        subDst.className=(chgFull.startsWith('+'))?'up':chgFull.startsWith('-')||chgFull.startsWith('−')?'dn':'';
+      }
+    }
+    update();
+    if(chgEl) new MutationObserver(update).observe(chgEl,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['class']});
+    if(roiEl) new MutationObserver(update).observe(roiEl,{childList:true,characterData:true,subtree:true});
+    var valSrc=document.getElementById(a.valId);
+    if(valSrc) new MutationObserver(update).observe(valSrc,{childList:true,characterData:true,subtree:true});
+  });
+}
 
-  // 1) Account filter chips (inserted before sort bar)
-  var sortBar=document.getElementById('mobHoldingsSortBar');
-  if(sortBar&&!document.getElementById('mobHoldingsAcctTabs')){
-    var tabs=document.createElement('div');
-    tabs.id='mobHoldingsAcctTabs';
-    var accts=[
-      {v:'',label:'All'},
-      {v:'TFSA',label:'TFSA'},
-      {v:'FHSA',label:'FHSA'},
-      {v:'RRSP',label:'RRSP'},
-      {v:'Investment',label:'Non-Reg'}
-    ];
-    accts.forEach(function(a,i){
-      var btn=document.createElement('button');
-      btn.className='mob-acct-chip'+(i===0?' active':'');
-      btn.textContent=a.label;
-      btn.onclick=function(){
-        tabs.querySelectorAll('.mob-acct-chip').forEach(function(b){b.classList.remove('active');});
-        btn.classList.add('active');
-        var sel=document.getElementById('acctFilter');
-        if(sel){sel.value=a.v;sel.dispatchEvent(new Event('change'));}
-      };
-      tabs.appendChild(btn);
-    });
-    sortBar.parentNode.insertBefore(tabs,sortBar);
+window.mSelectAcct=function(key,clickedBtn){
+  // Update tab active state
+  var tabBar=document.getElementById('m-port-tabs');
+  if(tabBar) Array.from(tabBar.children).forEach(function(b){b.classList.remove('on');});
+  if(clickedBtn) clickedBtn.classList.add('on');
+
+  var allContent=document.getElementById('m-acct-all');
+  var detailCard=document.getElementById('m-acct-detail-card');
+  if(key==='all'){
+    if(allContent) allContent.style.display='';
+    if(detailCard) detailCard.style.display='none';
+    // Also reset chart filter
+    var cfBtn=document.querySelector('#chartFilters [onclick*="\'all\'"]');
+    if(cfBtn) cfBtn.click();
+    return;
+  }
+  // Show account detail
+  if(allContent) allContent.style.display='none';
+  if(!detailCard)return;
+  detailCard.style.display='block';
+  var d=ACCT_DATA[key];
+  if(!d){detailCard.innerHTML='';return;}
+  var valEl=document.getElementById(d.valId);
+  var roiEl=document.getElementById(d.roiId);
+  var pnlEl=document.getElementById(d.pnlId);
+  var ftrEl=document.getElementById(d.footerId);
+  var valTxt=valEl?valEl.textContent.trim():'—';
+  var roiTxt=roiEl?roiEl.textContent.trim():'—';
+  var pnlTxt=pnlEl?pnlEl.textContent.trim():'';
+  var ftrTxt=ftrEl?ftrEl.textContent.trim():'';
+  var rows=d.hdgs.map(function(h){
+    var vEl=h[2]?document.getElementById(h[2]):null;
+    var v=vEl?vEl.textContent.trim():'—';
+    return '<tr><td class="t-tk">'+h[0]+'</td><td>'+h[1]+'</td><td>'+v+'</td><td class="'+h[4]+'">'+h[3]+'</td></tr>';
+  }).join('');
+  detailCard.innerHTML=
+    '<div class="m-acct-detail">'
+    +'<div class="m-acct-detail-hdr">'
+    +'<div><span class="b '+d.cls+' m-acct-badge-lg" style="font-size:11px;padding:4px 10px">'+d.label+'</span>'
+    +'<div class="m-acct-total">'+valTxt+(pnlTxt?' <span style="font-size:14px;color:var(--green)">'+pnlTxt+'</span>':'')+'</div>'
+    +'<div class="m-acct-sub">'+roiTxt+'</div></div>'
+    +'<span class="m-acct-type">'+d.type+'</span>'
+    +'</div>'
+    +'<table class="m-acct-tbl"><thead><tr><th>Ticker</th><th>Shs</th><th>Value</th><th>Rtn</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>'
+    +(ftrTxt?'<div class="m-acct-insight">'+ftrTxt+'</div>':'')
+    +'</div>';
+  // Also update chart filter
+  var filterKey={tfsa:'tfsa',fhsa:'fhsa',rrsp:'rrsp',inv:'inv'}[key]||'all';
+  var cfBtn=document.querySelector('#chartFilters [onclick*="\''+filterKey+'\'"]');
+  if(cfBtn) cfBtn.click();
+};
+
+/* ════════════════════════ CHARTS ════════════════════════════ */
+function initCharts(){
+  // Restyle the portfolio value chart container
+  var mvWrap=document.querySelector('#sec01 > div:has(#portfolioValueChart)');
+  var slot=document.getElementById('m-chart-mv-slot');
+  if(mvWrap&&slot){
+    // Remove existing chart-title and add chart-top header
+    var title=mvWrap.querySelector('.chart-title');
+    if(title){title.style.display='none';}
+    // Add chart filter buttons
+    var filters=mvWrap.querySelector('.chart-filters');
+    if(filters) filters.style.display='none';
+    // Move into mobile slot
+    slot.appendChild(mvWrap);
+    mvWrap.style.cssText='margin:0;background:none;border:none;padding:0;';
   }
 
-  // 2) Card view container (inserted after .table-wrap)
-  var tableWrap=document.querySelector('#sec04 .table-wrap');
-  if(tableWrap&&!document.getElementById('mobHoldingsCards')){
-    var cardView=document.createElement('div');
-    cardView.id='mobHoldingsCards';
-    tableWrap.insertAdjacentElement('afterend',cardView);
+  // ROI chart
+  var roiWrap=document.querySelector('#sec01 div:has(#roiChart)');
+  var roiSlot=document.getElementById('m-chart-roi-slot');
+  if(roiWrap&&roiSlot){
+    var roiTitle=roiWrap.querySelector('#roiChartTitle');
+    if(roiTitle) roiTitle.style.display='none';
+    var acctC=roiWrap.querySelector('.chart-container:has(#acctChart)');
+    if(acctC) acctC.style.display='none';
+    roiSlot.appendChild(roiWrap);
+    roiWrap.style.cssText='margin:0;background:none;border:none;padding:0;grid-template-columns:unset;display:block;';
   }
 
-  // 3) Card builder — reads visible rows from the table body
+  // Time filter buttons
+  var cfBtns=document.querySelectorAll('#m-chart-mv-slot .m-cf');
+  // These are injected into the HTML below
+
+  // Trigger chart resize after moving (Chart.js needs this)
+  setTimeout(function(){
+    if(window.portfolioValueChart) window.portfolioValueChart.resize();
+    if(window.roiChart) window.roiChart.resize();
+  },200);
+
+  // Account filter buttons delegate to desktop setChartFilter
+  document.querySelectorAll('.m-acct-cf').forEach(function(btn){
+    btn.onclick=function(){
+      document.querySelectorAll('.m-acct-cf').forEach(function(b){b.classList.remove('on');});
+      btn.classList.add('on');
+      var key=btn.dataset.key;
+      var cfBtn=document.querySelector('#chartFilters [onclick*="\''+key+'\'"]');
+      if(cfBtn) cfBtn.click();
+    };
+  });
+}
+
+/* ════════════════════════ CONTRIBUTION BAR ══════════════════ */
+function initContrib(){
+  var totalEl=document.getElementById('kpiTotalValue');
+  var contribEl=document.getElementById('kpiContributions');
+  var pnlEl=document.getElementById('kpiTotalPnl');
+  function update(){
+    var totalTxt=totalEl?totalEl.textContent.trim():'';
+    var ctTxt=contribEl?contribEl.textContent.trim():'';
+    var ctTotal=document.getElementById('m-contrib-total');
+    if(ctTotal&&totalTxt) ctTotal.textContent=totalTxt+' total';
+    // Parse values for bar width
+    var tv=parseFloat((totalTxt||'').replace(/[$,K]/g,''));
+    if((totalTxt||'').includes('K'))tv*=1000;
+    var cv=parseFloat((ctTxt||'').replace(/[$,K]/g,''));
+    if((ctTxt||'').includes('K'))cv*=1000;
+    if(tv>0&&cv>0){
+      var pct=Math.min(99,(cv/tv*100)).toFixed(1);
+      var gainPct=(100-parseFloat(pct)).toFixed(1);
+      var filled=document.getElementById('m-contrib-filled');
+      var gains=document.getElementById('m-contrib-gains');
+      if(filled) filled.style.width=pct+'%';
+      if(gains) gains.style.width=gainPct+'%';
+      var ctLeg=document.getElementById('m-contrib-contrib-leg');
+      if(ctLeg) ctLeg.textContent='Contributed '+ctTxt+' ('+pct+'%)';
+      var gainLeg=document.getElementById('m-contrib-gains-leg');
+      var pnlTxt=pnlEl?pnlEl.textContent.trim():'';
+      if(gainLeg) gainLeg.textContent='Gains '+pnlTxt+' ('+gainPct+'%)';
+    }
+  }
+  if(totalEl) new MutationObserver(update).observe(totalEl,{childList:true,characterData:true,subtree:true});
+  if(contribEl) new MutationObserver(update).observe(contribEl,{childList:true,characterData:true,subtree:true});
+  update();
+}
+
+/* ════════════════════════ TICKER ════════════════════════════ */
+function initTicker(){
+  var src=document.getElementById('tickerTrack');
+  var dst=document.getElementById('m-ticker-track');
+  if(!src||!dst)return;
+  function copy(){dst.innerHTML=src.innerHTML;}
+  copy();
+  new MutationObserver(copy).observe(src,{childList:true,subtree:true});
+}
+
+/* ════════════════════════ LIVE STATUS ═══════════════════════ */
+function initLiveStatus(){
+  var dotSrc=document.getElementById('liveDot');
+  var statusSrc=document.getElementById('liveStatus');
+  var rateSrc=document.getElementById('usdcadRate');
+  var statusDst=document.getElementById('m-live-row');
+  if(!statusDst)return;
+  function update(){
+    var s=statusSrc?statusSrc.textContent.trim():'LIVE';
+    var r=rateSrc?rateSrc.textContent.trim().replace('USD/CAD ',''):'';
+    statusDst.innerHTML='<div class="m-live-dot"></div> '+s+(r?' · '+r:'');
+  }
+  update();
+  if(statusSrc) new MutationObserver(update).observe(statusSrc,{childList:true,characterData:true,subtree:true});
+  if(rateSrc) new MutationObserver(update).observe(rateSrc,{childList:true,characterData:true,subtree:true});
+}
+
+/* ════════════════════════ HOLDINGS ══════════════════════════ */
+function initHoldings(){
+  var tbody=document.getElementById('holdingsBody');
+  var acctFilter=document.getElementById('acctFilter');
+  var sortSel=document.getElementById('holdingsSortSelect');
+  var countDst=document.getElementById('m-hold-count');
+  // Account filter tabs
+  document.querySelectorAll('.m-hold-acct').forEach(function(btn){
+    btn.onclick=function(){
+      document.querySelectorAll('.m-hold-acct').forEach(function(b){b.classList.remove('on');});
+      btn.classList.add('on');
+      if(acctFilter){acctFilter.value=btn.dataset.acct;acctFilter.dispatchEvent(new Event('change'));}
+    };
+  });
+  // Sort chips
+  document.querySelectorAll('.m-hold-sort').forEach(function(btn){
+    btn.onclick=function(){
+      document.querySelectorAll('.m-hold-sort').forEach(function(b){b.classList.remove('on');});
+      btn.classList.add('on');
+      var map={mv:'mv_desc',cost:'cost_desc',dayd:'daychg_desc',dayp:'daypct_desc',pld:'pnl_desc',plp:'pnlpct_desc'};
+      var sel=document.getElementById('holdingsSortSelect');
+      if(sel&&map[btn.dataset.sort]){sel.value=map[btn.dataset.sort];sel.dispatchEvent(new Event('change'));}
+    };
+  });
+
   function buildCards(){
-    var cv=document.getElementById('mobHoldingsCards');
-    if(!cv)return;
+    var dst=document.getElementById('m-hold-cards');
+    if(!dst)return;
     var rows=Array.from(document.querySelectorAll('#holdingsBody tr'));
     var visible=rows.filter(function(r){
       return r.style.display!=='none'&&r.getAttribute('data-rowtype')!=='summary'&&r.getAttribute('data-closed')!=='true';
     });
-    if(!visible.length){
-      cv.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px;font-family:var(--mono)">Loading…</div>';
-      return;
-    }
-    cv.innerHTML=visible.map(function(r){
+    if(countDst) countDst.textContent=visible.length+' positions';
+    if(!visible.length){dst.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:11px">Loading…</div>';return;}
+    dst.innerHTML=visible.map(function(r){
       var cells=r.querySelectorAll('td');
       if(cells.length<13)return'';
       var ticker=cells[0].textContent.trim();
@@ -8063,184 +7739,522 @@ function closeMobSettings(){
       var pnl=cells[11].textContent.trim();
       var ret=cells[12].textContent.trim();
       var badgeEl=cells[2].querySelector('.badge');
-      var badgeHtml=badgeEl?badgeEl.outerHTML:'';
-      var isCash=r.getAttribute('data-cash')==='true';
+      var badgeHtml=badgeEl?('<span class="b '+(badgeEl.className.match(/badge-(\w+)/)||['',''])[1]+'" style="font-size:8px">'+badgeEl.textContent.trim()+'</span>'):'';
       var pnlVal=parseFloat(r.getAttribute('data-pnlval')||0);
-      var pnlCls=pnlVal>=0?'green':'red';
-      var dayStr=dayD!=='—'&&dayP!=='—'?dayD+' · '+dayP:(dayD!=='—'?dayD:'');
-      var dayCls=dayStr.indexOf('+')===0?'green':(dayStr.indexOf('−')===0||dayStr.indexOf('-')===0?'red':'');
-      return'<div class="mob-holding-card">'
-        +'<div class="mob-hcard-top">'
-        +'<div class="mob-hcard-left">'
-        +'<div class="mob-hcard-ticker">'+ticker+' '+badgeHtml+'</div>'
-        +'<div class="mob-hcard-name">'+name+'</div>'
+      var pnlCls=pnlVal>=0?'up':'dn';
+      var dayStr=dayD!=='—'&&dayP!=='—'?dayD+' · '+dayP:(dayD!=='—'?dayD:'—');
+      var dayCls=dayStr.startsWith('+')?'up':(dayStr.startsWith('-')||dayStr.startsWith('−'))?'dn':'';
+      return'<div class="m-card">'
+        +'<div class="m-card-hdr">'
+        +'<div><div class="m-ticker-sym">'+ticker+' '+badgeHtml+'</div><div class="m-name">'+name+'</div></div>'
+        +'<div class="m-card-val"><div class="m-mv">'+mv+'</div><div class="m-dchg '+dayCls+'">'+dayStr+'</div></div>'
         +'</div>'
-        +'<div class="mob-hcard-right">'
-        +'<div class="mob-hcard-mv">'+mv+'</div>'
-        +(dayStr?'<div class="mob-hcard-day '+dayCls+'">'+dayStr+'</div>':'')
+        +'<div class="m-metrics">'
+        +'<div><div class="m-metric-l">Cost</div><div class="m-metric-v">'+cost+'</div></div>'
+        +'<div><div class="m-metric-l">P&L</div><div class="m-metric-v '+pnlCls+'">'+pnl+'</div></div>'
+        +'<div><div class="m-metric-l">Return</div><div class="m-metric-v '+pnlCls+'">'+ret+'</div></div>'
         +'</div>'
-        +'</div>'
-        +(isCash?'':
-          '<div class="mob-hcard-metrics">'
-          +'<div class="mob-hcard-metric"><div class="mob-hcard-ml">Cost</div><div class="mob-hcard-mv2">'+cost+'</div></div>'
-          +'<div class="mob-hcard-metric"><div class="mob-hcard-ml">P&L</div><div class="mob-hcard-mv2 '+pnlCls+'">'+pnl+'</div></div>'
-          +'<div class="mob-hcard-metric"><div class="mob-hcard-ml">Return</div><div class="mob-hcard-mv2 '+pnlCls+'">'+ret+'</div></div>'
-          +'</div>')
         +'</div>';
     }).join('');
   }
 
-  // Rebuild when table data changes (initial load & live refresh)
-  var tbody=document.getElementById('holdingsBody');
-  if(tbody){
-    new MutationObserver(buildCards).observe(tbody,{childList:true});
-    if(tbody.children.length)buildCards();
-  }
-
-  // Rebuild after filter/sort changes (wrap existing filterTable)
+  if(tbody) new MutationObserver(buildCards).observe(tbody,{childList:true,subtree:false});
+  // Wrap filterTable to also rebuild cards
   var origFilter=window.filterTable;
-  window.filterTable=function(){
-    if(origFilter)origFilter.apply(this,arguments);
-    buildCards();
-  };
-})();
+  window.filterTable=function(){if(origFilter)origFilter.apply(this,arguments);buildCards();};
+  if(tbody&&tbody.children.length) buildCards();
+}
 
-// ── Swipe hint labels for macro carousels ─────────────────────
-(function addCarouselHints(){
-  if(window.innerWidth>768)return;
-  ['macroThemes','riskFactors'].forEach(function(id){
-    var el=document.getElementById(id);
-    if(!el||el.dataset.hinted)return;
-    el.dataset.hinted='1';
-    var hint=document.createElement('div');
-    hint.style.cssText='font-size:9px;color:var(--text3);text-align:right;margin-bottom:3px;font-family:var(--mono)';
-    hint.textContent='swipe ›';
-    el.parentElement.insertBefore(hint,el);
-  });
-})();
-</script>
-<!-- /MOBILE UI HELPERS -->
-
-<!-- ═══════════════════════════════════════════════════════
-     MOBILE TAB PANES
-     Shown on mobile only. Populated by JS from desktop DOM.
-     Desktop sections remain intact and hidden via CSS.
-══════════════════════════════════════════════════════════ -->
-
-<!-- INSIGHTS PANE -->
-<div id="mob-pane-insights" class="mob-tab-pane" data-mob-tab="insights">
-  <div class="mob-pane-hdr">Today's Intelligence</div>
-
-  <div class="mob-sec-label">Today at a Glance</div>
-  <div id="mob-glance" class="mob-glance-strip"></div>
-
-  <div class="mob-sec-label">Global Macro <span class="mob-swipe-hint" style="font-size:9px;color:var(--text3)">swipe ›</span></div>
-  <div id="mob-macro" class="mob-carousel-strip"></div>
-
-  <div class="mob-sec-label">Risk Factors <span class="mob-swipe-hint" style="font-size:9px;color:var(--text3)">swipe ›</span></div>
-  <div id="mob-risk" class="mob-carousel-strip"></div>
-
-  <div class="mob-sec-label">Market News</div>
-  <div id="mob-news" class="mob-content-list"></div>
-
-  <div class="mob-sec-label">Stocks to Watch</div>
-  <div id="mob-picks" class="mob-content-list"></div>
-
-  <div style="height:16px;flex-shrink:0"></div>
-</div>
-
-<!-- PODCAST PANE -->
-<div id="mob-pane-podcast" class="mob-tab-pane" data-mob-tab="podcast">
-  <div class="mob-pane-hdr">Podcast</div>
-  <div class="mob-pod-content">
-    <div id="mob-pod-player"></div>
-    <div class="mob-pod-eps-label" id="mob-pod-eps-label" style="display:none">Previous Episodes</div>
-    <div id="mob-pod-eps"></div>
-  </div>
-  <div style="height:16px;flex-shrink:0"></div>
-</div>
-
-<script>
-/* ════════════════════════════════════════════════════════
-   MOBILE PANE SYSTEM — mirrors desktop data into mobile panes
-   Appearance only. No data/calculations touched.
-════════════════════════════════════════════════════════ */
-(function initMobPanes(){
-  if(window.innerWidth>768)return;
-
-  /* ── mirror: copy innerHTML src→dst, keep in sync ── */
-  function mirror(srcId,dstId,wrapper){
+/* ════════════════════════ INSIGHTS ══════════════════════════ */
+function initInsights(){
+  mirrorHTML('glanceContent','m-glance-content');
+  // Macro carousel
+  function syncCarousel(srcId,dstId,dotsId){
     var src=document.getElementById(srcId);
     var dst=document.getElementById(dstId);
     if(!src||!dst)return;
     function sync(){
-      var inner=src.innerHTML;
-      dst.innerHTML=wrapper?wrapper(inner):inner;
-    }
-    sync();
-    new MutationObserver(sync).observe(src,{childList:true,subtree:true,characterData:true});
-  }
-
-  /* ── carousel: wrap each direct child for snap scrolling ── */
-  function carousel(srcId,dstId){
-    var src=document.getElementById(srcId);
-    var dst=document.getElementById(dstId);
-    if(!src||!dst)return;
-    function sync(){
-      var kids=src.children;
-      var html='';
-      for(var i=0;i<kids.length;i++){
-        html+='<div style="min-width:calc(100vw - 48px);flex-shrink:0;scroll-snap-align:start;box-sizing:border-box;margin-right:10px">'+kids[i].outerHTML+'</div>';
-      }
-      dst.innerHTML=html;
+      var kids=Array.from(src.children);
+      dst.innerHTML=kids.map(function(k){
+        return'<div class="m-carousel-card">'+k.outerHTML+'</div>';
+      }).join('');
+      initCarouselDots(dst,dotsId);
     }
     sync();
     new MutationObserver(sync).observe(src,{childList:true,subtree:true});
   }
+  syncCarousel('macroThemes','m-macro-carousel','m-macro-dots');
+  syncCarousel('riskFactors','m-risk-carousel','m-risk-dots');
+  // News
+  mirrorHTML('newsSector','m-news-list');
+  // Picks (top pick)
+  mirrorHTML('picksGrid','m-picks-list');
+}
 
-  /* ── INSIGHTS pane ── */
-  mirror('glanceContent','mob-glance');
-  carousel('macroThemes','mob-macro');
-  carousel('riskFactors','mob-risk');
-  mirror('newsSector','mob-news');
-  mirror('picksGrid','mob-picks');
-
-  /* ── PODCAST pane ── */
-  mirror('podPlayerInner','mob-pod-player');
-  function syncPodEps(){
-    var src=document.getElementById('podEpList');
-    var dst=document.getElementById('mob-pod-eps');
-    var lbl=document.getElementById('mob-pod-eps-label');
-    if(!src||!dst)return;
-    var visible=src.style.display!=='none'&&src.innerHTML.trim().length>0;
-    dst.innerHTML=visible?src.innerHTML:'';
-    if(lbl)lbl.style.display=visible?'block':'none';
+/* ════════════════════════ PODCAST ═══════════════════════════ */
+function initPodcast(){
+  // Mirror player inner
+  mirrorHTML('podPlayerInner','m-pod-player');
+  // Episode list
+  var epSrc=document.getElementById('podEpList');
+  var epDst=document.getElementById('m-pod-eps');
+  var epLabel=document.getElementById('m-pod-eps-label');
+  function syncEps(){
+    if(!epSrc||!epDst)return;
+    var show=epSrc.style.display!=='none'&&epSrc.innerHTML.trim().length>10;
+    epDst.innerHTML=show?epSrc.innerHTML:'';
+    if(epLabel)epLabel.style.display=show?'block':'none';
   }
-  syncPodEps();
-  var podEpSrc=document.getElementById('podEpList');
-  if(podEpSrc) new MutationObserver(syncPodEps).observe(podEpSrc,{childList:true,subtree:true,attributes:true,attributeFilter:['style']});
+  syncEps();
+  if(epSrc) new MutationObserver(syncEps).observe(epSrc,{childList:true,subtree:true,attributes:true,attributeFilter:['style']});
 
-  /* ── Tab switching: show correct mobile pane ── */
-  function switchMobPane(name){
-    document.querySelectorAll('.mob-tab-pane').forEach(function(p){
-      p.classList.toggle('mob-pane-active',p.dataset.mobTab===name);
+  // Progress bar sync with actual audio
+  var audio=document.getElementById('podAudio');
+  var fill=document.getElementById('m-pod-fill-bar');
+  var timeEl=document.getElementById('m-pod-time');
+  if(audio&&fill){
+    audio.addEventListener('timeupdate',function(){
+      if(audio.duration){
+        fill.style.width=(audio.currentTime/audio.duration*100)+'%';
+      }
+      if(timeEl){
+        var fmt=function(s){return Math.floor(s/60)+':'+('0'+Math.floor(s%60)).slice(-2);};
+        timeEl.textContent=fmt(audio.currentTime||0)+' / '+fmt(audio.duration||0);
+      }
     });
   }
+}
 
-  var origActivate=window.activateTab;
-  window.activateTab=function(name){
-    if(origActivate)origActivate.apply(this,arguments);
-    switchMobPane(name);
-  };
+/* ════════════════════════ RESEARCH ══════════════════════════ */
+function initResearch(){
+  // Picks
+  mirrorHTML('picksGrid','m-rsrch-picks');
+  // Watchlist
+  mirrorHTML('rsrchWatchlistStrip','m-rsrch-watchlist');
+}
 
-  /* Set initial pane from saved tab */
-  var initTab='portfolio';
-  try{initTab=localStorage.getItem('pp_tab')||'portfolio';}catch(e){}
-  if(initTab==='chat')initTab='portfolio';
-  switchMobPane(initTab);
+/* ════════════════════════ SETTINGS ══════════════════════════ */
+function initSettings(){
+  // Sync values from existing settings inputs
+  var mappings=[
+    ['salaryInput','m-set-salary','$'],
+    ['rrspThisYearInput','m-set-rrsp','$'],
+    ['tfsaRoomInput','m-set-tfsa-room','$'],
+    ['rrspLimitInput','m-set-rrsp-limit','$'],
+  ];
+  mappings.forEach(function(m){
+    var src=document.getElementById(m[0]);
+    var dst=document.getElementById(m[1]);
+    if(!src||!dst)return;
+    function sync(){dst.textContent=m[2]+Number(src.value||0).toLocaleString();}
+    sync();
+    src.addEventListener('change',sync);src.addEventListener('input',sync);
+  });
+  // Dark mode toggle syncs with app theme
+  var darkToggle=document.getElementById('m-dark-toggle');
+  if(darkToggle){
+    darkToggle.onclick=function(){
+      darkToggle.classList.toggle('on');
+      var dark=darkToggle.classList.contains('on');
+      document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+    };
+  }
+  // Notification toggles (visual only, wire to existing system)
+  document.querySelectorAll('.m-toggle:not(#m-dark-toggle)').forEach(function(t){
+    t.onclick=function(){t.classList.toggle('on');};
+  });
+}
+
+/* ════════════════════════ CAROUSEL DOTS ════════════════════ */
+function initCarouselDots(carousel,dotsId){
+  var dots=document.getElementById(dotsId);
+  if(!carousel||!dots)return;
+  var cards=carousel.querySelectorAll('.m-carousel-card');
+  if(!cards.length)return;
+  dots.innerHTML=Array.from(cards).map(function(_,i){
+    return'<div class="m-dot'+(i===0?' on':'')+'"></div>';
+  }).join('');
+  carousel.addEventListener('scroll',function(){
+    var w=cards[0]?cards[0].offsetWidth:carousel.offsetWidth;
+    var idx=Math.round(carousel.scrollLeft/w);
+    dots.querySelectorAll('.m-dot').forEach(function(d,i){d.classList.toggle('on',i===idx);});
+  },{passive:true});
+}
+
+/* ════════════════════════ TAB SYSTEM ═══════════════════════ */
+window.mTab=function(name,el){
+  document.querySelectorAll('#m-app .m-pane').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('#m-app .m-tab').forEach(function(t){t.classList.remove('on');});
+  var pane=document.getElementById('m-pane-'+name);
+  if(pane)pane.classList.add('on');
+  if(el)el.classList.add('on');
+  try{localStorage.setItem('pp_m_tab',name);}catch(e){}
+  document.querySelector('#m-app .m-fab-dropdown').classList.remove('open');
+};
+
+/* ════════════════════════ FAB DROPDOWN ═════════════════════ */
+window.mToggleFab=function(){
+  var dd=document.querySelector('#m-app .m-fab-dropdown');
+  if(!dd)return;
+  dd.classList.toggle('open');
+  var btn=document.getElementById('m-add-btn');
+  if(btn)btn.textContent=dd.classList.contains('open')?'✕':'+';
+};
+document.addEventListener('click',function(e){
+  var dd=document.querySelector('#m-app .m-fab-dropdown');
+  if(dd&&!dd.contains(e.target)&&!e.target.closest('#m-add-btn')){
+    dd.classList.remove('open');
+    var btn=document.getElementById('m-add-btn');
+    if(btn)btn.textContent='+';
+  }
+});
+
+/* ════════════════════════ SETTINGS PANEL ═══════════════════ */
+window.mOpenSettings=function(){
+  document.getElementById('m-settings').classList.add('open');
+  var dd=document.querySelector('#m-app .m-fab-dropdown');
+  if(dd)dd.classList.remove('open');
+};
+window.mCloseSettings=function(){
+  document.getElementById('m-settings').classList.remove('open');
+};
+
+/* ════════════════════════ POSITION FAB DROPDOWN ════════════ */
+function positionFabDropdown(){
+  var btn=document.getElementById('m-add-btn');
+  var dd=document.querySelector('#m-app .m-fab-dropdown');
+  if(!btn||!dd)return;
+  var rect=btn.getBoundingClientRect();
+  dd.style.top=(rect.bottom+6)+'px';
+  dd.style.right=(window.innerWidth-rect.right)+'px';
+}
+document.getElementById('m-add-btn') && document.getElementById('m-add-btn').addEventListener('click',positionFabDropdown);
+
+/* ════════════════════════ INIT ══════════════════════════════ */
+if(window.innerWidth>768)return; // Only run on mobile
+
+initHero();
+initAcctTabs();
+initAcctCards();
+initTicker();
+initLiveStatus();
+initCharts();
+initContrib();
+initHoldings();
+initInsights();
+initPodcast();
+initResearch();
+initSettings();
+
+// Init carousels
+setTimeout(function(){
+  ['m-macro-carousel','m-risk-carousel','m-news-carousel'].forEach(function(id){
+    var c=document.getElementById(id);
+    if(c) initCarouselDots(c, id+'-dots');
+  });
+}, 300);
+
+// Restore last tab
+var savedTab='portfolio';
+try{savedTab=localStorage.getItem('pp_m_tab')||'portfolio';}catch(e){}
+var initTabBtn=document.querySelector('#m-app .m-tab[data-tab="'+savedTab+'"]');
+window.mTab(savedTab,initTabBtn);
+
 })();
 </script>
-<!-- /MOBILE PANES -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     MOBILE APP HTML — exact mockup structure with live data IDs
+══════════════════════════════════════════════════════════════ -->
+<div id="m-app">
+
+  <!-- App header -->
+  <div class="m-hdr">
+    <div class="m-logo">⚡ PULSE</div>
+    <div id="m-live-row" class="m-live-row"><div class="m-live-dot"></div> LIVE</div>
+    <div class="m-hdr-actions">
+      <div class="m-icon-btn" onclick="openNotifPanel()" title="Notifications">🔔</div>
+      <button class="m-add-btn" id="m-add-btn" onclick="mToggleFab()">+</button>
+      <div class="m-icon-btn" onclick="mOpenSettings()">⚙️</div>
+      <div class="m-fab-dropdown">
+        <div class="m-fab-drop-item" onclick="openTxModal();mToggleFab()"><span class="m-fab-drop-icon">📋</span>Log Trade</div>
+        <div class="m-fab-drop-item" onclick="window.print();mToggleFab()"><span class="m-fab-drop-icon">📄</span>Generate Report</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticker strip (data synced from live tickerTrack) -->
+  <div class="m-ticker-strip"><div class="m-ticker-track" id="m-ticker-track"></div></div>
+
+  <!-- ── PORTFOLIO TAB ─────────────────────────────── -->
+  <div class="m-pane on" id="m-pane-portfolio">
+    <div class="m-hero">
+      <div class="m-total" id="m-total">$—</div>
+      <div class="m-day-row">
+        <div class="m-day-chip neu" id="m-day-chip">—</div>
+      </div>
+      <div class="m-hero-sub" id="m-hero-sub">—</div>
+    </div>
+    <div class="m-acct-tabs" id="m-port-tabs">
+      <div class="m-atab on" data-key="all">All · <span>$—</span></div>
+      <div class="m-atab" data-key="tfsa">TFSA · <span>—</span></div>
+      <div class="m-atab" data-key="fhsa">FHSA · <span>—</span></div>
+      <div class="m-atab" data-key="rrsp">RRSP · <span>—</span></div>
+      <div class="m-atab" data-key="inv">Non-Reg · <span>—</span></div>
+    </div>
+    <div class="m-scroll">
+      <!-- Account detail card (shown when specific account selected) -->
+      <div id="m-acct-detail-card" style="display:none"></div>
+      <!-- All accounts content -->
+      <div id="m-acct-all">
+        <!-- 2×2 Account cards -->
+        <div class="m-acct-grid">
+          <div class="m-card" style="padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <span class="b abt" style="font-size:8px">TFSA</span>
+              <span id="m-tfsa-chg" class="up" style="font-size:11px;font-weight:700">—</span>
+            </div>
+            <div id="m-tfsa-val" style="font-size:18px;font-weight:800;font-family:var(--mono)">—</div>
+            <div id="m-tfsa-sub" style="font-size:10px;font-weight:600" class="up">—</div>
+          </div>
+          <div class="m-card" style="padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <span class="b abf" style="font-size:8px">FHSA</span>
+              <span id="m-fhsa-chg" class="up" style="font-size:11px;font-weight:700">—</span>
+            </div>
+            <div id="m-fhsa-val" style="font-size:18px;font-weight:800;font-family:var(--mono)">—</div>
+            <div id="m-fhsa-sub" style="font-size:10px;font-weight:600" class="up">—</div>
+          </div>
+          <div class="m-card" style="padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <span class="b abr" style="font-size:8px">RRSP</span>
+              <span id="m-rrsp-chg" class="up" style="font-size:11px;font-weight:700">—</span>
+            </div>
+            <div id="m-rrsp-val" style="font-size:18px;font-weight:800;font-family:var(--mono)">—</div>
+            <div id="m-rrsp-sub" style="font-size:10px;font-weight:600" class="up">—</div>
+          </div>
+          <div class="m-card" style="padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <span class="b abn" style="font-size:8px">NON-REG</span>
+              <span id="m-inv-chg" class="up" style="font-size:11px;font-weight:700">—</span>
+            </div>
+            <div id="m-inv-val" style="font-size:18px;font-weight:800;font-family:var(--mono)">—</div>
+            <div id="m-inv-sub" style="font-size:10px;font-weight:600" class="up">—</div>
+          </div>
+        </div>
+
+        <!-- Portfolio value chart -->
+        <div class="m-chart-wrap">
+          <div class="m-chart-top">
+            <span class="m-chart-lbl">Portfolio Value</span>
+            <div class="m-chart-filter">
+              <div class="m-acct-cf m-cf on" data-key="all">All</div>
+              <div class="m-acct-cf m-cf" data-key="tfsa">TFSA</div>
+              <div class="m-acct-cf m-cf" data-key="fhsa">FHSA</div>
+              <div class="m-acct-cf m-cf" data-key="rrsp">RRSP</div>
+              <div class="m-acct-cf m-cf" data-key="inv">N-REG</div>
+            </div>
+          </div>
+          <div id="m-chart-mv-slot"></div>
+        </div>
+
+        <!-- ROI chart -->
+        <div class="m-chart-wrap">
+          <div class="m-chart-top">
+            <span class="m-chart-lbl">ROI %</span>
+            <span style="font-size:9px;color:var(--t2)">vs benchmark</span>
+          </div>
+          <div id="m-chart-roi-slot"></div>
+        </div>
+
+        <!-- Contribution breakdown -->
+        <div class="m-contrib">
+          <div class="m-contrib-hdr">
+            <span class="m-contrib-title">Contribution Breakdown</span>
+            <span id="m-contrib-total" class="m-contrib-total">—</span>
+          </div>
+          <div class="m-contrib-bar">
+            <div id="m-contrib-filled" class="m-contrib-filled" style="width:50%"></div>
+            <div id="m-contrib-gains" class="m-contrib-gains" style="width:50%"></div>
+          </div>
+          <div class="m-contrib-leg">
+            <div class="m-contrib-li"><div class="m-contrib-dot" style="background:var(--cyan)"></div><span id="m-contrib-contrib-leg">Contributed —</span></div>
+            <div class="m-contrib-li"><div class="m-contrib-dot" style="background:var(--green)"></div><span id="m-contrib-gains-leg">Gains —</span></div>
+          </div>
+        </div>
+      </div><!-- /m-acct-all -->
+    </div>
+  </div>
+
+  <!-- ── HOLDINGS TAB ─────────────────────────────── -->
+  <div class="m-pane" id="m-pane-holdings">
+    <div style="padding:10px 14px 6px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <span style="font-size:13px;font-weight:700">Holdings</span>
+      <span id="m-hold-count" style="font-size:10px;color:var(--t3)">—</span>
+    </div>
+    <div class="m-acct-tabs">
+      <div class="m-atab on m-hold-acct" data-acct="">All</div>
+      <div class="m-atab m-hold-acct" data-acct="TFSA">TFSA</div>
+      <div class="m-atab m-hold-acct" data-acct="FHSA">FHSA</div>
+      <div class="m-atab m-hold-acct" data-acct="RRSP">RRSP</div>
+      <div class="m-atab m-hold-acct" data-acct="Investment">Non-Reg</div>
+    </div>
+    <div class="m-sort-bar">
+      <div class="m-sort-chip on m-hold-sort" data-sort="mv">Mkt Val ↓</div>
+      <div class="m-sort-chip m-hold-sort" data-sort="cost">Cost</div>
+      <div class="m-sort-chip m-hold-sort" data-sort="dayd">Day $</div>
+      <div class="m-sort-chip m-hold-sort" data-sort="dayp">Day %</div>
+      <div class="m-sort-chip m-hold-sort" data-sort="pld">P&amp;L $</div>
+      <div class="m-sort-chip m-hold-sort" data-sort="plp">P&amp;L %</div>
+    </div>
+    <div class="m-scroll"><div id="m-hold-cards"></div></div>
+  </div>
+
+  <!-- ── INSIGHTS TAB ─────────────────────────────── -->
+  <div class="m-pane" id="m-pane-insights">
+    <div style="padding:10px 14px 6px;font-size:13px;font-weight:700;flex-shrink:0">Today's Intelligence</div>
+    <div class="m-scroll">
+      <!-- Glance -->
+      <div id="m-glance-content" style="margin-bottom:10px"></div>
+      <!-- Macro carousel -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="m-sec-hdr" style="margin-bottom:0">Global Macro</div>
+        <div style="font-size:9px;color:var(--t3)">swipe ›</div>
+      </div>
+      <div class="m-carousel" id="m-macro-carousel"></div>
+      <div class="m-carousel-dots" id="m-macro-carousel-dots"></div>
+      <!-- Risk carousel -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="m-sec-hdr" style="margin-bottom:0">Risk Factors</div>
+        <div style="font-size:9px;color:var(--t3)">swipe ›</div>
+      </div>
+      <div class="m-carousel" id="m-risk-carousel"></div>
+      <div class="m-carousel-dots" id="m-risk-carousel-dots"></div>
+      <!-- News -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="m-sec-hdr" style="margin-bottom:0">Market News</div>
+        <div style="font-size:9px;color:var(--t3)">swipe ›</div>
+      </div>
+      <div class="m-carousel" id="m-news-carousel"><div id="m-news-list"></div></div>
+      <div class="m-carousel-dots" id="m-news-carousel-dots"></div>
+      <!-- Key action / picks -->
+      <div class="m-sec-hdr" style="margin-top:8px">Stocks to Watch</div>
+      <div id="m-picks-list"></div>
+    </div>
+  </div>
+
+  <!-- ── PODCAST TAB ──────────────────────────────── -->
+  <div class="m-pane" id="m-pane-podcast">
+    <div style="padding:10px 14px 6px;font-size:13px;font-weight:700;flex-shrink:0">Podcast</div>
+    <div class="m-scroll">
+      <div id="m-pod-player"></div>
+      <!-- Progress bar overlay (synced with audio) -->
+      <div class="m-pod-card" style="padding:12px;margin-top:-10px">
+        <div class="m-pod-prog" onclick="podSeek(event)"><div id="m-pod-fill-bar" class="m-pod-fill" style="width:0%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:4px">
+          <span id="m-pod-time">0:00 / 0:00</span>
+        </div>
+        <div class="m-pod-ctrl">
+          <span onclick="podSkipBack&&podSkipBack()">⏮</span>
+          <span onclick="podToggle()">⏯</span>
+          <span onclick="podSkipForward&&podSkipForward()">⏭</span>
+        </div>
+      </div>
+      <div id="m-pod-eps-label" style="display:none;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Previous Episodes</div>
+      <div id="m-pod-eps"></div>
+    </div>
+  </div>
+
+  <!-- ── RESEARCH TAB ─────────────────────────────── -->
+  <div class="m-pane" id="m-pane-research">
+    <div style="padding:10px 14px 6px;font-size:13px;font-weight:700;flex-shrink:0">Research</div>
+    <div class="m-scroll">
+      <div class="m-sec-hdr">Stocks to Watch</div>
+      <div id="m-rsrch-picks"></div>
+      <div class="m-sec-hdr" style="margin-top:4px">Search &amp; Deep Dive</div>
+      <div style="background:var(--surf);border:1px solid var(--bd);border-radius:10px;display:flex;gap:8px;padding:10px;align-items:center;margin-bottom:10px;cursor:pointer"
+           onclick="window.activateTab('research');document.getElementById('rsrchInput')&&document.getElementById('rsrchInput').focus()">
+        <span>🔎</span><span style="font-size:12px;color:var(--t3)">Search ticker or company…</span>
+      </div>
+      <div class="m-sec-hdr">Your Watchlist</div>
+      <div id="m-rsrch-watchlist" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none"></div>
+    </div>
+  </div>
+
+  <!-- Settings panel overlay -->
+  <div class="m-settings-panel" id="m-settings">
+    <div class="m-settings-hdr">
+      <span class="m-settings-title">⚙ Settings</span>
+      <div class="m-settings-close" onclick="mCloseSettings()">✕</div>
+    </div>
+    <div class="m-settings-scroll">
+      <div class="m-settings-section">Appearance</div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">Dark Mode</div><div class="m-settings-sub">Toggle light / dark theme</div></div>
+        <div class="m-toggle on" id="m-dark-toggle"><div class="m-toggle-knob"></div></div>
+      </div>
+      <div class="m-settings-section">Tax &amp; Income</div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">Gross Salary</div><div class="m-settings-sub">Used for tax projection</div></div>
+        <span class="m-settings-val" id="m-set-salary">$90,000</span>
+      </div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">RRSP Contribution</div><div class="m-settings-sub">Applied to deduction</div></div>
+        <span class="m-settings-val" id="m-set-rrsp">$0</span>
+      </div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">Province</div><div class="m-settings-sub">Tax bracket lookup</div></div>
+        <span class="m-settings-val">Ontario</span>
+      </div>
+      <div class="m-settings-section">Account Limits</div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">TFSA Cumulative Room</div><div class="m-settings-sub">Lifetime limit as of 2026</div></div>
+        <span class="m-settings-val" id="m-set-tfsa-room">—</span>
+      </div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">RRSP Deduction Limit</div><div class="m-settings-sub">From NOA</div></div>
+        <span class="m-settings-val" id="m-set-rrsp-limit">—</span>
+      </div>
+      <div class="m-settings-section">Notifications</div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">Push Notifications</div><div class="m-settings-sub">Price alerts, milestones</div></div>
+        <div class="m-toggle on"><div class="m-toggle-knob"></div></div>
+      </div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">End-of-Day Digest</div><div class="m-settings-sub">Daily portfolio summary</div></div>
+        <div class="m-toggle on"><div class="m-toggle-knob"></div></div>
+      </div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">Price Spike Alerts</div><div class="m-settings-sub">±5% intraday moves</div></div>
+        <div class="m-toggle on"><div class="m-toggle-knob"></div></div>
+      </div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">Milestone Alerts</div><div class="m-settings-sub">$5K value jumps</div></div>
+        <div class="m-toggle on"><div class="m-toggle-knob"></div></div>
+      </div>
+      <div class="m-settings-section">Intelligence</div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">Weekly Podcast</div><div class="m-settings-sub">Auto-generate each Monday</div></div>
+        <div class="m-toggle on"><div class="m-toggle-knob"></div></div>
+      </div>
+      <div class="m-settings-row">
+        <div><div class="m-settings-lbl">Daily Intelligence</div><div class="m-settings-sub">AI market brief each morning</div></div>
+        <div class="m-toggle on"><div class="m-toggle-knob"></div></div>
+      </div>
+      <div style="height:24px"></div>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="m-tabs">
+    <div class="m-tab on" data-tab="portfolio" onclick="mTab('portfolio',this)"><div class="m-tab-ico">📊</div><div class="m-tab-lbl">Portfolio</div></div>
+    <div class="m-tab" data-tab="holdings" onclick="mTab('holdings',this)"><div class="m-tab-ico">📋</div><div class="m-tab-lbl">Holdings</div></div>
+    <div class="m-tab" data-tab="insights" onclick="mTab('insights',this)"><div class="m-tab-ico">💡</div><div class="m-tab-lbl">Insights</div></div>
+    <div class="m-tab" data-tab="podcast" onclick="mTab('podcast',this)"><div class="m-tab-ico">🎙️</div><div class="m-tab-lbl">Podcast</div></div>
+    <div class="m-tab" data-tab="research" onclick="mTab('research',this)"><div class="m-tab-ico">🔎</div><div class="m-tab-lbl">Research</div></div>
+  </div>
+</div>
+<!-- /MOBILE APP -->
 
 </body>
 </html>

@@ -7575,63 +7575,152 @@ window.mSelectAcct=function(key,clickedBtn){
     +'<tbody>'+rows+'</tbody></table>'
     +(ftrTxt?'<div class="m-acct-insight">'+ftrTxt+'</div>':'')
     +'</div>';
-  // Also update chart filter
-  var filterKey={tfsa:'tfsa',fhsa:'fhsa',rrsp:'rrsp',inv:'inv'}[key]||'all';
-  var cfBtn=document.querySelector('#chartFilters [onclick*="\''+filterKey+'\'"]');
-  if(cfBtn) cfBtn.click();
+  // Update charts via setChartFilter (updates desktop + triggers mobile refresh)
+  var acctFilterMap={tfsa:'tfsa',fhsa:'fhsa',rrsp:'rrsp',inv:'inv',all:'all'};
+  var cfKey=acctFilterMap[key]||'all';
+  // Find the desktop chart filter button by account key
+  var allCfBtns=Array.from(document.querySelectorAll('#chartFilters .chart-filter-btn'));
+  var cfTarget=allCfBtns.find(function(b){return b.textContent.toLowerCase().includes(cfKey==='inv'?'invest':cfKey);});
+  if(!cfTarget&&cfKey==='all') cfTarget=allCfBtns[0];
+  if(cfTarget) cfTarget.click();
+  // Also rebuild benchmark
+  setTimeout(syncBenchmark,200);
 };
 
 /* ════════════════════════ CHARTS ════════════════════════════ */
-function initCharts(){
-  // Restyle the portfolio value chart container
-  var mvWrap=document.querySelector('#sec01 > div:has(#portfolioValueChart)');
-  var slot=document.getElementById('m-chart-mv-slot');
-  if(mvWrap&&slot){
-    // Remove existing chart-title and add chart-top header
-    var title=mvWrap.querySelector('.chart-title');
-    if(title){title.style.display='none';}
-    // Add chart filter buttons
-    var filters=mvWrap.querySelector('.chart-filters');
-    if(filters) filters.style.display='none';
-    // Move into mobile slot
-    slot.appendChild(mvWrap);
-    mvWrap.style.cssText='margin:0;background:none;border:none;padding:0;';
-  }
+var mMvChart=null, mRoiChart=null, mTimeRange=6;
 
-  // ROI chart
-  var roiWrap=document.querySelector('#sec01 div:has(#roiChart)');
-  var roiSlot=document.getElementById('m-chart-roi-slot');
-  if(roiWrap&&roiSlot){
-    var roiTitle=roiWrap.querySelector('#roiChartTitle');
-    if(roiTitle) roiTitle.style.display='none';
-    var acctC=roiWrap.querySelector('.chart-container:has(#acctChart)');
-    if(acctC) acctC.style.display='none';
-    roiSlot.appendChild(roiWrap);
-    roiWrap.style.cssText='margin:0;background:none;border:none;padding:0;grid-template-columns:unset;display:block;';
-  }
-
-  // Time filter buttons
-  var cfBtns=document.querySelectorAll('#m-chart-mv-slot .m-cf');
-  // These are injected into the HTML below
-
-  // Trigger chart resize after moving (Chart.js needs this)
-  setTimeout(function(){
-    if(window.portfolioValueChart) window.portfolioValueChart.resize();
-    if(window.roiChart) window.roiChart.resize();
-  },200);
-
-  // Account filter buttons delegate to desktop setChartFilter
-  document.querySelectorAll('.m-acct-cf').forEach(function(btn){
-    btn.onclick=function(){
-      document.querySelectorAll('.m-acct-cf').forEach(function(b){b.classList.remove('on');});
-      btn.classList.add('on');
-      var key=btn.dataset.key;
-      var cfBtn=document.querySelector('#chartFilters [onclick*="\''+key+'\'"]');
-      if(cfBtn) cfBtn.click();
-    };
-  });
+function mLineDef(color,label,data){
+  return{label:label,data:data,borderColor:color,backgroundColor:'transparent',
+         borderWidth:1.8,pointRadius:0,tension:0.4,fill:false};
 }
 
+function createMobileCharts(){
+  if(!window.portfolioValueChart||!window.roiChart){setTimeout(createMobileCharts,600);return;}
+  if(typeof Chart==='undefined'){setTimeout(createMobileCharts,600);return;}
+  var mvC=document.getElementById('m-mv-canvas');
+  var roiC=document.getElementById('m-roi-canvas');
+  if(!mvC||!roiC)return;
+  if(mMvChart){mMvChart.destroy();mMvChart=null;}
+  if(mRoiChart){mRoiChart.destroy();mRoiChart=null;}
+  var opts={responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false},tooltip:{enabled:false}},
+    scales:{x:{display:false},y:{display:false}}};
+
+  // Portfolio value — main line + contributions dashed
+  var srcMv=portfolioValueChart;
+  var mvDs0=srcMv.data.datasets[0]||{};
+  var mvDs1=srcMv.data.datasets[1]||{};
+  mMvChart=new Chart(mvC,{type:'line',
+    data:{labels:srcMv.data.labels.slice(),datasets:[
+      {label:'Value',data:mvDs0.data?mvDs0.data.slice():[],
+       borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.08)',
+       borderWidth:1.8,pointRadius:0,tension:0.4,fill:true},
+      {label:'Contributed',data:mvDs1.data?mvDs1.data.slice():[],
+       borderColor:'#64748b',backgroundColor:'transparent',
+       borderWidth:1.2,borderDash:[4,4],pointRadius:0,tension:0.4,fill:false}
+    ]},options:opts});
+
+  // ROI chart — portfolio line + S&P benchmark dashed
+  var srcRoi=roiChart;
+  var roi0=srcRoi.data.datasets[0]||{};
+  // Find S&P benchmark dataset (usually last one)
+  var roiSpDs=srcRoi.data.datasets.find(function(d){return d.label&&d.label.toLowerCase().includes('s&p');});
+  mRoiChart=new Chart(roiC,{type:'line',
+    data:{labels:srcRoi.data.labels.slice(),datasets:[
+      {label:'Portfolio ROI',data:roi0.data?roi0.data.slice():[],
+       borderColor:'#00d4ff',backgroundColor:'transparent',
+       borderWidth:1.8,pointRadius:0,tension:0.4,fill:false},
+      {label:'S&P 500',data:roiSpDs&&roiSpDs.data?roiSpDs.data.slice():[],
+       borderColor:'#fbbf24',backgroundColor:'transparent',
+       borderWidth:1.2,borderDash:[4,2],pointRadius:0,tension:0.4,fill:false}
+    ]},options:opts});
+
+  applyMobileTimeRange();
+  syncBenchmark();
+}
+
+function applyMobileTimeRange(){
+  if(!mMvChart||!mRoiChart||!window.portfolioValueChart||!window.roiChart)return;
+  var months=mTimeRange;
+  var srcMv=portfolioValueChart, srcRoi=roiChart;
+  var mvLabels=srcMv.data.labels, roiLabels=srcRoi.data.labels;
+  var mvOff=0, roiOff=0;
+  if(months>0){
+    var cutoff=new Date();cutoff.setMonth(cutoff.getMonth()-months);
+    var cs=cutoff.toISOString().slice(0,7);
+    mvOff=Math.max(0,mvLabels.findIndex(function(l){return l>=cs;}));
+    roiOff=Math.max(0,roiLabels.findIndex(function(l){return l>=cs;}));
+  }
+  mMvChart.data.labels=mvLabels.slice(mvOff);
+  var d0=srcMv.data.datasets[0],d1=srcMv.data.datasets[1];
+  mMvChart.data.datasets[0].data=d0?d0.data.slice(mvOff):[];
+  mMvChart.data.datasets[1].data=d1?d1.data.slice(mvOff):[];
+  mMvChart.update('none');
+
+  mRoiChart.data.labels=roiLabels.slice(roiOff);
+  var r0=srcRoi.data.datasets[0];
+  mRoiChart.data.datasets[0].data=r0?r0.data.slice(roiOff):[];
+  var rSp=srcRoi.data.datasets.find(function(d){return d.label&&d.label.toLowerCase().includes('s&p');});
+  mRoiChart.data.datasets[1].data=rSp?rSp.data.slice(roiOff):[];
+  mRoiChart.update('none');
+
+  // Footer stats
+  var footer=document.getElementById('m-mv-footer');
+  if(footer){
+    var vals=(mMvChart.data.datasets[0].data||[]).filter(function(v){return v!=null;});
+    var first=vals[0]||0,last=vals[vals.length-1]||0,chg=last-first;
+    var pct=first>0?(chg/first*100).toFixed(1):'—';
+    var fmt=function(v){return'$'+Math.round(v).toLocaleString();};
+    var sign=chg>=0?'+':'';
+    footer.innerHTML='<span>'+fmt(first)+' start</span><span class="'+(chg>=0?'up':'dn')+'">'+fmt(last)+' now · '+sign+fmt(chg)+' ('+sign+pct+'%)</span>';
+  }
+  // Period label
+  var pEl=document.getElementById('m-roi-period');
+  if(pEl)pEl.textContent=({1:'1 month',3:'3 months',6:'6 months',12:'1 year',0:'All time'})[months]||'';
+}
+
+function syncBenchmark(){
+  var src=document.getElementById('sec02');
+  var dst=document.getElementById('m-benchmark-content');
+  if(!src||!dst)return;
+  var bars=src.querySelectorAll('.bm-bar-wrap');
+  if(!bars.length){dst.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center;padding:8px">Loading…</div>';return;}
+  var html='<div style="display:flex;flex-direction:column;gap:6px">';
+  bars.forEach(function(b){html+='<div>'+b.innerHTML+'</div>';});
+  html+='</div>';
+  var alpha=src.querySelector('#bmAlphaLine');
+  if(alpha) html+='<div style="font-size:10px;color:var(--green);margin-top:6px">'+alpha.textContent+'</div>';
+  dst.innerHTML=html;
+}
+
+function initCharts(){
+  // Time range filter buttons
+  document.querySelectorAll('.m-tr-cf').forEach(function(btn){
+    btn.onclick=function(){
+      document.querySelectorAll('.m-tr-cf').forEach(function(b){b.classList.remove('on');});
+      btn.classList.add('on');
+      mTimeRange=parseInt(btn.dataset.months)||0;
+      applyMobileTimeRange();
+    };
+  });
+
+  // Create mobile Chart.js instances (waits for desktop charts)
+  createMobileCharts();
+
+  // Hook setChartFilter to also update mobile chart title and data
+  var orig=window.setChartFilter;
+  window.setChartFilter=function(key,btn){
+    if(orig)orig.apply(this,arguments);
+    var mvT={all:'Portfolio Value',tfsa:'TFSA Value',fhsa:'FHSA Value',rrsp:'RRSP Value',inv:'Non-Reg Value'};
+    var roiT={all:'ROI %',tfsa:'TFSA ROI',fhsa:'FHSA ROI',rrsp:'RRSP ROI',inv:'Non-Reg ROI'};
+    var mt=document.getElementById('m-mv-chart-title');
+    var rt=document.getElementById('m-roi-chart-title');
+    if(mt)mt.textContent=mvT[key]||'Portfolio Value';
+    if(rt)rt.textContent=roiT[key]||'ROI %';
+    setTimeout(function(){applyMobileTimeRange();syncBenchmark();},200);
+  };
+}
 /* ════════════════════════ CONTRIBUTION BAR ══════════════════ */
 function initContrib(){
   var totalEl=document.getElementById('kpiTotalValue');
@@ -7699,22 +7788,32 @@ function initHoldings(){
   var acctFilter=document.getElementById('acctFilter');
   var sortSel=document.getElementById('holdingsSortSelect');
   var countDst=document.getElementById('m-hold-count');
-  // Account filter tabs
+  // Account filter tabs — wire to existing acctFilter select + filterTable
   document.querySelectorAll('.m-hold-acct').forEach(function(btn){
     btn.onclick=function(){
       document.querySelectorAll('.m-hold-acct').forEach(function(b){b.classList.remove('on');});
       btn.classList.add('on');
-      if(acctFilter){acctFilter.value=btn.dataset.acct;acctFilter.dispatchEvent(new Event('change'));}
+      if(acctFilter){
+        acctFilter.value=btn.dataset.acct;
+        // Directly call filterTable (wrapped version calls buildCards too)
+        if(window.filterTable) window.filterTable();
+        else acctFilter.dispatchEvent(new Event('change'));
+      }
     };
   });
-  // Sort chips
+
+  // Sort chips — map to sortTable(colIndex) which is the actual sort function
+  // Column indices: 8=MktVal, 7=Cost, 9=DayGain$, 10=DayGain%, 11=PnL$, 12=Return%
+  var sortColMap={mv:8,cost:7,dayd:9,dayp:10,pld:11,plp:12};
   document.querySelectorAll('.m-hold-sort').forEach(function(btn){
     btn.onclick=function(){
       document.querySelectorAll('.m-hold-sort').forEach(function(b){b.classList.remove('on');});
       btn.classList.add('on');
-      var map={mv:'mv_desc',cost:'cost_desc',dayd:'daychg_desc',dayp:'daypct_desc',pld:'pnl_desc',plp:'pnlpct_desc'};
-      var sel=document.getElementById('holdingsSortSelect');
-      if(sel&&map[btn.dataset.sort]){sel.value=map[btn.dataset.sort];sel.dispatchEvent(new Event('change'));}
+      var col=sortColMap[btn.dataset.sort];
+      if(col!=null&&window.sortTable){
+        sortTable(col);    // sorts desktop table
+        buildCards();      // rebuild mobile cards from newly sorted rows
+      }
     };
   });
 
@@ -8144,6 +8243,15 @@ function syncMobile(){
   var wlDst=document.getElementById('m-rsrch-watchlist');
   if(wlSrc&&wlDst&&wlSrc.innerHTML.trim()) wlDst.innerHTML=wlSrc.innerHTML;
 
+  /* Charts: create mobile instances if not yet done, else update */
+  if(!mMvChart||!mRoiChart){
+    createMobileCharts();
+  } else {
+    applyMobileTimeRange();
+  }
+  /* Benchmark section */
+  if(typeof syncBenchmark==='function') syncBenchmark();
+
   /* Settings values */
   var sMap=[['salaryInput','m-set-salary','$'],['rrspThisYearInput','m-set-rrsp','$'],
             ['tfsaRoomInput','m-set-tfsa-room','$'],['rrspLimitInput','m-set-rrsp-limit','$']];
@@ -8293,41 +8401,32 @@ window.mTab(savedTab,initTabBtn);
         <!-- Portfolio value chart -->
         <div class="m-chart-wrap">
           <div class="m-chart-top">
-            <span class="m-chart-lbl">Portfolio Value</span>
+            <span class="m-chart-lbl" id="m-mv-chart-title">Portfolio Value</span>
             <div class="m-chart-filter">
-              <div class="m-acct-cf m-cf on" data-key="all">All</div>
-              <div class="m-acct-cf m-cf" data-key="tfsa">TFSA</div>
-              <div class="m-acct-cf m-cf" data-key="fhsa">FHSA</div>
-              <div class="m-acct-cf m-cf" data-key="rrsp">RRSP</div>
-              <div class="m-acct-cf m-cf" data-key="inv">N-REG</div>
+              <div class="m-tr-cf m-cf" data-months="1">1M</div>
+              <div class="m-tr-cf m-cf" data-months="3">3M</div>
+              <div class="m-tr-cf m-cf on" data-months="6">6M</div>
+              <div class="m-tr-cf m-cf" data-months="12">1Y</div>
+              <div class="m-tr-cf m-cf" data-months="0">All</div>
             </div>
           </div>
-          <div id="m-chart-mv-slot"></div>
+          <div style="position:relative;height:150px"><canvas id="m-mv-canvas"></canvas></div>
+          <div id="m-mv-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:4px"></div>
         </div>
 
         <!-- ROI chart -->
         <div class="m-chart-wrap">
           <div class="m-chart-top">
-            <span class="m-chart-lbl">ROI %</span>
-            <span style="font-size:9px;color:var(--t2)">vs benchmark</span>
+            <span class="m-chart-lbl" id="m-roi-chart-title">ROI %</span>
+            <span style="font-size:9px;color:var(--t2)" id="m-roi-period">6 months</span>
           </div>
-          <div id="m-chart-roi-slot"></div>
+          <div style="position:relative;height:120px"><canvas id="m-roi-canvas"></canvas></div>
         </div>
 
-        <!-- Contribution breakdown -->
-        <div class="m-contrib">
-          <div class="m-contrib-hdr">
-            <span class="m-contrib-title">Contribution Breakdown</span>
-            <span id="m-contrib-total" class="m-contrib-total">—</span>
-          </div>
-          <div class="m-contrib-bar">
-            <div id="m-contrib-filled" class="m-contrib-filled" style="width:50%"></div>
-            <div id="m-contrib-gains" class="m-contrib-gains" style="width:50%"></div>
-          </div>
-          <div class="m-contrib-leg">
-            <div class="m-contrib-li"><div class="m-contrib-dot" style="background:var(--cyan)"></div><span id="m-contrib-contrib-leg">Contributed —</span></div>
-            <div class="m-contrib-li"><div class="m-contrib-dot" style="background:var(--green)"></div><span id="m-contrib-gains-leg">Gains —</span></div>
-          </div>
+        <!-- Contribution-Weighted Benchmark (mirrored from desktop sec02) -->
+        <div class="m-chart-wrap" id="m-benchmark-wrap" style="padding-bottom:12px">
+          <div class="m-chart-lbl" style="margin-bottom:8px">Contribution-Weighted Benchmark</div>
+          <div id="m-benchmark-content"></div>
         </div>
       </div><!-- /m-acct-all -->
     </div>

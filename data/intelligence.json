@@ -1,262 +1,262 @@
 {
   "macro": [
     {
-      "title": "US-Iran Conflict",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "The ongoing US-Iran conflict continues to impact global markets, with oil prices fluctuating in response to supply chain disruptions. This conflict may lead to increased volatility in the markets, affecting the portfolio's overall performance.",
-      "bull": "A potential resolution to the conflict could lead to a decrease in oil prices, resulting in a positive impact on the portfolio's energy holdings.",
-      "bull_estimate": "+$10,000-$15,000 via ENB.TO and other energy holdings",
-      "bull_probability": 30,
-      "base": "The conflict is likely to continue, leading to ongoing market volatility and minimal net change in the portfolio's value.",
-      "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 40,
-      "bear": "An escalation of the conflict could lead to a significant increase in oil prices, negatively impacting the portfolio's overall performance.",
-      "bear_estimate": "-$20,000-$30,000 via 3x leverage amplification",
-      "bear_probability": 30
-    },
-    {
-      "title": "Global Economic Growth",
+      "title": "Global Growth",
       "impact": "MED",
       "confidence": 70,
-      "body": "The global economy is experiencing a slowdown, with trade tensions and geopolitical uncertainty contributing to the decline. This slowdown may impact the portfolio's holdings in the technology and financial sectors.",
-      "bull": "A potential rebound in global economic growth could lead to an increase in demand for technology and financial services, positively impacting the portfolio's holdings in these sectors.",
-      "bull_estimate": "+$15,000-$25,000 via NVDA, MSFT, and other tech holdings",
-      "bull_probability": 40,
-      "base": "The economic slowdown is likely to continue, leading to minimal net change in the portfolio's value.",
+      "body": "The global economy is experiencing a slowdown, which could impact trade and sector rotations. This might lead to a decrease in demand for certain products and services, affecting various industries. As a result, investors may become more risk-averse, leading to increased market volatility.",
+      "bull": "A potential bull case for the portfolio is that the slowdown could lead to a decrease in interest rates, making borrowing cheaper and potentially boosting the economy.",
+      "bull_estimate": "+$20,000–$30,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 30,
+      "base": "The base case is that the slowdown will lead to a moderate decrease in economic activity, with minimal impact on the portfolio.",
       "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 30,
-      "bear": "A further decline in global economic growth could lead to a significant decrease in demand for technology and financial services, negatively impacting the portfolio's holdings in these sectors.",
-      "bear_estimate": "-$25,000-$40,000 via tech and financial holdings",
+      "base_probability": 40,
+      "bear": "A bear case for the portfolio is that the slowdown could lead to a significant decrease in economic activity, resulting in a decline in stock prices.",
+      "bear_estimate": "-$40,000–$60,000 via 3x ETF amplification",
       "bear_probability": 30
     },
     {
-      "title": "Fed Policy",
+      "title": "Inflation",
       "impact": "LOW",
       "confidence": 60,
-      "body": "The Federal Reserve's monetary policy decisions are likely to have a minimal impact on the portfolio's overall performance, as the portfolio is heavily weighted towards technology and energy holdings.",
-      "bull": "A potential decrease in interest rates could lead to an increase in borrowing and spending, positively impacting the portfolio's holdings in the technology and energy sectors.",
-      "bull_estimate": "+$5,000-$10,000 via NVDA, MSFT, and other tech holdings",
-      "bull_probability": 20,
-      "base": "The Fed's policy decisions are likely to have a minimal impact on the portfolio's value.",
+      "body": "Inflation rates have been relatively stable, with minimal impact on the portfolio. However, a sudden increase in inflation could lead to higher interest rates, affecting borrowing costs and economic growth.",
+      "bull": "A potential bull case for the portfolio is that low inflation could lead to increased consumer spending, boosting economic growth.",
+      "bull_estimate": "+$15,000–$25,000 via TXF.TO and CM.TO",
+      "bull_probability": 25,
+      "base": "The base case is that inflation will remain stable, with minimal impact on the portfolio.",
       "base_estimate": "±$2,000 — minimal net change",
-      "base_probability": 60,
-      "bear": "A potential increase in interest rates could lead to a decrease in borrowing and spending, negatively impacting the portfolio's holdings in the technology and energy sectors.",
-      "bear_estimate": "-$10,000-$15,000 via tech and energy holdings",
-      "bear_probability": 20
+      "base_probability": 50,
+      "bear": "A bear case for the portfolio is that high inflation could lead to decreased consumer spending, resulting in a decline in economic activity.",
+      "bear_estimate": "-$25,000–$40,000 via 3x ETF amplification",
+      "bear_probability": 25
+    },
+    {
+      "title": "Sector Rotation",
+      "impact": "MED",
+      "confidence": 65,
+      "body": "Sector rotation could lead to changes in the portfolio's sector allocation, potentially impacting performance. A rotation towards growth sectors could benefit the portfolio, while a rotation towards value sectors could negatively impact performance.",
+      "bull": "A potential bull case for the portfolio is that a rotation towards growth sectors could lead to increased demand for tech stocks, benefiting NVDA and MSFT.",
+      "bull_estimate": "+$30,000–$50,000 via NVDA and MSFT",
+      "bull_probability": 35,
+      "base": "The base case is that sector rotation will have a moderate impact on the portfolio, with some sectors performing better than others.",
+      "base_estimate": "±$10,000 — sector rotation impacts portfolio",
+      "base_probability": 40,
+      "bear": "A bear case for the portfolio is that a rotation towards value sectors could lead to decreased demand for growth stocks, negatively impacting performance.",
+      "bear_estimate": "-$30,000–$50,000 via 3x ETF amplification",
+      "bear_probability": 25
     }
   ],
   "risks": [
     {
-      "title": "3x Leverage Amplification",
+      "title": "Leverage Risk",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's use of 3x leveraged ETFs amplifies both gains and losses, increasing the potential for significant volatility in the portfolio's value."
+      "body": "The portfolio's high leverage exposure increases the risk of significant losses if the market declines. The 3x ETFs (FNGU, SPXL, UDOW) amplify both gains and losses, making the portfolio more volatile."
     },
     {
-      "title": "FX Book Rate Drag",
+      "title": "FX Risk",
       "level": "MED",
       "context": "68% USD exposure ~ $180K CAD",
-      "body": "The portfolio's significant USD exposure may result in foreign exchange losses if the CAD strengthens against the USD, negatively impacting the portfolio's overall performance."
+      "body": "The portfolio's significant USD exposure increases the risk of losses due to currency fluctuations. A decline in the USD/CAD exchange rate could negatively impact the portfolio's value."
     },
     {
       "title": "Concentration Risk",
-      "level": "LOW",
+      "level": "MED",
       "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's concentration in a few key holdings may increase the risk of significant losses if any of these holdings experience a decline in value."
+      "body": "The portfolio's concentration in a few holdings (NVDA, FNGU, SPXL, TXF.TO, CM.TO) increases the risk of significant losses if any of these holdings decline in value."
     }
   ],
   "news": [
     {
-      "headline": "Iranian Oil Slips to Discount",
+      "headline": "Geopolitical Tensions",
       "impact": "MED",
-      "confidence": 80,
+      "confidence": 70,
       "category": "Sector & Stock",
-      "body": "The decline in Iranian oil prices may positively impact the portfolio's energy holdings, such as ENB.TO.",
-      "exposure": "ENB.TO ~ $10K CAD",
+      "body": "Geopolitical tensions are driving up summer travel costs, which could impact the portfolio's holdings in the travel and tourism sector, such as LYV.",
+      "exposure": "LYV ~ $5K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 40,
-          "scenario": "The decline in oil prices leads to an increase in demand for energy services, positively impacting ENB.TO.",
-          "estimate": "+$2,000-$3,000 via ENB.TO"
+          "probability": 30,
+          "scenario": "Increased travel demand could benefit LYV, leading to a potential increase in stock price.",
+          "estimate": "+$2,000–$3,000"
         },
         {
           "label": "Base",
-          "probability": 30,
-          "scenario": "The decline in oil prices has a minimal impact on the portfolio's energy holdings.",
+          "probability": 40,
+          "scenario": "Geopolitical tensions will have a moderate impact on the portfolio, with some sectors performing better than others.",
           "estimate": "±$1,000 — minimal net change"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "The decline in oil prices leads to a decrease in demand for energy services, negatively impacting ENB.TO.",
-          "estimate": "-$2,000-$3,000 via ENB.TO"
+          "scenario": "Decreased travel demand could negatively impact LYV, leading to a potential decline in stock price.",
+          "estimate": "-$3,000–$5,000"
         }
       ]
     },
     {
-      "headline": "Broadcom Stock Slip",
+      "headline": "Market Top Formation",
+      "impact": "MED",
+      "confidence": 65,
+      "category": "Sector & Stock",
+      "body": "There are signs that a market top may be forming, which could impact the portfolio's holdings in the tech sector, such as NVDA and MSFT.",
+      "exposure": "NVDA ~ $30K CAD, MSFT ~ $20K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 35,
+          "scenario": "A market top formation could lead to a decline in tech stocks, but the portfolio's holdings in NVDA and MSFT could still perform well due to their strong fundamentals.",
+          "estimate": "+$10,000–$15,000"
+        },
+        {
+          "label": "Base",
+          "probability": 40,
+          "scenario": "A market top formation will have a moderate impact on the portfolio, with some sectors performing better than others.",
+          "estimate": "±$5,000 — sector rotation impacts portfolio"
+        },
+        {
+          "label": "Bear",
+          "probability": 25,
+          "scenario": "A market top formation could lead to a significant decline in tech stocks, negatively impacting the portfolio's holdings in NVDA and MSFT.",
+          "estimate": "-$20,000–$30,000"
+        }
+      ]
+    },
+    {
+      "headline": "Fed Balance Sheet",
       "impact": "LOW",
       "confidence": 60,
       "category": "Sector & Stock",
-      "body": "The decline in Broadcom's stock price may have a minimal impact on the portfolio's technology holdings, such as AVGO.",
-      "exposure": "AVGO ~ $5K CAD",
+      "body": "The Fed's bloated balance sheet could lead to increased interest rates, which could impact the portfolio's holdings in the financial sector, such as CM.TO and RY.TO.",
+      "exposure": "CM.TO ~ $10K CAD, RY.TO ~ $8K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 20,
-          "scenario": "The decline in Broadcom's stock price leads to a buying opportunity for AVGO.",
-          "estimate": "+$1,000-$2,000 via AVGO"
+          "probability": 25,
+          "scenario": "Increased interest rates could benefit the financial sector, leading to a potential increase in stock price for CM.TO and RY.TO.",
+          "estimate": "+$3,000–$5,000"
         },
         {
           "label": "Base",
-          "probability": 60,
-          "scenario": "The decline in Broadcom's stock price has a minimal impact on the portfolio's technology holdings.",
-          "estimate": "±$500 — minimal net change"
-        },
-        {
-          "label": "Bear",
-          "probability": 20,
-          "scenario": "The decline in Broadcom's stock price leads to a decrease in demand for technology services, negatively impacting AVGO.",
-          "estimate": "-$1,000-$2,000 via AVGO"
-        }
-      ]
-    },
-    {
-      "headline": "NVIDIA AI Chip Demand",
-      "impact": "HIGH",
-      "confidence": 90,
-      "category": "Sector & Stock",
-      "body": "The increase in demand for NVIDIA's AI chips may positively impact the portfolio's technology holdings, such as NVDA.",
-      "exposure": "NVDA ~ $20K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
           "probability": 50,
-          "scenario": "The increase in demand for NVIDIA's AI chips leads to a significant increase in NVDA's stock price.",
-          "estimate": "+$5,000-$10,000 via NVDA"
-        },
-        {
-          "label": "Base",
-          "probability": 30,
-          "scenario": "The increase in demand for NVIDIA's AI chips leads to a moderate increase in NVDA's stock price.",
-          "estimate": "+$2,000-$5,000 via NVDA"
+          "scenario": "The Fed's balance sheet will have a minimal impact on the portfolio, with interest rates remaining stable.",
+          "estimate": "±$1,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "The increase in demand for NVIDIA's AI chips is offset by increased competition, negatively impacting NVDA.",
-          "estimate": "-$2,000-$5,000 via NVDA"
+          "probability": 25,
+          "scenario": "Increased interest rates could negatively impact the financial sector, leading to a potential decline in stock price for CM.TO and RY.TO.",
+          "estimate": "-$5,000–$8,000"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "COST",
+      "ticker": "SQ",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Costco's strong earnings and growth prospects make it an attractive addition to the portfolio, particularly given the current market volatility.",
-      "entry": "Entry price range: $500-$600"
+      "thesis": "Square's (SQ) strong growth in the payment processing sector, combined with its expanding ecosystem of services, makes it an attractive addition to the portfolio. The company's recent catalysts, such as its acquisition of Afterpay, could drive further growth.",
+      "entry": "Entry price range: $150-$200"
     },
     {
-      "ticker": "HON",
+      "ticker": "CRWD",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Honeywell's growth prospects and dividend yield make it an attractive potential addition to the portfolio, particularly given the current market volatility.",
-      "entry": "Monitor for entry on a pullback to $150-$170"
+      "thesis": "CrowdStrike's (CRWD) strong position in the cybersecurity sector, combined with its growing customer base and expanding product offerings, makes it a potential addition to the portfolio. The company's recent catalysts, such as its partnership with AWS, could drive further growth.",
+      "entry": "Monitor for entry on a pullback to $150-$180"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "The portfolio's tax-efficient structure, with a significant portion of holdings in registered accounts, helps to minimize tax liabilities."
+      "text": "The portfolio's tax-efficient structure, with a mix of RRSP and TFSA accounts, helps minimize tax liabilities."
     },
     {
       "ticker": "NVDA",
-      "text": "The portfolio's holding in NVDA has provided significant returns, with a gain of over 1776%."
+      "text": "NVIDIA's strong position in the tech sector, combined with its growing demand for AI and gaming products, makes it a core holding in the portfolio."
     },
     {
       "ticker": "FNGU",
-      "text": "The portfolio's holding in FNGU has provided significant returns, with a gain of over 121%."
+      "text": "The 3x ETF (FNGU) provides a high-growth potential, amplifying the portfolio's exposure to the tech sector."
     },
     {
-      "ticker": "SPXL",
-      "text": "The portfolio's holding in SPXL has provided significant returns, with a gain of over 45%."
+      "ticker": "CM.TO",
+      "text": "Canadian Imperial Bank of Commerce's (CM.TO) strong position in the Canadian banking sector, combined with its stable dividend yield, makes it a core holding in the portfolio."
     },
     {
       "ticker": null,
-      "text": "The portfolio's diversification across various sectors and asset classes helps to minimize risk and increase potential returns."
+      "text": "The portfolio's diversification across various sectors and geographies helps minimize risk and increase potential returns."
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "The portfolio's concentration in a few key holdings may increase the risk of significant losses if any of these holdings experience a decline in value."
+      "text": "The portfolio's high leverage exposure increases the risk of significant losses if the market declines."
     },
     {
-      "ticker": "ENB.TO",
-      "text": "The portfolio's holding in ENB.TO may be impacted by the decline in oil prices, potentially leading to a decrease in the stock's value."
+      "ticker": "LYV",
+      "text": "Live Nation Entertainment's (LYV) high valuation multiples and dependence on the travel and tourism sector make it a potential concern in the portfolio."
     },
     {
-      "ticker": "AVGO",
-      "text": "The portfolio's holding in AVGO may be impacted by the decline in Broadcom's stock price, potentially leading to a decrease in the stock's value."
-    },
-    {
-      "ticker": null,
-      "text": "The portfolio's use of 3x leveraged ETFs amplifies both gains and losses, increasing the potential for significant volatility in the portfolio's value."
+      "ticker": "TSLA",
+      "text": "Tesla's (TSLA) high volatility and dependence on the electric vehicle sector make it a potential concern in the portfolio."
     },
     {
       "ticker": null,
-      "text": "The portfolio's significant USD exposure may result in foreign exchange losses if the CAD strengthens against the USD, negatively impacting the portfolio's overall performance."
+      "text": "The portfolio's concentration in a few holdings (NVDA, FNGU, SPXL, TXF.TO, CM.TO) increases the risk of significant losses if any of these holdings decline in value."
+    },
+    {
+      "ticker": null,
+      "text": "The portfolio's significant USD exposure increases the risk of losses due to currency fluctuations."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's 3x leveraged ETFs for potential rebalancing opportunities to minimize risk and maximize returns."
+      "text": "Monitor the portfolio's leverage exposure and consider reducing it if the market declines."
     },
     {
       "num": "02",
-      "text": "Consider adding to the portfolio's technology holdings, such as NVDA, on a pullback to take advantage of potential growth opportunities."
+      "text": "Keep an eye on the USD/CAD exchange rate and consider hedging the portfolio's USD exposure if the rate declines."
     },
     {
       "num": "03",
-      "text": "Review the portfolio's energy holdings, such as ENB.TO, for potential adjustments to minimize the impact of declining oil prices."
+      "text": "Consider adding more diversification to the portfolio by investing in other sectors or geographies."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Consider diversifying the portfolio's holdings across various sectors and asset classes to minimize risk and increase potential returns."
+      "text": "Consider rebalancing the portfolio's sector allocation to take advantage of growth opportunities in the tech and healthcare sectors."
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's tax-efficient structure and consider adjustments to minimize tax liabilities."
+      "text": "Monitor the portfolio's tax liabilities and consider tax-loss harvesting to minimize taxes."
     },
     {
       "num": "03",
-      "text": "Review the portfolio's overall asset allocation and consider adjustments to ensure alignment with the investor's risk tolerance and investment objectives."
+      "text": "Consider adding more dividend-paying stocks to the portfolio to increase income generation."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Consider adding to the portfolio's holdings in registered accounts, such as the RRSP, to take advantage of tax-deferred growth."
+      "text": "Consider investing in emerging markets or sectors, such as renewable energy or cybersecurity, to take advantage of long-term growth opportunities."
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's overall performance and consider adjustments to ensure alignment with the investor's long-term investment objectives."
+      "text": "Monitor the portfolio's asset allocation and consider rebalancing it to maintain an optimal mix of stocks, bonds, and other assets."
     },
     {
       "num": "03",
-      "text": "Review the portfolio's estate planning considerations and consider adjustments to ensure alignment with the investor's overall financial plan."
+      "text": "Consider adding more international diversification to the portfolio to take advantage of growth opportunities in other regions."
     }
   ],
-  "daily_outlook": "The portfolio's overall outlook is neutral, with a potential for significant volatility in the short term due to the ongoing US-Iran conflict and global economic uncertainty. However, the portfolio's diversification and tax-efficient structure help to minimize risk and increase potential returns.",
+  "daily_outlook": "The portfolio's outlook is neutral, with a mix of positive and negative catalysts. The tech sector's strong growth and the financial sector's stable dividend yield are positives, while the portfolio's high leverage exposure and concentration in a few holdings are concerns.",
   "market_mood": "neutral",
-  "generated_at": "2026-06-04T08:33:06.839267+00:00",
+  "generated_at": "2026-06-04T19:33:27.808412+00:00",
   "generated_date": "June 04, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []

@@ -698,21 +698,25 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .notif-overlay,.notif-panel{z-index:5000 !important;}
   /* Offline banner */
   #offlineBanner{display:none !important;}
-  /* Carousel cards: constrain desktop content to phone width */
-  .m-carousel-card{overflow:hidden !important;box-sizing:border-box !important;}
-  .m-carousel-card>*{max-width:100% !important;overflow:hidden !important;word-wrap:break-word !important;box-sizing:border-box !important;}
-  /* Outcomes grid: stack vertically in carousel (not 3 desktop columns) */
-  .m-carousel-card .outcomes-grid{display:flex !important;flex-direction:column !important;gap:6px !important;}
-  .m-carousel-card .outcome-card{width:100% !important;box-sizing:border-box !important;margin-bottom:0 !important;}
-  .m-carousel-card .outcome-prob{font-size:22px !important;}
-  .m-carousel-card .outcome-scenario{font-size:10px !important;}
-  .m-carousel-card .outcome-estimate{font-size:10px !important;}
-  /* News cards in carousel */
-  .m-carousel-card .news-card,.m-carousel-card .macro-card,.m-carousel-card .risk-card{width:100% !important;box-sizing:border-box !important;}
-  /* Conf meter full width */
-  .m-carousel-card .conf-meter{width:100% !important;}
-  /* m-card inside carousel */
-  .m-carousel-card .m-card{margin-bottom:0 !important;}
+  /* Carousel: every card = phone width, nothing overflows */
+  .m-carousel,.m-carousel-card{max-width:100vw !important;}
+  .m-carousel-card,.m-carousel-card>*,.m-carousel-card *{
+    max-width:100% !important;overflow:hidden !important;
+    box-sizing:border-box !important;word-break:break-word !important;}
+  /* Stack bull/base/bear vertically */
+  .m-carousel-card .outcomes-grid{
+    display:flex !important;flex-direction:column !important;
+    gap:6px !important;width:100% !important;}
+  .m-carousel-card .outcome-card{width:100% !important;min-width:0 !important;flex-shrink:0 !important;}
+  .m-carousel-card .outcome-prob{font-size:20px !important;}
+  .m-carousel-card .outcome-scenario,.m-carousel-card .outcome-estimate{font-size:10px !important;}
+  /* Force all inner grids to single column */
+  .m-carousel-card [class*="grid"]{
+    display:flex !important;flex-direction:column !important;gap:6px !important;}
+  .m-carousel-card .conf-meter,.m-carousel-card .news-scenarios{width:100% !important;}
+  .m-carousel-card .macro-card,.m-carousel-card .risk-card,
+  .m-carousel-card .news-card,.m-carousel-card .m-card{
+    width:100% !important;min-width:0 !important;margin-bottom:0 !important;}
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -825,10 +829,11 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 
 /* Carousel */
 .m-carousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
-            scrollbar-width:none;margin:0 -14px;-webkit-overflow-scrolling:touch;}
+            scrollbar-width:none;-webkit-overflow-scrolling:touch;
+            width:100%;margin:0;}
 .m-carousel::-webkit-scrollbar{display:none;}
-.m-carousel-card{min-width:calc(100% + 28px);scroll-snap-align:start;flex-shrink:0;
-                  padding:0 14px;box-sizing:border-box;}
+.m-carousel-card{flex:0 0 100%;width:100%;scroll-snap-align:start;
+                  overflow:hidden;box-sizing:border-box;padding:0;}
 .m-carousel-dots{display:flex;justify-content:center;gap:4px;margin:5px 0 10px;}
 .m-dot{width:5px;height:5px;border-radius:50%;background:var(--bd);transition:all .2s;}
 .m-dot.on{background:var(--cyan);width:14px;border-radius:3px;}
@@ -7522,8 +7527,9 @@ function makeRoiOpts(){
       x:{
         display:true,
         grid:{display:false},
+        border:{display:false},
         ticks:{
-          maxTicksLimit:4,maxRotation:0,autoSkip:true,
+          maxTicksLimit:5,maxRotation:0,autoSkip:true,
           font:{size:8},color:axCol,
           callback:function(v){
             var l=this.getLabelForValue(v);
@@ -7537,8 +7543,9 @@ function makeRoiOpts(){
         display:true,position:'right',
         title:{display:false},
         grid:{color:'rgba(255,255,255,0.04)'},
+        border:{display:false},
         ticks:{
-          maxTicksLimit:3,font:{size:8},color:axCol,
+          maxTicksLimit:4,font:{size:8},color:axCol,
           callback:function(v){return(v>=0?'+':'')+v.toFixed(0)+'%';}
         }
       }
@@ -7626,7 +7633,20 @@ function applyMobileTimeRange(){
   mRoiChart.data.datasets[1].data=rdSp.data?rdSp.data.slice(rOff):[];
   mRoiChart.update('none');
 
-  // Footer
+  // ROI chart footer: start% → end% with change
+  var roiFooter=document.getElementById('m-roi-footer');
+  if(roiFooter){
+    var rv=(mRoiChart.data.datasets[0].data||[]).filter(function(v){return v!=null;});
+    if(rv.length>=2){
+      var startR=rv[0],endR=rv[rv.length-1],deltaR=(endR-startR);
+      var signR=deltaR>=0?'+':'-';
+      var fmtR=function(v){return(v>=0?'+':'')+v.toFixed(1)+'%';};
+      roiFooter.innerHTML='<span>'+fmtR(startR)+' start</span>'
+        +'<span class="'+(deltaR>=0?'up':'dn')+'">'+fmtR(endR)+' now · '+signR+Math.abs(deltaR).toFixed(1)+'%</span>';
+    }
+  }
+
+  // Portfolio value footer
   var footer=document.getElementById('m-mv-footer');
   if(footer){
     var vals=(mMvChart.data.datasets[0].data||[]).filter(function(v){return v!=null;});
@@ -7920,10 +7940,19 @@ function syncMobile(){
         var rm=rr.match(/([+\-]?[\d.,]+%)/);
         var rp=rm?rm[1]:'';
         var dp=!isNaN(rawPctNum)?(rawPctNum>=0?'+':'')+rawPctNum.toFixed(2)+'%':(parts[1]||'');
-        sD.textContent=(rp&&dp)?rp+' · '+dp:(rp||dp||cf);
-        /* Color from all-time ROI sign — not from day change direction */
-        var subTxt=sD.textContent;
-        sD.className=subTxt.startsWith('+')?'up':(subTxt.startsWith('-')||subTxt.startsWith('−'))?'dn':'';
+        /* Each component gets its own colour based on its own sign */
+        var roiCls=rp.startsWith('+')?'up':(rp.startsWith('-')||rp.startsWith('−'))?'dn':'';
+        var dpCls=(dp.startsWith('-')||dp.startsWith('−'))?'dn':dp.startsWith('+')?'up':'';
+        if(rp&&dp){
+          sD.innerHTML='<span class="'+roiCls+'">'+rp+'</span>'
+            +' <span style="color:var(--t3);font-weight:400">·</span> '
+            +'<span class="'+dpCls+'">'+dp+'</span>';
+          sD.className='';
+        } else {
+          var sole=rp||dp||cf;
+          sD.textContent=sole;
+          sD.className=sole.startsWith('+')?'up':(sole.startsWith('-')||sole.startsWith('−'))?'dn':'';
+        }
       }
     }
   });
@@ -7953,7 +7982,8 @@ function syncMobile(){
     if(dst.dataset.sig===sig)return;
     dst.dataset.sig=sig;
     dst.innerHTML=Array.from(src.children).map(function(k){
-      return'<div class="m-carousel-card">'+k.outerHTML+'</div>';
+      /* Wrap in full-width card; give content a safe inner margin */
+        return'<div class="m-carousel-card"><div style="padding:0 2px;box-sizing:border-box;width:100%;overflow:hidden;">'+k.outerHTML+'</div></div>';
     }).join('');
     initCarouselDots(dst,dotsId);
   }
@@ -8421,7 +8451,8 @@ document.addEventListener('DOMContentLoaded',function(){
           <span class="m-chart-lbl" id="m-roi-chart-title">ROI %</span>
           <span style="font-size:9px;color:var(--t2)" id="m-roi-period">6 months</span>
         </div>
-        <div style="position:relative;height:120px"><canvas id="m-roi-canvas"></canvas></div>
+        <div style="position:relative;height:140px"><canvas id="m-roi-canvas"></canvas></div>
+        <div id="m-roi-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:3px"></div>
       </div>
 
       <!-- Contribution-Weighted Benchmark -->

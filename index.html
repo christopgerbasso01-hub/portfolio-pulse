@@ -8311,17 +8311,12 @@ function syncMobile(){
   if(ps&&pd){
     var pt=ps.textContent.trim().replace(' today','');
     if(pt&&pt!=='—'){
-      /* Split into dollar and percent — handles "X · Y%" and "X (Y%)" formats */
-      var dollarPart=pt, pctPart='';
-      var midDot=pt.split(/\s*[·\xB7]\s*/);
-      if(midDot.length>=2){
-        dollarPart=midDot[0];
-        pctPart=midDot[1].replace(/\s*today\s*/i,'').trim();
-      } else {
-        /* "(Y%)" parenthesis format: "-$20,433 (-7.31%)" */
-        var parenM=pt.match(/^([^(]+)\s*\(([^)]+)\)/);
-        if(parenM){ dollarPart=parenM[1].trim(); pctPart=parenM[2].trim(); }
-      }
+      /* Split "$X · Y%" into dollar and percent parts */
+      var parts=pt.split(/\s*[·\xB7]\s*/);
+      var dollarPart=parts[0]||pt;
+      var pctPart=parts[1]||'';
+      /* Remove trailing "today" if present */
+      pctPart=pctPart.replace(/\s*today\s*/i,'').trim();
       if(pdDollar)pdDollar.textContent=dollarPart;
       if(pdPct)pdPct.textContent=pctPart;
       var _isGain=ps.classList.contains('green')||dollarPart.startsWith('+');

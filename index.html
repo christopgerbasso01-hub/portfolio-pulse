@@ -2639,7 +2639,7 @@ function renderTaxProjection(data) {
       </div>
       <input type="range" min="30000" max="350000" step="5000" value="${grossSalary}"
         style="width:100%;accent-color:var(--blue-bright);cursor:pointer"
-        oninput="localStorage.setItem('pp_gross_salary',this.value); document.getElementById('taxSalaryDisplay').textContent='$'+parseInt(this.value).toLocaleString('en-CA'); renderTaxProjection(_lastLiveData||{})"
+        oninput="localStorage.setItem('pp_gross_salary',this.value); document.getElementById('taxSalaryDisplay').textContent='$'+parseInt(this.value).toLocaleString('en-CA'); renderTaxProjection(_lastLiveData||{}); (function(){var _ms=document.getElementById('m-in-salary');if(_ms)_ms.value=this.value;var _mtp=document.getElementById('m-tax-proj-content');if(_mtp)_mtp.dataset.sig='';}).call(this)"
         onchange="_syncTaxSettings()">
       <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:4px">
         <span>$30K</span><span style="color:var(--amber)">$57K</span><span style="color:var(--amber)">$102K</span><span style="color:var(--amber)">$150K</span><span>$350K</span>

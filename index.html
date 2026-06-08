@@ -2511,30 +2511,42 @@ function _applyTodayToCharts(totalValue, roiPct, dailyChange, snapAccts) {
   const today    = new Date().toISOString().slice(0, 10); // "2026-06-09"
   const monthKey = today.slice(0, 7);                     // "2026-06"
 
+  // Resolve which account is active (undefined = 'all' view).
+  // datasets[0] must reflect the filtered account's value, not the portfolio total —
+  // otherwise selecting TFSA would overwrite its line with ~$276K (total portfolio).
+  const _fAcctMap = { tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' };
+  const _fAcct    = _fAcctMap[currentFilter];                          // undefined when 'all'
+  const _mvForDs0 = _fAcct ? (snapAccts[_fAcct] || 0) : totalValue;
+
   // ── Portfolio value chart ─────────────────────────────────────────────────
   const mvLabels = portfolioValueChart.data.labels;
   let mvIdx = mvLabels.indexOf(today);
   if (mvIdx < 0) mvIdx = mvLabels.indexOf(monthKey);
 
-  // Dataset indices: 0=Total MV, 1=Contributions, 2=TFSA, 3=Investment, 4=FHSA, 5=RRSP
+  // 'all' view:     ds 0=Total MV, 1=Contributions, 2=TFSA, 3=Investment, 4=FHSA, 5=RRSP
+  // account view:   ds 0=Account MV, 1=Contributions  (no per-account datasets present)
   const MV_DS = { TFSA: 2, Investment: 3, FHSA: 4, RRSP: 5 };
 
   if (mvIdx >= 0) {
     mvLabels[mvIdx] = today;
-    portfolioValueChart.data.datasets[0].data[mvIdx] = totalValue;
-    Object.entries(MV_DS).forEach(([acct, dsIdx]) => {
-      if (portfolioValueChart.data.datasets[dsIdx])
-        portfolioValueChart.data.datasets[dsIdx].data[mvIdx] = snapAccts[acct] || null;
-    });
+    portfolioValueChart.data.datasets[0].data[mvIdx] = _mvForDs0;
+    if (!_fAcct) { // per-account datasets only exist in 'all' view
+      Object.entries(MV_DS).forEach(([acct, dsIdx]) => {
+        if (portfolioValueChart.data.datasets[dsIdx])
+          portfolioValueChart.data.datasets[dsIdx].data[mvIdx] = snapAccts[acct] || null;
+      });
+    }
   } else {
     mvLabels.push(today);
-    portfolioValueChart.data.datasets[0].data.push(totalValue);
+    portfolioValueChart.data.datasets[0].data.push(_mvForDs0);
     const lastC = portfolioValueChart.data.datasets[1]?.data?.slice(-1)[0] || 0;
     if (portfolioValueChart.data.datasets[1]) portfolioValueChart.data.datasets[1].data.push(lastC);
-    Object.entries(MV_DS).forEach(([acct, dsIdx]) => {
-      if (portfolioValueChart.data.datasets[dsIdx])
-        portfolioValueChart.data.datasets[dsIdx].data.push(snapAccts[acct] || null);
-    });
+    if (!_fAcct) { // per-account datasets only exist in 'all' view
+      Object.entries(MV_DS).forEach(([acct, dsIdx]) => {
+        if (portfolioValueChart.data.datasets[dsIdx])
+          portfolioValueChart.data.datasets[dsIdx].data.push(snapAccts[acct] || null);
+      });
+    }
   }
   portfolioValueChart.update('none');
 
@@ -2543,17 +2555,29 @@ function _applyTodayToCharts(totalValue, roiPct, dailyChange, snapAccts) {
   let roiIdx = roiLabels.indexOf(today);
   if (roiIdx < 0) roiIdx = roiLabels.indexOf(monthKey);
 
-  // Dataset indices: 0=All, 1=TFSA, 2=Investment, 3=FHSA, 4=RRSP
+  // 'all' view:     ds 0=All, 1=TFSA, 2=Investment, 3=FHSA, 4=RRSP
+  // account view:   ds 0=Account ROI only
   const ROI_DS = { TFSA: 1, Investment: 2, FHSA: 3, RRSP: 4 };
 
+  // Compute per-account ROI % from live market value + contributions
+  const _acctRoi = (acct) => {
+    const c = CONTRIB_STATE[acct];
+    const v = snapAccts[acct];
+    return (c > 0 && v) ? +((v - c) / c * 100).toFixed(2) : null;
+  };
+  // datasets[0]: account-specific ROI when filtered, total portfolio ROI when 'all'
+  const _roiForDs0 = _fAcct ? _acctRoi(_fAcct) : roiPct;
+
   const _setRoiDs = (idx) => {
-    roiChart.data.datasets[0].data[idx] = roiPct;
-    Object.entries(ROI_DS).forEach(([k, dsIdx]) => {
-      const c = CONTRIB_STATE[k];
-      const v = snapAccts[k];
-      if (c > 0 && v && roiChart.data.datasets[dsIdx])
-        roiChart.data.datasets[dsIdx].data[idx] = +((v - c) / c * 100).toFixed(2);
-    });
+    roiChart.data.datasets[0].data[idx] = _roiForDs0;
+    if (!_fAcct) { // per-account ROI datasets only exist in 'all' view
+      Object.entries(ROI_DS).forEach(([k, dsIdx]) => {
+        const c = CONTRIB_STATE[k];
+        const v = snapAccts[k];
+        if (c > 0 && v && roiChart.data.datasets[dsIdx])
+          roiChart.data.datasets[dsIdx].data[idx] = +((v - c) / c * 100).toFixed(2);
+      });
+    }
   };
 
   if (roiIdx >= 0) {
@@ -3894,9 +3918,13 @@ async function mergeKvChartData() {
     const MV_DS  = { all: 0, TFSA: 2, Investment: 3, FHSA: 4, RRSP: 5 };
 
     let addedMv = 0, addedRoi = 0;
+    // Today's value is always injected live by _applyTodayToCharts — skip all current-month
+    // snapshots here so they don't race with it and append duplicate June date labels.
+    const _thisMonth = new Date().toISOString().slice(0, 7); // "2026-06"
 
     pts.forEach(rawPt => {
       if (!rawPt.date) return;
+      if (rawPt.date.slice(0, 7) >= _thisMonth) return; // skip current (and any future) month
       // Apply correction if this date had a bad KV snapshot
       const pt = _KV_CORRECTIONS[rawPt.date] ? Object.assign({}, rawPt, _KV_CORRECTIONS[rawPt.date]) : rawPt;
       const monthKey = pt.date.slice(0, 7);
@@ -4061,6 +4089,12 @@ function setChartFilter(key, btn) {
     ...lineDef('#64748b', 'Contributions', cAligned),
     borderDash: [4, 4],
   };
+  // Hide per-account sub-datasets (2+) in single-account views — they're created by
+  // mergeKvChartData for the 'all' view and must not appear as stale extra lines
+  // when a specific account is selected.
+  portfolioValueChart.data.datasets.forEach((ds, idx) => {
+    if (idx >= 2) ds.hidden = (key !== 'all');
+  });
   portfolioValueChart.update();
   document.getElementById('mvChartTitle').textContent = `Portfolio Market Value — ${l}`;
 

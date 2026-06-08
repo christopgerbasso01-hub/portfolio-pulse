@@ -12,7 +12,8 @@ _YF_HEADERS = {
 }
 
 # =============================================================================
-# PORTFOLIO HOLDINGS — last snapshot 2026-05-12
+# PORTFOLIO HOLDINGS — last updated 2026-06-04
+# New positions: AVGO 22 (Investment), MU 7 (RRSP)
 # cost_basis_total = market_value - unrealized (native currency of holding)
 # =============================================================================
 HOLDINGS = [
@@ -46,6 +47,7 @@ HOLDINGS = [
     {"ticker": "MSTR",   "account": "Investment",  "shares": 4,    "cost_total": 1780.74,  "ccy": "USD"},
     {"ticker": "GBTC",   "account": "Investment",  "shares": 25,   "cost_total": 2608.25,  "ccy": "USD"},
     {"ticker": "BYDDF",  "account": "Investment",  "shares": 3,    "cost_total": 74.00,    "ccy": "USD"},
+    {"ticker": "AVGO",   "account": "Investment",  "shares": 22,   "cost_total": 9071.04,  "ccy": "USD"},
     # FHSA
     {"ticker": "SPXL",   "account": "FHSA",        "shares": 53,   "cost_total": 7096.23,  "ccy": "USD"},
     {"ticker": "TXF.TO", "account": "FHSA",        "shares": 434,  "cost_total": 11411.13, "ccy": "CAD"},
@@ -57,12 +59,12 @@ HOLDINGS = [
     {"ticker": "TSM",    "account": "RRSP",         "shares": 6,    "cost_total": 3232.08,  "ccy": "USD"},
     {"ticker": "UDOW",   "account": "RRSP",         "shares": 36,   "cost_total": 2554.37,  "ccy": "USD"},
     {"ticker": "FNGU",   "account": "RRSP",         "shares": 56,   "cost_total": 1491.56,  "ccy": "USD"},
-    # Cash positions — updated snapshot 2026-05-29
+    {"ticker": "MU",     "account": "RRSP",         "shares": 7,    "cost_total": 7025.06,  "ccy": "USD"},
+    # Cash positions — updated snapshot 2026-06-04
     {"ticker": "_CASH_USD", "account": "TFSA",       "shares": 1, "cost_total": 344.41,  "ccy": "USD", "cash": True},
     {"ticker": "_CASH_CAD", "account": "FHSA",       "shares": 1, "cost_total": 24.34,   "ccy": "CAD", "cash": True},
-    {"ticker": "_CASH_CAD", "account": "Investment", "shares": 1, "cost_total": 58.99,   "ccy": "CAD", "cash": True},
-    {"ticker": "_CASH_USD", "account": "Investment", "shares": 1, "cost_total": 50.71,   "ccy": "USD", "cash": True},
-    {"ticker": "_CASH_USD", "account": "RRSP",       "shares": 1, "cost_total": 7685.47, "ccy": "USD", "cash": True},
+    {"ticker": "_CASH_USD", "account": "Investment", "shares": 1, "cost_total": 301.38,  "ccy": "USD", "cash": True},
+    {"ticker": "_CASH_USD", "account": "RRSP",       "shares": 1, "cost_total": 653.26,  "ccy": "USD", "cash": True},
 ]
 
 # Average USD/CAD rate at which USD positions were originally purchased.
@@ -175,7 +177,7 @@ def fetch_prices():
 # Update these whenever you add fresh capital to an account.
 CONTRIBUTIONS_CAD = {
     "TFSA":       44500.0,
-    "Investment": 65000.0,
+    "Investment": 78000.0,
     "FHSA":       24000.0,
     "RRSP":       16132.0,
 }

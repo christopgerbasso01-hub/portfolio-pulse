@@ -5,15 +5,16 @@ Portfolio Pulse — Weekly Podcast Generator
 Runs via cron-job.org every Monday at 6:00 AM UTC.
 
 Pipeline:
-  1. Load data/intelligence.json + KV snapshot data
-  2. Groq (Llama 3.3 70B) → full podcast script (3,000–3,800 words)
-     Split into 2 Groq calls to stay within token limits
-  3. Kokoro TTS (kokoro-onnx) → WAV segments per speaker turn
-  4. ffmpeg → concatenate WAVs to MP3
-  5. Save episode + metadata
+  1. Load intelligence.json + KV snapshot + live holdings + past scripts
+  2. Groq preprocessing call → deep topic registry (topics, tickers, education used)
+  3. Groq (Llama 3.3 70B) × 2 → full podcast script (3,500–4,300 words)
+  4. edge-tts → MP3 segments per speaker turn
+  5. Merge segments → podcast_epNNN.mp3
+  6. Save script text → podcast_epNNN.txt (used by future episodes)
+  7. Groq summary call → update podcast_meta.json
 
-Voices: am_michael (Alex — warm male analyst), af_heart (Sam — curious female)
-Style: NotebookLM-inspired — deep dives, mechanisms, genuine push-back
+Voices: en-US-AndrewMultilingualNeural (Alex), en-US-AvaMultilingualNeural (Sam)
+Style: NPR/Bloomberg deep-dive — mechanisms, genuine push-back, learning segment
 """
 
 import asyncio
@@ -490,41 +491,6 @@ def _fetch_snapshot() -> dict:
         return {}
 
 
-def _build_live_portfolio(snapshot: dict) -> str:
-    """Build a narrative-ready portfolio performance string from snapshot data."""
-    snaps = snapshot.get("snapshots", {})
-    if not snaps:
-        return "Portfolio performance data unavailable this week."
-
-    sorted_dates = sorted(snaps.keys())
-    if len(sorted_dates) < 2:
-        latest = snaps[sorted_dates[-1]]
-        return (f"Current portfolio value: ${latest.get('total_value', 0):,.0f} CAD. "
-                f"ROI: {latest.get('roi_pct', 0):.1f}%.")
-
-    newest = snaps[sorted_dates[-1]]
-    oldest = snaps[sorted_dates[0]]
-    tv_new = newest.get("total_value", 0) or 0
-    tv_old = oldest.get("total_value", 0) or tv_new
-    weekly_chg = tv_new - tv_old
-    weekly_pct = (weekly_chg / tv_old * 100) if tv_old else 0
-    accts_new = newest.get("accounts", {})
-    accts_old = oldest.get("accounts", {})
-
-    lines = [
-        f"TOTAL PORTFOLIO: ${tv_new:,.0f} CAD | Weekly change: {weekly_chg:+,.0f} CAD ({weekly_pct:+.1f}%)",
-        f"ROI all-time: {newest.get('roi_pct', 0):.1f}%",
-    ]
-    for acct in ["TFSA", "Investment", "FHSA", "RRSP"]:
-        v_new = accts_new.get(acct, 0) or 0
-        v_old = accts_old.get(acct, 0) or v_new
-        chg = v_new - v_old
-        pct = (chg / v_old * 100) if v_old else 0
-        lines.append(f"  {acct}: ${v_new:,.0f} | {chg:+,.0f} ({pct:+.1f}%)")
-
-    return "\n".join(lines)
-
-
 # ============================================================
 # PAST EPISODE ANALYSIS — full script reading & topic registry
 # ============================================================
@@ -779,7 +745,7 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     portfolio_ctx = _build_portfolio_context(computed_holdings, snaps)
     live_port     = "(see LIVE PORTFOLIO section in portfolio context below)"
 
-    print("2/4  Generating Part 1 (Welcome + Recap + Deep Dive 1)...")
+    print("     Generating Part 1 (Welcome + Recap + Deep Dive 1)...")
     part1 = _groq_call(api_key, SCRIPT_PROMPT_PART1.format(
         today=today, week_range=week, mood=mood,
         registry_context=registry_context,
@@ -954,7 +920,7 @@ def main() -> int:
     DATA_DIR.mkdir(exist_ok=True)
 
     # 1. Load all data sources
-    print("1/5  Loading data...")
+    print("1/4  Loading data sources...")
     intel             = _load_intel()
     snapshot          = _fetch_snapshot()
     old_meta          = load_meta()
@@ -965,8 +931,8 @@ def main() -> int:
     if not computed_holdings:
         print("  ⚠ No computed_holdings in KV — portfolio figures will use fallback context")
 
-    # 1b. Load saved past scripts & build deep topic registry
-    print("     Building topic registry from past episodes...")
+    # Load saved past scripts & build deep topic registry (Groq preprocessing call if scripts exist)
+    print("     Loading past scripts & building topic registry...")
     past_scripts = _load_past_scripts()
     registry = _build_deep_topic_registry(old_meta, past_scripts, groq_key)
     if registry["recently_spotlighted_tickers"]:
@@ -974,8 +940,8 @@ def main() -> int:
     if registry["education_topics_used"]:
         print(f"  ✓ Education topics used: {'; '.join(registry['education_topics_used'])}")
 
-    # 2. Generate script (two Groq calls + optional registry preprocessing call)
-    print("2/5  Generating script...")
+    # 2. Generate script (registry preprocessing + two generation Groq calls)
+    print("2/4  Generating script...")
     try:
         script = generate_script(intel, snapshot, old_meta, groq_key, computed_holdings, registry)
     except Exception as exc:
@@ -988,7 +954,7 @@ def main() -> int:
         return 1
     print(f"  ✓ {len(turns)} speaker turns")
 
-    # Extract education topic from script (before saving — used in meta)
+    # Extract education topic from script marker (before saving — used in meta)
     education_topic = _extract_education_topic(script)
     if education_topic:
         print(f"  ✓ Education topic: {education_topic}")
@@ -996,7 +962,7 @@ def main() -> int:
         print("  ⚠ No [EDUCATION_TOPIC: ...] marker found in script")
 
     # 3. Synthesize audio
-    print("3/5  Synthesizing audio (edge-tts)...")
+    print("3/4  Synthesizing audio (edge-tts)...")
     ep_num   = (old_meta.get("episode", 0) or 0) + 1
     mp3_name = f"podcast_ep{ep_num:03d}.mp3"
     txt_name = f"podcast_ep{ep_num:03d}.txt"
@@ -1026,7 +992,7 @@ def main() -> int:
         print(f"  ⚠ Script save failed (non-fatal): {exc}")
 
     # 4. Generate summary + save metadata
-    print("4/5  Generating summary & saving metadata...")
+    print("4/4  Generating summary & saving metadata...")
     summary = generate_summary(script, intel, groq_key)
 
     # Use education_topic from marker; fall back to what summary extracted

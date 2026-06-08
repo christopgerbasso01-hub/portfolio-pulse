@@ -5352,7 +5352,8 @@ async function refreshAll() {
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
   applyAllTransactions();   // replay saved transactions on top of base data (local first)
-  syncTransactionsFromKV(); // then merge from KV (catches logs from other devices)
+  syncTransactionsFromKV()  // then merge from KV (catches logs from other devices)
+    .then(() => _saveComputedHoldings()); // push final holdings state to KV for podcast
   renderHoldingsTable(null);
   updateRowCount();
   initCharts();
@@ -6553,6 +6554,40 @@ function _setTransactions(txs) {
   }).catch(() => {});
 }
 
+// ── Computed holdings → KV  (podcast generator reads this on every run) ──────
+// Saves the fully applied HOLDINGS_STATIC (base + all transactions) so the
+// podcast always knows exact shares, cost basis, and account assignments
+// without any hardcoded figures. Debounced 2s to batch rapid changes.
+let _saveHoldingsTimer = null;
+function _saveComputedHoldings() {
+  clearTimeout(_saveHoldingsTimer);
+  _saveHoldingsTimer = setTimeout(function() {
+    try {
+      const compact = HOLDINGS_STATIC
+        .filter(h => h.ticker && !h.ticker.startsWith('CASH'))
+        .map(h => ({
+          ticker:    h.ticker,
+          name:      h.name || h.ticker,
+          account:   h.account,
+          sector:    h.sector   || 'Unknown',
+          ccy:       h.ccy      || 'USD',
+          shares:    h.shares,
+          cost_total: h.cost_total,
+          book_rate: h.book_rate || null,
+          dividends: h.dividends || 0,
+        }));
+      fetch(`${CONFIG.API_BASE}/api/settings`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          computed_holdings:   compact,
+          holdings_updated_at: new Date().toISOString(),
+        }),
+      }).catch(() => {});
+    } catch(e) {}
+  }, 2000);
+}
+
 async function syncTransactionsFromKV() {
   try {
     const r = await fetch(`${CONFIG.API_BASE}/api/settings`, { cache: 'no-store' });
@@ -6800,6 +6835,8 @@ async function refreshAfterTx() {
   }
   const el = document.getElementById('kpiContributions');
   if (el) el.textContent = fmt$(CONTRIB_TOTAL());
+  // Keep KV holdings in sync — podcast generator reads this on every Monday run
+  _saveComputedHoldings();
 }
 
 // ── Modal UI ─────────────────────────────────────────────────

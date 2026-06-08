@@ -31,6 +31,7 @@ import requests
 GROQ_URL      = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL    = "llama-3.3-70b-versatile"
 SNAPSHOT_API  = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
+SETTINGS_API  = "https://portfolio-pulse-dun.vercel.app/api/settings"
 CRON_SECRET   = os.environ.get("CRON_SECRET", "")
 
 # edge-tts voices (Kokoro had persistent install issues — revisit later)
@@ -48,30 +49,185 @@ MAX_EPISODES = 4
 
 
 # ============================================================
-# PORTFOLIO CONTEXT (compressed — same as intelligence.py)
+# PORTFOLIO CONTEXT — built dynamically from KV on every run.
+# This static fallback is only used if the KV fetch fails.
 # ============================================================
-PORTFOLIO_CONTEXT = """
+_PORTFOLIO_CONTEXT_FALLBACK = """
 INVESTOR: Christopher, 24M, Toronto. $90K salary. HIGH risk tolerance.
-GTA home purchase planned: FHSA (~$55K) + RRSP HBP ($35K) = ~$90K down.
-Non-resident 2026 → returns Canada March 2027.
-TFSA/FHSA: no contributions in 2026. RRSP: eligible, route all new buys here.
+GTA home purchase planned: FHSA + RRSP HBP = ~$90K down. Returns Canada March 2027.
+TFSA/FHSA: no contributions in 2026. RRSP: eligible for new buys only.
 
-ACCOUNTS (~$282K total):
-  TFSA $101K +127% | Investment $97K +50% | FHSA $55K +130% | RRSP $29K +77%
-
-KEY HOLDINGS (use company NAMES, not tickers, 90% of the time):
-  Leveraged ETFs 49%: FANG+ 3x (1,373 shares), S&P500 3x (151 shares), Dow 3x (206 shares)
-  Tech: Nvidia (40sh TFSA, +1,776%), Broadcom (8sh), Taiwan Semiconductor (15sh),
-        CI Tech Giants ETF (1,259sh), Microsoft (2sh), Apple (4sh), Qualcomm (5sh)
-  CDN Financials: CIBC (95sh), Royal Bank (19sh), Bank of Montreal (15sh)
-  Energy/Other: Enbridge (82sh), Energy Transfer (60sh), Shell (22sh)
-  Speculative: MicroStrategy (4sh, underwater), Grayscale Bitcoin (25sh), BYD (3sh)
-  RRSP Cash: ~$7,685 USD uninvested (deploy to BMO S&P500 ETF)
-
-SENSITIVITIES: 3x leverage amplifies S&P/NASDAQ/Dow both ways.
-  68% USD-denominated → $1,800 portfolio impact per 1¢ USD/CAD.
-  Nvidia never sell — permanently tax-free in TFSA at +1,776%.
+NOTE: Live portfolio data unavailable — figures below may be outdated.
+KEY HOLDINGS: Leveraged ETFs 49% (FANG+ 3x, S&P500 3x, Dow 3x), Nvidia (TFSA, +1776% NEVER SELL),
+  Broadcom, Taiwan Semi, CI Tech Giants ETF, CIBC, Royal Bank, Bank of Montreal,
+  Enbridge, Energy Transfer, Shell, MicroStrategy, Grayscale Bitcoin, BYD.
+SENSITIVITIES: 3x leverage amplifies both ways. ~68% USD exposure.
 """
+
+
+# ── Tickers that carry 3× leverage (for math anchor calculation) ─────────────
+_LEVERAGE_3X = {"FNGU", "SPXL", "UDOW", "TQQQ", "SOXL"}
+
+
+def _fetch_computed_holdings() -> list[dict]:
+    """Fetch current computed holdings from KV.
+    The dashboard saves these on every page load and every transaction change,
+    so this always reflects the exact current portfolio state.
+    """
+    try:
+        r = requests.get(SETTINGS_API, timeout=10)
+        r.raise_for_status()
+        data     = r.json()
+        holdings = data.get("computed_holdings", [])
+        updated  = data.get("holdings_updated_at", "unknown")
+        if holdings:
+            print(f"  ✓ {len(holdings)} holdings from KV (updated {updated[:16]})")
+        else:
+            print("  ⚠ computed_holdings not in KV yet — open dashboard once to populate it")
+        return holdings
+    except Exception as exc:
+        print(f"  ⚠ computed_holdings fetch failed: {exc}")
+        return []
+
+
+def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> str:
+    """Build a fully dynamic portfolio context string.
+    Combines live share counts (from KV) with live prices (from snapshots)
+    to produce exact values, weekly movers, and math anchors.
+    Falls back to static context if either source is missing.
+    """
+    if not holdings or not snapshots:
+        return _PORTFOLIO_CONTEXT_FALLBACK
+
+    sorted_dates = sorted(snapshots.keys())
+    latest       = snapshots[sorted_dates[-1]]
+    prev         = snapshots[sorted_dates[0]] if len(sorted_dates) > 1 else latest
+
+    prices      = latest.get("holdings_prices", {})
+    prev_prices = prev.get("holdings_prices",   {})
+    usdcad      = float(latest.get("usdcad")    or 1.38)
+    accounts    = latest.get("accounts",        {})
+    prev_accts  = prev.get("accounts",          {})
+    acct_cost   = latest.get("account_cost",    {})
+
+    leverage_cad = 0.0
+    usd_exp_cad  = 0.0
+    movers       = []
+
+    for h in holdings:
+        ticker = h.get("ticker", "")
+        if not ticker or ticker.startswith("CASH"):
+            continue
+        ccy    = h.get("ccy", "USD")
+        shares = float(h.get("shares") or 0)
+        if shares <= 0:
+            continue
+
+        px    = prices.get(ticker, {})
+        price = float(px.get("price") or 0)
+        if price <= 0:
+            continue
+
+        fx     = usdcad if ccy == "USD" else 1.0
+        mv_cad = price * shares * fx
+
+        if ccy == "USD":
+            usd_exp_cad += mv_cad
+        if ticker in _LEVERAGE_3X:
+            leverage_cad += mv_cad
+
+        # Weekly price move → dollar impact on this exact position
+        ppx    = prev_prices.get(ticker, {})
+        pprice = float(ppx.get("price") or price)
+        wk_pct = (price - pprice) / pprice * 100 if pprice > 0 else 0.0
+        wk_cad = (price - pprice) * shares * fx
+
+        movers.append({
+            "name":   h.get("name", ticker),
+            "ticker": ticker,
+            "acct":   h.get("account", ""),
+            "wk_pct": wk_pct,
+            "wk_cad": wk_cad,
+        })
+
+    movers.sort(key=lambda x: abs(x["wk_cad"]), reverse=True)
+    top_movers = movers[:6]
+
+    # Portfolio-level totals come from the snapshot (calculated by the same
+    # market API the dashboard uses — guaranteed to match what the user sees)
+    total_val = float(latest.get("total_value") or 0)
+    roi_pct   = float(latest.get("roi_pct")     or 0)
+    wk_start  = float(prev.get("total_value")   or total_val)
+    wk_gain   = total_val - wk_start
+    wk_pct    = (wk_gain / wk_start * 100) if wk_start > 0 else 0.0
+
+    # Per-account with week-over-week and all-time ROI
+    acct_lines = []
+    for acct in ["TFSA", "Investment", "FHSA", "RRSP"]:
+        v_now  = float(accounts.get(acct)   or 0)
+        v_prev = float(prev_accts.get(acct) or v_now)
+        cost   = float(acct_cost.get(acct)  or 0)
+        chg    = v_now - v_prev
+        pct    = (chg  / v_prev * 100) if v_prev > 0 else 0.0
+        a_roi  = ((v_now - cost) / cost * 100) if cost > 0 else 0.0
+        acct_lines.append(
+            f"  {acct:12s} ${v_now:>9,.0f} CAD  "
+            f"WoW {chg:>+8,.0f} ({pct:>+5.1f}%)  "
+            f"All-time ROI {a_roi:>+5.0f}%"
+        )
+
+    # Math anchors — grounded in actual position sizes
+    per_1pct_sp  = leverage_cad * 0.03   # 3× leverage = 3× the market move
+    per_1cent_fx = usd_exp_cad  * 0.01   # per 1¢ USD/CAD shift
+    lev_pct      = leverage_cad / total_val * 100 if total_val else 0
+    usd_pct      = usd_exp_cad  / total_val * 100 if total_val else 0
+
+    movers_str = "\n".join(
+        f"  {m['name']:<26} ({m['acct']})  "
+        f"{m['wk_pct']:>+6.1f}%  →  {m['wk_cad']:>+9,.0f} CAD"
+        for m in top_movers
+    ) or "  (snapshot prices unavailable for this week)"
+
+    period = (f"{sorted_dates[0]} → {sorted_dates[-1]}"
+              if len(sorted_dates) > 1 else sorted_dates[0])
+
+    return f"""INVESTOR: Christopher, 24M, Toronto. $90K salary. HIGH risk tolerance.
+GTA home purchase: FHSA + RRSP HBP = ~$90K down payment. Returns Canada March 2027.
+TFSA/FHSA: no new contributions in 2026. RRSP: eligible for new buys only.
+
+━━━ LIVE PORTFOLIO [{sorted_dates[-1]}] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total value:   ${total_val:>10,.0f} CAD
+Weekly change: {wk_gain:>+10,.0f} CAD ({wk_pct:>+5.1f}%)   [{period}]
+All-time ROI:  {roi_pct:>10.1f}%
+
+ACCOUNTS (week-over-week):
+{chr(10).join(acct_lines)}
+
+USD/CAD: {usdcad:.4f}
+
+━━━ MATH ANCHORS — every dollar estimate in this episode MUST derive from these ━━━
+3× Leveraged exposure: ${leverage_cad:>9,.0f} CAD ({lev_pct:.0f}% of portfolio)
+USD exposure:          ${usd_exp_cad:>9,.0f} CAD ({usd_pct:.0f}% of portfolio)
+Per 1% S&P 500 move  → ±${per_1pct_sp:>7,.0f} CAD on leveraged positions alone
+Per 1¢ USD/CAD move  → ±${per_1cent_fx:>7,.0f} CAD on USD holdings
+Portfolio implied β  ≈ 1.8× market (leverage concentration)
+RULE: Bear case estimates must be at least as large as bull case estimates in absolute terms.
+RULE: Never invent a dollar figure — use the anchors above and show your reasoning.
+
+━━━ THIS WEEK'S TOP MOVERS (your exact shares × price change) ━━━━━━━━━━━━━━━━
+{movers_str}
+
+━━━ KEY HOLDINGS (use NAMES not tickers — 90% of the time) ━━━━━━━━━━━━━━━━━━
+Leveraged 3× ({lev_pct:.0f}%): FANG+ 3×, S&P500 3×, Dow 3×
+Tech: Nvidia (TFSA — NEVER SELL, permanently tax-free at +1,776%)
+      Broadcom, Taiwan Semi, CI Tech Giants ETF, Microsoft, Apple, Qualcomm
+CDN Financials: CIBC, Royal Bank, Bank of Montreal
+Energy: Enbridge, Energy Transfer, Shell
+Speculative: MicroStrategy, Grayscale Bitcoin, BYD
+RRSP Cash: ~$7,685 USD idle → deploy to BMO S&P500 ETF
+
+CRITICAL: Every % change you mention must match the weekly mover data above.
+Do not cite performance figures not present in this context."""
 
 # Company name lookup for the script (tickers → names, for reference)
 COMPANY_NAMES = {
@@ -356,7 +512,8 @@ def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) ->
     raise RuntimeError(f"All Groq attempts failed for {label}")
 
 
-def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str) -> str:
+def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
+                    computed_holdings: list[dict]) -> str:
     now     = datetime.now(timezone.utc)
     today   = now.strftime("%A, %B %d, %Y")
     week    = _week_trading_range(now)
@@ -371,14 +528,19 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str) -
     strengths = "\n".join(f"• {s['text'][:200]}" for s in intel.get("strengths", [])[:3])
     concerns  = "\n".join(f"• {c['text'][:200]}" for c in intel.get("concerns", [])[:3])
     strategy  = "\n".join(f"• {s['text'][:200]}" for s in intel.get("strategy_short", [])[:3])
-    live_port = _build_live_portfolio(snapshot)
     prev_ep_context = _build_prev_ep_context(old_meta)
+
+    # Build fully dynamic portfolio context — live holdings + snapshot prices
+    snaps = snapshot.get("snapshots", {})
+    portfolio_ctx = _build_portfolio_context(computed_holdings, snaps)
+    # live_port is now embedded inside portfolio_ctx; pass a brief label for the prompt slot
+    live_port = "(see LIVE PORTFOLIO section in portfolio context below)"
 
     print("2/3  Generating Part 1 (Welcome + Recap + Deep Dive 1)...")
     part1 = _groq_call(api_key, SCRIPT_PROMPT_PART1.format(
         today=today, week_range=week, mood=mood, prev_ep_context=prev_ep_context,
         live_portfolio=live_port, outlook=outlook, macro=macro, news=news,
-        portfolio=PORTFOLIO_CONTEXT,
+        portfolio=portfolio_ctx,
     ), "Part 1", max_tokens=4000)
 
     # Extract a summary of Deep Dive 1 for Part 2 context
@@ -389,7 +551,7 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str) -
     part2 = _groq_call(api_key, SCRIPT_PROMPT_PART2.format(
         today=today, dive1_summary=dive1_last, picks=picks,
         strengths=strengths, concerns=concerns, strategy=strategy,
-        news=news, portfolio=PORTFOLIO_CONTEXT,
+        news=news, portfolio=portfolio_ctx,
     ), "Part 2", max_tokens=3500)
 
     full = part1.rstrip() + "\n\n" + part2.lstrip()
@@ -542,19 +704,22 @@ def main() -> int:
 
     DATA_DIR.mkdir(exist_ok=True)
 
-    # 1. Load intelligence + snapshot data
+    # 1. Load all data sources in parallel (intelligence, snapshot, live holdings)
     print("1/4  Loading data...")
-    intel    = _load_intel()
-    snapshot = _fetch_snapshot()
-    old_meta = load_meta()
+    intel             = _load_intel()
+    snapshot          = _fetch_snapshot()
+    old_meta          = load_meta()
+    computed_holdings = _fetch_computed_holdings()   # live from KV — auto-synced by dashboard
 
     if not intel.get("generated_at"):
-        print("  ⚠ No intelligence.json found — generating without weekly data")
+        print("  ⚠ No intelligence.json found — generating without weekly intel data")
+    if not computed_holdings:
+        print("  ⚠ No computed_holdings in KV — portfolio figures will use fallback context")
 
     # 2. Generate script (two Groq calls)
     print("2/4  Generating script...")
     try:
-        script = generate_script(intel, snapshot, old_meta, groq_key)
+        script = generate_script(intel, snapshot, old_meta, groq_key, computed_holdings)
     except Exception as exc:
         print(f"ERROR: Script generation failed: {exc}")
         return 1

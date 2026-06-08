@@ -2469,6 +2469,49 @@ function updateHeaderKPIs(data) {
     const label = _activeAcctKey ? `${_activeAcctKey} ALPHA` : 'Portfolio ALPHA';
     alphaEl.textContent = `✓ ${label} over S&P 500: +${parseFloat(alpha) > 0 ? alpha : '—'} percentage points`;
   }
+
+  // ── Save today's snapshot to KV so charts update on every refresh ────────
+  // The end-of-day cron is a fallback only — this ensures charts are always current.
+  if (sumMktVal > 0) {
+    // Compute per-account market values from HOLDINGS_STATIC (current shares)
+    const _snapAccts = { TFSA: 0, Investment: 0, FHSA: 0, RRSP: 0 };
+    HOLDINGS_STATIC.forEach(h => {
+      const p = hPrices[h.ticker];
+      if (!p?.price) return;
+      const val = p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      if (_snapAccts.hasOwnProperty(h.account)) _snapAccts[h.account] += val;
+    });
+    CASH_POSITIONS.forEach(c => {
+      const val = c.ccy === 'USD' ? c.amount * usdcad : c.amount;
+      if (_snapAccts.hasOwnProperty(c.account)) _snapAccts[c.account] += val;
+    });
+    Object.keys(_snapAccts).forEach(k => { _snapAccts[k] = Math.round(_snapAccts[k]); });
+    const _contribTotal = CONTRIB_TOTAL();
+    _saveTodaySnapshot({
+      total_value:      Math.round(sumMktVal),
+      roi_pct:          _contribTotal > 0 ? +((totalPnlClient / _contribTotal) * 100).toFixed(2) : 0,
+      daily_change:     Math.round(dc),
+      daily_change_pct: +dcp.toFixed(2),
+      accounts:         _snapAccts,
+    });
+  }
+}
+
+// Throttled save of today's computed portfolio state → KV today_snapshot key.
+// snapshot.py GET injects this into chart_points when the cron hasn't fired yet.
+let _lastSnapshotSaveMs = 0;
+function _saveTodaySnapshot(state) {
+  const now = Date.now();
+  if (now - _lastSnapshotSaveMs < 60000) return; // at most once per minute
+  _lastSnapshotSaveMs = now;
+  const today = new Date().toISOString().slice(0, 10);
+  fetch(`${CONFIG.API_BASE}/api/settings`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      today_snapshot: Object.assign({ date: today, saved_at: new Date().toISOString() }, state),
+    }),
+  }).catch(() => {});
 }
 
 // ============================================================

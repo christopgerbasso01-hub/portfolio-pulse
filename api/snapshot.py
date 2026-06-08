@@ -411,9 +411,23 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         """Return recent snapshots for charts — public, no auth required.
         Returns up to 90 days of daily data for the portfolio value/ROI charts.
+        Injects today_snapshot from KV settings when the cron hasn't fired yet today,
+        so charts update on every dashboard refresh rather than once per day.
         """
         try:
-            snaps   = get_recent_snapshots(days=90)
+            snaps = get_recent_snapshots(days=90)
+
+            # If no cron snapshot for today yet, inject the dashboard's live value
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            if today not in snaps:
+                try:
+                    settings = kv_get("user:settings") or {}
+                    ts = settings.get("today_snapshot", {})
+                    if ts and ts.get("date") == today and ts.get("total_value"):
+                        snaps[today] = ts
+                except Exception:
+                    pass   # don't let a KV read failure break the whole GET
+
             summary = compute_weekly_summary(snaps)
             chart_points = [
                 {

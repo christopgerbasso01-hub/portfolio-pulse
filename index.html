@@ -5173,6 +5173,8 @@ async function refreshAll() {
       renderPodcast(await r.json());
     } catch(e) {}
   }
+  // Expose globally so mTab (mobile) and syncMobile can call it
+  window.loadPodcastMeta = loadPodcastMeta;
 
   function renderPodcast(m) {
     const hasEp = m.episode > 0 && m.duration_seconds > 0;
@@ -7928,6 +7930,17 @@ window.mTab=function(name,el){
   try{localStorage.setItem('pp_m_tab',name);}catch(e){}
   document.querySelector('#m-app .m-fab-dropdown') &&
     document.querySelector('#m-app .m-fab-dropdown').classList.remove('open');
+  /* On podcast tab activation: reload latest podcast data, then sync mobile DOM */
+  if(name==='podcast'){
+    setTimeout(function(){
+      var _lpm=window.loadPodcastMeta;
+      if(_lpm){
+        var p=_lpm();
+        /* After podcast meta loads, immediately sync mobile DOM instead of waiting 5s */
+        if(p&&p.then)p.then(function(){if(typeof syncMobile==='function')syncMobile();});
+      }
+    },150);
+  }
 };
 
 window.mToggleFab=function(e){

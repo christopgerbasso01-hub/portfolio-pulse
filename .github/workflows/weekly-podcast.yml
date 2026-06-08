@@ -9,7 +9,7 @@ permissions:
 jobs:
   generate-podcast:
     runs-on: ubuntu-latest
-    timeout-minutes: 35   # Kokoro synthesis needs ~15-20 min for a 15-20 min episode
+    timeout-minutes: 35   # edge-tts synthesis needs ~15-20 min for a 15-20 min episode
 
     steps:
       - name: Checkout repo
@@ -42,17 +42,4 @@ jobs:
             && echo "No changes — skipping commit" \
             || git commit -m "chore: weekly podcast ep $(date -u +'%Y-%m-%d')"
           git push
-
-      - name: Deploy to Vercel
-        env:
-          VERCEL_TOKEN:      ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID:     team_cBG29NHHnnkVTbkmZOjZ7RCy
-          VERCEL_PROJECT_ID: prj_dpklrWAGa5FSVf6yOltJM3aJgtn9
-        run: |
-          if [ -z "$VERCEL_TOKEN" ]; then
-            echo "VERCEL_TOKEN not set — skipping Vercel deployment"
-            exit 0
-          fi
-          npm install -g vercel@latest --quiet
-          vercel --prod --yes --token "$VERCEL_TOKEN"
-          echo "✓ Deployed to Vercel"
+      # Vercel auto-deploys from the GitHub push above — no manual deploy needed

@@ -906,7 +906,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .m-score{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
 
 /* Podcast */
-.m-pod-card{background:var(--surf);border:1px solid var(--bd);border-radius:14px;padding:15px;margin-bottom:10px;overflow:hidden;}
+.m-pod-card{background:transparent;border:none;border-radius:0;padding:8px 0;margin-bottom:4px;overflow:hidden;}
 .m-pod-art{width:60px;height:60px;border-radius:11px;background:var(--cyan-d);border:1px solid var(--cyan-b);
            display:flex;align-items:center;justify-content:center;font-size:24px;float:left;margin-right:12px;flex-shrink:0;}
 .m-pod-ep{font-size:9px;color:var(--t3);margin-bottom:2px;}
@@ -1381,6 +1381,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
           <tr><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">TICKER</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">SHS</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">VALUE</th><th style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:left;padding:4px 0">RTN</th></tr>
           <tr><td class="mono blue small">SPXL</td><td class="mono small text2">75</td><td class="mono small" id="live-SPXL-Investment">$27,357</td><td class="mono small green">+104.7%</td></tr>
           <tr><td class="mono blue small">FNGU</td><td class="mono small text2">665</td><td class="mono small" id="live-FNGU-Investment">$26,280</td><td class="mono small green">+44.9%</td></tr>
+          <tr><td class="mono blue small">AVGO</td><td class="mono small text2">22</td><td class="mono small" id="live-AVGO-Investment">—</td><td class="mono small green">—</td></tr>
           <tr><td class="mono blue small">CM.TO</td><td class="mono small text2">50</td><td class="mono small" id="live-CM.TO-Investment">$7,644</td><td class="mono small green">+14.5%</td></tr>
           <tr><td class="mono blue small">TXF.TO</td><td class="mono small text2">221</td><td class="mono small" id="live-TXF.TO-Investment">$5,918</td><td class="mono small green">+19.4%</td></tr>
           <tr><td class="mono blue small">TSM</td><td class="mono small text2">9</td><td class="mono small" id="live-TSM-Investment">$4,899</td><td class="mono small green">+32.5%</td></tr>
@@ -1435,6 +1436,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
           <tr><td class="mono blue small">TSM</td><td class="mono small text2">6</td><td class="mono small" id="live-TSM-RRSP">$3,266</td><td class="mono small green">+1.1%</td></tr>
           <tr><td class="mono blue small">UDOW</td><td class="mono small text2">36</td><td class="mono small" id="live-UDOW-RRSP">$3,026</td><td class="mono small green">+20.0%</td></tr>
           <tr><td class="mono blue small">FNGU</td><td class="mono small text2">56</td><td class="mono small" id="live-FNGU-RRSP">$2,213</td><td class="mono small green">+42.0%</td></tr>
+          <tr><td class="mono blue small">MU</td><td class="mono small text2">7</td><td class="mono small" id="live-MU-RRSP">—</td><td class="mono small green">—</td></tr>
         </table>
       </div>
       <div class="acct-card-footer" id="acctRRSPFooter">⚠️ Calculating idle cash…</div>
@@ -2388,10 +2390,14 @@ function updateHeaderKPIs(data) {
     const liveVal = bData?.change_pct != null
       ? Math.round(base.val * (1 + bData.change_pct / 100))
       : Math.round(base.val);
-    const liveRoi = (base.roi + (bData?.change_pct || 0) * 0.4).toFixed(1);
+    // Compute ROI from actual $ values vs. contribution — keeps % and $ consistent
+    const liveRoi = _filteredContrib > 0
+      ? ((liveVal - _filteredContrib) / _filteredContrib * 100).toFixed(1)
+      : base.roi.toFixed(1);
+    const roiSign = parseFloat(liveRoi) >= 0 ? '+' : '';
     const lbl = document.getElementById(lblId);
     const bar = document.getElementById(barId);
-    if (lbl) lbl.textContent = `${fmt$(liveVal)} · +${liveRoi}%`;
+    if (lbl) lbl.textContent = `${fmt$(liveVal)} · ${roiSign}${liveRoi}%`;
     if (bar) {
       bar.textContent = fmt$(liveVal);
       bar.style.width = Math.min(99, _filteredMV > 0 ? (liveVal / _filteredMV * 100) : 0).toFixed(1) + '%';
@@ -2433,10 +2439,12 @@ function updateHoldingsCells(hPrices, usdcad) {
     {ticker:"UDOW",account:"FHSA",shares:86,id:"live-UDOW-FHSA",ccy:"USD"},
     {ticker:"FNGU",account:"FHSA",shares:157,id:"live-FNGU-FHSA",ccy:"USD"},
     {ticker:"ENB.TO",account:"FHSA",shares:82,id:"live-ENB.TO-FHSA",ccy:"CAD"},
+    {ticker:"AVGO",account:"Investment",shares:22,id:"live-AVGO-Investment",ccy:"USD"},
     {ticker:"TXF.TO",account:"RRSP",shares:284,id:"live-TXF.TO-RRSP",ccy:"CAD"},
     {ticker:"TSM",account:"RRSP",shares:6,id:"live-TSM-RRSP",ccy:"USD"},
     {ticker:"UDOW",account:"RRSP",shares:36,id:"live-UDOW-RRSP",ccy:"USD"},
     {ticker:"FNGU",account:"RRSP",shares:56,id:"live-FNGU-RRSP",ccy:"USD"},
+    {ticker:"MU",account:"RRSP",shares:7,id:"live-MU-RRSP",ccy:"USD"},
   ];
   specs.forEach(s => {
     const el = document.getElementById(s.id);
@@ -5249,16 +5257,15 @@ async function refreshAll() {
         { icon: '📊', text: (sum.portfolio_snapshot  || [])[0] || '' },
         { icon: '🧠', text: (sum.market_context      || [])[0] || '' },
         { icon: '⚡', text: (sum.action_items         || [])[0] || (ed.mood_summary || '') },
+        { icon: '🎵', text: ed.title || '' },
       ].filter(b => b.text);
-      if (bullets.length) {
-        mBrief.innerHTML = '<div class="m-pod-brief">'
-          + '<div class="m-pod-brief-l">Episode Briefing</div>'
-          + bullets.map(b => '<div class="m-pod-brief-item"><span>'+b.icon+'</span><span>'+b.text+'</span></div>').join('')
-          + '</div>';
-        mBrief.style.display = '';
-      } else {
-        mBrief.style.display = 'none';
-      }
+      // Always show brief with at least the episode title
+      const briefItems = bullets.length ? bullets : [{ icon: '🎙️', text: title }];
+      mBrief.innerHTML = '<div class="m-pod-brief">'
+        + '<div class="m-pod-brief-l">Episode Briefing</div>'
+        + briefItems.map(b => '<div class="m-pod-brief-item"><span>'+b.icon+'</span><span>'+b.text+'</span></div>').join('')
+        + '</div>';
+      mBrief.style.display = '';
     }
   };
 
@@ -7465,21 +7472,27 @@ if ('serviceWorker' in navigator) {
 var ACCT_DATA={
   tfsa:{label:'TFSA',cls:'abt',color:'#4a9eff',type:'TAX-FREE',
     valId:'acctTFSAValue',roiId:'acctTFSARoi',pnlId:'acctTFSAPnl',footerId:'acctTFSAFooter',
-    hdgs:[['FNGU','1,373','live-FNGU-TFSA','+79.3%','up'],['NVDA','40','live-NVDA-TFSA','+1,809%','up'],
-          ['TSLA','14','live-TSLA-TFSA','+23.7%','up'],['TXF.TO','320','live-TXF.TO-TFSA','+37.0%','up'],
-          ['UDOW','84','live-UDOW-TFSA','+69.1%','up']]},
+    // [ticker, shares, live-value-element-id]  — return is computed live
+    hdgs:[['FNGU','495','live-FNGU-TFSA'],['NVDA','40','live-NVDA-TFSA'],
+          ['TXF.TO','320','live-TXF.TO-TFSA'],['SPXL','23','live-SPXL-TFSA'],
+          ['TSLA','14','live-TSLA-TFSA'],['UDOW','84','live-UDOW-TFSA'],
+          ['CM.TO','45','live-CM.TO-TFSA']]},
   fhsa:{label:'FHSA',cls:'abf',color:'var(--green)',type:'HOME BUYERS',
     valId:'acctFHSAValue',roiId:'acctFHSARoi',pnlId:'acctFHSAPnl',footerId:'acctFHSAFooter',
-    hdgs:[['SPXL','151','live-SPXL-FHSA','+130.2%','up'],['ZSP.TO','64','live-ZSP.TO-FHSA','+38.4%','up'],
-          ['CM.TO','45','live-CM.TO-FHSA','+12.5%','up']]},
+    hdgs:[['SPXL','53','live-SPXL-FHSA'],['TXF.TO','434','live-TXF.TO-FHSA'],
+          ['UDOW','86','live-UDOW-FHSA'],['FNGU','157','live-FNGU-FHSA'],
+          ['ENB.TO','82','live-ENB.TO-FHSA']]},
   rrsp:{label:'RRSP',cls:'abr',color:'var(--amber)',type:'TAX-DEFERRED',
     valId:'acctRRSPValue',roiId:'acctRRSPRoi',pnlId:'acctRRSPPnl',footerId:'acctRRSPFooter',
-    hdgs:[['AVGO','10','live-AVGO-RRSP','+44.2%','up'],['TSM','5','live-TSM-RRSP','+28.7%','up'],
-          ['Cash','—',null,'—','neu']]},
+    hdgs:[['TXF.TO','284','live-TXF.TO-RRSP'],['TSM','6','live-TSM-RRSP'],
+          ['UDOW','36','live-UDOW-RRSP'],['FNGU','56','live-FNGU-RRSP'],
+          ['MU','7','live-MU-RRSP'],['Cash','—',null]]},
   inv:{label:'NON-REG',cls:'abn',color:'var(--t3)',type:'TAXABLE',
     valId:'acctInvValue',roiId:'acctInvRoi',pnlId:'acctInvPnl',footerId:'acctInvFooter',
-    hdgs:[['SPXL','75','live-SPXL-Investment','+104.7%','up'],['FNGU','665','live-FNGU-Investment','+44.9%','up'],
-          ['CM.TO','50','live-CM.TO-Investment','+14.5%','up'],['ENB.TO','200','live-ENB.TO-Investment','+14.2%','up']]}
+    hdgs:[['SPXL','75','live-SPXL-Investment'],['FNGU','665','live-FNGU-Investment'],
+          ['CM.TO','50','live-CM.TO-Investment'],['TXF.TO','221','live-TXF.TO-Investment'],
+          ['TSM','9','live-TSM-Investment'],['RY.TO','19','live-RY.TO-Investment'],
+          ['IBKR','40','live-IBKR-Investment'],['AVGO','22','live-AVGO-Investment']]}
 };
 
 var ACCTS=[
@@ -7712,11 +7725,17 @@ function applyMobileTimeRange(){
   mMvChart.data.datasets[1].data=md1?md1.data.slice(mOff):[];
   mMvChart.update('none');
 
-  mRoiChart.data.labels=allRoiL.slice(rOff);
   var rd0=srcRoi.data.datasets[0];
   var rdSp=srcRoi.data.datasets.find(function(d){return d.label&&/s.p/i.test(d.label);})||{};
-  mRoiChart.data.datasets[0].data=rd0?rd0.data.slice(rOff):[];
-  mRoiChart.data.datasets[1].data=rdSp.data?rdSp.data.slice(rOff):[];
+  var roiLabelsRaw=allRoiL.slice(rOff);
+  var roiData0Raw=rd0?rd0.data.slice(rOff):[];
+  // Trim trailing labels where ALL datasets have null (avoids blank space on x-axis)
+  var lastNonNull=roiLabelsRaw.length-1;
+  while(lastNonNull>0&&roiData0Raw[lastNonNull]==null)lastNonNull--;
+  var trimLen=lastNonNull+1;
+  mRoiChart.data.labels=roiLabelsRaw.slice(0,trimLen);
+  mRoiChart.data.datasets[0].data=roiData0Raw.slice(0,trimLen);
+  mRoiChart.data.datasets[1].data=(rdSp.data?rdSp.data.slice(rOff):[]).slice(0,trimLen);
   mRoiChart.update('none');
 
   // ROI chart footer: start% → end% with change
@@ -7787,10 +7806,27 @@ window.mSelectAcct=function(key,clickedBtn){
       var rTxt=roiEl?roiEl.textContent.trim():'—';
       var pTxt=pnlEl?pnlEl.textContent.trim():'';
       var fTxt=ftrEl?ftrEl.textContent.trim():'';
+      // Build rows dynamically — get value from live-cell and return from HOLDINGS_STATIC
+      var acctNameMap={tfsa:'TFSA',fhsa:'FHSA',rrsp:'RRSP',inv:'Investment'};
+      var acctName=acctNameMap[key]||'';
       var rows=d.hdgs.map(function(h){
-        var vEl=h[2]?document.getElementById(h[2]):null;
+        var ticker=h[0], sharesStr=h[1], liveId=h[2];
+        // Live value from desktop table cell
+        var vEl=liveId?document.getElementById(liveId):null;
         var v=vEl?vEl.textContent.trim():'—';
-        return'<tr><td class="t-tk">'+h[0]+'</td><td>'+h[1]+'</td><td>'+v+'</td><td class="'+h[4]+'">'+h[3]+'</td></tr>';
+        // Return from HOLDINGS_STATIC
+        var retTxt='—', retCls='neu';
+        if(ticker!=='Cash'&&typeof HOLDINGS_STATIC!=='undefined'){
+          var hold=HOLDINGS_STATIC.find(function(h2){return h2.ticker===ticker&&h2.account===acctName;});
+          if(hold){
+            var pct=hold.pct_return!=null?hold.pct_return:null;
+            if(pct!=null){
+              retTxt=(pct>=0?'+':'')+pct.toFixed(1)+'%';
+              retCls=pct>=0?'up':'dn';
+            }
+          }
+        }
+        return'<tr><td class="t-tk">'+ticker+'</td><td>'+sharesStr+'</td><td>'+v+'</td><td class="'+retCls+'">'+retTxt+'</td></tr>';
       }).join('');
       detailCard.innerHTML=
         '<div class="m-acct-detail">'
@@ -8220,69 +8256,169 @@ window.generatePortfolioReport = async function() {
 };
 
 /* ════ SETTINGS: save/discard logic ═══════════════════════ */
-var _settingsSaved={salary:90000,rrspContrib:0,tfsaRoom:0,rrspLimit:0,
-                    dark:true,notifPush:true,notifEod:true,notifSpike:true,notifMilestone:true,
+/* Province tax rates: [federalBrackets omitted — Ontario already in renderTaxProjection] */
+var _PROVINCE_RATES = {
+  'Ontario':        {label:'Ontario',        code:'ON'},
+  'British Columbia':{label:'British Columbia',code:'BC'},
+  'Alberta':        {label:'Alberta',         code:'AB'},
+  'Quebec':         {label:'Quebec',          code:'QC'},
+  'Manitoba':       {label:'Manitoba',        code:'MB'},
+  'Saskatchewan':   {label:'Saskatchewan',    code:'SK'},
+  'Nova Scotia':    {label:'Nova Scotia',     code:'NS'},
+  'New Brunswick':  {label:'New Brunswick',   code:'NB'},
+  'Newfoundland':   {label:'Newfoundland & Labrador',code:'NL'},
+  'PEI':            {label:'P.E.I.',          code:'PE'},
+};
+
+/* TFSA auto-calc: cumulative room based on eligibility year (2020 = age 18 for DOB ~2002) */
+function _calcTFSARoom(){
+  var limits={2009:5000,2010:5000,2011:5000,2012:5000,2013:5500,2014:5500,2015:10000,
+              2016:5500,2017:5500,2018:5500,2019:6000,2020:6000,2021:6000,2022:6000,
+              2023:6500,2024:7000,2025:7000,2026:7000};
+  var eligibleYear=2020; // user turns 18 in 2020
+  var currentYear=new Date().getFullYear();
+  var total=0;
+  for(var y=eligibleYear;y<=currentYear;y++){total+=(limits[y]||7000);}
+  var contributed=typeof CONTRIB_STATE!=='undefined'?CONTRIB_STATE.TFSA||44500:44500;
+  return Math.max(0,total-contributed);
+}
+
+var _settingsSaved={salary:90000,rrspContrib:0,rrspLimit:0,
+                    dark:true,province:'Ontario',
+                    notifPush:true,notifEod:true,notifSpike:true,notifMilestone:true,
                     notifPodcast:true,notifIntel:true};
 
+/* Snapshot toggle states before opening (for discard) */
+var _settingsSnapshot={};
+
 function _readDesktopSettings(){
-  var sal=document.getElementById('salaryInput');
-  var rc=document.getElementById('rrspThisYearInput');
-  var tr=document.getElementById('tfsaRoomInput');
+  /* Salary: read from localStorage (desktop uses range slider, no simple input ID) */
+  var lsSal=localStorage.getItem('pp_gross_salary');
+  _settingsSaved.salary=lsSal?Number(lsSal)||90000:90000;
+  /* RRSP this-year deduction */
+  var lsRc=localStorage.getItem('pp_rrsp_this_year');
+  _settingsSaved.rrspContrib=lsRc?Number(lsRc)||0:0;
+  /* RRSP deduction limit from desktop input */
   var rl=document.getElementById('rrspLimitInput');
-  _settingsSaved.salary=sal?Number(sal.value)||90000:90000;
-  _settingsSaved.rrspContrib=rc?Number(rc.value)||0:0;
-  _settingsSaved.tfsaRoom=tr?Number(tr.value)||0:0;
-  _settingsSaved.rrspLimit=rl?Number(rl.value)||0:0;
+  _settingsSaved.rrspLimit=rl?Number(rl.value)||28000:28000;
+  /* Province from localStorage */
+  _settingsSaved.province=localStorage.getItem('pp_province')||'Ontario';
+  /* Dark mode */
   _settingsSaved.dark=document.documentElement.getAttribute('data-theme')!=='light';
+  /* Push notification state */
   var nt=document.getElementById('notifToggle');
   if(nt)_settingsSaved.notifPush=nt.checked;
+  /* Sub-notification states from localStorage */
+  _settingsSaved.notifEod=       localStorage.getItem('pp_notif_eod')!=='off';
+  _settingsSaved.notifSpike=     localStorage.getItem('pp_notif_spike')!=='off';
+  _settingsSaved.notifMilestone= localStorage.getItem('pp_notif_milestone')!=='off';
+  _settingsSaved.notifPodcast=   localStorage.getItem('pp_notif_podcast')!=='off';
+  _settingsSaved.notifIntel=     localStorage.getItem('pp_notif_intel')!=='off';
 }
 
 function _populateSettingsPanel(){
   _readDesktopSettings();
+  /* Snapshot for discard */
+  _settingsSnapshot=Object.assign({},_settingsSaved);
+  /* Text inputs */
   var inSal=document.getElementById('m-in-salary');
   var inRrsp=document.getElementById('m-in-rrsp-contrib');
-  var inTfsa=document.getElementById('m-in-tfsa-room');
   var inRl=document.getElementById('m-in-rrsp-limit');
   if(inSal)inSal.value=_settingsSaved.salary;
   if(inRrsp)inRrsp.value=_settingsSaved.rrspContrib;
-  if(inTfsa)inTfsa.value=_settingsSaved.tfsaRoom;
   if(inRl)inRl.value=_settingsSaved.rrspLimit;
+  /* Province dropdown */
+  var prov=document.getElementById('m-in-province');
+  if(prov)prov.value=_settingsSaved.province;
+  /* TFSA auto-room display */
+  var tfsaRoomEl=document.getElementById('m-tfsa-room-display');
+  if(tfsaRoomEl)tfsaRoomEl.textContent='$'+_calcTFSARoom().toLocaleString('en-CA')+' available';
+  /* Dark mode toggle */
   var dt=document.getElementById('m-dark-toggle');
-  if(dt){dt.classList.toggle('on',_settingsSaved.dark);}
-  /* Sync notification toggle states from desktop */
+  if(dt)dt.classList.toggle('on',_settingsSaved.dark);
+  /* Notification toggles */
   var nt=document.getElementById('notifToggle');
   var pp=document.getElementById('m-notif-push');
   if(nt&&pp)pp.classList.toggle('on',nt.checked);
+  var _tog=function(id,val){var el=document.getElementById(id);if(el)el.classList.toggle('on',val);};
+  _tog('m-notif-eod',_settingsSaved.notifEod);
+  _tog('m-notif-spike',_settingsSaved.notifSpike);
+  _tog('m-notif-milestone',_settingsSaved.notifMilestone);
+  _tog('m-notif-podcast',_settingsSaved.notifPodcast);
+  _tog('m-notif-intel',_settingsSaved.notifIntel);
 }
 
 function _applyAndSave(){
-  /* Apply input values to desktop inputs and trigger their change handlers */
-  var map=[
-    ['m-in-salary','salaryInput'],
-    ['m-in-rrsp-contrib','rrspThisYearInput'],
-    ['m-in-tfsa-room','tfsaRoomInput'],
-    ['m-in-rrsp-limit','rrspLimitInput']
-  ];
-  map.forEach(function(m){
-    var mEl=document.getElementById(m[0]);
-    var dEl=document.getElementById(m[1]);
-    if(mEl&&dEl&&mEl.value!==''){
-      dEl.value=mEl.value;
-      dEl.dispatchEvent(new Event('change'));
-      dEl.dispatchEvent(new Event('input'));
-    }
-  });
-  /* Save dark mode */
+  /* — Salary — write to localStorage + re-trigger desktop tax render */
+  var inSal=document.getElementById('m-in-salary');
+  if(inSal&&inSal.value){
+    var sal=parseInt(inSal.value)||90000;
+    localStorage.setItem('pp_gross_salary',sal);
+    var taxDisp=document.getElementById('taxSalaryDisplay');
+    if(taxDisp)taxDisp.textContent='$'+sal.toLocaleString('en-CA');
+    /* trigger desktop range slider oninput (it reads from localStorage) */
+    var sliders=document.querySelectorAll('input[type="range"][oninput*="pp_gross_salary"]');
+    sliders.forEach(function(s){s.value=sal;s.dispatchEvent(new Event('input'));});
+    if(window.renderTaxProjection)renderTaxProjection(window._lastLiveData||{});
+  }
+  /* — RRSP this-year contribution — */
+  var inRrsp=document.getElementById('m-in-rrsp-contrib');
+  if(inRrsp&&inRrsp.value!==''){
+    var rc=parseInt(inRrsp.value)||0;
+    localStorage.setItem('pp_rrsp_this_year',rc);
+    /* trigger desktop RRSP input if exists */
+    var rrspInputs=document.querySelectorAll('input[oninput*="pp_rrsp_this_year"]');
+    rrspInputs.forEach(function(el){el.value=rc;el.dispatchEvent(new Event('input'));});
+    if(window.renderTaxProjection)renderTaxProjection(window._lastLiveData||{});
+  }
+  /* — RRSP Deduction Limit — */
+  var inRl=document.getElementById('m-in-rrsp-limit');
+  var dRl=document.getElementById('rrspLimitInput');
+  if(inRl&&dRl&&inRl.value!==''){
+    dRl.value=inRl.value;
+    dRl.dispatchEvent(new Event('change'));
+    dRl.dispatchEvent(new Event('input'));
+    var saveBtn=document.getElementById('rrspSaveBtn');
+    if(saveBtn)saveBtn.click();
+  }
+  /* — Province — */
+  var prov=document.getElementById('m-in-province');
+  if(prov){
+    localStorage.setItem('pp_province',prov.value);
+    _settingsSaved.province=prov.value;
+    if(window.renderTaxProjection)renderTaxProjection(window._lastLiveData||{});
+  }
+  /* — Dark mode — */
   _settingsSaved.dark=document.documentElement.getAttribute('data-theme')!=='light';
-  /* Save RRSP room if save button was used (trigger the desktop save function) */
-  var saveBtn=document.getElementById('rrspSaveBtn');
-  if(saveBtn)saveBtn.click();
-  /* Bust mobile tax projection cache so it re-renders with new salary */
+  /* — Notification sub-toggles — save state */
+  var _saveTog=function(id,key){
+    var el=document.getElementById(id);
+    var val=el?el.classList.contains('on'):true;
+    localStorage.setItem(key,val?'on':'off');
+  };
+  _saveTog('m-notif-eod','pp_notif_eod');
+  _saveTog('m-notif-spike','pp_notif_spike');
+  _saveTog('m-notif-milestone','pp_notif_milestone');
+  _saveTog('m-notif-podcast','pp_notif_podcast');
+  _saveTog('m-notif-intel','pp_notif_intel');
+  /* — Push notifications toggle — sync with desktop notifToggle */
+  var mPush=document.getElementById('m-notif-push');
+  var ntToggle=document.getElementById('notifToggle');
+  if(mPush&&ntToggle){
+    var pushOn=mPush.classList.contains('on');
+    if(ntToggle.checked!==pushOn){ntToggle.checked=pushOn;ntToggle.dispatchEvent(new Event('change'));}
+  }
+  /* — Podcast generation flag — */
+  var mPod=document.getElementById('m-notif-podcast');
+  if(mPod)localStorage.setItem('pp_weekly_podcast',mPod.classList.contains('on')?'on':'off');
+  /* — Daily intelligence flag — */
+  var mInt=document.getElementById('m-notif-intel');
+  if(mInt)localStorage.setItem('pp_daily_intel',mInt.classList.contains('on')?'on':'off');
+  /* Bust mobile tax projection cache */
   var _mtp=document.getElementById('m-tax-proj-content');
   if(_mtp)_mtp.dataset.sig='';
-  /* Trigger a full recalculation */
-  setTimeout(function(){if(window.refreshAll)refreshAll();},200);
+  /* Trigger full recalculation */
+  setTimeout(function(){if(window.refreshAll)refreshAll();},300);
 }
 
 window.mOpenSettings=function(){
@@ -8300,8 +8436,15 @@ window.mSaveSettings=function(){
   _applyAndSave();
   window.mCloseSettings();
 };
-/* Discard: just close, values in panel were not applied */
+/* Discard: restore snapshot values in panel, then close */
 window.mDiscardSettings=function(){
+  /* Revert dark mode if changed during this session */
+  var snap=_settingsSnapshot;
+  if(snap&&snap.dark!==undefined){
+    document.documentElement.setAttribute('data-theme',snap.dark?'dark':'light');
+    var dt=document.getElementById('m-dark-toggle');
+    if(dt)dt.classList.toggle('on',snap.dark);
+  }
   window.mCloseSettings();
 };
 
@@ -8486,16 +8629,19 @@ function syncMobile(){
     }
   }
 
-  /* Watchlist */
-  safeSync('rsrchWatchlistStrip','m-rsrch-watchlist');
+  /* Watchlist — use mobile-specific renderer so click handlers work on mobile */
+  if(typeof window._mRefreshWatchlist==='function')window._mRefreshWatchlist();
 
-  /* Settings values */
-  var sMap=[['salaryInput','m-set-salary','$'],['rrspThisYearInput','m-set-rrsp','$'],
-            ['tfsaRoomInput','m-set-tfsa-room','$'],['rrspLimitInput','m-set-rrsp-limit','$']];
-  sMap.forEach(function(m){
-    var s=document.getElementById(m[0]),d=document.getElementById(m[1]);
-    if(s&&d){var v=m[2]+Number(s.value||0).toLocaleString();if(d.textContent!==v)d.textContent=v;}
-  });
+  /* Settings values — sync from localStorage for mobile display labels */
+  var _mSetRl=document.getElementById('m-in-rrsp-limit');
+  var _dRl=document.getElementById('rrspLimitInput');
+  if(_dRl&&_mSetRl&&_mSetRl!==document.activeElement)_mSetRl.value=_dRl.value||'28000';
+  /* Update TFSA room display if visible */
+  var _tfsaRd=document.getElementById('m-tfsa-room-display');
+  if(_tfsaRd&&typeof _calcTFSARoom==='function'){
+    var _room=_calcTFSARoom();
+    _tfsaRd.textContent='$'+_room.toLocaleString('en-CA')+' available';
+  }
 
   /* Tax & Accounts section — fully live data */
   function syncTax(){
@@ -8949,6 +9095,8 @@ document.addEventListener('DOMContentLoaded',function(){
 (function(){
   var _mRsrchTimer = null;
   var _mRsrchIdx = -1;
+  var _mWatchlist = [];      // cached watchlist tickers
+  var _mLastTicker = null;   // last searched ticker
 
   function _mFmt(n) {
     if (n == null) return '—';
@@ -8962,6 +9110,110 @@ document.addEventListener('DOMContentLoaded',function(){
     return (typeof CONFIG !== 'undefined' && CONFIG.API_BASE) ? CONFIG.API_BASE : '';
   }
 
+  // ── Watchlist helpers ────────────────────────────────────────
+  async function _loadMWatchlist() {
+    // Prefer the already-fetched desktop watchlist if available
+    if (typeof _rsrchWatchlist !== 'undefined' && _rsrchWatchlist.length) {
+      _mWatchlist = _rsrchWatchlist.slice();
+      _renderMWatchlist();
+      return;
+    }
+    try {
+      var r = await fetch(_apiBase() + '/api/watchlist');
+      if (!r.ok) return;
+      var data = await r.json();
+      _mWatchlist = data.tickers || [];
+      // Also update the desktop cache
+      if (typeof _rsrchWatchlist !== 'undefined') _rsrchWatchlist = _mWatchlist.slice();
+      _renderMWatchlist();
+    } catch(e) {}
+  }
+
+  function _renderMWatchlist() {
+    var strip = document.getElementById('m-rsrch-watchlist');
+    if (!strip) return;
+    if (!_mWatchlist.length) {
+      strip.innerHTML = '<div style="font-size:11px;color:var(--t3);font-family:var(--mono);padding:4px 0">No watchlist — search a ticker and tap ★ to add</div>';
+      return;
+    }
+    strip.innerHTML = _mWatchlist.map(function(t) {
+      return '<div style="background:var(--surf);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;flex-shrink:0;min-width:80px;position:relative;cursor:pointer" onclick="(function(){var i=document.getElementById(\'m-rsrch-input\');if(i)i.value=\'' + t + '\';runMResearch();})();">'
+        + '<button onclick="event.stopPropagation();_mRemoveWatch(\'' + t + '\')" style="position:absolute;top:4px;right:4px;background:none;border:none;color:var(--t3);font-size:10px;cursor:pointer;padding:0;line-height:1">✕</button>'
+        + '<div style="font-size:12px;font-weight:700;color:var(--cyan)">' + t + '</div>'
+        + '<div style="font-size:11px;color:var(--t3)" id="m-wcard-chg-' + t + '">—</div>'
+        + '</div>';
+    }).join('');
+    // Fetch prices in background
+    _mWatchlist.forEach(function(t){ _fetchMWatchPrice(t); });
+  }
+
+  async function _fetchMWatchPrice(ticker) {
+    try {
+      var r = await fetch(_apiBase() + '/api/research?ticker=' + encodeURIComponent(ticker) + '&type=price');
+      if (!r.ok) return;
+      var d = await r.json();
+      var el = document.getElementById('m-wcard-chg-' + ticker);
+      if (el && d.changePct != null) {
+        var up = d.changePct >= 0;
+        el.textContent = (up?'+':'') + d.changePct.toFixed(2) + '%';
+        el.style.color = up ? 'var(--green,#22c55e)' : 'var(--red,#ef4444)';
+      }
+    } catch(e) {}
+  }
+
+  window._mRemoveWatch = async function(ticker) {
+    try {
+      var r = await fetch(_apiBase() + '/api/watchlist', {
+        method: 'DELETE', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ticker: ticker})
+      });
+      if (!r.ok) return;
+      var data = await r.json();
+      _mWatchlist = data.tickers || [];
+      if (typeof _rsrchWatchlist !== 'undefined') _rsrchWatchlist = _mWatchlist.slice();
+      if (typeof renderWatchlistStrip === 'function') renderWatchlistStrip(_mWatchlist);
+      _renderMWatchlist();
+      // Update watch button if this ticker is currently shown
+      if (_mLastTicker === ticker) _updateMWatchBtn(ticker);
+    } catch(e) {}
+  };
+
+  window._mToggleWatch = async function _mToggleWatch(ticker) {
+    var inWL = _mWatchlist.includes(ticker);
+    try {
+      var r = await fetch(_apiBase() + '/api/watchlist', {
+        method: inWL ? 'DELETE' : 'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ticker: ticker})
+      });
+      if (!r.ok) return;
+      var data = await r.json();
+      _mWatchlist = data.tickers || [];
+      if (typeof _rsrchWatchlist !== 'undefined') _rsrchWatchlist = _mWatchlist.slice();
+      if (typeof renderWatchlistStrip === 'function') renderWatchlistStrip(_mWatchlist);
+      _renderMWatchlist();
+      _updateMWatchBtn(ticker);
+    } catch(e) {}
+  };
+
+  function _updateMWatchBtn(ticker) {
+    var btn = document.getElementById('m-watch-btn');
+    if (!btn) return;
+    var inWL = _mWatchlist.includes(ticker);
+    btn.textContent = inWL ? '★ Unwatch' : '☆ Watch';
+    btn.style.background = inWL ? 'rgba(16,185,129,.15)' : 'rgba(59,130,246,.12)';
+    btn.style.color = inWL ? 'var(--green,#22c55e)' : 'var(--cyan,#00d4ff)';
+    btn.style.borderColor = inWL ? 'var(--green,#22c55e)' : 'var(--cyan,#00d4ff)';
+  }
+
+  // Expose for syncMobile to refresh watchlist when desktop updates
+  window._mRefreshWatchlist = function() {
+    if (typeof _rsrchWatchlist !== 'undefined') {
+      _mWatchlist = _rsrchWatchlist.slice();
+      _renderMWatchlist();
+    }
+  };
+
+  // ── Suggestions ──────────────────────────────────────────────
   window.onMRsrchInput = function(val) {
     var q = val.trim();
     clearTimeout(_mRsrchTimer);
@@ -9030,17 +9282,21 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   };
 
+  // ── Run research ─────────────────────────────────────────────
   window.runMResearch = async function() {
     var inp = document.getElementById('m-rsrch-input');
     if (!inp) return;
     var ticker = inp.value.trim().toUpperCase();
     if (!ticker) return;
     inp.value = ticker;
+    _mLastTicker = ticker;
     _hideMSug();
     var dst = document.getElementById('m-rsrch-results');
     if (!dst) return;
     dst.style.display = 'block';
     dst.innerHTML = '<div style="padding:16px;text-align:center;color:var(--t3);font-size:13px">Loading…</div>';
+    // Ensure watchlist is loaded before rendering
+    if (!_mWatchlist.length) await _loadMWatchlist();
     try {
       var r = await fetch(_apiBase() + '/api/research?ticker=' + encodeURIComponent(ticker));
       var data = await r.json();
@@ -9054,6 +9310,7 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   };
 
+  // ── Render research result ────────────────────────────────────
   function _renderMResearch(d) {
     var dst = document.getElementById('m-rsrch-results');
     if (!dst) return;
@@ -9062,6 +9319,7 @@ document.addEventListener('DOMContentLoaded',function(){
       ? chgSign + d.priceChange.toFixed(2) + ' (' + chgSign + (d.priceChangePct || 0).toFixed(2) + '%)'
       : '';
     var chgColor = (d.priceChange || 0) >= 0 ? 'var(--green,#22c55e)' : 'var(--red,#ef4444)';
+    var inWL = _mWatchlist.includes(d.ticker);
 
     // "You own" notice
     var ownedHtml = '';
@@ -9073,6 +9331,11 @@ document.addEventListener('DOMContentLoaded',function(){
       ownedHtml = '<div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:8px">'
         + '📌 You own <b>' + totalShares + ' shares</b> in ' + accts + '</div>';
     }
+
+    // Watchlist button
+    var watchHtml = '<button id="m-watch-btn" onclick="_mToggleWatch(\'' + d.ticker + '\')"'
+      + ' style="width:100%;border:1px solid ' + (inWL?'var(--green,#22c55e)':'var(--cyan,#00d4ff)') + ';border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;background:' + (inWL?'rgba(16,185,129,.15)':'rgba(0,212,255,.1)') + ';color:' + (inWL?'var(--green,#22c55e)':'var(--cyan,#00d4ff)') + ';margin-bottom:10px">'
+      + (inWL ? '★ Unwatch' : '☆ Watch') + '</button>';
 
     // Fundamentals grid
     var fund = d.fundamentals || {};
@@ -9087,7 +9350,7 @@ document.addEventListener('DOMContentLoaded',function(){
     var fundHtml = fundItems.length
       ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
         + fundItems.map(function(r){
-            return '<div style="background:var(--surf2,var(--surf));border:1px solid var(--bd);border-radius:7px;padding:8px">'
+            return '<div style="background:var(--surf2,rgba(255,255,255,.04));border:1px solid var(--bd);border-radius:7px;padding:8px">'
               + '<div style="font-size:10px;color:var(--t3)">' + r[0] + '</div>'
               + '<div style="font-size:13px;font-weight:600">' + r[1] + '</div></div>';
           }).join('') + '</div>'
@@ -9097,40 +9360,54 @@ document.addEventListener('DOMContentLoaded',function(){
     var ratingHtml = '';
     if (d.analystRating) {
       var rc = /buy/i.test(d.analystRating) ? 'var(--green,#22c55e)' : /sell/i.test(d.analystRating) ? 'var(--red,#ef4444)' : 'var(--t2)';
-      ratingHtml = '<div style="background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px">'
+      ratingHtml = '<div style="background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px">'
         + 'Analyst: <b style="color:' + rc + '">' + d.analystRating + '</b>'
-        + (d.targetPrice ? ' · Target <b>' + d.targetPrice.toFixed(2) + '</b>' : '')
+        + (d.targetPrice ? ' · Target <b>$' + d.targetPrice.toFixed(2) + '</b>' : '')
         + '</div>';
     }
 
     // News
     var newsHtml = '';
-    if (d.news && d.news.length) {
+    var newsItems = d.news || [];
+    if (newsItems.length) {
       newsHtml = '<div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">Recent News</div>'
-        + d.news.slice(0, 4).map(function(n){
-            return '<div style="padding:7px 0;border-bottom:1px solid var(--bd)">'
-              + '<div style="font-size:13px;font-weight:500;margin-bottom:2px">' + n.headline + '</div>'
-              + '<div style="font-size:11px;color:var(--t3)">' + (n.source||'') + (n.datetime?' · '+new Date(n.datetime*1000).toLocaleDateString():'') + '</div>'
+        + newsItems.slice(0, 5).map(function(n){
+            var headline = n.headline || n.title || '';
+            var link = n.url || n.link || '';
+            var src = n.source || n.publisher || '';
+            var ts = n.datetime ? ' · ' + new Date(n.datetime*1000).toLocaleDateString('en-CA',{month:'short',day:'numeric'}) : '';
+            return '<div style="padding:8px 0;border-bottom:1px solid var(--bd)">'
+              + (link ? '<a href="' + link + '" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">' : '')
+              + '<div style="font-size:12px;font-weight:500;line-height:1.4;margin-bottom:3px;color:var(--t1)">' + headline + '</div>'
+              + (link ? '</a>' : '')
+              + '<div style="font-size:10px;color:var(--t3)">' + src + ts + '</div>'
               + '</div>';
           }).join('');
     }
 
     dst.innerHTML = '<div style="background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:4px">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
-      + '<div><div style="font-size:19px;font-weight:700">' + d.ticker + '</div>'
+      + '<div><div style="font-size:20px;font-weight:800">' + d.ticker + '</div>'
       + '<div style="font-size:12px;color:var(--t2)">' + (d.name||'') + (d.exchange?' · '+d.exchange:'') + '</div></div>'
       + '<div style="text-align:right">'
-      + '<div style="font-size:19px;font-weight:700;color:' + chgColor + '">' + (d.price!=null ? d.price.toFixed(2) : '—') + '</div>'
+      + '<div style="font-size:20px;font-weight:800;color:' + chgColor + '">' + (d.price!=null ? d.price.toFixed(2) : '—') + '</div>'
       + '<div style="font-size:11px;color:' + chgColor + '">' + chg + '</div>'
       + '</div></div>'
-      + ownedHtml + ratingHtml + fundHtml + newsHtml
+      + ownedHtml + watchHtml + ratingHtml + fundHtml + newsHtml
       + '</div>';
   }
 
-  // Close suggestions when tapping outside
+  // ── Init ─────────────────────────────────────────────────────
+  // Load watchlist when research tab becomes visible
   document.addEventListener('click', function(e){
     if (!e.target.closest('#m-rsrch-suggest-wrap')) _hideMSug();
+    if (e.target.closest('.m-tab[data-tab="research"]')) {
+      setTimeout(_loadMWatchlist, 200);
+    }
   });
+
+  // Initial load on startup
+  setTimeout(_loadMWatchlist, 2000);
 })();
 </script>
 
@@ -9352,7 +9629,7 @@ document.addEventListener('DOMContentLoaded',function(){
     <div class="m-scroll">
       <div id="m-pod-player"></div>
       <!-- Progress bar overlay (synced with audio) -->
-      <div class="m-pod-card" style="padding:12px;margin-top:-10px">
+      <div style="padding:8px 0;margin-top:0">
         <div class="m-pod-prog" onclick="podSeek(event)"><div id="m-pod-fill-bar" class="m-pod-fill" style="width:0%"></div></div>
         <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:4px">
           <span id="m-pod-time">0:00 / 0:00</span>
@@ -9389,12 +9666,12 @@ document.addEventListener('DOMContentLoaded',function(){
         <div id="m-rsrch-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:var(--surf);border:1px solid var(--bd);border-top:none;border-radius:0 0 10px 10px;max-height:180px;overflow-y:auto;box-shadow:0 6px 16px rgba(0,0,0,.18)"></div>
       </div>
       <div id="m-rsrch-results" style="display:none;margin-bottom:12px"></div>
-      <div class="m-sec-hdr" style="margin-top:4px">Stocks to Watch</div>
+      <div class="m-sec-hdr" style="margin-top:4px">Your Watchlist</div>
+      <div id="m-rsrch-watchlist" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-bottom:4px"></div>
+      <div class="m-sec-hdr">Stocks to Watch</div>
       <div class="m-swipe-hint">← swipe →</div>
       <div class="m-carousel" id="m-rsrch-picks"></div>
       <div class="m-carousel-dots" id="m-rsrch-picks-dots"></div>
-      <div class="m-sec-hdr">Your Watchlist</div>
-      <div id="m-rsrch-watchlist" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none"></div>
     </div>
   </div>
 
@@ -9416,20 +9693,31 @@ document.addEventListener('DOMContentLoaded',function(){
         <input type="number" class="m-set-input" id="m-in-salary" placeholder="90000">
       </div>
       <div class="m-settings-row">
-        <div><div class="m-settings-lbl">RRSP Contribution</div><div class="m-settings-sub">This tax year</div></div>
+        <div><div class="m-settings-lbl">RRSP Contribution</div><div class="m-settings-sub">This tax year (deduction)</div></div>
         <input type="number" class="m-set-input" id="m-in-rrsp-contrib" placeholder="0">
       </div>
-      <div class="m-settings-row">
-        <div><div class="m-settings-lbl">Province</div><div class="m-settings-sub">Tax bracket lookup</div></div>
-        <span class="m-settings-val">Ontario</span>
+      <div class="m-settings-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div><div class="m-settings-lbl">Province</div><div class="m-settings-sub">Determines provincial tax bracket</div></div>
+        <select id="m-in-province" style="width:100%;background:var(--surf2,rgba(255,255,255,.06));border:1px solid var(--bd);border-radius:8px;color:var(--t1);font-size:12px;padding:8px 10px;outline:none">
+          <option value="Ontario">Ontario</option>
+          <option value="British Columbia">British Columbia</option>
+          <option value="Alberta">Alberta</option>
+          <option value="Quebec">Quebec</option>
+          <option value="Manitoba">Manitoba</option>
+          <option value="Saskatchewan">Saskatchewan</option>
+          <option value="Nova Scotia">Nova Scotia</option>
+          <option value="New Brunswick">New Brunswick</option>
+          <option value="Newfoundland">Newfoundland &amp; Labrador</option>
+          <option value="PEI">P.E.I.</option>
+        </select>
       </div>
       <div class="m-settings-section">Account Limits</div>
       <div class="m-settings-row">
-        <div><div class="m-settings-lbl">TFSA Cumulative Room</div><div class="m-settings-sub">Lifetime limit as of 2026</div></div>
-        <input type="number" class="m-set-input" id="m-in-tfsa-room" placeholder="51000">
+        <div><div class="m-settings-lbl">TFSA Available Room</div><div class="m-settings-sub">Auto-calculated from CRA limits &amp; contributions</div></div>
+        <span class="m-settings-val" id="m-tfsa-room-display">Calculating…</span>
       </div>
       <div class="m-settings-row">
-        <div><div class="m-settings-lbl">RRSP Deduction Limit</div><div class="m-settings-sub">From CRA NOA</div></div>
+        <div><div class="m-settings-lbl">RRSP Deduction Limit</div><div class="m-settings-sub">From your CRA NOA</div></div>
         <input type="number" class="m-set-input" id="m-in-rrsp-limit" placeholder="28000">
       </div>
       <div class="m-settings-section">Notifications</div>

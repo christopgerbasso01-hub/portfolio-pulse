@@ -2470,10 +2470,11 @@ function updateHeaderKPIs(data) {
     alphaEl.textContent = `✓ ${label} over S&P 500: +${parseFloat(alpha) > 0 ? alpha : '—'} percentage points`;
   }
 
-  // ── Save today's snapshot to KV so charts update on every refresh ────────
-  // The end-of-day cron is a fallback only — this ensures charts are always current.
+  // ── Sync today's live values directly into charts + save to KV ─────────
+  // Direct update runs immediately (no KV timing dependency).
+  // KV save ensures the cron + other devices also see today's value.
   if (sumMktVal > 0) {
-    // Compute per-account market values from HOLDINGS_STATIC (current shares)
+    // Per-account market values from HOLDINGS_STATIC (current shares + live prices)
     const _snapAccts = { TFSA: 0, Investment: 0, FHSA: 0, RRSP: 0 };
     HOLDINGS_STATIC.forEach(h => {
       const p = hPrices[h.ticker];
@@ -2487,14 +2488,83 @@ function updateHeaderKPIs(data) {
     });
     Object.keys(_snapAccts).forEach(k => { _snapAccts[k] = Math.round(_snapAccts[k]); });
     const _contribTotal = CONTRIB_TOTAL();
+    const _roiPct = _contribTotal > 0 ? +((totalPnlClient / _contribTotal) * 100).toFixed(2) : 0;
+
+    // 1. Directly update charts with live values (immediate, no KV needed)
+    _applyTodayToCharts(Math.round(sumMktVal), _roiPct, Math.round(dc), _snapAccts);
+
+    // 2. Save to KV (throttled) so cron + snapshot GET also have today's value
     _saveTodaySnapshot({
       total_value:      Math.round(sumMktVal),
-      roi_pct:          _contribTotal > 0 ? +((totalPnlClient / _contribTotal) * 100).toFixed(2) : 0,
+      roi_pct:          _roiPct,
       daily_change:     Math.round(dc),
       daily_change_pct: +dcp.toFixed(2),
       accounts:         _snapAccts,
     });
   }
+}
+
+// Directly update portfolioValueChart + roiChart with today's live values.
+// Called on every market data refresh — no KV round-trip, no timing dependency.
+function _applyTodayToCharts(totalValue, roiPct, dailyChange, snapAccts) {
+  if (typeof portfolioValueChart === 'undefined' || typeof roiChart === 'undefined') return;
+  const today    = new Date().toISOString().slice(0, 10); // "2026-06-09"
+  const monthKey = today.slice(0, 7);                     // "2026-06"
+
+  // ── Portfolio value chart ─────────────────────────────────────────────────
+  const mvLabels = portfolioValueChart.data.labels;
+  let mvIdx = mvLabels.indexOf(today);
+  if (mvIdx < 0) mvIdx = mvLabels.indexOf(monthKey);
+
+  // Dataset indices: 0=Total MV, 1=Contributions, 2=TFSA, 3=Investment, 4=FHSA, 5=RRSP
+  const MV_DS = { TFSA: 2, Investment: 3, FHSA: 4, RRSP: 5 };
+
+  if (mvIdx >= 0) {
+    mvLabels[mvIdx] = today;
+    portfolioValueChart.data.datasets[0].data[mvIdx] = totalValue;
+    Object.entries(MV_DS).forEach(([acct, dsIdx]) => {
+      if (portfolioValueChart.data.datasets[dsIdx])
+        portfolioValueChart.data.datasets[dsIdx].data[mvIdx] = snapAccts[acct] || null;
+    });
+  } else {
+    mvLabels.push(today);
+    portfolioValueChart.data.datasets[0].data.push(totalValue);
+    const lastC = portfolioValueChart.data.datasets[1]?.data?.slice(-1)[0] || 0;
+    if (portfolioValueChart.data.datasets[1]) portfolioValueChart.data.datasets[1].data.push(lastC);
+    Object.entries(MV_DS).forEach(([acct, dsIdx]) => {
+      if (portfolioValueChart.data.datasets[dsIdx])
+        portfolioValueChart.data.datasets[dsIdx].data.push(snapAccts[acct] || null);
+    });
+  }
+  portfolioValueChart.update('none');
+
+  // ── ROI chart ─────────────────────────────────────────────────────────────
+  const roiLabels = roiChart.data.labels;
+  let roiIdx = roiLabels.indexOf(today);
+  if (roiIdx < 0) roiIdx = roiLabels.indexOf(monthKey);
+
+  // Dataset indices: 0=All, 1=TFSA, 2=Investment, 3=FHSA, 4=RRSP
+  const ROI_DS = { TFSA: 1, Investment: 2, FHSA: 3, RRSP: 4 };
+
+  const _setRoiDs = (idx) => {
+    roiChart.data.datasets[0].data[idx] = roiPct;
+    Object.entries(ROI_DS).forEach(([k, dsIdx]) => {
+      const c = CONTRIB_STATE[k];
+      const v = snapAccts[k];
+      if (c > 0 && v && roiChart.data.datasets[dsIdx])
+        roiChart.data.datasets[dsIdx].data[idx] = +((v - c) / c * 100).toFixed(2);
+    });
+  };
+
+  if (roiIdx >= 0) {
+    roiLabels[roiIdx] = today;
+    _setRoiDs(roiIdx);
+  } else {
+    roiLabels.push(today);
+    roiChart.data.datasets.forEach(ds => ds.data.push(null));
+    _setRoiDs(roiLabels.length - 1);
+  }
+  roiChart.update('none');
 }
 
 // Throttled save of today's computed portfolio state → KV today_snapshot key.

@@ -6554,10 +6554,11 @@ function _setTransactions(txs) {
   }).catch(() => {});
 }
 
-// ── Computed holdings → KV  (podcast generator reads this on every run) ──────
+// ── Computed holdings → KV  (snapshot + podcast generator read this on every run) ──
 // Saves the fully applied HOLDINGS_STATIC (base + all transactions) so the
-// podcast always knows exact shares, cost basis, and account assignments
-// without any hardcoded figures. Debounced 2s to batch rapid changes.
+// snapshot and podcast always know exact shares, cost basis, and account
+// assignments without any hardcoded figures. Also saves CASH_POSITIONS so
+// the snapshot captures accurate cash balances. Debounced 2s to batch rapid changes.
 let _saveHoldingsTimer = null;
 function _saveComputedHoldings() {
   clearTimeout(_saveHoldingsTimer);
@@ -6576,11 +6577,30 @@ function _saveComputedHoldings() {
           book_rate: h.book_rate || null,
           dividends: h.dividends || 0,
         }));
+      // Cash positions: amount changes with dividends/transactions — save live state
+      const cashCompact = CASH_POSITIONS.map(c => ({
+        ticker:  c.ticker,
+        account: c.account,
+        ccy:     c.ccy,
+        amount:  c.amount,
+      }));
+      // Realized gains (CAD): active holdings store realized in CAD;
+      // closed positions store total_pnl in native currency → convert via book_rate
+      let _realizedGains = 0;
+      HOLDINGS_STATIC.forEach(h => { _realizedGains += h.realized || 0; });
+      CLOSED_POSITIONS_STATIC.forEach(h => {
+        const fx = h.book_rate || USD_BOOK_RATE;
+        _realizedGains += (h.total_pnl || 0) * (h.ccy === 'USD' ? fx : 1);
+      });
       fetch(`${CONFIG.API_BASE}/api/settings`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           computed_holdings:   compact,
+          cash_positions:      cashCompact,
+          contributions_cad:   { ...CONTRIB_STATE },
+          realized_gains_cad:  Math.round(_realizedGains),
+          usd_book_rate:       USD_BOOK_RATE,
           holdings_updated_at: new Date().toISOString(),
         }),
       }).catch(() => {});

@@ -2895,30 +2895,32 @@ function renderTaxProjection(data) {
     .filter(t => t.type === 'CONTRIBUTION' && t.account === 'RRSP'
       && (t.date || '') >= rrspWinStart && (t.date || '') <= rrspWinEnd)
     .reduce((s, t) => s + (t.amount || 0), 0);
-  const taxableIncome  = Math.max(0, grossSalary - rrspDeduction);
-  const MAR_RATE       = _marginalRate(taxableIncome, province);
+  // ── Price guard: skip gains/losses if prices not yet loaded ─────────────
+  const pricesLoaded = Object.keys(hPrices).length > 0;
 
   // ── Unrealized gains & losses — Investment account only ──────────────────
   let invGains = 0, invLosses = 0;
-  HOLDINGS_STATIC
-    .filter(h => h.account === 'Investment' && h.ticker && !h.ticker.startsWith('CASH'))
-    .forEach(h => {
-      const p   = hPrices[h.ticker];
-      const mv  = (p?.price || 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1);
-      const acb = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
-      const diff = mv - acb;
-      if (diff > 0) invGains  += diff;
-      else          invLosses += -diff;
-    });
+  if (pricesLoaded) {
+    HOLDINGS_STATIC
+      .filter(h => h.account === 'Investment' && h.ticker && !h.ticker.startsWith('CASH'))
+      .forEach(h => {
+        const p   = hPrices[h.ticker];
+        const mv  = (p?.price || 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+        const acb = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
+        const diff = mv - acb;
+        if (diff > 0) invGains  += diff;
+        else          invLosses += -diff;
+      });
+  }
 
-  // ── Tax projection rows ───────────────────────────────────────────────────
-  const taxesPayable   = Math.round(MAR_RATE * taxableIncome);
-  const taxCapGains    = Math.round(invGains  * 0.5);   // 50% inclusion — matches Unrealized Gain card
-  const availCapLosses = Math.round(invLosses * 0.5);   // 50% inclusion
-  // Estimated bill: income tax + tax on net capital gain (MAR_RATE applied so all terms are in tax $)
-  const estimatedBill  = taxesPayable
-    + Math.round(taxCapGains * MAR_RATE)
-    - Math.round(availCapLosses * MAR_RATE);
+  // ── Tax projection rows (all pre-tax $) ──────────────────────────────────
+  const taxCapGains    = Math.round(invGains   * 0.5);  // 50% inclusion — matches Unrealized Gain card
+  const availCapLosses = Math.round(invLosses  * 0.5);  // 50% inclusion
+  // Taxable income = Employment − RRSP + Taxable cap gains − Available cap losses (all pre-tax $)
+  const taxableIncome  = Math.max(0, grossSalary - rrspDeduction + taxCapGains - availCapLosses);
+  const MAR_RATE       = _marginalRate(taxableIncome, province);
+  // Estimated bill = MAR_RATE × full taxable income (single multiply, all pre-tax $)
+  const estimatedBill  = Math.round(taxableIncome * MAR_RATE);
 
   // ── Tax-loss harvest advisory (secondary) ────────────────────────────────
   const harvestItems = HOLDINGS_STATIC
@@ -2979,11 +2981,10 @@ function renderTaxProjection(data) {
     </div>
     ${row('Employment income', fmt$(grossSalary), 'var(--text1)')}
     ${row('RRSP deduction', rrspDeduction > 0 ? '−' + fmt$(rrspDeduction) : '—', 'var(--red)')}
+    ${row('Taxable capital gains (50% of unrealized)', pricesLoaded && taxCapGains > 0 ? '+' + fmt$(taxCapGains) : '—', 'var(--amber)')}
+    ${row('Available taxable capital losses (50% of losses)', pricesLoaded && availCapLosses > 0 ? '−' + fmt$(availCapLosses) : '—', 'var(--green)')}
     ${row('Taxable income', fmt$(taxableIncome), 'var(--text1)')}
     ${row('Marginal rate (' + province + ')', (MAR_RATE * 100).toFixed(2) + '%', 'var(--blue-bright)')}
-    ${row('Taxes payable', fmt$(taxesPayable), 'var(--red)')}
-    ${row('Taxable capital gains (50% of unrealized)', taxCapGains > 0 ? '+' + fmt$(taxCapGains) : '—', 'var(--amber)')}
-    ${row('Available taxable capital losses (50% of losses)', availCapLosses > 0 ? '−' + fmt$(availCapLosses) : '—', 'var(--green)')}
     <div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0">
       <div style="font-size:13px;font-weight:700;color:var(--text1)">Estimated tax bill</div>
       <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:var(--red);flex-shrink:0;padding-left:12px">${fmt$(Math.max(0, estimatedBill))}</div>
@@ -9079,19 +9080,23 @@ function syncMobile(){
     if(unrealD&&typeof HOLDINGS_STATIC!=='undefined'){
       var _hPxU=(window._lastLiveData&&_lastLiveData.holdings)||{};
       var _fxU=(window._lastLiveData&&_lastLiveData.usdcad)||1.38;
+      /* Only compute when live prices are available — avoids treating mv=0 as losses */
+      var _pricesRdyU=Object.keys(_hPxU).length>0;
       var _invUnreal=0;
-      HOLDINGS_STATIC.filter(function(h){return h.account==='Investment'&&h.ticker&&!h.ticker.startsWith('CASH');})
-        .forEach(function(h){
-          var p=_hPxU[h.ticker];var mv=(p&&p.price||0)*h.shares*(h.ccy==='USD'?_fxU:1);
-          var acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;
-          _invUnreal+=Math.max(0,mv-acb);
-        });
+      if(_pricesRdyU){
+        HOLDINGS_STATIC.filter(function(h){return h.account==='Investment'&&h.ticker&&!h.ticker.startsWith('CASH');})
+          .forEach(function(h){
+            var p=_hPxU[h.ticker];var mv=(p&&p.price||0)*h.shares*(h.ccy==='USD'?_fxU:1);
+            var acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;
+            _invUnreal+=Math.max(0,mv-acb);
+          });
+      }
       var _taxableGain=Math.round(_invUnreal*0.5); /* 50% capital gains inclusion */
       var _unrealFmt=_invUnreal>=1000?'$'+(_invUnreal/1000).toFixed(1)+'K':'$'+Math.round(_invUnreal);
       var _taxFmt=_taxableGain>=1000?'$'+(_taxableGain/1000).toFixed(1)+'K':'$'+_taxableGain;
-      unrealD.textContent=_unrealFmt;
-      unrealD.className='m-tax-mini-v '+(_invUnreal>=0?'up':'dn');
-      if(unrealSub)unrealSub.textContent='50% incl. → '+_taxFmt+' taxable';
+      unrealD.textContent=_pricesRdyU?_unrealFmt:'—';
+      unrealD.className='m-tax-mini-v '+(_invUnreal>0?'up':'');
+      if(unrealSub)unrealSub.textContent=_pricesRdyU?('50% incl. → '+_taxFmt+' taxable'):'awaiting prices';
     }
 
     /* Render mobile-friendly Year-End Tax Projection */
@@ -9110,43 +9115,47 @@ function syncMobile(){
               &&(t.date||'')>=_rrspWinStart&&(t.date||'')<=_rrspWinEnd;
           })
           .reduce(function(s,t){return s+(t.amount||0);},0);
-        var _taxInc=Math.max(0,_gross-_rrspDed);
-        var _marRate=window._marginalRate?_marginalRate(_taxInc,_prov):
-                     window._ontarioMarginalRate?_ontarioMarginalRate(_taxInc):0.3148;
-        /* Investment unrealized gains (gains only) and losses (losses only) */
+        /* Live prices — guard: only compute gains/losses when prices are actually loaded */
         var _hPx=(window._lastLiveData&&_lastLiveData.holdings)||{};
         var _fx=(window._lastLiveData&&_lastLiveData.usdcad)||1.38;
+        var _priceCount=Object.keys(_hPx).length;
         var _invGains=0,_invLosses=0;
-        HOLDINGS_STATIC.filter(function(h){return h.account==='Investment'&&h.ticker&&!h.ticker.startsWith('CASH');})
-          .forEach(function(h){
-            var p=_hPx[h.ticker];var mv=(p&&p.price||0)*h.shares*(h.ccy==='USD'?_fx:1);
-            var acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;
-            var diff=mv-acb;
-            if(diff>0){_invGains+=diff;}else{_invLosses+=(-diff);}
-          });
+        if(_priceCount>0){
+          HOLDINGS_STATIC.filter(function(h){return h.account==='Investment'&&h.ticker&&!h.ticker.startsWith('CASH');})
+            .forEach(function(h){
+              var p=_hPx[h.ticker];var mv=(p&&p.price||0)*h.shares*(h.ccy==='USD'?_fx:1);
+              var acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;
+              var diff=mv-acb;
+              if(diff>0){_invGains+=diff;}else{_invLosses+=(-diff);}
+            });
+        }
         var _taxCapGains=Math.round(_invGains*0.5);   /* 50% inclusion — matches Unrealized Gain card */
         var _availCapLoss=Math.round(_invLosses*0.5); /* 50% inclusion of losses */
-        var _taxesPayable=Math.round(_taxInc*_marRate);
-        /* Estimated bill: income tax + MAR_RATE × net cap gain — all terms in tax dollars */
-        var _taxBill=Math.max(0,_taxesPayable
-          +Math.round(_taxCapGains*_marRate)
-          -Math.round(_availCapLoss*_marRate));
+        /* Taxable income = Employment − RRSP + Taxable cap gains − Available cap losses (all pre-tax) */
+        var _taxInc=Math.max(0,_gross-_rrspDed+_taxCapGains-_availCapLoss);
+        /* MAR_RATE based on full taxable income (includes capital gains component) */
+        var _marRate=window._marginalRate?_marginalRate(_taxInc,_prov):
+                     window._ontarioMarginalRate?_ontarioMarginalRate(_taxInc):0.3148;
+        /* Estimated tax bill = MAR_RATE × full taxable income */
+        var _taxBill=Math.round(_taxInc*_marRate);
         var _fmtPct=function(v){return(v*100).toFixed(2)+'%';};
         var _row=function(l,v,c){return'<div class="m-tax-proj-row"><span class="m-tax-proj-l">'+l+'</span><span class="m-tax-proj-v" style="color:'+c+'">'+v+'</span></div>';};
         var _provShort=_prov.replace('British Columbia','BC').replace('Saskatchewan','SK')
           .replace('Newfoundland','NL').replace('Nova Scotia','NS').replace('New Brunswick','NB');
+        var _capGainsFmt=(_priceCount>0&&_taxCapGains>0)?'+$'+_taxCapGains.toLocaleString('en-CA'):'—';
+        var _capLossFmt=(_priceCount>0&&_availCapLoss>0)?'−$'+_availCapLoss.toLocaleString('en-CA'):'—';
         var _html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
           +'<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t2)">Year-End Tax Projection</span>'
           +'<span style="font-size:9px;color:var(--t3)">'+_taxYr+' \xB7 '+_provShort+'</span></div>'
           +_row('Employment income','$'+_gross.toLocaleString('en-CA'),'var(--t1)')
           +_row('RRSP deduction',(_rrspDed>0?'−$'+_rrspDed.toLocaleString('en-CA'):'—'),'var(--red)')
+          +_row('Taxable capital gains',_capGainsFmt,'var(--amber)')
+          +_row('Available capital losses',_capLossFmt,'var(--green)')
           +_row('Taxable income','$'+_taxInc.toLocaleString('en-CA'),'var(--t1)')
           +_row('Marginal rate ('+_provShort+')',_fmtPct(_marRate),'var(--t2)')
-          +_row('Taxes payable','$'+_taxesPayable.toLocaleString('en-CA'),'var(--red)')
-          +_row('Taxable capital gains',(_taxCapGains>0?'+$'+_taxCapGains.toLocaleString('en-CA'):'—'),'var(--amber)')
-          +_row('Available capital losses',(_availCapLoss>0?'−$'+_availCapLoss.toLocaleString('en-CA'):'—'),'var(--green)')
           +'<div class="m-tax-proj-row" style="border-bottom:none;margin-top:4px"><span class="m-tax-proj-l" style="font-weight:700;color:var(--t1)">Estimated tax bill</span><span class="m-tax-proj-v" style="color:var(--red);font-size:13px">$'+_taxBill.toLocaleString('en-CA')+'</span></div>';
-        var _sig=_gross+'|'+_rrspDed+'|'+_taxCapGains+'|'+_availCapLoss+'|'+_prov;
+        /* priceCount in sig: forces re-render when prices load or change */
+        var _sig=_gross+'|'+_rrspDed+'|'+_taxCapGains+'|'+_availCapLoss+'|'+_prov+'|'+_priceCount;
         if(projDst.dataset.sig!==_sig){projDst.dataset.sig=_sig;projDst.innerHTML=_html;}
       }catch(e){/* silently skip if not ready */}
     }

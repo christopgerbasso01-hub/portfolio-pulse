@@ -2876,7 +2876,8 @@ function renderTaxProjection(data) {
   // Always use the most-recent live data as the price source so desktop and
   // mobile always compute from the same snapshot — fall back to passed data
   // only if _lastLiveData hasn't been populated yet.
-  const liveData = window._lastLiveData || data;
+  // NOTE: _lastLiveData is a `let` variable — NOT on window. Use directly.
+  const liveData = _lastLiveData || data;
   const hPrices  = liveData.holdings || {};
   const usdcad   = liveData.usdcad   || 1.38;
 
@@ -2904,8 +2905,9 @@ function renderTaxProjection(data) {
     HOLDINGS_STATIC
       .filter(h => h.account === 'Investment' && h.ticker && !h.ticker.startsWith('CASH'))
       .forEach(h => {
-        const p   = hPrices[h.ticker];
-        const mv  = (p?.price || 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+        const p = hPrices[h.ticker];
+        if (!p || !p.price) return; // skip — no live price; never count as 0-mv loss
+        const mv  = p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1);
         const acb = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
         const diff = mv - acb;
         if (diff > 0) invGains  += diff;
@@ -5114,6 +5116,10 @@ async function fetchMarketData() {
     } else {
       refreshTablePrices(data);
     }
+
+    // Sync mobile tax section immediately — same tick as holdings table update
+    // (syncTax uses _lastLiveData which was set above; the 5s setInterval may lag)
+    if (typeof syncMobile === 'function') syncMobile();
 
     return data;
   } catch (err) {
@@ -8278,7 +8284,7 @@ window.generatePortfolioReport = async function() {
     /* ── Step 1: fresh live-price fetch ─────────────────────────────────── */
     setP(10); setMsg('Fetching live prices for all positions…');
     var data = await fetchMarketData();
-    if (!data) data = window._lastLiveData || {};
+    if (!data) data = _lastLiveData || {};
 
     setP(50); setMsg('Computing portfolio values…');
     var usdcad  = data.usdcad   || 1.38;
@@ -8745,7 +8751,7 @@ function _applyAndSave(){
     /* trigger desktop range slider oninput (it reads from localStorage) */
     var sliders=document.querySelectorAll('input[type="range"][oninput*="pp_gross_salary"]');
     sliders.forEach(function(s){s.value=sal;s.dispatchEvent(new Event('input'));});
-    if(window.renderTaxProjection)renderTaxProjection(window._lastLiveData||{});
+    if(window.renderTaxProjection)renderTaxProjection(_lastLiveData||{});
   }
   /* — RRSP this-year contribution — */
   var inRrsp=document.getElementById('m-in-rrsp-contrib');
@@ -8755,7 +8761,7 @@ function _applyAndSave(){
     /* trigger desktop RRSP input if exists */
     var rrspInputs=document.querySelectorAll('input[oninput*="pp_rrsp_this_year"]');
     rrspInputs.forEach(function(el){el.value=rc;el.dispatchEvent(new Event('input'));});
-    if(window.renderTaxProjection)renderTaxProjection(window._lastLiveData||{});
+    if(window.renderTaxProjection)renderTaxProjection(_lastLiveData||{});
   }
   /* — RRSP Deduction Limit — write to localStorage immediately, then sync to desktop + KV */
   var inRl=document.getElementById('m-in-rrsp-limit');
@@ -8780,7 +8786,7 @@ function _applyAndSave(){
   if(prov){
     localStorage.setItem('pp_province',prov.value);
     _settingsSaved.province=prov.value;
-    if(window.renderTaxProjection)renderTaxProjection(window._lastLiveData||{});
+    if(window.renderTaxProjection)renderTaxProjection(_lastLiveData||{});
   }
   /* — Dark mode — */
   _settingsSaved.dark=document.documentElement.getAttribute('data-theme')!=='light';
@@ -9078,15 +9084,17 @@ function syncMobile(){
     var unrealD=document.getElementById('m-tax-unrealized');
     var unrealSub=document.getElementById('m-tax-unrealized-sub');
     if(unrealD&&typeof HOLDINGS_STATIC!=='undefined'){
-      var _hPxU=(window._lastLiveData&&_lastLiveData.holdings)||{};
-      var _fxU=(window._lastLiveData&&_lastLiveData.usdcad)||1.38;
-      /* Only compute when live prices are available — avoids treating mv=0 as losses */
+      /* Use _lastLiveData directly (let var, NOT window property) */
+      var _hPxU=(_lastLiveData&&_lastLiveData.holdings)||{};
+      var _fxU=(_lastLiveData&&_lastLiveData.usdcad)||1.38;
       var _pricesRdyU=Object.keys(_hPxU).length>0;
       var _invUnreal=0;
       if(_pricesRdyU){
         HOLDINGS_STATIC.filter(function(h){return h.account==='Investment'&&h.ticker&&!h.ticker.startsWith('CASH');})
           .forEach(function(h){
-            var p=_hPxU[h.ticker];var mv=(p&&p.price||0)*h.shares*(h.ccy==='USD'?_fxU:1);
+            var p=_hPxU[h.ticker];
+            if(!p||!p.price)return; /* skip — no live price for this ticker */
+            var mv=p.price*h.shares*(h.ccy==='USD'?_fxU:1);
             var acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;
             _invUnreal+=Math.max(0,mv-acb);
           });
@@ -9115,15 +9123,17 @@ function syncMobile(){
               &&(t.date||'')>=_rrspWinStart&&(t.date||'')<=_rrspWinEnd;
           })
           .reduce(function(s,t){return s+(t.amount||0);},0);
-        /* Live prices — guard: only compute gains/losses when prices are actually loaded */
-        var _hPx=(window._lastLiveData&&_lastLiveData.holdings)||{};
-        var _fx=(window._lastLiveData&&_lastLiveData.usdcad)||1.38;
+        /* Live prices — use _lastLiveData directly (let var, NOT window property) */
+        var _hPx=(_lastLiveData&&_lastLiveData.holdings)||{};
+        var _fx=(_lastLiveData&&_lastLiveData.usdcad)||1.38;
         var _priceCount=Object.keys(_hPx).length;
         var _invGains=0,_invLosses=0;
         if(_priceCount>0){
           HOLDINGS_STATIC.filter(function(h){return h.account==='Investment'&&h.ticker&&!h.ticker.startsWith('CASH');})
             .forEach(function(h){
-              var p=_hPx[h.ticker];var mv=(p&&p.price||0)*h.shares*(h.ccy==='USD'?_fx:1);
+              var p=_hPx[h.ticker];
+              if(!p||!p.price)return; /* skip — no live price; never count as 0-mv loss */
+              var mv=p.price*h.shares*(h.ccy==='USD'?_fx:1);
               var acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;
               var diff=mv-acb;
               if(diff>0){_invGains+=diff;}else{_invLosses+=(-diff);}

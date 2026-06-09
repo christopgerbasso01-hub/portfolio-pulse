@@ -2742,110 +2742,208 @@ function updateTodayGlance(data) {
   }
 }
 
-// ── Ontario 2026 combined marginal rate lookup (federal + provincial + surtax) ──
-function _ontarioMarginalRate(taxableIncome) {
-  // Brackets approximate for 2026 (federal + Ontario combined)
-  if (taxableIncome <=  51446) return 0.2005;  // 15.0% fed + 5.05% ON
-  if (taxableIncome <=  57375) return 0.2420;  // 15.0% fed + 9.15% ON
-  if (taxableIncome <= 102894) return 0.3148;  // 20.5% fed + 9.15% ON + surtax
-  if (taxableIncome <= 114750) return 0.3348;  // 20.5% fed + 11.16% ON + surtax
-  if (taxableIncome <= 150000) return 0.3848;  // 26.0% fed + 11.16% ON + surtax
-  if (taxableIncome <= 158519) return 0.3934;  // 26.0% fed + 12.16% ON + surtax
-  if (taxableIncome <= 220000) return 0.4341;  // 29.3% fed + 12.16% ON + surtax
-  return 0.4616;                                // 33.0% fed + 13.16% ON + surtax
+// ── Province-aware 2026 combined federal + provincial marginal rate ──────────
+// Auto-routes by province name from localStorage ('pp_province').
+// CRA federal brackets 2026: ≤$57,375 15% · ≤$114,750 20.5% · ≤$158,519 26% · ≤$220,000 29% · >$220,000 33%
+function _marginalRate(taxableIncome, province) {
+  var p = province || 'Ontario';
+  if (p === 'Ontario') {
+    if (taxableIncome <=  51446) return 0.2005;  // 15.0% fed + 5.05% ON
+    if (taxableIncome <=  57375) return 0.2420;  // 15.0% fed + 9.15% ON
+    if (taxableIncome <= 102894) return 0.3148;  // 20.5% fed + 9.15% ON + surtax
+    if (taxableIncome <= 114750) return 0.3348;  // 20.5% fed + 11.16% ON + surtax
+    if (taxableIncome <= 150000) return 0.3848;  // 26.0% fed + 11.16% ON + surtax
+    if (taxableIncome <= 158519) return 0.3934;  // 26.0% fed + 12.16% ON + surtax
+    if (taxableIncome <= 220000) return 0.4341;  // 29.3% fed + 12.16% ON + surtax
+    return 0.4616;                                // 33.0% fed + 13.16% ON + surtax
+  }
+  if (p === 'British Columbia') {
+    if (taxableIncome <=  47937) return 0.2006;
+    if (taxableIncome <=  57375) return 0.2270;
+    if (taxableIncome <=  95875) return 0.2820;
+    if (taxableIncome <= 110077) return 0.3100;
+    if (taxableIncome <= 114750) return 0.3279;
+    if (taxableIncome <= 133664) return 0.3829;
+    if (taxableIncome <= 158519) return 0.4070;
+    if (taxableIncome <= 181232) return 0.4370;
+    if (taxableIncome <= 252752) return 0.4580;
+    return 0.5350;
+  }
+  if (p === 'Alberta') {
+    if (taxableIncome <=  57375) return 0.2500;
+    if (taxableIncome <= 114750) return 0.3050;
+    if (taxableIncome <= 148269) return 0.3600;
+    if (taxableIncome <= 158519) return 0.3800;
+    if (taxableIncome <= 177922) return 0.4100;
+    if (taxableIncome <= 237230) return 0.4200;
+    if (taxableIncome <= 355845) return 0.4700;
+    return 0.4800;
+  }
+  if (p === 'Quebec') {
+    // Federal rates adjusted for Quebec abatement (~16.5% reduction)
+    if (taxableIncome <=  53295) return 0.2700;
+    if (taxableIncome <=  57375) return 0.3200;
+    if (taxableIncome <= 106595) return 0.3650;
+    if (taxableIncome <= 114750) return 0.4150;
+    if (taxableIncome <= 129590) return 0.4600;
+    if (taxableIncome <= 158519) return 0.4750;
+    if (taxableIncome <= 220000) return 0.5000;
+    return 0.5331;
+  }
+  if (p === 'Manitoba') {
+    if (taxableIncome <=  47000) return 0.2580;
+    if (taxableIncome <=  57375) return 0.2775;
+    if (taxableIncome <= 100000) return 0.3325;
+    if (taxableIncome <= 114750) return 0.3790;
+    if (taxableIncome <= 158519) return 0.4340;
+    if (taxableIncome <= 220000) return 0.4640;
+    return 0.5040;
+  }
+  if (p === 'Saskatchewan') {
+    if (taxableIncome <=  49720) return 0.2550;
+    if (taxableIncome <=  57375) return 0.2750;
+    if (taxableIncome <= 114750) return 0.3300;
+    if (taxableIncome <= 142058) return 0.3850;
+    if (taxableIncome <= 158519) return 0.4050;
+    if (taxableIncome <= 220000) return 0.4350;
+    return 0.4750;
+  }
+  if (p === 'Nova Scotia') {
+    if (taxableIncome <=  29590) return 0.2379;
+    if (taxableIncome <=  57375) return 0.2995;
+    if (taxableIncome <=  59180) return 0.3167;
+    if (taxableIncome <=  93000) return 0.3717;
+    if (taxableIncome <= 114750) return 0.3800;
+    if (taxableIncome <= 150000) return 0.4350;
+    if (taxableIncome <= 158519) return 0.4700;
+    if (taxableIncome <= 220000) return 0.5000;
+    return 0.5400;
+  }
+  if (p === 'New Brunswick') {
+    if (taxableIncome <=  49958) return 0.2440;
+    if (taxableIncome <=  57375) return 0.2982;
+    if (taxableIncome <=  99916) return 0.3532;
+    if (taxableIncome <= 114750) return 0.3702;
+    if (taxableIncome <= 158519) return 0.4252;
+    if (taxableIncome <= 185064) return 0.4552;
+    if (taxableIncome <= 220000) return 0.4850;
+    return 0.5250;
+  }
+  if (p === 'Newfoundland') {
+    if (taxableIncome <=  43198) return 0.2370;
+    if (taxableIncome <=  57375) return 0.2950;
+    if (taxableIncome <=  86395) return 0.3500;
+    if (taxableIncome <= 114750) return 0.3630;
+    if (taxableIncome <= 154244) return 0.4180;
+    if (taxableIncome <= 158519) return 0.4380;
+    if (taxableIncome <= 215943) return 0.4680;
+    if (taxableIncome <= 275870) return 0.5280;
+    return 0.5380;
+  }
+  if (p === 'PEI') {
+    if (taxableIncome <=  32656) return 0.2465;
+    if (taxableIncome <=  57375) return 0.2863;
+    if (taxableIncome <=  64313) return 0.3413;
+    if (taxableIncome <= 105000) return 0.3715;
+    if (taxableIncome <= 114750) return 0.4400;
+    if (taxableIncome <= 140000) return 0.4700;
+    if (taxableIncome <= 220000) return 0.4775;
+    return 0.5175;
+  }
+  // Fallback: Ontario
+  if (taxableIncome <=  51446) return 0.2005;
+  if (taxableIncome <=  57375) return 0.2420;
+  if (taxableIncome <= 102894) return 0.3148;
+  if (taxableIncome <= 114750) return 0.3348;
+  if (taxableIncome <= 150000) return 0.3848;
+  if (taxableIncome <= 158519) return 0.3934;
+  if (taxableIncome <= 220000) return 0.4341;
+  return 0.4616;
 }
+// ── Backward-compat wrapper (existing callers continue to work) ───────────────
+function _ontarioMarginalRate(taxableIncome) { return _marginalRate(taxableIncome, 'Ontario'); }
 
 // ============================================================
 // YEAR-END TAX PROJECTION
 // Entirely client-computed from live prices + holdings.
+// Province-aware. RRSP auto-computed from transaction log.
 // Updates every 5s. No external API needed.
 // ============================================================
 function renderTaxProjection(data) {
   const el = document.getElementById('taxProjectionPanel');
   if (!el) return;
 
-  const hPrices   = data.holdings  || {};
-  const usdcad    = data.usdcad    || 1.38;
-  const INCLUSION = 0.50;
+  const hPrices = data.holdings || {};
+  const usdcad  = data.usdcad   || 1.38;
 
-  // ── Salary + RRSP deduction (user-configurable) ───────────────────────────
-  const grossSalary    = parseInt(localStorage.getItem('pp_gross_salary') || '90000', 10);
-  const currentYear    = new Date().getFullYear().toString();
-  // RRSP contributions logged THIS calendar year via the transaction log
-  const rrspThisYearTx = getTransactions()
-    .filter(t => t.type === 'CONTRIBUTION' && t.account === 'RRSP' && (t.date||'').startsWith(currentYear))
-    .reduce((s,t) => s + (t.amount||0), 0);
-  // Also allow a manual override stored separately
-  const rrspManual     = parseFloat(localStorage.getItem('pp_rrsp_this_year') || '0');
-  const rrspDeduction  = Math.max(rrspThisYearTx, rrspManual);
+  // ── Province (from settings, auto-synced across devices) ─────────────────
+  const province = localStorage.getItem('pp_province') || 'Ontario';
+
+  // ── Salary ────────────────────────────────────────────────────────────────
+  const grossSalary = parseInt(localStorage.getItem('pp_gross_salary') || '90000', 10);
+
+  // ── RRSP deduction: CRA eligible window = Jan 1 taxYear → Mar 1 (taxYear+1)
+  // The CRA deadline (first 60 days of the following year) auto-updates each year.
+  const taxYear        = new Date().getFullYear();
+  const rrspWinStart   = taxYear + '-01-01';
+  const rrspWinEnd     = (taxYear + 1) + '-03-01';
+  const rrspDeduction  = getTransactions()
+    .filter(t => t.type === 'CONTRIBUTION' && t.account === 'RRSP'
+      && (t.date || '') >= rrspWinStart && (t.date || '') <= rrspWinEnd)
+    .reduce((s, t) => s + (t.amount || 0), 0);
   const taxableIncome  = Math.max(0, grossSalary - rrspDeduction);
-  const MAR_RATE       = _ontarioMarginalRate(taxableIncome);
-  const EFF_RATE       = MAR_RATE * INCLUSION;
+  const MAR_RATE       = _marginalRate(taxableIncome, province);
 
-  // ── 1. Realized gains already locked in (non-reg Investment account only)
-  const realizedYTD = HOLDINGS_STATIC
-    .filter(h => h.account === 'Investment')
-    .reduce((s, h) => s + (h.realized || 0), 0)
-    + CLOSED_POSITIONS_STATIC
-      .filter(h => h.account === 'Investment')
-      .reduce((s, h) => s + (h.total_pnl ?? h.realized ?? 0), 0);
-
-  // ── 2. Unrealized gains in Investment (taxable if sold today)
-  const unrealizedInv = HOLDINGS_STATIC
-    .filter(h => h.account === 'Investment' && !h.ticker?.startsWith('CASH'))
-    .reduce((s, h) => {
+  // ── Unrealized gains & losses — Investment account only ──────────────────
+  let invGains = 0, invLosses = 0;
+  HOLDINGS_STATIC
+    .filter(h => h.account === 'Investment' && h.ticker && !h.ticker.startsWith('CASH'))
+    .forEach(h => {
       const p   = hPrices[h.ticker];
       const mv  = (p?.price || 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1);
       const acb = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
-      return s + Math.max(0, mv - acb);
-    }, 0);
+      const diff = mv - acb;
+      if (diff > 0) invGains  += diff;
+      else          invLosses += -diff;
+    });
 
-  // ── 3. Tax-loss harvest candidates (Investment account positions below ACB)
+  // ── Tax projection rows ───────────────────────────────────────────────────
+  const taxesPayable   = Math.round(MAR_RATE * taxableIncome);
+  const taxCapGains    = Math.round(invGains  * 0.5);   // 50% inclusion
+  const availCapLosses = Math.round(invLosses * 0.5);   // 50% inclusion
+  const estimatedBill  = taxesPayable + taxCapGains - availCapLosses;
+
+  // ── Tax-loss harvest advisory (secondary) ────────────────────────────────
   const harvestItems = HOLDINGS_STATIC
     .filter(h => h.account === 'Investment' && !h.ticker?.startsWith('CASH'))
     .map(h => {
-      const p   = hPrices[h.ticker];
-      const mv  = (p?.price || 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1);
-      const acb = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
-      const loss = acb - mv;
-      return { ticker: h.ticker, loss, mv };
+      const p    = hPrices[h.ticker];
+      const mv   = (p?.price || 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      const acb  = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
+      return { ticker: h.ticker, loss: acb - mv };
     })
     .filter(h => h.loss > 200)
     .sort((a, b) => b.loss - a.loss);
-
   const totalHarvestLoss = harvestItems.reduce((s, h) => s + h.loss, 0);
+  const harvestSaving    = Math.round(totalHarvestLoss * 0.5 * MAR_RATE);
 
-  // ── 4. Tax calculations
-  const taxOnRealized    = Math.round(realizedYTD * EFF_RATE);
-  const taxOnUnrealized  = Math.round(unrealizedInv * EFF_RATE);
-  const totalTaxExposure = Math.round((realizedYTD + unrealizedInv) * EFF_RATE);
-  const harvestSaving    = Math.round(totalHarvestLoss * EFF_RATE);
+  // ── Days remaining in tax year ────────────────────────────────────────────
+  const daysLeft = Math.ceil((new Date(taxYear, 11, 31) - new Date()) / 86400000);
 
-  // ── 5. Days remaining in tax year
-  const now     = new Date();
-  const dec31   = new Date(now.getFullYear(), 11, 31);
-  const daysLeft = Math.ceil((dec31 - now) / 86400000);
-  const monthsLeft = (daysLeft / 30.4).toFixed(1);
-
-  // ── Render
-  const fmtTax = v => v >= 0 ? `+${fmt$(v)}` : fmt$(v);
-  const row = (label, val, color, note) => `
-    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div>
-        <div style="font-size:12px;color:var(--text2)">${label}</div>
-        ${note ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">${note}</div>` : ''}
-      </div>
+  const row = (label, val, color) => `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--text2)">${label}</div>
       <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${color};flex-shrink:0;padding-left:12px">${val}</div>
     </div>`;
 
-  const status = harvestSaving > 1000
-    ? `<div style="margin-top:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--amber)">⚡ ${fmt$(harvestSaving)} tax saving available — harvest ${harvestItems.slice(0,3).map(h=>h.ticker).join(', ')} before Dec 31. Re-enter after 30 days (superficial loss rule).</div>`
-    : realizedYTD > 5000
-      ? `<div style="margin-top:12px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--blue-bright)">💡 ${fmt$(taxOnRealized)} tax already owed on locked-in gains. No harvest candidates large enough to offset. Timing future dispositions toward lower-income years reduces this.</div>`
-      : `<div style="margin-top:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--green)">✅ Minimal realized gains so far. Stay the course — TFSA/FHSA gains are permanently tax-free; RRSP gains are tax-deferred until withdrawal.</div>`;
+  const harvestNote = harvestSaving > 500
+    ? `<div style="margin-top:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--amber)">⚡ ${fmt$(harvestSaving)} tax saving available — harvest ${harvestItems.slice(0,3).map(h=>h.ticker).join(', ')} before Dec 31. Re-enter after 30 days (superficial loss rule).</div>`
+    : invGains > 2000
+      ? `<div style="margin-top:10px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--blue-bright)">💡 Unrealized gains present in non-reg. Timing future dispositions toward lower-income years reduces overall tax.</div>`
+      : `<div style="margin-top:10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--green)">✅ TFSA/FHSA gains are permanently tax-free. RRSP gains are tax-deferred until withdrawal.</div>`;
 
   el.innerHTML = `
-    <!-- Salary slider controls -->
+    <!-- Salary slider -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase">Gross Salary</span>
@@ -2858,42 +2956,36 @@ function renderTaxProjection(data) {
       <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:4px">
         <span>$30K</span><span style="color:var(--amber)">$57K</span><span style="color:var(--amber)">$102K</span><span style="color:var(--amber)">$150K</span><span>$350K</span>
       </div>
-
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
         <div style="font-family:var(--mono);font-size:10px;color:var(--text3)">
-          RRSP deduction (${currentYear})<br>
-          <span style="font-size:9px;color:var(--text3)">${rrspThisYearTx > 0 ? `${fmt$(rrspThisYearTx)} from transaction log` : 'none logged yet — enter manually'}</span>
+          RRSP deduction (Jan ${taxYear} – Mar 1, ${taxYear+1}) · auto-synced from transaction log
         </div>
-        <input type="number" min="0" max="35000" step="100" value="${rrspDeduction}"
-          placeholder="0"
-          style="font-family:var(--mono);font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text1);border-radius:4px;padding:3px 8px;width:90px;text-align:right"
-          oninput="localStorage.setItem('pp_rrsp_this_year',this.value||0); renderTaxProjection(_lastLiveData||{})"
-          onchange="_syncTaxSettings()">
-      </div>
-
-      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px">
-        <span style="color:var(--text3)">Taxable income after RRSP deduction</span>
-        <span style="font-family:var(--mono);color:var(--text1);font-weight:600">${fmt$(taxableIncome)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px">
-        <span style="color:var(--text3)">Ontario marginal rate → capital gains rate</span>
-        <span style="font-family:var(--mono);color:var(--blue-bright);font-weight:700">${(MAR_RATE*100).toFixed(1)}% → ${(EFF_RATE*100).toFixed(1)}%</span>
+        <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text1);margin-top:3px">
+          ${rrspDeduction > 0 ? fmt$(rrspDeduction) + ' logged' : '— none logged yet'}
+        </div>
       </div>
     </div>
 
-    <!-- Projections table -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">Non-Reg Account · ${daysLeft} days until Dec 31</div>
+    <!-- Projection table -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">${taxYear} Tax Projection · ${province} · ${daysLeft} days until Dec 31</div>
     </div>
-    ${row('Realized gains YTD (locked in)', fmt$(Math.round(realizedYTD)), realizedYTD > 0 ? 'var(--green)' : 'var(--text2)', `Est. tax already owed: ${fmt$(taxOnRealized)}`)}
-    ${row('Unrealized gains (if sold today)', fmt$(Math.round(unrealizedInv)), 'var(--amber)', `Additional tax if fully realized: ${fmt$(taxOnUnrealized)}`)}
-    ${row('Total tax exposure (max scenario)', fmt$(totalTaxExposure), 'var(--red)', 'If all non-reg gains realized in 2026')}
-    ${harvestItems.length ? row(`Harvest loss available (${harvestItems.length} candidates)`, `-${fmt$(Math.round(totalHarvestLoss))}`, 'var(--green)', `Saves ~${fmt$(harvestSaving)} in tax · ${harvestItems.slice(0,3).map(h=>h.ticker+' −'+fmt$(Math.round(h.loss))).join(' · ')}`) : ''}
-    ${status}
+    ${row('Employment income', fmt$(grossSalary), 'var(--text1)')}
+    ${row('RRSP deduction', rrspDeduction > 0 ? '−' + fmt$(rrspDeduction) : '—', 'var(--red)')}
+    ${row('Taxable income', fmt$(taxableIncome), 'var(--text1)')}
+    ${row('Marginal rate (' + province + ')', (MAR_RATE * 100).toFixed(2) + '%', 'var(--blue-bright)')}
+    ${row('Taxes payable', fmt$(taxesPayable), 'var(--red)')}
+    ${row('Taxable capital gains (50% of unrealized)', taxCapGains > 0 ? '+' + fmt$(taxCapGains) : '—', 'var(--amber)')}
+    ${row('Available taxable capital losses (50% of losses)', availCapLosses > 0 ? '−' + fmt$(availCapLosses) : '—', 'var(--green)')}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0">
+      <div style="font-size:13px;font-weight:700;color:var(--text1)">Estimated tax bill</div>
+      <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:var(--red);flex-shrink:0;padding-left:12px">${fmt$(Math.max(0, estimatedBill))}</div>
+    </div>
+    ${harvestNote}
     <div style="margin-top:10px;font-size:10px;color:var(--text3)">
       <b style="color:var(--green)">TFSA</b> permanently tax-free &nbsp;·&nbsp;
       <b style="color:var(--green)">FHSA</b> tax-free on home purchase &nbsp;·&nbsp;
-      <b style="color:var(--amber)">RRSP</b> tax-deferred (income tax on withdrawal at full marginal rate, 100% inclusion)
+      <b style="color:var(--amber)">RRSP</b> tax-deferred (taxed on withdrawal at full marginal rate)
     </div>`;
 }
 
@@ -3020,7 +3112,7 @@ function updateContribRoom() {
   const fhsaRemainLifetime = Math.max(0, fhsaLifetime - fhsaContrib); // $16,000 lifetime still available
   const fhsaUsedPct  = Math.min(100, fhsaContrib / fhsaLifetime * 100);
   document.getElementById('fhsaContribAmt').textContent = '$' + fhsaContrib.toLocaleString('en-CA');
-  document.getElementById('fhsaRoomAmt').textContent = '$0 this year';
+  document.getElementById('fhsaRoomAmt').textContent = '$0';
   document.getElementById('fhsaRoomAmt').className = 'mono amber';
   document.getElementById('fhsaRoomBar').style.width = fhsaUsedPct + '%';
   document.getElementById('fhsaRoomNote').textContent =
@@ -8995,44 +9087,56 @@ function syncMobile(){
       if(unrealSub)unrealSub.textContent='50% incl. → '+_taxFmt+' taxable';
     }
 
-    /* Render mobile-friendly Year-End Tax Projection matching screenshot layout */
+    /* Render mobile-friendly Year-End Tax Projection */
     var projDst=document.getElementById('m-tax-proj-content');
     if(projDst){
       try{
         var _gross=parseInt(localStorage.getItem('pp_gross_salary')||'90000',10);
-        var _yr=new Date().getFullYear().toString();
-        var _rrspTx=(window.getTransactions?getTransactions():[])
-          .filter(function(t){return t.type==='CONTRIBUTION'&&t.account==='RRSP'&&(t.date||'').startsWith(_yr);})
+        var _prov=localStorage.getItem('pp_province')||'Ontario';
+        var _taxYr=new Date().getFullYear();
+        /* RRSP: CRA eligible window = Jan 1 current year → Mar 1 next year (first 60 days rule) */
+        var _rrspWinStart=_taxYr+'-01-01';
+        var _rrspWinEnd=(_taxYr+1)+'-03-01';
+        var _rrspDed=(window.getTransactions?getTransactions():[])
+          .filter(function(t){
+            return t.type==='CONTRIBUTION'&&t.account==='RRSP'
+              &&(t.date||'')>=_rrspWinStart&&(t.date||'')<=_rrspWinEnd;
+          })
           .reduce(function(s,t){return s+(t.amount||0);},0);
-        var _rrspMan=parseFloat(localStorage.getItem('pp_rrsp_this_year')||'0');
-        var _rrspDed=Math.max(_rrspTx,_rrspMan);
         var _taxInc=Math.max(0,_gross-_rrspDed);
-        var _marRate=window._ontarioMarginalRate?_ontarioMarginalRate(_taxInc):0.3148;
-        /* Unrealized investment gains */
+        var _marRate=window._marginalRate?_marginalRate(_taxInc,_prov):
+                     window._ontarioMarginalRate?_ontarioMarginalRate(_taxInc):0.3148;
+        /* Investment unrealized gains (gains only) and losses (losses only) */
         var _hPx=(window._lastLiveData&&_lastLiveData.holdings)||{};
         var _fx=(window._lastLiveData&&_lastLiveData.usdcad)||1.38;
-        var _unreal=0;
+        var _invGains=0,_invLosses=0;
         HOLDINGS_STATIC.filter(function(h){return h.account==='Investment'&&h.ticker&&!h.ticker.startsWith('CASH');})
           .forEach(function(h){
             var p=_hPx[h.ticker];var mv=(p&&p.price||0)*h.shares*(h.ccy==='USD'?_fx:1);
             var acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;
-            _unreal+=Math.max(0,mv-acb);
+            var diff=mv-acb;
+            if(diff>0){_invGains+=diff;}else{_invLosses+=(-diff);}
           });
-        var _capGains=Math.round(_unreal*0.5);
-        /* Estimated tax: effective income tax (marginal*0.60 approximation) + cap gains at marginal */
-        var _taxBill=Math.round(_taxInc*_marRate*0.60+_capGains*_marRate);
+        var _taxCapGains=Math.round(_invGains*0.5);   /* 50% inclusion — matches Unrealized Gain card */
+        var _availCapLoss=Math.round(_invLosses*0.5); /* 50% inclusion of losses */
+        var _taxesPayable=Math.round(_taxInc*_marRate);
+        var _taxBill=Math.max(0,_taxesPayable+_taxCapGains-_availCapLoss);
         var _fmtPct=function(v){return(v*100).toFixed(2)+'%';};
         var _row=function(l,v,c){return'<div class="m-tax-proj-row"><span class="m-tax-proj-l">'+l+'</span><span class="m-tax-proj-v" style="color:'+c+'">'+v+'</span></div>';};
+        var _provShort=_prov.replace('British Columbia','BC').replace('Saskatchewan','SK')
+          .replace('Newfoundland','NL').replace('Nova Scotia','NS').replace('New Brunswick','NB');
         var _html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
           +'<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t2)">Year-End Tax Projection</span>'
-          +'<span style="font-size:9px;color:var(--t3)">'+_yr+' \xB7 Ontario</span></div>'
+          +'<span style="font-size:9px;color:var(--t3)">'+_taxYr+' \xB7 '+_provShort+'</span></div>'
           +_row('Employment income','$'+_gross.toLocaleString('en-CA'),'var(--t1)')
-          +_row('RRSP deduction',(_rrspDed>0?'−$':'—')+(_rrspDed>0?_rrspDed.toLocaleString('en-CA'):''),'var(--red)')
+          +_row('RRSP deduction',(_rrspDed>0?'−$'+_rrspDed.toLocaleString('en-CA'):'—'),'var(--red)')
           +_row('Taxable income','$'+_taxInc.toLocaleString('en-CA'),'var(--t1)')
-          +_row('Marginal rate (Ontario)',_fmtPct(_marRate),'var(--t2)')
-          +_row('Non-reg cap. gains (50% incl.)',(_capGains>0?'+$':'—')+(_capGains>0?_capGains.toLocaleString('en-CA'):''),'var(--amber)')
+          +_row('Marginal rate ('+_provShort+')',_fmtPct(_marRate),'var(--t2)')
+          +_row('Taxes payable','$'+_taxesPayable.toLocaleString('en-CA'),'var(--red)')
+          +_row('Taxable capital gains',(_taxCapGains>0?'+$'+_taxCapGains.toLocaleString('en-CA'):'—'),'var(--amber)')
+          +_row('Available capital losses',(_availCapLoss>0?'−$'+_availCapLoss.toLocaleString('en-CA'):'—'),'var(--green)')
           +'<div class="m-tax-proj-row" style="border-bottom:none;margin-top:4px"><span class="m-tax-proj-l" style="font-weight:700;color:var(--t1)">Estimated tax bill</span><span class="m-tax-proj-v" style="color:var(--red);font-size:13px">$'+_taxBill.toLocaleString('en-CA')+'</span></div>';
-        var _sig=_gross+'|'+_rrspDed+'|'+_capGains;
+        var _sig=_gross+'|'+_rrspDed+'|'+_taxCapGains+'|'+_availCapLoss+'|'+_prov;
         if(projDst.dataset.sig!==_sig){projDst.dataset.sig=_sig;projDst.innerHTML=_html;}
       }catch(e){/* silently skip if not ready */}
     }

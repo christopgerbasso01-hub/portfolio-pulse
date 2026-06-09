@@ -2873,8 +2873,12 @@ function renderTaxProjection(data) {
   const el = document.getElementById('taxProjectionPanel');
   if (!el) return;
 
-  const hPrices = data.holdings || {};
-  const usdcad  = data.usdcad   || 1.38;
+  // Always use the most-recent live data as the price source so desktop and
+  // mobile always compute from the same snapshot — fall back to passed data
+  // only if _lastLiveData hasn't been populated yet.
+  const liveData = window._lastLiveData || data;
+  const hPrices  = liveData.holdings || {};
+  const usdcad   = liveData.usdcad   || 1.38;
 
   // ── Province (from settings, auto-synced across devices) ─────────────────
   const province = localStorage.getItem('pp_province') || 'Ontario';
@@ -2909,9 +2913,12 @@ function renderTaxProjection(data) {
 
   // ── Tax projection rows ───────────────────────────────────────────────────
   const taxesPayable   = Math.round(MAR_RATE * taxableIncome);
-  const taxCapGains    = Math.round(invGains  * 0.5);   // 50% inclusion
+  const taxCapGains    = Math.round(invGains  * 0.5);   // 50% inclusion — matches Unrealized Gain card
   const availCapLosses = Math.round(invLosses * 0.5);   // 50% inclusion
-  const estimatedBill  = taxesPayable + taxCapGains - availCapLosses;
+  // Estimated bill: income tax + tax on net capital gain (MAR_RATE applied so all terms are in tax $)
+  const estimatedBill  = taxesPayable
+    + Math.round(taxCapGains * MAR_RATE)
+    - Math.round(availCapLosses * MAR_RATE);
 
   // ── Tax-loss harvest advisory (secondary) ────────────────────────────────
   const harvestItems = HOLDINGS_STATIC
@@ -9120,7 +9127,10 @@ function syncMobile(){
         var _taxCapGains=Math.round(_invGains*0.5);   /* 50% inclusion — matches Unrealized Gain card */
         var _availCapLoss=Math.round(_invLosses*0.5); /* 50% inclusion of losses */
         var _taxesPayable=Math.round(_taxInc*_marRate);
-        var _taxBill=Math.max(0,_taxesPayable+_taxCapGains-_availCapLoss);
+        /* Estimated bill: income tax + MAR_RATE × net cap gain — all terms in tax dollars */
+        var _taxBill=Math.max(0,_taxesPayable
+          +Math.round(_taxCapGains*_marRate)
+          -Math.round(_availCapLoss*_marRate));
         var _fmtPct=function(v){return(v*100).toFixed(2)+'%';};
         var _row=function(l,v,c){return'<div class="m-tax-proj-row"><span class="m-tax-proj-l">'+l+'</span><span class="m-tax-proj-v" style="color:'+c+'">'+v+'</span></div>';};
         var _provShort=_prov.replace('British Columbia','BC').replace('Saskatchewan','SK')

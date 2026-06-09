@@ -41,7 +41,7 @@ SNAPSHOT_TTL = 95 * 86400   # 95 days (~3 months of daily history)
 # Update USD_BOOK_RATE only after a major rebalancing at a significantly different rate.
 CONTRIBUTIONS_CAD = {
     "TFSA":       44500.0,
-    "Investment": 65000.0,
+    "Investment": 78000.0,
     "FHSA":       24000.0,
     "RRSP":       16132.0,
 }
@@ -49,13 +49,12 @@ REALIZED_GAINS_CAD = 22193
 USD_BOOK_RATE      = 1.3925
 
 # Fallback cash positions — used only if dashboard has never saved cash_positions to KV.
-# Values mirror _CASH_BASE in index.html. Keep in sync when base cash changes.
+# Values reflect current state after June 4 2026 transactions.
 _CASH_FALLBACK = [
     {"ticker": "CASH·USD", "account": "TFSA",       "ccy": "USD", "amount": 344.41},
     {"ticker": "CASH·CAD", "account": "FHSA",       "ccy": "CAD", "amount": 24.34},
-    {"ticker": "CASH·CAD", "account": "Investment", "ccy": "CAD", "amount": 58.99},
-    {"ticker": "CASH·USD", "account": "Investment", "ccy": "USD", "amount": 50.71},
-    {"ticker": "CASH·USD", "account": "RRSP",       "ccy": "USD", "amount": 7685.47},
+    {"ticker": "CASH·USD", "account": "Investment", "ccy": "USD", "amount": 301.38},
+    {"ticker": "CASH·USD", "account": "RRSP",       "ccy": "USD", "amount": 653.26},
 ]
 
 _YF_HEADERS = {

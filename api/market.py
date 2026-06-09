@@ -1,5 +1,6 @@
 from http.server import BaseHTTPRequestHandler
 import json
+import os
 import time
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -12,11 +13,13 @@ _YF_HEADERS = {
 }
 
 # =============================================================================
-# PORTFOLIO HOLDINGS — last updated 2026-06-04
-# New positions: AVGO 22 (Investment), MU 7 (RRSP)
-# cost_basis_total = market_value - unrealized (native currency of holding)
+# FALLBACK HOLDINGS — used only if Vercel KV (user:settings) is unreachable
+# or has never been populated. Under normal operation market.py reads
+# computed_holdings / cash_positions / contributions_cad directly from KV,
+# which is written by the dashboard on every load and every transaction.
+# To add a new position: log it via the dashboard — no code change needed.
 # =============================================================================
-HOLDINGS = [
+_FALLBACK_HOLDINGS = [
     # TFSA
     {"ticker": "FNGU",   "account": "TFSA",       "shares": 495,  "cost_total": 13070.64, "ccy": "USD"},
     {"ticker": "NVDA",   "account": "TFSA",        "shares": 40,   "cost_total": 645.60,   "ccy": "USD"},
@@ -60,30 +63,22 @@ HOLDINGS = [
     {"ticker": "UDOW",   "account": "RRSP",         "shares": 36,   "cost_total": 2554.37,  "ccy": "USD"},
     {"ticker": "FNGU",   "account": "RRSP",         "shares": 56,   "cost_total": 1491.56,  "ccy": "USD"},
     {"ticker": "MU",     "account": "RRSP",         "shares": 7,    "cost_total": 7025.06,  "ccy": "USD"},
-    # Cash positions — updated snapshot 2026-06-04
+    # Fallback cash — these are the base values before any dashboard transactions
     {"ticker": "_CASH_USD", "account": "TFSA",       "shares": 1, "cost_total": 344.41,  "ccy": "USD", "cash": True},
     {"ticker": "_CASH_CAD", "account": "FHSA",       "shares": 1, "cost_total": 24.34,   "ccy": "CAD", "cash": True},
     {"ticker": "_CASH_USD", "account": "Investment", "shares": 1, "cost_total": 301.38,  "ccy": "USD", "cash": True},
     {"ticker": "_CASH_USD", "account": "RRSP",       "shares": 1, "cost_total": 653.26,  "ccy": "USD", "cash": True},
 ]
 
-# Average USD/CAD rate at which USD positions were originally purchased.
-# Back-calculated from Google Sheet FX Conversion Gain/Loss figure.
-# Update this if you significantly rebalance USD holdings at a different rate.
-USD_BOOK_RATE = 1.3925
-
-# Pre-computed total USD cost basis (sum of all USD-denominated holdings).
-# Used for dynamic FX impact calculation.
-USD_COST_BASIS = sum(
-    h["cost_total"] for h in HOLDINGS
-    if h.get("ccy") == "USD" and not h.get("cash")
-)
-
-# Static figures that don't change with market prices.
-# Update REALIZED_GAINS_CAD whenever you close a position.
-# Update DIVIDENDS_CAD whenever you receive a dividend payment.
-REALIZED_GAINS_CAD = 22193
-DIVIDENDS_CAD      = 7399
+# Fallback constants — used only when KV is unavailable
+_FALLBACK_CONTRIBUTIONS_CAD = {
+    "TFSA":       44500.0,
+    "Investment": 78000.0,
+    "FHSA":       24000.0,
+    "RRSP":       16132.0,
+}
+_FALLBACK_REALIZED_GAINS_CAD = 22193
+_FALLBACK_USD_BOOK_RATE      = 1.3925
 
 BENCHMARKS = {
     "sp500":        "^GSPC",
@@ -95,32 +90,76 @@ BENCHMARKS = {
     "treasury_10y": "^TNX",
 }
 
-_cache = {}
-_cache_ts = 0
-CACHE_TTL = 12
+# =============================================================================
+# Vercel KV — read user:settings (written by dashboard on load + every trade)
+# Cached for 5 minutes to avoid a KV round-trip on every 12-second price refresh.
+# =============================================================================
+KV_URL   = os.environ.get("KV_REST_API_URL", "")
+KV_TOKEN = os.environ.get("KV_REST_API_TOKEN", "")
+
+_kv_cache    = {}
+_kv_cache_ts = 0.0
+_KV_TTL      = 300   # 5 minutes
+
+
+def _kv_get_settings() -> dict:
+    """Return user:settings from KV, with a 5-minute in-process cache."""
+    global _kv_cache, _kv_cache_ts
+    now = time.time()
+    if _kv_cache and (now - _kv_cache_ts) < _KV_TTL:
+        return _kv_cache
+    if not KV_URL or not KV_TOKEN:
+        return {}
+    try:
+        r = requests.post(
+            KV_URL,
+            headers={"Authorization": f"Bearer {KV_TOKEN}",
+                     "Content-Type":  "application/json"},
+            json=["GET", "user:settings"],
+            timeout=5,
+        )
+        if not r.ok:
+            return _kv_cache   # return stale on transient error
+        raw = r.json().get("result")
+        if raw is None:
+            return {}
+        settings = json.loads(raw) if isinstance(raw, str) else raw
+        _kv_cache    = settings
+        _kv_cache_ts = now
+        return settings
+    except Exception:
+        return _kv_cache   # return stale on exception
+
+
+# =============================================================================
+# Price fetching
+# =============================================================================
+_price_cache    = {}
+_price_cache_ts = 0.0
+PRICE_CACHE_TTL = 12
 
 
 def _safe_float(val, default=None):
     try:
         f = float(val)
-        return None if (f != f) else f  # NaN check
+        return None if (f != f) else f
     except (TypeError, ValueError):
         return default
 
 
-_fetch_errors = {}   # temporary debug — tracks last error per ticker
+_fetch_errors = {}
+
 
 def _fetch_one(session, ticker):
-    """Fetch current price + previous close from Yahoo Finance chart API."""
     url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
     try:
         r = session.get(url, headers=_YF_HEADERS, timeout=5)
         if not r.ok:
             _fetch_errors[ticker] = f"HTTP {r.status_code}"
             return ticker, None
-        data = r.json()
+        data   = r.json()
         result = data["chart"]["result"][0]
-        meta = result["meta"]
+        meta   = result["meta"]
         closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
         closes = [c for c in closes if c is not None]
         curr = _safe_float(meta.get("regularMarketPrice") or (closes[-1] if closes else None))
@@ -133,13 +172,12 @@ def _fetch_one(session, ticker):
             _fetch_errors[ticker] = "no price in response"
             return ticker, None
         prev = prev or curr
-        # FX pairs (USDCAD=X etc.) need 4 decimal places; equities use 2
         is_fx = ticker.endswith('=X') or ticker.endswith('-CAD') or ticker.endswith('-USD')
-        price_decimals = 4 if is_fx else 2
+        decimals = 4 if is_fx else 2
         return ticker, {
-            "price": round(curr, price_decimals),
-            "prev": round(prev, price_decimals),
-            "change": round(curr - prev, price_decimals),
+            "price":      round(curr, decimals),
+            "prev":       round(prev, decimals),
+            "change":     round(curr - prev, decimals),
             "change_pct": round((curr - prev) / prev * 100, 2),
         }
     except Exception as e:
@@ -147,18 +185,23 @@ def _fetch_one(session, ticker):
         return ticker, None
 
 
-def fetch_prices():
-    global _cache, _cache_ts
+def fetch_prices(extra_tickers: set = None) -> dict:
+    """
+    Fetch live prices for all portfolio tickers + benchmarks.
+    extra_tickers: additional tickers from KV holdings not in _FALLBACK_HOLDINGS.
+    """
+    global _price_cache, _price_cache_ts
     now = time.time()
-    if _cache and (now - _cache_ts) < CACHE_TTL:
-        return _cache
+    # Only use cache if no new extra tickers are being requested
+    if _price_cache and (now - _price_cache_ts) < PRICE_CACHE_TTL and not extra_tickers:
+        return _price_cache
 
-    portfolio_tickers = list({h["ticker"] for h in HOLDINGS if not h.get("cash")})
-    bench_tickers = list(BENCHMARKS.values())
-    all_tickers = portfolio_tickers + bench_tickers
+    base_tickers  = {h["ticker"] for h in _FALLBACK_HOLDINGS if not h.get("cash")}
+    bench_tickers = set(BENCHMARKS.values())
+    all_tickers   = base_tickers | bench_tickers | (extra_tickers or set())
 
     _fetch_errors.clear()
-    prices = {}
+    prices  = {}
     session = requests.Session()
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = {executor.submit(_fetch_one, session, t): t for t in all_tickers}
@@ -167,79 +210,167 @@ def fetch_prices():
             if data:
                 prices[ticker] = data
 
-    _cache = prices
-    _cache_ts = now
+    _price_cache    = prices
+    _price_cache_ts = now
     return prices
 
 
-# True CAD contributions per account — the denominator for all ROI calculations.
-# These match the Google Sheet "Financials" contributions column exactly.
-# Update these whenever you add fresh capital to an account.
-CONTRIBUTIONS_CAD = {
-    "TFSA":       44500.0,
-    "Investment": 78000.0,
-    "FHSA":       24000.0,
-    "RRSP":       16132.0,
-}
+# =============================================================================
+# Portfolio computation
+# =============================================================================
 
-
-def compute_portfolio(prices):
-    usdcad = _safe_float(prices.get("USDCAD=X", {}).get("price")) or 1.37
-    accounts = {"TFSA": 0.0, "FHSA": 0.0, "RRSP": 0.0, "Investment": 0.0}
-    total_value = 0.0
+def _compute_from_kv(equity: list, cash: list, prices: dict, usdcad: float,
+                     contributions: dict, realized_gains: float,
+                     usd_book_rate: float) -> dict:
+    """Compute portfolio totals from KV dynamic holdings + live prices."""
+    accounts     = {k: 0.0 for k in contributions}
+    total_value  = 0.0
     daily_change = 0.0
+    usd_cost     = 0.0
 
-    for h in HOLDINGS:
-        acct = h["account"]
-        shares = h["shares"]
-        cost = h["cost_total"]
-        ccy = h["ccy"]
-
-        if h.get("cash"):
-            val = cost if ccy == "CAD" else cost * usdcad
-            accounts[acct] += val
-            total_value += val
+    for h in equity:
+        ticker = h.get("ticker", "")
+        if not ticker or ticker.upper().startswith("CASH"):
             continue
-
-        p = prices.get(h["ticker"])
+        acct   = h.get("account", "")
+        shares = h.get("shares", 0) or 0
+        ccy    = h.get("ccy", "USD")
+        cost   = h.get("cost_total", 0) or 0
+        if ccy == "USD":
+            usd_cost += cost
+        p = prices.get(ticker)
         if not p:
             continue
-
-        price = p["price"]
-        prev_price = p.get("prev") or price
-        val = price * shares
-        prev_val = prev_price * shares
-
+        price    = p["price"]
+        prev_p   = p.get("prev") or price
+        val      = price * shares
+        prev_val = prev_p * shares
         if ccy == "USD":
-            val *= usdcad
+            val      *= usdcad
             prev_val *= usdcad
-
-        accounts[acct] += val
-        total_value += val
+        if acct in accounts:
+            accounts[acct] += val
+        total_value  += val
         daily_change += val - prev_val
 
-    # Cost basis = true CAD contributions (matches Google Sheet)
-    total_cost = sum(CONTRIBUTIONS_CAD.values())   # 149,632
-    acct_cost  = dict(CONTRIBUTIONS_CAD)
+    for c in cash:
+        acct   = c.get("account", "")
+        ccy    = c.get("ccy", "USD")
+        amount = c.get("amount", 0) or 0
+        val    = amount if ccy == "CAD" else amount * usdcad
+        if acct in accounts:
+            accounts[acct] += val
+        total_value += val
 
-    total_pnl      = total_value - total_cost                          # Total P/L
-    fx_impact      = round(USD_COST_BASIS * (usdcad - USD_BOOK_RATE))  # Dynamic FX drag/boost
-    unrealized     = round(total_pnl - REALIZED_GAINS_CAD - fx_impact) # Unrealized only
-    base_val       = total_value - daily_change if total_value != daily_change else total_value
+    total_cost = sum(contributions.values())
+    total_pnl  = total_value - total_cost
+    fx_impact  = round(usd_cost * (usdcad - usd_book_rate))
+    unrealized = round(total_pnl - realized_gains - fx_impact)
+    base_val   = (total_value - daily_change) if total_value != daily_change else total_value
 
     return {
         "total_value":       round(total_value),
         "total_cost":        round(total_cost),
         "total_pnl":         round(total_pnl),
         "unrealized_gain":   unrealized,
-        "realized_gain":     REALIZED_GAINS_CAD,
+        "realized_gain":     round(realized_gains),
         "fx_impact":         fx_impact,
         "roi_pct":           round(total_pnl / total_cost * 100, 2) if total_cost else 0,
         "daily_change":      round(daily_change),
         "daily_change_pct":  round(daily_change / base_val * 100, 2) if base_val else 0,
         "accounts":          {k: round(v) for k, v in accounts.items()},
-        "account_cost":      {k: round(v) for k, v in acct_cost.items()},
+        "account_cost":      {k: round(v) for k, v in contributions.items()},
     }
+
+
+def _compute_from_fallback(prices: dict, usdcad: float) -> dict:
+    """Fallback: compute from hardcoded _FALLBACK_HOLDINGS when KV is unavailable."""
+    accounts     = {"TFSA": 0.0, "FHSA": 0.0, "RRSP": 0.0, "Investment": 0.0}
+    total_value  = 0.0
+    daily_change = 0.0
+    usd_cost     = 0.0
+
+    for h in _FALLBACK_HOLDINGS:
+        acct   = h["account"]
+        shares = h["shares"]
+        cost   = h["cost_total"]
+        ccy    = h["ccy"]
+
+        if h.get("cash"):
+            val = cost if ccy == "CAD" else cost * usdcad
+            accounts[acct] += val
+            total_value    += val
+            continue
+
+        p = prices.get(h["ticker"])
+        if not p:
+            continue
+
+        if ccy == "USD":
+            usd_cost += cost
+
+        price    = p["price"]
+        prev_p   = p.get("prev") or price
+        val      = price * shares
+        prev_val = prev_p * shares
+        if ccy == "USD":
+            val      *= usdcad
+            prev_val *= usdcad
+
+        accounts[acct] += val
+        total_value    += val
+        daily_change   += val - prev_val
+
+    total_cost = sum(_FALLBACK_CONTRIBUTIONS_CAD.values())
+    total_pnl  = total_value - total_cost
+    fx_impact  = round(usd_cost * (usdcad - _FALLBACK_USD_BOOK_RATE))
+    unrealized = round(total_pnl - _FALLBACK_REALIZED_GAINS_CAD - fx_impact)
+    base_val   = (total_value - daily_change) if total_value != daily_change else total_value
+
+    return {
+        "total_value":       round(total_value),
+        "total_cost":        round(total_cost),
+        "total_pnl":         round(total_pnl),
+        "unrealized_gain":   unrealized,
+        "realized_gain":     _FALLBACK_REALIZED_GAINS_CAD,
+        "fx_impact":         fx_impact,
+        "roi_pct":           round(total_pnl / total_cost * 100, 2) if total_cost else 0,
+        "daily_change":      round(daily_change),
+        "daily_change_pct":  round(daily_change / base_val * 100, 2) if base_val else 0,
+        "accounts":          {k: round(v) for k, v in accounts.items()},
+        "account_cost":      {k: round(v) for k, v in _FALLBACK_CONTRIBUTIONS_CAD.items()},
+    }
+
+
+def compute_portfolio(prices: dict) -> dict:
+    """
+    Compute portfolio metrics + per-account values.
+
+    Priority:
+      1. KV user:settings (computed_holdings / cash_positions / contributions_cad)
+         — always current because the dashboard writes it on every load and trade
+      2. Hardcoded _FALLBACK_HOLDINGS — only used if KV is unreachable or empty
+    """
+    usdcad = _safe_float(prices.get("USDCAD=X", {}).get("price")) or 1.37
+
+    try:
+        settings    = _kv_get_settings()
+        kv_equity   = settings.get("computed_holdings", [])
+        kv_cash     = settings.get("cash_positions", [])
+        kv_contribs = settings.get("contributions_cad")
+        kv_realized = settings.get("realized_gains_cad")
+        kv_rate     = settings.get("usd_book_rate")
+
+        if kv_equity:
+            contribs  = kv_contribs or _FALLBACK_CONTRIBUTIONS_CAD
+            realized  = float(kv_realized) if kv_realized is not None else _FALLBACK_REALIZED_GAINS_CAD
+            book_rate = float(kv_rate)     if kv_rate     is not None else _FALLBACK_USD_BOOK_RATE
+            return _compute_from_kv(kv_equity, kv_cash or [], prices, usdcad,
+                                    contribs, realized, book_rate)
+    except Exception:
+        pass   # fall through to hardcoded
+
+    return _compute_from_fallback(prices, usdcad)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -249,40 +380,58 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        prices = fetch_prices()
+        # ── Determine any extra KV tickers to price-fetch ─────────────────────
+        extra_tickers: set = set()
+        try:
+            settings  = _kv_get_settings()
+            kv_equity = settings.get("computed_holdings", [])
+            base_set  = {h["ticker"] for h in _FALLBACK_HOLDINGS if not h.get("cash")}
+            extra_tickers = {
+                h["ticker"] for h in kv_equity
+                if h.get("ticker")
+                and not h["ticker"].upper().startswith("CASH")
+                and h["ticker"] not in base_set
+            }
+        except Exception:
+            pass
+
+        prices    = fetch_prices(extra_tickers if extra_tickers else None)
         portfolio = compute_portfolio(prices)
 
-        benchmarks = {}
-        for name, ticker in BENCHMARKS.items():
-            if ticker in prices:
-                benchmarks[name] = prices[ticker]
+        # ── Benchmarks ────────────────────────────────────────────────────────
+        benchmarks = {
+            name: prices[ticker]
+            for name, ticker in BENCHMARKS.items()
+            if ticker in prices
+        }
 
-        holdings_prices = {}
-        for h in HOLDINGS:
-            t = h["ticker"]
-            if t in prices:
-                holdings_prices[t] = prices[t]
+        # ── Holdings prices — all fetched tickers except benchmarks ──────────
+        bench_set      = set(BENCHMARKS.values())
+        holdings_prices = {
+            t: p for t, p in prices.items()
+            if t not in bench_set
+        }
 
         resp = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "usdcad": _safe_float(prices.get("USDCAD=X", {}).get("price")) or 1.37,
-            "benchmarks": benchmarks,
-            "holdings": holdings_prices,
-            "portfolio": portfolio,
+            "timestamp":    datetime.now(timezone.utc).isoformat(),
+            "usdcad":       _safe_float(prices.get("USDCAD=X", {}).get("price")) or 1.37,
+            "benchmarks":   benchmarks,
+            "holdings":     holdings_prices,
+            "portfolio":    portfolio,
             "_debug_errors": dict(_fetch_errors) if _fetch_errors else None,
         }
 
         body = json.dumps(resp).encode()
         self.send_response(200)
-        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Type",   "application/json")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "public, max-age=60")
+        self.send_header("Cache-Control",  "public, max-age=0, must-revalidate")
         self._cors()
         self.end_headers()
         self.wfile.write(body)
 
     def _cors(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin",  "*")
         self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
 

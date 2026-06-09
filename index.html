@@ -2090,7 +2090,10 @@ let CONTRIB_STATE           = { ..._CONTRIB_BASE };
 const CONTRIB_TOTAL         = () => Object.values(CONTRIB_STATE).reduce((a, b) => a + b, 0);
 
 // Cache of last API response — used to re-render after a transaction is logged
-let _lastLiveData       = null;
+// IMPORTANT: var (not let/const) so it becomes a window property and is
+// accessible from ALL <script> blocks in the page (let is block-scoped to
+// its own <script> tag in iOS Safari and other mobile browsers).
+var _lastLiveData       = null;
 let _liveUsdcad         = 1.37;
 let _holdingsFirstRender = false; // true after first live data rebuilds summary rows
 
@@ -5093,7 +5096,10 @@ async function fetchMarketData() {
     document.getElementById('headerDate').textContent = `Live as of ${new Date().toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}`;
 
     // Cache for post-transaction re-render
+    // Assign both the var binding AND window property — belt-and-suspenders
+    // so mobile <script> blocks (syncMobile, syncTax) can always read it.
     _lastLiveData = data;
+    window._lastLiveData = data;
     if (data.usdcad) _liveUsdcad = data.usdcad;
 
     // Update widgets & KPIs
@@ -7099,6 +7105,7 @@ async function refreshAfterTx() {
       ..._lastLiveData,
       holdings: { ...(_lastLiveData.holdings || {}), ...extraPrices },
     };
+    window._lastLiveData = _lastLiveData; // keep window property in sync
   }
   renderHoldingsTable(_lastLiveData);
   if (_lastLiveData?.portfolio) {
@@ -9084,7 +9091,7 @@ function syncMobile(){
     var unrealD=document.getElementById('m-tax-unrealized');
     var unrealSub=document.getElementById('m-tax-unrealized-sub');
     if(unrealD&&typeof HOLDINGS_STATIC!=='undefined'){
-      /* Use _lastLiveData directly (let var, NOT window property) */
+      /* _lastLiveData is var (window property) — accessible from any script block */
       var _hPxU=(_lastLiveData&&_lastLiveData.holdings)||{};
       var _fxU=(_lastLiveData&&_lastLiveData.usdcad)||1.38;
       var _pricesRdyU=Object.keys(_hPxU).length>0;
@@ -9123,7 +9130,7 @@ function syncMobile(){
               &&(t.date||'')>=_rrspWinStart&&(t.date||'')<=_rrspWinEnd;
           })
           .reduce(function(s,t){return s+(t.amount||0);},0);
-        /* Live prices — use _lastLiveData directly (let var, NOT window property) */
+        /* _lastLiveData is var (window property) — accessible from any script block */
         var _hPx=(_lastLiveData&&_lastLiveData.holdings)||{};
         var _fx=(_lastLiveData&&_lastLiveData.usdcad)||1.38;
         var _priceCount=Object.keys(_hPx).length;

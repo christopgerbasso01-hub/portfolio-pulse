@@ -101,6 +101,38 @@ _kv_cache    = {}
 _kv_cache_ts = 0.0
 _KV_TTL      = 300   # 5 minutes
 
+_bm_cache    = {}
+_bm_cache_ts = 0.0
+
+
+def _kv_get_benchmark_state() -> dict:
+    """Return benchmark:state from KV (written nightly by snapshot.py), 5-min cache."""
+    global _bm_cache, _bm_cache_ts
+    now = time.time()
+    if _bm_cache and (now - _bm_cache_ts) < _KV_TTL:
+        return _bm_cache
+    if not KV_URL or not KV_TOKEN:
+        return {}
+    try:
+        r = requests.post(
+            KV_URL,
+            headers={"Authorization": f"Bearer {KV_TOKEN}",
+                     "Content-Type":  "application/json"},
+            json=["GET", "benchmark:state"],
+            timeout=5,
+        )
+        if not r.ok:
+            return _bm_cache   # return stale on transient error
+        raw = r.json().get("result")
+        if raw is None:
+            return {}
+        state = json.loads(raw) if isinstance(raw, str) else (raw or {})
+        _bm_cache    = state
+        _bm_cache_ts = now
+        return state
+    except Exception:
+        return _bm_cache   # return stale on exception
+
 
 def _kv_get_settings() -> dict:
     """Return user:settings from KV, with a 5-minute in-process cache."""
@@ -405,6 +437,11 @@ class handler(BaseHTTPRequestHandler):
             if ticker in prices
         }
 
+        # ── Benchmark state (contribution-weighted historical bases) ──────────
+        # Written nightly by snapshot.py; read here so the report can use
+        # live-compounded values instead of frozen hardcoded constants.
+        benchmark_state = _kv_get_benchmark_state() or None
+
         # ── Holdings prices — all fetched tickers except benchmarks ──────────
         bench_set      = set(BENCHMARKS.values())
         holdings_prices = {
@@ -413,12 +450,13 @@ class handler(BaseHTTPRequestHandler):
         }
 
         resp = {
-            "timestamp":    datetime.now(timezone.utc).isoformat(),
-            "usdcad":       _safe_float(prices.get("USDCAD=X", {}).get("price")) or 1.37,
-            "benchmarks":   benchmarks,
-            "holdings":     holdings_prices,
-            "portfolio":    portfolio,
-            "_debug_errors": dict(_fetch_errors) if _fetch_errors else None,
+            "timestamp":      datetime.now(timezone.utc).isoformat(),
+            "usdcad":         _safe_float(prices.get("USDCAD=X", {}).get("price")) or 1.37,
+            "benchmarks":     benchmarks,
+            "benchmark_state": benchmark_state,
+            "holdings":       holdings_prices,
+            "portfolio":      portfolio,
+            "_debug_errors":  dict(_fetch_errors) if _fetch_errors else None,
         }
 
         body = json.dumps(resp).encode()

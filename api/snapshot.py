@@ -320,6 +320,19 @@ def take_snapshot() -> dict:
         week_key = f"snapshot:weekly:{iso_week[0]}-W{iso_week[1]:02d}"
         kv_set(week_key, snapshot, ttl_seconds=10 * 365 * 86400)
 
+    # ── 8. Compound today's benchmark returns into benchmark:state ────────────
+    try:
+        bm_state = _update_benchmark_state(prices, today)
+        kv_set("benchmark:state", bm_state, ttl_seconds=2 * 365 * 86400)
+        print(
+            f"  [snapshot] benchmark_state: "
+            f"sp500={bm_state.get('sp500_val', 0):.0f} "
+            f"tsx={bm_state.get('tsx_val', 0):.0f} "
+            f"nasdaq={bm_state.get('nasdaq_val', 0):.0f}"
+        )
+    except Exception as exc:
+        print(f"  [snapshot] ⚠ Failed to update benchmark_state: {exc}")
+
     print(
         f"  [snapshot] snapshot:{today} | "
         f"total=${portfolio.get('total_value', 0):,.0f} | "
@@ -342,6 +355,48 @@ def get_recent_snapshots(days: int = 8) -> dict:
         if snap:
             result[d] = snap
     return result
+
+
+def _update_benchmark_state(prices: dict, today: str) -> dict:
+    """
+    Compound today's EOD benchmark returns into the stored benchmark_state.
+    Called once per day at market close via take_snapshot().
+
+    benchmark:state holds contribution-weighted values — i.e., what a passive
+    investor would have today if they had deployed the same contributions into
+    each index instead.  Values start from a seeded baseline and compound daily
+    via the EOD snapshot rather than being frozen constants.
+    """
+    try:
+        current = kv_get("benchmark:state") or {}
+    except Exception:
+        current = {}
+
+    # First-time seed: contribution-weighted values at $162,632 total contributions
+    # (scaled from previous hardcoded values 191800/185400/196300 at $149,632).
+    # After this initial seed the values compound nightly and never need manual updates.
+    SEEDS = {
+        "sp500_val":   208478.0,
+        "tsx_val":     201435.0,
+        "nasdaq_val":  213384.0,
+        "ref_contrib": 162632.0,
+    }
+
+    state = dict(current) if current.get("ref_contrib") else dict(SEEDS)
+
+    # YF ticker symbols used by market.py for each benchmark
+    BENCH_TICKERS = {"sp500": "^GSPC", "tsx": "^GSPTSE", "nasdaq": "^IXIC"}
+    VAL_KEYS      = {"sp500": "sp500_val", "tsx": "tsx_val", "nasdaq": "nasdaq_val"}
+
+    for bench, ticker in BENCH_TICKERS.items():
+        key = VAL_KEYS[bench]
+        p   = prices.get(ticker)
+        if p and p.get("change_pct") is not None:
+            old_val = float(state.get(key) or SEEDS[key])
+            state[key] = round(old_val * (1 + p["change_pct"] / 100), 2)
+
+    state["last_updated"] = today
+    return state
 
 
 def compute_weekly_summary(snapshots: dict) -> dict:

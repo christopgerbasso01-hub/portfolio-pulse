@@ -675,26 +675,86 @@ def _extract_education_topic(script: str) -> str:
 # GROQ SCRIPT GENERATION
 # ============================================================
 def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) -> str:
-    models = [GROQ_MODEL, "llama-3.1-8b-instant"]
-    for attempt, model in enumerate(models * 2):
+    """Call Groq with patience for the free-tier per-minute token (TPM) budget.
+
+    The big script-generation prompts momentarily exceed Groq's free-tier TPM
+    limit, which returns HTTP 429 with a Retry-After header. The correct response
+    is to WAIT the server-specified interval on the large 70B model — NOT to flip
+    to the small 8B model, which rejects these prompts with 413 (its per-request
+    cap is lower). The 8B model is therefore used only as a genuine outage
+    fallback (5xx / connection errors), never for rate limits or payload size.
+    This preserves output quality (same model, same prompt) while surviving the
+    free-tier rate window that previously aborted the run.
+    """
+    import time
+    primary      = GROQ_MODEL
+    fallback     = "llama-3.1-8b-instant"
+    max_attempts = 8
+    last_err     = "unknown"
+
+    for attempt in range(max_attempts):
         try:
             r = requests.post(
                 GROQ_URL,
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={"model": model, "messages": [{"role": "user", "content": prompt}],
+                json={"model": primary, "messages": [{"role": "user", "content": prompt}],
                       "max_tokens": max_tokens, "temperature": 0.85},
                 timeout=120,
             )
+
+            # 429 = per-minute token budget hit. Wait it out on the SAME model.
+            if r.status_code == 429:
+                retry_after = r.headers.get("Retry-After") or r.headers.get("retry-after")
+                try:
+                    wait = int(float(retry_after)) if retry_after else 0
+                except (TypeError, ValueError):
+                    wait = 0
+                if wait <= 0:
+                    wait = min(70, 10 * (attempt + 1))
+                wait += 2  # small cushion past the rolling window
+                last_err = "429 rate-limited"
+                print(f"  ⚠ {label} attempt {attempt+1}: 429 on {primary} — waiting {wait}s for TPM window")
+                time.sleep(wait)
+                continue
+
             r.raise_for_status()
             text = r.json()["choices"][0]["message"]["content"].strip()
             if text:
-                print(f"  ✓ {label} with {model} ({len(text.split()):,} words)")
+                print(f"  ✓ {label} with {primary} ({len(text.split()):,} words)")
                 return text
-        except Exception as exc:
+            last_err = "empty response"
+            print(f"  ⚠ {label} attempt {attempt+1}: empty response")
+            time.sleep(min(30, 5 * (attempt + 1)))
+
+        except requests.HTTPError as exc:
+            code = exc.response.status_code if exc.response is not None else None
+            last_err = f"HTTP {code}"
             print(f"  ⚠ {label} attempt {attempt+1} failed: {exc}")
-            if attempt < 3:
-                import time; time.sleep(2 * (attempt + 1))
-    raise RuntimeError(f"All Groq attempts failed for {label}")
+            # Only a Groq-side outage (5xx) justifies trying the smaller model.
+            if code is not None and 500 <= code < 600:
+                try:
+                    r2 = requests.post(
+                        GROQ_URL,
+                        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                        json={"model": fallback, "messages": [{"role": "user", "content": prompt}],
+                              "max_tokens": max_tokens, "temperature": 0.85},
+                        timeout=120,
+                    )
+                    r2.raise_for_status()
+                    text = r2.json()["choices"][0]["message"]["content"].strip()
+                    if text:
+                        print(f"  ✓ {label} with {fallback} (outage fallback, {len(text.split()):,} words)")
+                        return text
+                except Exception as exc2:
+                    print(f"  ⚠ {label} {fallback} outage-fallback also failed: {exc2}")
+            time.sleep(min(30, 5 * (attempt + 1)))
+
+        except Exception as exc:
+            last_err = str(exc)
+            print(f"  ⚠ {label} attempt {attempt+1} failed: {exc}")
+            time.sleep(min(30, 5 * (attempt + 1)))
+
+    raise RuntimeError(f"All Groq attempts failed for {label} (last: {last_err})")
 
 
 def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
@@ -745,6 +805,11 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     portfolio_ctx = _build_portfolio_context(computed_holdings, snaps)
     live_port     = "(see LIVE PORTFOLIO section in portfolio context below)"
 
+    # Brief cooldown to separate from the registry-extraction call that ran just
+    # before this, keeping us clear of the free-tier per-minute token budget.
+    import time
+    time.sleep(20)
+
     print("     Generating Part 1 (Welcome + Recap + Deep Dive 1)...")
     part1 = _groq_call(api_key, SCRIPT_PROMPT_PART1.format(
         today=today, week_range=week, mood=mood,
@@ -757,6 +822,14 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     # Extract a summary of Deep Dive 1 for Part 2 context
     dive1_lines = [l for l in part1.split('\n') if l.strip().startswith(('ALEX:', 'SAM:'))]
     dive1_last  = ' '.join(l[5:].strip() for l in dive1_lines[-6:])[:400]
+
+    # Space out the two large generation calls so we stay under Groq's free-tier
+    # per-minute token budget (the back-to-back calls were the root cause of the
+    # 429 storm that aborted Part 2). This does not affect output — same prompt,
+    # same model — it just lets the rolling TPM window reset first.
+    import time
+    print("     Cooling down 35s to reset Groq TPM window before Part 2...")
+    time.sleep(35)
 
     print("     Generating Part 2 (Deep Dive 2 + Learning Segment + Scenarios + Close)...")
     part2 = _groq_call(api_key, SCRIPT_PROMPT_PART2.format(

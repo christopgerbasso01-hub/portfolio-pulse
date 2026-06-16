@@ -1301,18 +1301,16 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     <div class="chart-container"><canvas id="portfolioValueChart"></canvas></div>
   </div>
 
-  <div style="display:grid;grid-template-columns:3fr 1fr;gap:16px;margin-bottom:16px">
-    <div>
-      <div class="chart-title" id="roiChartTitle">ROI % — All Accounts</div>
-      <div class="chart-container"><canvas id="roiChart"></canvas></div>
-    </div>
-    <div>
-      <div class="chart-title">Allocation by Account</div>
-      <div class="chart-container"><canvas id="acctChart"></canvas></div>
-    </div>
+  <div style="margin-bottom:16px">
+    <div class="chart-title" id="roiChartTitle">ROI % — All Accounts</div>
+    <div class="chart-container"><canvas id="roiChart"></canvas></div>
   </div>
 
-  <div class="grid-3">
+  <div class="grid-4">
+    <div>
+      <div class="chart-title">Allocation by Account</div>
+      <div class="chart-container" style="height:200px"><canvas id="acctChart"></canvas></div>
+    </div>
     <div>
       <div class="chart-title">Sector Breakdown</div>
       <div class="chart-container" style="height:200px"><canvas id="sectorChart"></canvas></div>

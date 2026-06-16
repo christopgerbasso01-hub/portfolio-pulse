@@ -1206,6 +1206,24 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       <div class="hkpi-value amber" id="kpiCashOnHand">—</div>
     </div>
   </div>
+  <div class="header-kpis-2" style="display:flex;justify-content:center;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+    <div class="hkpi">
+      <div class="hkpi-label">Unrealized Gains</div>
+      <div class="hkpi-value green" id="cardUnrealized">—</div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">Realized Gains</div>
+      <div class="hkpi-value green" id="cardRealized">—</div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">Total Dividends</div>
+      <div class="hkpi-value blue" id="cardDividends">—</div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">FX Conversion Impact</div>
+      <div class="hkpi-value red" id="cardFX">—</div>
+    </div>
+  </div>
 </div>
 
 <!-- ================================================================  01: OVERVIEW -->
@@ -1216,27 +1234,27 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   </div>
 
   <!-- Live Market Widget -->
-  <!-- Account Balance Strip — one full-width row per account -->
-  <div id="acctBalanceStrip" style="background:var(--surface2);border:1px solid rgba(139,92,246,.2);border-radius:8px;overflow:hidden;margin-bottom:8px">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-bottom:1px solid var(--border)">
-      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--blue-bright);width:68px;flex-shrink:0">TFSA</span>
-      <span class="mono" style="font-size:14px;font-weight:700" id="abTFSAVal">—</span>
-      <span class="mono" style="font-size:12px;margin-left:auto;padding-left:10px" id="abTFSAChg">—</span>
+  <!-- Account Balance Cards — one card per account -->
+  <div id="acctBalanceStrip" class="grid-4" style="margin-bottom:8px">
+    <div class="card blue-accent">
+      <div class="card-label" style="color:var(--blue-bright)">TFSA</div>
+      <div class="mono" style="font-size:20px;font-weight:700;line-height:1.2" id="abTFSAVal">—</div>
+      <div class="mono" style="font-size:13px;margin-top:6px" id="abTFSAChg">—</div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-bottom:1px solid var(--border)">
-      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--green);width:68px;flex-shrink:0">FHSA</span>
-      <span class="mono" style="font-size:14px;font-weight:700" id="abFHSAVal">—</span>
-      <span class="mono" style="font-size:12px;margin-left:auto;padding-left:10px" id="abFHSAChg">—</span>
+    <div class="card green-accent">
+      <div class="card-label" style="color:var(--green)">FHSA</div>
+      <div class="mono" style="font-size:20px;font-weight:700;line-height:1.2" id="abFHSAVal">—</div>
+      <div class="mono" style="font-size:13px;margin-top:6px" id="abFHSAChg">—</div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-bottom:1px solid var(--border)">
-      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--amber);width:68px;flex-shrink:0">RRSP</span>
-      <span class="mono" style="font-size:14px;font-weight:700" id="abRRSPVal">—</span>
-      <span class="mono" style="font-size:12px;margin-left:auto;padding-left:10px" id="abRRSPChg">—</span>
+    <div class="card amber-accent">
+      <div class="card-label" style="color:var(--amber)">RRSP</div>
+      <div class="mono" style="font-size:20px;font-weight:700;line-height:1.2" id="abRRSPVal">—</div>
+      <div class="mono" style="font-size:13px;margin-top:6px" id="abRRSPChg">—</div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px">
-      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--text3);width:68px;flex-shrink:0">NON-REG</span>
-      <span class="mono" style="font-size:14px;font-weight:700" id="abInvVal">—</span>
-      <span class="mono" style="font-size:12px;margin-left:auto;padding-left:10px" id="abInvChg">—</span>
+    <div class="card" style="border-left:3px solid var(--text3)">
+      <div class="card-label" style="color:var(--text3)">NON-REG</div>
+      <div class="mono" style="font-size:20px;font-weight:700;line-height:1.2" id="abInvVal">—</div>
+      <div class="mono" style="font-size:13px;margin-top:6px" id="abInvChg">—</div>
     </div>
   </div>
 
@@ -1269,28 +1287,6 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     </div>
   </div>
 
-  <div class="grid-4" style="margin-bottom:20px">
-    <div class="card green-accent">
-      <div class="card-label">Unrealized Gains</div>
-      <div class="card-value green" id="cardUnrealized">$103,340</div>
-      <div class="card-sub">Across all accounts</div>
-    </div>
-    <div class="card green-accent">
-      <div class="card-label">Realized Gains</div>
-      <div class="card-value green" id="cardRealized">$22,193</div>
-      <div class="card-sub">Booked profits</div>
-    </div>
-    <div class="card blue-accent">
-      <div class="card-label">Total Dividends</div>
-      <div class="card-value blue" id="cardDividends">—</div>
-      <div class="card-sub">Income collected</div>
-    </div>
-    <div class="card red-accent">
-      <div class="card-label">FX Conversion Impact</div>
-      <div class="card-value red" id="cardFX">-$1,340</div>
-      <div class="card-sub">USD/CAD translation</div>
-    </div>
-  </div>
 
   <div class="chart-filters" id="chartFilters">
     <button class="chart-filter-btn active" onclick="setChartFilter('all',this)">All Accounts</button>
@@ -2357,15 +2353,15 @@ function updateHeaderKPIs(data) {
   // ── Update the four live cards ────────────────────────────────────────────
   const unrealEl = document.getElementById('cardUnrealized');
   unrealEl.textContent = fmt$(Math.round(sumUnrealized));
-  unrealEl.className = `card-value ${colorClass(sumUnrealized)}`;
+  unrealEl.className = `hkpi-value ${colorClass(sumUnrealized)}`;
 
   const realEl = document.getElementById('cardRealized');
   realEl.textContent = fmt$(Math.round(sumRealized));
-  realEl.className = `card-value ${colorClass(sumRealized)}`;
+  realEl.className = `hkpi-value ${colorClass(sumRealized)}`;
 
   const fxEl = document.getElementById('cardFX');
   fxEl.textContent = fmt$(sumFX);
-  fxEl.className = `card-value ${colorClass(sumFX)}`;
+  fxEl.className = `hkpi-value ${colorClass(sumFX)}`;
 
   // Add closed positions' realized gains to sumRealized (full closes move there)
   CLOSED_POSITIONS_STATIC.forEach(h => {
@@ -2374,7 +2370,7 @@ function updateHeaderKPIs(data) {
   // Refresh realized card with updated total
   if (realEl) {
     realEl.textContent = fmt$(Math.round(sumRealized));
-    realEl.className = `card-value ${colorClass(sumRealized)}`;
+    realEl.className = `hkpi-value ${colorClass(sumRealized)}`;
   }
 
   // Total dividends: open + closed positions

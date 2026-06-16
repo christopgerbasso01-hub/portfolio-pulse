@@ -196,9 +196,9 @@ def _fetch_one(session, ticker):
         closes = [c for c in closes if c is not None]
         curr = _safe_float(meta.get("regularMarketPrice") or (closes[-1] if closes else None))
         prev = _safe_float(
-            (closes[-2] if len(closes) >= 2 else None)
-            or meta.get("chartPreviousClose")
+            meta.get("chartPreviousClose")
             or meta.get("previousClose")
+            or (closes[-2] if len(closes) >= 2 else None)
         )
         if not curr:
             _fetch_errors[ticker] = "no price in response"

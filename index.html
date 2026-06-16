@@ -1071,6 +1071,76 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .abr,.br2{background:rgba(255,179,0,.15);color:var(--amber);}
 .abn,.bn2{background:rgba(100,116,139,.2);color:var(--t3);}
 
+/* ============================================================================
+   REFINED TERMINAL — DESKTOP POLISH (desktop only; mobile #m-app untouched)
+   Adds depth, frosted glass, soft glow & larger radii on top of the existing
+   terminal look. No elements removed; data and structure unchanged.
+   ============================================================================ */
+@media(min-width:769px){
+  /* — ambient background: trade the grid for a soft accent glow — */
+  body{background:linear-gradient(180deg,#070e1b 0%,#060b14 45%);}
+  body::before{background-image:radial-gradient(1100px 560px at 72% -12%,rgba(59,130,246,.12),transparent 60%),radial-gradient(820px 460px at 2% 16%,rgba(139,92,246,.07),transparent 55%);}
+
+  /* — frosted live bar + ticker — */
+  .live-bar{background:rgba(8,14,26,.72);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid rgba(255,255,255,.06);}
+  .ticker-strip{background:rgba(8,15,28,.55);border-bottom:1px solid rgba(255,255,255,.05);}
+  .tick-item{border-right:1px solid rgba(255,255,255,.05);}
+
+  /* — header — */
+  .header{background:linear-gradient(180deg,rgba(19,29,48,.9),rgba(12,21,36,.92));border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:24px 28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 24px 48px -28px rgba(0,0,0,.85);}
+  .header-title h1{letter-spacing:.08em;}
+  .header-kpis{gap:0;}
+  .hkpi{padding:6px 20px;border-right:1px solid rgba(255,255,255,.07);}
+  .hkpi:last-child{border-right:none;}
+  .hkpi-label{letter-spacing:.09em;}
+  .hkpi-value{font-size:17px;}
+
+  /* — sections — */
+  .section{background:linear-gradient(180deg,rgba(14,23,38,.86),rgba(11,19,32,.88));border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:22px 26px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 22px 46px -30px rgba(0,0,0,.85);}
+  .section-header{border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:14px;}
+  .section-num{background:linear-gradient(135deg,rgba(59,130,246,.28),rgba(139,92,246,.22));color:#c3d6ff;border:1px solid rgba(99,140,230,.4);}
+  .section-title{color:#e8eefb;letter-spacing:.08em;}
+
+  /* — cards (depth + hover lift) — */
+  .card,.macro-card,.tax-card,.contrib-room-card,.acct-card,.strat-panel{background:linear-gradient(180deg,rgba(21,31,51,.72),rgba(15,24,40,.72));border:1px solid rgba(255,255,255,.07);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;}
+  .card:hover,.macro-card:hover,.tax-card:hover,.acct-card:hover{transform:translateY(-2px);border-color:rgba(99,140,230,.45);box-shadow:0 18px 34px -22px rgba(0,0,0,.9);}
+  /* keep the semantic colored accents (border shorthand above resets them) */
+  .card.green-accent{border-left:3px solid var(--green);}
+  .card.red-accent{border-left:3px solid var(--red);}
+  .card.blue-accent{border-left:3px solid var(--blue-bright);}
+  .card.amber-accent{border-left:3px solid var(--amber);}
+  .market-widget{background:rgba(15,24,40,.55);border:1px solid rgba(255,255,255,.06);border-radius:12px;}
+  .mw-item{border-right:1px solid rgba(255,255,255,.05);}
+
+  /* — controls — */
+  .refresh-btn,.closed-toggle-btn,.clear-btn{border:1px solid rgba(255,255,255,.1);border-radius:9px;background:rgba(255,255,255,.04);}
+  .chart-filter-btn{border-radius:9px;border:1px solid rgba(255,255,255,.08);}
+  .filter-bar input,.filter-bar select{border-radius:9px;border:1px solid rgba(255,255,255,.1);}
+  .tx-fab{background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;box-shadow:0 12px 28px -10px rgba(59,130,246,.7);border-radius:12px;}
+
+  /* ——— LIGHT MODE equivalents ——— */
+  [data-theme="light"] body{background:linear-gradient(180deg,#eef3f9 0%,#f0f4f8 45%);}
+  [data-theme="light"] body::before{background-image:radial-gradient(1100px 560px at 72% -12%,rgba(37,99,235,.08),transparent 60%),radial-gradient(820px 460px at 2% 16%,rgba(124,58,237,.05),transparent 55%);}
+  [data-theme="light"] .live-bar{background:rgba(245,248,252,.78);border-bottom:1px solid rgba(15,23,42,.08);}
+  [data-theme="light"] .ticker-strip{background:rgba(237,241,247,.7);border-bottom:1px solid rgba(15,23,42,.06);}
+  [data-theme="light"] .tick-item{border-right:1px solid rgba(15,23,42,.06);}
+  [data-theme="light"] .header{background:linear-gradient(180deg,#ffffff,#f6f9fd);border:1px solid rgba(15,23,42,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 18px 40px -30px rgba(15,23,42,.25);}
+  [data-theme="light"] .hkpi{border-right:1px solid rgba(15,23,42,.08);}
+  [data-theme="light"] .section{background:#ffffff;border:1px solid rgba(15,23,42,.1);box-shadow:0 18px 40px -30px rgba(15,23,42,.22);}
+  [data-theme="light"] .section-header{border-bottom:1px solid rgba(15,23,42,.08);}
+  [data-theme="light"] .section-num{background:linear-gradient(135deg,rgba(37,99,235,.16),rgba(124,58,237,.12));color:#1d4ed8;border:1px solid rgba(37,99,235,.3);}
+  [data-theme="light"] .section-title{color:#0f172a;}
+  [data-theme="light"] .card,[data-theme="light"] .macro-card,[data-theme="light"] .tax-card,[data-theme="light"] .contrib-room-card,[data-theme="light"] .acct-card,[data-theme="light"] .strat-panel{background:linear-gradient(180deg,#ffffff,#f7fafc);border:1px solid rgba(15,23,42,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.6);}
+  [data-theme="light"] .card:hover,[data-theme="light"] .macro-card:hover,[data-theme="light"] .tax-card:hover,[data-theme="light"] .acct-card:hover{border-color:rgba(37,99,235,.4);box-shadow:0 16px 30px -20px rgba(15,23,42,.28);}
+  [data-theme="light"] .card.green-accent{border-left:3px solid var(--green);}
+  [data-theme="light"] .card.red-accent{border-left:3px solid var(--red);}
+  [data-theme="light"] .card.blue-accent{border-left:3px solid var(--blue-bright);}
+  [data-theme="light"] .card.amber-accent{border-left:3px solid var(--amber);}
+  [data-theme="light"] .market-widget{background:#f7fafc;border:1px solid rgba(15,23,42,.1);}
+  [data-theme="light"] .mw-item{border-right:1px solid rgba(15,23,42,.06);}
+  [data-theme="light"] .refresh-btn,[data-theme="light"] .closed-toggle-btn,[data-theme="light"] .clear-btn{border:1px solid rgba(15,23,42,.12);background:#f1f5f9;}
+}
+
 </style>
 </head>
 <body>

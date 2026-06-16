@@ -183,7 +183,7 @@ _fetch_errors = {}
 
 
 def _fetch_one(session, ticker):
-    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=1d"
     try:
         r = session.get(url, headers=_YF_HEADERS, timeout=5)
         if not r.ok:

@@ -106,7 +106,7 @@ def _safe_float(val, default=None):
 
 def _fetch_price(session, ticker: str):
     """Fetch current price + previous close from Yahoo Finance for a single ticker."""
-    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=1d"
     try:
         r = session.get(url, headers=_YF_HEADERS, timeout=5)
         if not r.ok:
@@ -118,9 +118,9 @@ def _fetch_price(session, ticker: str):
         closes = [c for c in closes if c is not None]
         curr = _safe_float(meta.get("regularMarketPrice") or (closes[-1] if closes else None))
         prev = _safe_float(
-            (closes[-2] if len(closes) >= 2 else None)
-            or meta.get("chartPreviousClose")
+            meta.get("chartPreviousClose")
             or meta.get("previousClose")
+            or (closes[-2] if len(closes) >= 2 else None)
         )
         if not curr:
             return ticker, None

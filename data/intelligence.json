@@ -1,49 +1,49 @@
 {
   "macro": [
     {
-      "title": "US-Iran Deal",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "The recent US-Iran peace deal may lead to decreased oil prices, which could impact the global economy. This deal may also lead to increased trade and cooperation between the two countries, potentially benefiting the global market.",
-      "bull": "The deal could lead to increased trade and cooperation, benefiting the global market.",
-      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 60,
-      "base": "The deal may have a minimal impact on the global economy.",
-      "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 30,
-      "bear": "The deal could lead to increased tensions in the Middle East, negatively impacting the global market.",
-      "bear_estimate": "-$30,000-$40,000 via 3x ETF amplification",
-      "bear_probability": 10
-    },
-    {
-      "title": "Inflation Cycle",
+      "title": "Iran Deal Impact",
       "impact": "MED",
       "confidence": 70,
-      "body": "The current inflation cycle may continue to impact the global economy, potentially leading to increased interest rates and decreased consumer spending.",
-      "bull": "The inflation cycle could lead to increased interest rates, benefiting financial institutions.",
-      "bull_estimate": "+$10,000-$15,000 via CM.TO/RY.TO/BMO.TO",
+      "body": "The US-Iran deal may lead to increased oil supply, potentially reducing prices and impacting inflation. This could influence the Fed's monetary policy decisions, affecting the overall economy and markets.",
+      "bull": "A successful deal could lead to lower oil prices, boosting economic growth and markets.",
+      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
       "bull_probability": 40,
-      "base": "The inflation cycle may have a minimal impact on the global economy.",
-      "base_estimate": "±$2,000 — markets remain stable",
-      "base_probability": 40,
-      "bear": "The inflation cycle could lead to decreased consumer spending, negatively impacting the global market.",
-      "bear_estimate": "-$15,000-$20,000 via 3x leverage amplification",
-      "bear_probability": 20
+      "base": "The deal's impact on oil prices and the economy may be neutral, with minimal effect on the portfolio.",
+      "base_estimate": "±$5,000 — markets grind higher",
+      "base_probability": 30,
+      "bear": "If the deal fails or leads to increased tensions, oil prices may rise, negatively impacting the economy and markets.",
+      "bear_estimate": "-$30,000-$40,000 via 3x ETF amplification",
+      "bear_probability": 30
     },
     {
       "title": "Global Economic Growth",
       "impact": "MED",
       "confidence": 60,
-      "body": "The global economy may continue to grow, potentially leading to increased trade and cooperation between countries.",
-      "bull": "The global economy could continue to grow, benefiting the technology sector.",
-      "bull_estimate": "+$15,000-$20,000 via NVDA/TSM/MSFT",
-      "bull_probability": 50,
-      "base": "The global economy may experience a slowdown, negatively impacting the market.",
-      "base_estimate": "±$5,000 — markets remain stable",
-      "base_probability": 30,
-      "bear": "The global economy could experience a recession, negatively impacting the market.",
-      "bear_estimate": "-$25,000-$30,000 via 3x ETF amplification",
+      "body": "The global economy is expected to continue growing, albeit at a moderate pace. This growth may be driven by technological advancements, trade agreements, and monetary policy decisions.",
+      "bull": "Stronger economic growth could lead to higher corporate earnings, boosting the portfolio's tech holdings.",
+      "bull_estimate": "+$15,000-$25,000 via NVDA, MSFT, and AAPL",
+      "bull_probability": 45,
+      "base": "Moderate economic growth may lead to stable markets, with minimal impact on the portfolio.",
+      "base_estimate": "±$3,000 — markets remain steady",
+      "base_probability": 35,
+      "bear": "Weaker economic growth could lead to lower corporate earnings, negatively impacting the portfolio's tech holdings.",
+      "bear_estimate": "-$20,000-$30,000 via NVDA, MSFT, and AAPL",
       "bear_probability": 20
+    },
+    {
+      "title": "Inflation Cycle",
+      "impact": "LOW",
+      "confidence": 50,
+      "body": "Inflation is expected to remain under control, with the Fed monitoring price pressures and adjusting monetary policy accordingly.",
+      "bull": "Low inflation could lead to lower interest rates, boosting the portfolio's growth-oriented holdings.",
+      "bull_estimate": "+$10,000-$20,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 35,
+      "base": "Stable inflation may lead to stable markets, with minimal impact on the portfolio.",
+      "base_estimate": "±$2,000 — markets remain steady",
+      "base_probability": 40,
+      "bear": "Higher inflation could lead to higher interest rates, negatively impacting the portfolio's growth-oriented holdings.",
+      "bear_estimate": "-$15,000-$25,000 via FNGU/SPXL 3x leverage",
+      "bear_probability": 25
     }
   ],
   "risks": [
@@ -51,212 +51,231 @@
       "title": "3x Leverage Amplification",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The 3x leverage amplification in the portfolio may increase potential gains, but also increases potential losses. This risk is particularly relevant given the current market volatility."
+      "body": "The portfolio's 3x leveraged ETFs amplify both gains and losses, increasing the risk of significant portfolio fluctuations."
     },
     {
       "title": "FX Book Rate Drag",
       "level": "MED",
-      "context": "68% USD exposure ~ $1800/1¢ USD/CAD",
-      "body": "The FX book rate drag may negatively impact the portfolio's returns, particularly if the CAD strengthens against the USD."
+      "context": "68% USD exposure ~ $180K CAD",
+      "body": "The portfolio's USD exposure may be affected by changes in the USD/CAD exchange rate, potentially leading to currency-related losses."
     },
     {
-      "title": "VIX Decay Risk",
+      "title": "Concentration Risk",
       "level": "MED",
-      "context": "VIX > 22",
-      "body": "The VIX decay risk may negatively impact the portfolio's returns, particularly if the VIX remains elevated."
+      "context": "Top 5 holdings ~ 60% of portfolio",
+      "body": "The portfolio's concentration in a few key holdings increases the risk of significant losses if any of these holdings experience a downturn."
     }
   ],
   "news": [
     {
-      "headline": "SpaceX Market Cap Breaches $2.5T",
-      "impact": "HIGH",
+      "headline": "BMW Lowers Profit Outlook",
+      "impact": "MED",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "The SpaceX market cap breach may positively impact the technology sector, particularly for companies like NVDA and TSM.",
-      "exposure": "FNGU ~$87K CAD (3x leverage), SPXL ~$22K CAD",
+      "body": "BMW's lowered profit outlook may impact the automotive sector, potentially affecting holdings like TSLA and BYDDF.",
+      "exposure": "TSLA ~ $8K CAD, BYDDF ~ $5K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 60,
-          "scenario": "The SpaceX market cap breach could lead to increased investor confidence in the technology sector.",
-          "estimate": "+$12,000-$18,000 on leveraged positions"
+          "probability": 30,
+          "scenario": "TSLA and BYDDF outperform the automotive sector, driven by strong demand for electric vehicles.",
+          "estimate": "+$2,000-$4,000 on TSLA and BYDDF"
         },
         {
           "label": "Base",
-          "probability": 30,
-          "scenario": "The SpaceX market cap breach may have a minimal impact on the market.",
-          "estimate": "±$3,000 — minimal net change"
+          "probability": 40,
+          "scenario": "The automotive sector experiences a moderate downturn, with TSLA and BYDDF affected but still performing relatively well.",
+          "estimate": "±$1,000 — TSLA and BYDDF remain stable"
         },
         {
           "label": "Bear",
-          "probability": 10,
-          "scenario": "The SpaceX market cap breach could lead to increased competition in the technology sector, negatively impacting the market.",
-          "estimate": "-$20,000-$30,000 via 3x leverage amplification"
+          "probability": 30,
+          "scenario": "The automotive sector experiences a significant downturn, with TSLA and BYDDF negatively impacted.",
+          "estimate": "-$3,000-$6,000 on TSLA and BYDDF"
+        }
+      ]
+    },
+    {
+      "headline": "Rivian Lays Off Hundreds",
+      "impact": "LOW",
+      "confidence": 60,
+      "category": "Sector & Stock",
+      "body": "Rivian's layoffs may indicate challenges in the electric vehicle sector, potentially affecting holdings like TSLA.",
+      "exposure": "TSLA ~ $8K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 25,
+          "scenario": "TSLA outperforms the electric vehicle sector, driven by strong demand and competitive advantages.",
+          "estimate": "+$1,500-$3,000 on TSLA"
+        },
+        {
+          "label": "Base",
+          "probability": 50,
+          "scenario": "The electric vehicle sector experiences a moderate downturn, with TSLA affected but still performing relatively well.",
+          "estimate": "±$500 — TSLA remains stable"
+        },
+        {
+          "label": "Bear",
+          "probability": 25,
+          "scenario": "The electric vehicle sector experiences a significant downturn, with TSLA negatively impacted.",
+          "estimate": "-$2,000-$4,000 on TSLA"
         }
       ]
     },
     {
       "headline": "Qualcomm in Talks to Acquire Tenstorrent",
       "impact": "MED",
-      "confidence": 60,
+      "confidence": 70,
       "category": "Sector & Stock",
-      "body": "The potential acquisition may positively impact Qualcomm's position in the technology sector, particularly in the AI and semiconductor markets.",
-      "exposure": "QCOM ~$10K CAD",
+      "body": "Qualcomm's potential acquisition of Tenstorrent may indicate a strategic expansion into the AI sector, potentially affecting holdings like QCOM and NVDA.",
+      "exposure": "QCOM ~ $5K CAD, NVDA ~ $20K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 50,
-          "scenario": "The acquisition could lead to increased investor confidence in Qualcomm.",
-          "estimate": "+$5,000-$8,000 on QCOM position"
+          "probability": 40,
+          "scenario": "QCOM and NVDA outperform the AI sector, driven by strong demand and competitive advantages.",
+          "estimate": "+$3,000-$6,000 on QCOM and NVDA"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "The acquisition may have a minimal impact on the market.",
-          "estimate": "±$1,000 — minimal net change"
+          "scenario": "The AI sector experiences a moderate downturn, with QCOM and NVDA affected but still performing relatively well.",
+          "estimate": "±$1,500 — QCOM and NVDA remain stable"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "The acquisition could lead to increased competition in the technology sector, negatively impacting the market.",
-          "estimate": "-$5,000-$8,000 via QCOM position"
-        }
-      ]
-    },
-    {
-      "headline": "Mobileye Targets U.S. Robotaxi Launch in 2027",
-      "impact": "MED",
-      "confidence": 60,
-      "category": "Sector & Stock",
-      "body": "The Mobileye robotaxi launch may positively impact the technology sector, particularly for companies like NVDA and TSM.",
-      "exposure": "NVDA ~$20K CAD, TSM ~$15K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 50,
-          "scenario": "The robotaxi launch could lead to increased investor confidence in the technology sector.",
-          "estimate": "+$8,000-$12,000 on NVDA and TSM positions"
-        },
-        {
-          "label": "Base",
           "probability": 30,
-          "scenario": "The robotaxi launch may have a minimal impact on the market.",
-          "estimate": "±$2,000 — minimal net change"
-        },
-        {
-          "label": "Bear",
-          "probability": 20,
-          "scenario": "The robotaxi launch could lead to increased competition in the technology sector, negatively impacting the market.",
-          "estimate": "-$8,000-$12,000 via NVDA and TSM positions"
+          "scenario": "The AI sector experiences a significant downturn, with QCOM and NVDA negatively impacted.",
+          "estimate": "-$4,000-$8,000 on QCOM and NVDA"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "NIO",
+      "ticker": "NVIDIA (NVDA) — add to existing position",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "NIO is a leading electric vehicle manufacturer in China, with a strong brand and growing sales. The company has a significant presence in the technology sector and may benefit from the growing demand for electric vehicles.",
-      "entry": "Entry price range: $20-$25"
+      "thesis": "NVIDIA's strong position in the AI sector, combined with its growing demand for graphics cards, makes it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $500-$600"
     },
     {
-      "ticker": "SNOW",
-      "action": "WATCH",
+      "ticker": "Alphabet (GOOGL) — new position",
+      "action": "NEW",
       "account": "Investment",
-      "thesis": "Snowflake is a leading cloud-based data warehousing company, with a strong growth trajectory and increasing demand for its services. The company may benefit from the growing demand for cloud-based solutions and data analytics.",
-      "entry": "Monitor for entry on a pullback to $200-$220"
+      "thesis": "Alphabet's diversified business model, including Google Search, YouTube, and Cloud, makes it a stable and attractive addition to the portfolio.",
+      "entry": "Entry price range: $2,500-$3,000"
+    },
+    {
+      "ticker": "Shopify (SHOP) — speculative position",
+      "action": "SPECULATIVE",
+      "account": "Investment",
+      "thesis": "Shopify's growing e-commerce platform and expanding services make it a speculative but potentially high-growth addition to the portfolio.",
+      "entry": "Entry price range: $500-$600"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of technology, financial, and energy stocks"
+      "text": "Diversified portfolio with a mix of growth and value holdings"
     },
     {
       "ticker": "NVDA",
-      "text": "Strong position in NVIDIA, a leading technology company with a growing presence in the AI and semiconductor markets"
+      "text": "Strong position in the AI sector with NVIDIA"
     },
     {
-      "ticker": "FNGU",
-      "text": "3x leverage amplification in the FNGU position, potentially increasing gains in a bull market"
+      "ticker": "MSFT",
+      "text": "Stable and growing holding in Microsoft"
     },
     {
-      "ticker": "CM.TO",
-      "text": "Strong position in Canadian banks, with a stable and growing dividend yield"
+      "ticker": "AAPL",
+      "text": "Established and profitable holding in Apple"
     },
     {
       "ticker": null,
-      "text": "Tax-efficient portfolio with a mix of RRSP and TFSA accounts"
+      "text": "Tax-efficient use of RRSP and TFSA accounts"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "High concentration of technology stocks, potentially increasing risk in a downturn"
+      "text": "High concentration of holdings in the tech sector"
     },
     {
       "ticker": "TSLA",
-      "text": "Volatility in the TSLA position, potentially impacting the portfolio's returns"
+      "text": "Volatility and valuation concerns with Tesla"
     },
     {
-      "ticker": "GBTC",
-      "text": "Exposure to Bitcoin, potentially increasing risk in a downturn"
-    },
-    {
-      "ticker": null,
-      "text": "FX book rate drag, potentially negatively impacting the portfolio's returns"
+      "ticker": "BYDDF",
+      "text": "Limited liquidity and regulatory risks with BYD"
     },
     {
       "ticker": null,
-      "text": "VIX decay risk, potentially negatively impacting the portfolio's returns"
+      "text": "Currency risk due to USD exposure"
+    },
+    {
+      "ticker": null,
+      "text": "Potential for interest rate changes to impact portfolio"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the US-Iran deal and its impact on the global economy"
+      "text": "Monitor and adjust the portfolio's sector allocation to maintain a balanced mix of growth and value holdings"
     },
     {
       "num": "02",
-      "text": "Adjust the portfolio's leverage and risk exposure based on market conditions"
+      "text": "Consider adding to existing positions in strong performers like NVIDIA and Microsoft"
     },
     {
       "num": "03",
-      "text": "Rebalance the portfolio to maintain a diversified mix of stocks and sectors"
+      "text": "Keep a close eye on the portfolio's cash allocation and consider deploying excess cash into new positions"
+    },
+    {
+      "num": "04",
+      "text": "Review and adjust the portfolio's stop-loss levels to manage risk and protect gains"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to invest in the technology sector, with a focus on AI and semiconductor stocks"
+      "text": "Continue to diversify the portfolio by adding new holdings in different sectors and geographies"
     },
     {
       "num": "02",
-      "text": "Diversify the portfolio's energy exposure, potentially adding renewable energy stocks"
+      "text": "Consider increasing the portfolio's allocation to dividend-paying stocks to generate regular income"
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's tax efficiency and adjust as needed to minimize tax liabilities"
+      "text": "Monitor and adjust the portfolio's currency exposure to minimize the impact of exchange rate fluctuations"
+    },
+    {
+      "num": "04",
+      "text": "Review and adjust the portfolio's long-term investment strategy to ensure it remains aligned with the investor's goals and risk tolerance"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Maintain a long-term focus on the technology sector, with a growing presence in AI and semiconductor stocks"
+      "text": "Maintain a long-term perspective and avoid making emotional decisions based on short-term market fluctuations"
     },
     {
       "num": "02",
-      "text": "Continue to invest in the Canadian market, with a focus on dividend-paying stocks"
+      "text": "Continue to educate oneself on investing and stay up-to-date with market trends and developments"
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's overall risk exposure and adjust as needed to maintain a balanced risk profile"
+      "text": "Consider tax implications and optimize the portfolio's tax efficiency to minimize tax liabilities"
+    },
+    {
+      "num": "04",
+      "text": "Review and adjust the portfolio's estate planning and wealth transfer strategy to ensure it remains aligned with the investor's goals and objectives"
     }
   ],
-  "daily_outlook": "The portfolio is well-positioned for the current market conditions, with a diversified mix of stocks and sectors. However, the high concentration of technology stocks and the potential for a downturn in the market may impact the portfolio's returns.",
+  "daily_outlook": "The portfolio is well-diversified and positioned for long-term growth, but may experience short-term volatility due to market fluctuations. It is essential to continue monitoring and adjusting the portfolio to maintain a balanced mix of growth and value holdings.",
   "market_mood": "risk-on",
-  "generated_at": "2026-06-16T16:01:25.393870+00:00",
+  "generated_at": "2026-06-16T20:01:13.903261+00:00",
   "generated_date": "June 16, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []

@@ -1,262 +1,262 @@
 {
   "macro": [
     {
-      "title": "Fed Policy",
-      "impact": "MED",
+      "title": "Iran Deal Impact",
+      "impact": "HIGH",
       "confidence": 80,
-      "body": "The recent hawkish Fed signals have lifted the dollar and boosted rate hike bets, which may impact the portfolio's USD-denominated holdings. The Fed's stance on inflation and economic growth will be crucial in determining the portfolio's performance.",
-      "bull": "A dovish Fed pivot could lead to a rally in the portfolio's tech holdings, such as NVDA and MSFT.",
+      "body": "The recent US-Iran agreement may lead to increased oil supply, potentially depressing prices and affecting the global economy. This could have a significant impact on the portfolio's energy holdings. The agreement may also lead to a decrease in geopolitical tensions, which could positively impact the market.",
+      "bull": "A decrease in oil prices could lead to increased consumer spending, boosting the economy and the portfolio's tech holdings.",
       "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 30,
-      "base": "The current Fed policy is likely to maintain the status quo, with minimal impact on the portfolio.",
+      "bull_probability": 40,
+      "base": "The agreement may have a minimal impact on the portfolio, with oil prices remaining stable and the economy continuing to grow at a moderate pace.",
       "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 50,
-      "bear": "A hawkish Fed could lead to a decline in the portfolio's tech holdings, such as NVDA and MSFT.",
-      "bear_estimate": "-$25,000-$35,000 via 3x ETF amplification",
-      "bear_probability": 20
+      "base_probability": 30,
+      "bear": "An increase in oil supply could lead to a decrease in oil prices, negatively impacting the portfolio's energy holdings and the overall market.",
+      "bear_estimate": "-$25,000-$40,000 via 3x ETF amplification",
+      "bear_probability": 30
     },
     {
-      "title": "Inflation",
-      "impact": "LOW",
-      "confidence": 60,
-      "body": "The recent decline in oil prices due to the Iran ceasefire deal may lead to lower inflation, which could positively impact the portfolio's bond holdings. However, the impact is expected to be minimal.",
-      "bull": "Lower inflation could lead to a rally in the portfolio's bond holdings, such as ENB.TO.",
-      "bull_estimate": "+$5,000-$10,000 via bond holdings",
-      "bull_probability": 40,
-      "base": "The current inflation rate is likely to remain stable, with minimal impact on the portfolio.",
-      "base_estimate": "±$1,000 — minimal net change",
-      "base_probability": 50,
-      "bear": "Higher inflation could lead to a decline in the portfolio's bond holdings, such as ENB.TO.",
-      "bear_estimate": "-$5,000-$10,000 via bond holdings",
-      "bear_probability": 10
+      "title": "Fed Policy",
+      "impact": "MED",
+      "confidence": 70,
+      "body": "The expected hawkish Fed policy may lead to increased interest rates, affecting the portfolio's tech holdings and the overall market. This could lead to a decrease in consumer spending and a slowdown in economic growth.",
+      "bull": "A hawkish Fed policy may lead to a decrease in inflation, positively impacting the portfolio's tech holdings and the overall market.",
+      "bull_estimate": "+$15,000-$25,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 35,
+      "base": "The Fed policy may have a minimal impact on the portfolio, with interest rates remaining stable and the economy continuing to grow at a moderate pace.",
+      "base_estimate": "±$3,000 — markets remain stable",
+      "base_probability": 40,
+      "bear": "A hawkish Fed policy may lead to a decrease in consumer spending, negatively impacting the portfolio's tech holdings and the overall market.",
+      "bear_estimate": "-$20,000-$35,000 via 3x ETF amplification",
+      "bear_probability": 25
     },
     {
       "title": "Global Economic Growth",
-      "impact": "MED",
-      "confidence": 70,
-      "body": "The recent Iran ceasefire deal may lead to increased global economic growth, which could positively impact the portfolio's holdings in companies with international exposure, such as AAPL and QCOM.",
-      "bull": "Increased global economic growth could lead to a rally in the portfolio's holdings in companies with international exposure, such as AAPL and QCOM.",
-      "bull_estimate": "+$15,000-$25,000 via AAPL and QCOM",
-      "bull_probability": 35,
-      "base": "The current global economic growth rate is likely to remain stable, with minimal impact on the portfolio.",
-      "base_estimate": "±$5,000 — markets grind higher",
+      "impact": "LOW",
+      "confidence": 60,
+      "body": "The global economy is expected to continue growing at a moderate pace, with some potential for slowdown due to geopolitical tensions and trade disputes. This may have a minimal impact on the portfolio.",
+      "bull": "A strong global economy may lead to increased consumer spending, positively impacting the portfolio's tech holdings.",
+      "bull_estimate": "+$10,000-$20,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 30,
+      "base": "The global economy may continue to grow at a moderate pace, with minimal impact on the portfolio.",
+      "base_estimate": "±$2,000 — markets remain stable",
       "base_probability": 50,
-      "bear": "Decreased global economic growth could lead to a decline in the portfolio's holdings in companies with international exposure, such as AAPL and QCOM.",
-      "bear_estimate": "-$15,000-$25,000 via AAPL and QCOM",
-      "bear_probability": 15
+      "bear": "A slowdown in global economic growth may lead to a decrease in consumer spending, negatively impacting the portfolio's tech holdings.",
+      "bear_estimate": "-$15,000-$30,000 via 3x ETF amplification",
+      "bear_probability": 20
     }
   ],
   "risks": [
     {
-      "title": "Leverage Risk",
+      "title": "3x Leverage Amplification",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's high leverage through FNGU, SPXL, and UDOW amplifies both gains and losses, making it vulnerable to market volatility."
+      "body": "The portfolio's 3x leveraged ETFs (FNGU, SPXL, UDOW) amplify both gains and losses, increasing the risk of significant portfolio fluctuations."
     },
     {
-      "title": "FX Risk",
+      "title": "FX Book Rate Drag",
       "level": "MED",
-      "context": "68% USD exposure ~ $180K CAD",
-      "body": "The portfolio's significant USD exposure makes it susceptible to fluctuations in the USD/CAD exchange rate, which could impact the portfolio's value."
+      "context": "68% USD exposure ~ $1800/1¢ USD/CAD",
+      "body": "The portfolio's significant USD exposure may lead to FX losses if the CAD strengthens against the USD."
     },
     {
       "title": "Concentration Risk",
-      "level": "MED",
+      "level": "LOW",
       "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's concentration in a few holdings, such as NVDA, FNGU, and SPXL, makes it vulnerable to significant losses if any of these holdings experience a decline."
+      "body": "The portfolio's concentration in a few key holdings (NVDA, FNGU, SPXL, AVGO, MSFT) may increase the risk of significant losses if any of these holdings experience a downturn."
     }
   ],
   "news": [
     {
-      "headline": "Oil falls to lowest since start of Iran war",
+      "headline": "Nvidia CFO Warns AMD and Intel Investors",
       "impact": "MED",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "The decline in oil prices may positively impact the portfolio's holdings in companies with exposure to the energy sector, such as ENB.TO.",
-      "exposure": "ENB.TO ~ $10K CAD",
+      "body": "Nvidia's CFO has warned AMD and Intel investors about the company's strong competitive position, potentially impacting the portfolio's NVDA holding.",
+      "exposure": "NVDA ~ $40K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 40,
-          "scenario": "Lower oil prices lead to increased demand for energy stocks, positively impacting ENB.TO.",
-          "estimate": "+$2,000-$5,000 via ENB.TO"
-        },
-        {
-          "label": "Base",
-          "probability": 50,
-          "scenario": "The decline in oil prices has a minimal impact on the portfolio.",
-          "estimate": "±$1,000 — minimal net change"
-        },
-        {
-          "label": "Bear",
-          "probability": 10,
-          "scenario": "Lower oil prices lead to decreased demand for energy stocks, negatively impacting ENB.TO.",
-          "estimate": "-$2,000-$5,000 via ENB.TO"
-        }
-      ]
-    },
-    {
-      "headline": "Nvidia CFO warns AMD and Intel investors",
-      "impact": "HIGH",
-      "confidence": 90,
-      "category": "Sector & Stock",
-      "body": "Nvidia's CFO warning may positively impact the portfolio's holdings in NVDA, as it suggests increased competition in the AI CPU market.",
-      "exposure": "NVDA ~ $30K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 50,
-          "scenario": "Nvidia's warning leads to increased investor confidence in NVDA, positively impacting the stock price.",
-          "estimate": "+$10,000-$20,000 via NVDA"
+          "probability": 45,
+          "scenario": "Nvidia's strong competitive position leads to increased market share and revenue growth.",
+          "estimate": "+$8,000-$12,000 on NVDA holding"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "The warning has a minimal impact on the portfolio.",
-          "estimate": "±$5,000 — minimal net change"
+          "scenario": "Nvidia's competitive position remains stable, with minimal impact on the portfolio.",
+          "estimate": "±$2,000 — NVDA remains stable"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "The warning leads to decreased investor confidence in NVDA, negatively impacting the stock price.",
-          "estimate": "-$10,000-$20,000 via NVDA"
+          "probability": 25,
+          "scenario": "Nvidia's competitive position weakens, leading to decreased market share and revenue growth.",
+          "estimate": "-$6,000-$10,000 on NVDA holding"
         }
       ]
     },
     {
-      "headline": "Apple CEO warns of product price increases",
+      "headline": "Accenture Forecast Takes Hit from Iran War",
+      "impact": "LOW",
+      "confidence": 60,
+      "category": "Sector & Stock",
+      "body": "Accenture's forecast has been negatively impacted by the Iran war, potentially affecting the portfolio's tech holdings.",
+      "exposure": "Tech holdings ~ $60K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 20,
+          "scenario": "The Iran war has a minimal impact on the portfolio's tech holdings.",
+          "estimate": "+$2,000-$4,000 on tech holdings"
+        },
+        {
+          "label": "Base",
+          "probability": 50,
+          "scenario": "The Iran war leads to a decrease in tech spending, negatively impacting the portfolio's tech holdings.",
+          "estimate": "-$4,000-$8,000 on tech holdings"
+        },
+        {
+          "label": "Bear",
+          "probability": 30,
+          "scenario": "The Iran war leads to a significant decrease in tech spending, severely impacting the portfolio's tech holdings.",
+          "estimate": "-$10,000-$15,000 on tech holdings"
+        }
+      ]
+    },
+    {
+      "headline": "Apple CEO Warns of Product Price Increases",
       "impact": "MED",
       "confidence": 70,
       "category": "Sector & Stock",
-      "body": "Apple's warning may negatively impact the portfolio's holdings in AAPL, as it suggests decreased demand for Apple products.",
+      "body": "Apple's CEO has warned of potential product price increases, potentially impacting the portfolio's AAPL holding.",
       "exposure": "AAPL ~ $15K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 30,
-          "scenario": "Apple's warning leads to increased investor confidence in AAPL, as it suggests the company is taking steps to maintain profitability.",
-          "estimate": "+$5,000-$10,000 via AAPL"
+          "probability": 35,
+          "scenario": "Apple's product price increases lead to increased revenue growth.",
+          "estimate": "+$3,000-$6,000 on AAPL holding"
         },
         {
           "label": "Base",
-          "probability": 50,
-          "scenario": "The warning has a minimal impact on the portfolio.",
-          "estimate": "±$2,000 — minimal net change"
+          "probability": 40,
+          "scenario": "Apple's product price increases have a minimal impact on the portfolio.",
+          "estimate": "±$1,500 — AAPL remains stable"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "The warning leads to decreased investor confidence in AAPL, negatively impacting the stock price.",
-          "estimate": "-$5,000-$10,000 via AAPL"
+          "probability": 25,
+          "scenario": "Apple's product price increases lead to decreased sales and revenue growth.",
+          "estimate": "-$4,000-$8,000 on AAPL holding"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "SHEL",
+      "ticker": "ASML",
       "action": "NEW",
       "account": "RRSP",
-      "thesis": "Shell's recent announcement of selling its wind farms and building new energy infrastructure may positively impact the stock price, making it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $20-$25"
+      "thesis": "ASML is a leading provider of semiconductor manufacturing equipment, and its stock has been impacted by the US-Iran agreement. The company's strong competitive position and growth prospects make it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $500-$600"
     },
     {
-      "ticker": "IBKR",
+      "ticker": "CRWD",
       "action": "ADD",
       "account": "Investment",
-      "thesis": "Interactive Brokers' recent announcement of expanding its services may positively impact the stock price, making it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $50-$60"
+      "thesis": "CrowdStrike is a leading provider of cybersecurity solutions, and its stock has been impacted by the Iran war. The company's strong growth prospects and competitive position make it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $150-$200"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of tech, finance, and energy holdings"
-    },
-    {
-      "ticker": "NVDA",
-      "text": "Strong growth potential in the AI CPU market"
-    },
-    {
-      "ticker": "FNGU",
-      "text": "High-growth potential through 3x leverage"
-    },
-    {
-      "ticker": "ENB.TO",
-      "text": "Stable dividend income from energy sector holdings"
+      "text": "The portfolio's tax-efficient structure, with a focus on RRSP and TFSA accounts, helps to minimize tax liabilities."
     },
     {
       "ticker": null,
-      "text": "Tax-efficient portfolio structure with RRSP and TFSA accounts"
+      "text": "The portfolio's diversification across various asset classes and sectors helps to reduce risk."
+    },
+    {
+      "ticker": "NVDA",
+      "text": "Nvidia's strong competitive position and growth prospects make it a valuable holding in the portfolio."
+    },
+    {
+      "ticker": "MSFT",
+      "text": "Microsoft's strong competitive position and growth prospects make it a valuable holding in the portfolio."
+    },
+    {
+      "ticker": "AAPL",
+      "text": "Apple's strong brand and competitive position make it a valuable holding in the portfolio."
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "High leverage through FNGU, SPXL, and UDOW amplifies both gains and losses"
+      "text": "The portfolio's concentration in a few key holdings increases the risk of significant losses if any of these holdings experience a downturn."
     },
     {
-      "ticker": "AAPL",
-      "text": "Decreased demand for Apple products due to price increases"
+      "ticker": "FNGU",
+      "text": "The portfolio's 3x leveraged ETFs amplify both gains and losses, increasing the risk of significant portfolio fluctuations."
     },
     {
-      "ticker": "NVDA",
-      "text": "Increased competition in the AI CPU market from AMD and Intel"
+      "ticker": "SPXL",
+      "text": "The portfolio's 3x leveraged ETFs amplify both gains and losses, increasing the risk of significant portfolio fluctuations."
     },
     {
-      "ticker": "ENB.TO",
-      "text": "Volatility in the energy sector due to geopolitical events"
+      "ticker": "UDOW",
+      "text": "The portfolio's 3x leveraged ETFs amplify both gains and losses, increasing the risk of significant portfolio fluctuations."
     },
     {
       "ticker": null,
-      "text": "Concentration risk in top 5 holdings"
+      "text": "The portfolio's significant USD exposure may lead to FX losses if the CAD strengthens against the USD."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor FNGU and SPXL for potential rebalancing opportunities"
+      "text": "Monitor the portfolio's 3x leveraged ETFs and consider reducing exposure if volatility increases."
     },
     {
       "num": "02",
-      "text": "Keep an eye on NVDA's competition in the AI CPU market"
+      "text": "Consider adding to the portfolio's tech holdings, such as NVDA or MSFT, if their prices decline."
     },
     {
       "num": "03",
-      "text": "Consider adding to ENB.TO if oil prices decline further"
+      "text": "Keep the portfolio's cash allocation at a minimum, as the current market conditions favor equity investments."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Diversify the portfolio by adding new holdings in the finance and energy sectors"
+      "text": "Consider diversifying the portfolio's holdings across various asset classes and sectors to reduce risk."
     },
     {
       "num": "02",
-      "text": "Consider reducing leverage through FNGU, SPXL, and UDOW"
+      "text": "Monitor the portfolio's tax liabilities and consider tax-loss harvesting to minimize tax payments."
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's concentration risk and consider rebalancing"
+      "text": "Consider adding to the portfolio's international holdings, such as ASML or CRWD, to take advantage of growth opportunities outside of North America."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Continue to hold NVDA for its strong growth potential in the AI CPU market"
+      "text": "Consider increasing the portfolio's allocation to growth-oriented investments, such as tech or biotech, to take advantage of long-term growth opportunities."
     },
     {
       "num": "02",
-      "text": "Consider adding to the portfolio's energy sector holdings for long-term growth"
+      "text": "Monitor the portfolio's dividend income and consider adding to dividend-paying stocks, such as CM or RY, to increase income generation."
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's tax efficiency and consider adjustments as needed"
+      "text": "Consider adding to the portfolio's alternative investments, such as real estate or private equity, to diversify the portfolio and increase returns."
     }
   ],
-  "daily_outlook": "The portfolio is expected to remain volatile due to the high leverage and concentration risk. However, the diversified mix of holdings and tax-efficient structure should help mitigate potential losses.",
+  "daily_outlook": "The portfolio's outlook remains positive, with the potential for continued growth in the tech and growth-oriented sectors. However, the portfolio's concentration in a few key holdings and significant USD exposure increase the risk of significant losses if any of these holdings experience a downturn.",
   "market_mood": "risk-on",
-  "generated_at": "2026-06-18T14:15:43.472552+00:00",
+  "generated_at": "2026-06-18T20:01:13.549318+00:00",
   "generated_date": "June 18, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []

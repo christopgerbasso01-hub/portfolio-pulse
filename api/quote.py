@@ -54,6 +54,20 @@ def _fetch_one(session, ticker):
         if not curr:
             return ticker, None
         prev = prev or curr
+        # If the last trade timestamp is not from today (holiday / weekend),
+        # no trading has occurred today — zero out the daily change.
+        last_trade_ts = meta.get("regularMarketTime")
+        if last_trade_ts:
+            try:
+                from datetime import datetime, timezone, timedelta
+                now_utc = datetime.now(timezone.utc)
+                et_offset = -4 if 3 <= now_utc.month <= 11 else -5
+                today_et = (now_utc + timedelta(hours=et_offset)).date()
+                trade_dt_et = (datetime.fromtimestamp(last_trade_ts, tz=timezone.utc) + timedelta(hours=et_offset)).date()
+                if trade_dt_et != today_et:
+                    prev = curr
+            except Exception:
+                pass
         is_fx = ticker.endswith("=X") or ticker.endswith("-CAD") or ticker.endswith("-USD")
         dp = 4 if is_fx else 2
         return ticker, {

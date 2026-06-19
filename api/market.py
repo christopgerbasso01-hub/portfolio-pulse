@@ -204,6 +204,23 @@ def _fetch_one(session, ticker):
             _fetch_errors[ticker] = "no price in response"
             return ticker, None
         prev = prev or curr
+        # If the last trade timestamp is not from today (holiday / weekend),
+        # no trading has occurred today — zero out the daily change.
+        last_trade_ts = meta.get("regularMarketTime")
+        if last_trade_ts:
+            try:
+                # Use US/Eastern as the reference timezone for market date
+                from datetime import timedelta
+                # Yahoo regularMarketTime is UTC epoch; shift to ET (UTC-4 DST / UTC-5 STD)
+                # Use a simple offset: if month 3-11 assume EDT (-4h), else EST (-5h)
+                now_utc = datetime.now(timezone.utc)
+                et_offset = -4 if 3 <= now_utc.month <= 11 else -5
+                today_et = (now_utc + timedelta(hours=et_offset)).date()
+                trade_dt_et = (datetime.fromtimestamp(last_trade_ts, tz=timezone.utc) + timedelta(hours=et_offset)).date()
+                if trade_dt_et != today_et:
+                    prev = curr   # market hasn't traded today — show 0 change
+            except Exception:
+                pass
         is_fx = ticker.endswith('=X') or ticker.endswith('-CAD') or ticker.endswith('-USD')
         decimals = 4 if is_fx else 2
         return ticker, {

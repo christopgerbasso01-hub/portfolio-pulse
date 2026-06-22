@@ -1,49 +1,49 @@
 {
   "macro": [
     {
-      "title": "US-Iran Accord",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "The US-Iran accord has the potential to significantly impact global markets, particularly in the energy sector. A peaceful resolution could lead to increased oil production, reducing prices and benefiting the global economy. However, the failure of the accord could lead to increased tensions and higher oil prices.",
-      "bull": "A successful accord could lead to increased economic growth and higher stock prices, benefiting the portfolio's leveraged positions.",
-      "bull_estimate": "+$30,000-$50,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 60,
-      "base": "A neutral outcome could lead to stable markets and minimal impact on the portfolio.",
+      "title": "US-Iran Talks",
+      "impact": "MED",
+      "confidence": 70,
+      "body": "The recent talks between the US and Iran have shown progress, which could lead to a decrease in oil prices and a subsequent impact on the global economy. This could affect the portfolio's holdings in the energy sector.",
+      "bull": "A successful agreement could lead to increased economic growth and a boost to the portfolio's tech holdings.",
+      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 40,
+      "base": "The talks may not lead to a significant impact on the portfolio, with the economy continuing on its current trajectory.",
       "base_estimate": "±$5,000 — markets grind higher",
       "base_probability": 30,
-      "bear": "A failed accord could lead to higher oil prices and decreased economic growth, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
-      "bear_probability": 10
+      "bear": "A failure to reach an agreement could lead to increased tensions and a negative impact on the portfolio's holdings.",
+      "bear_estimate": "-$30,000-$40,000 via 3x ETF amplification",
+      "bear_probability": 30
     },
     {
       "title": "Global Economic Growth",
       "impact": "MED",
-      "confidence": 70,
-      "body": "Global economic growth is expected to continue, albeit at a slower pace. This could lead to increased demand for technology and financial services, benefiting the portfolio's holdings in these sectors.",
-      "bull": "Stronger economic growth could lead to higher stock prices and increased dividends, benefiting the portfolio's long-term holdings.",
-      "bull_estimate": "+$20,000-$30,000 via Tech and CDN Fin holdings",
+      "confidence": 60,
+      "body": "The global economy is expected to continue growing, albeit at a slower pace. This could lead to increased demand for tech products and a boost to the portfolio's holdings in the sector.",
+      "bull": "A strong economic growth could lead to increased earnings for the portfolio's holdings, resulting in a significant increase in value.",
+      "bull_estimate": "+$40,000-$50,000 via tech holdings",
       "bull_probability": 50,
-      "base": "Stable economic growth could lead to stable markets and minimal impact on the portfolio.",
-      "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 40,
-      "bear": "Slower economic growth could lead to decreased demand and lower stock prices, negatively impacting the portfolio's holdings.",
-      "bear_estimate": "-$15,000-$25,000 via Tech and CDN Fin holdings",
-      "bear_probability": 10
+      "base": "The economy may continue to grow at a moderate pace, with the portfolio's holdings performing in line with expectations.",
+      "base_estimate": "±$10,000 — steady growth",
+      "base_probability": 30,
+      "bear": "A slowdown in economic growth could lead to decreased demand for tech products and a negative impact on the portfolio's holdings.",
+      "bear_estimate": "-$20,000-$30,000 via tech holdings",
+      "bear_probability": 20
     },
     {
       "title": "Fed Policy",
       "impact": "LOW",
-      "confidence": 60,
-      "body": "The Federal Reserve's policy decisions are expected to have a minimal impact on the portfolio, as the current interest rate environment is already priced into the market.",
-      "bull": "A dovish Fed policy could lead to increased economic growth and higher stock prices, benefiting the portfolio's leveraged positions.",
+      "confidence": 50,
+      "body": "The Federal Reserve's policy decisions are expected to have a minimal impact on the portfolio, as the current holdings are not heavily influenced by interest rates.",
+      "bull": "A dovish Fed policy could lead to increased economic growth and a boost to the portfolio's holdings.",
       "bull_estimate": "+$10,000-$20,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 40,
-      "base": "A neutral Fed policy could lead to stable markets and minimal impact on the portfolio.",
-      "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 50,
-      "bear": "A hawkish Fed policy could lead to higher interest rates and decreased economic growth, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$15,000-$25,000 via 3x ETF amplification",
-      "bear_probability": 10
+      "bull_probability": 30,
+      "base": "The Fed's policy decisions may not have a significant impact on the portfolio, with the economy continuing on its current trajectory.",
+      "base_estimate": "±$5,000 — minimal impact",
+      "base_probability": 40,
+      "bear": "A hawkish Fed policy could lead to decreased economic growth and a negative impact on the portfolio's holdings.",
+      "bear_estimate": "-$10,000-$20,000 via 3x ETF amplification",
+      "bear_probability": 30
     }
   ],
   "risks": [
@@ -51,213 +51,220 @@
       "title": "3x Leverage Amplification",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's leveraged positions in FNGU and SPXL amplify both gains and losses, increasing the risk of significant portfolio fluctuations."
+      "body": "The portfolio's use of 3x leveraged ETFs amplifies both gains and losses, increasing the risk of significant losses if the market moves against the portfolio."
     },
     {
       "title": "FX Book Rate Drag",
       "level": "MED",
       "context": "68% USD exposure ~ $1800/1¢ USD/CAD",
-      "body": "The portfolio's significant USD exposure and FX book rate of 1.3925 could lead to currency exchange losses if the CAD strengthens against the USD."
+      "body": "The portfolio's significant USD exposure and FX book rate of 1.3925 may result in losses if the CAD strengthens against the USD."
     },
     {
       "title": "VIX Decay Risk",
       "level": "LOW",
       "context": "VIX > 22",
-      "body": "The portfolio's exposure to the VIX could lead to decay risk if the VIX remains elevated, resulting in losses for the portfolio's VIX-related holdings."
+      "body": "The portfolio's holdings in leveraged ETFs may be subject to VIX decay risk, which could result in losses if the VIX remains elevated."
     }
   ],
   "news": [
     {
-      "headline": "Google Takes On Nvidia",
+      "headline": "Nvidia AI Metric",
       "impact": "MED",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "Google's new AI chip strategy could potentially compete with Nvidia's offerings, impacting the portfolio's NVDA holding.",
-      "exposure": "NVDA ~ $20K CAD",
+      "body": "A recent article highlighted a mind-boggling metric that makes Nvidia stock a screaming buy. This could lead to increased interest in the stock and a subsequent boost to the portfolio's holdings.",
+      "exposure": "NVDA ~ $30,000 CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 40,
-          "scenario": "Nvidia's dominance in the AI chip market is maintained, and the stock price increases.",
-          "estimate": "+$5,000-$10,000 on NVDA holding"
+          "probability": 50,
+          "scenario": "Increased interest in Nvidia stock leads to a significant increase in value.",
+          "estimate": "+$10,000-$15,000 on NVDA holdings"
         },
         {
           "label": "Base",
-          "probability": 50,
-          "scenario": "The competition between Google and Nvidia leads to stable market conditions and minimal impact on the portfolio.",
-          "estimate": "±$1,000 — minimal net change"
+          "probability": 30,
+          "scenario": "The article has a minimal impact on the portfolio, with Nvidia stock continuing to perform in line with expectations.",
+          "estimate": "±$2,000 — steady growth"
         },
         {
           "label": "Bear",
-          "probability": 10,
-          "scenario": "Google's new AI chip strategy gains significant market share, negatively impacting Nvidia's stock price.",
-          "estimate": "-$5,000-$10,000 on NVDA holding"
+          "probability": 20,
+          "scenario": "The article is overly optimistic, and Nvidia stock experiences a decline in value.",
+          "estimate": "-$5,000-$10,000 on NVDA holdings"
         }
       ]
     },
     {
-      "headline": "Cathie Wood Makes Bold Tesla Bet",
+      "headline": "Broadcom AI Investment",
       "impact": "LOW",
-      "confidence": 60,
+      "confidence": 40,
       "category": "Sector & Stock",
-      "body": "Cathie Wood's investment in Tesla could lead to increased attention and potential price appreciation for the stock, benefiting the portfolio's TSLA holding.",
-      "exposure": "TSLA ~ $10K CAD",
+      "body": "An article suggested that Broadcom could be the best way to invest in artificial intelligence. This could lead to increased interest in the stock and a subsequent boost to the portfolio's holdings in the tech sector.",
+      "exposure": "AVGO ~ $10,000 CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 30,
-          "scenario": "Tesla's stock price increases due to Cathie Wood's investment and the portfolio benefits.",
-          "estimate": "+$2,000-$5,000 on TSLA holding"
-        },
-        {
-          "label": "Base",
-          "probability": 60,
-          "scenario": "The investment has minimal impact on Tesla's stock price and the portfolio.",
-          "estimate": "±$1,000 — minimal net change"
-        },
-        {
-          "label": "Bear",
-          "probability": 10,
-          "scenario": "The investment is seen as a negative signal, and Tesla's stock price decreases.",
-          "estimate": "-$2,000-$5,000 on TSLA holding"
-        }
-      ]
-    },
-    {
-      "headline": "ECB's Wunsch Keeps July Hike in Play",
-      "impact": "MED",
-      "confidence": 70,
-      "category": "Sector & Stock",
-      "body": "The ECB's potential interest rate hike in July could lead to increased economic growth and higher stock prices, benefiting the portfolio's European holdings.",
-      "exposure": "ENB.TO, TSLA ~ $15K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 50,
-          "scenario": "The interest rate hike leads to increased economic growth and higher stock prices, benefiting the portfolio.",
-          "estimate": "+$5,000-$10,000 on ENB.TO and TSLA holdings"
+          "scenario": "Increased interest in Broadcom stock leads to a significant increase in value.",
+          "estimate": "+$3,000-$5,000 on AVGO holdings"
         },
         {
           "label": "Base",
           "probability": 40,
-          "scenario": "The interest rate hike has minimal impact on the portfolio.",
-          "estimate": "±$1,000 — minimal net change"
+          "scenario": "The article has a minimal impact on the portfolio, with Broadcom stock continuing to perform in line with expectations.",
+          "estimate": "±$1,000 — steady growth"
         },
         {
           "label": "Bear",
-          "probability": 10,
-          "scenario": "The interest rate hike leads to decreased economic growth and lower stock prices, negatively impacting the portfolio.",
-          "estimate": "-$5,000-$10,000 on ENB.TO and TSLA holdings"
+          "probability": 30,
+          "scenario": "The article is overly optimistic, and Broadcom stock experiences a decline in value.",
+          "estimate": "-$2,000-$3,000 on AVGO holdings"
+        }
+      ]
+    },
+    {
+      "headline": "TSMC AI Opportunity",
+      "impact": "MED",
+      "confidence": 60,
+      "category": "Sector & Stock",
+      "body": "An article highlighted TSMC as a buying opportunity in the AI and data center boom. This could lead to increased interest in the stock and a subsequent boost to the portfolio's holdings in the tech sector.",
+      "exposure": "TSM ~ $15,000 CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 40,
+          "scenario": "Increased interest in TSMC stock leads to a significant increase in value.",
+          "estimate": "+$5,000-$10,000 on TSM holdings"
+        },
+        {
+          "label": "Base",
+          "probability": 30,
+          "scenario": "The article has a minimal impact on the portfolio, with TSMC stock continuing to perform in line with expectations.",
+          "estimate": "±$2,000 — steady growth"
+        },
+        {
+          "label": "Bear",
+          "probability": 30,
+          "scenario": "The article is overly optimistic, and TSMC stock experiences a decline in value.",
+          "estimate": "-$3,000-$5,000 on TSM holdings"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "SHEL",
+      "ticker": "INTC",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Shell's dividend yield and potential for long-term growth make it an attractive addition to the portfolio, complementing the existing energy holdings.",
-      "entry": "Entry price range: $20-$25"
+      "thesis": "Intel's recent surge in stock price could be a sign of increased interest in the company's AI and data center initiatives. Adding to the portfolio's tech holdings could provide a boost to overall performance.",
+      "entry": "Entry price range: $40-$50"
+    },
+    {
+      "ticker": "CRWD",
+      "action": "WATCH",
+      "account": "Investment",
+      "thesis": "CrowdStrike's position in the cybersecurity industry could provide a hedge against potential risks in the portfolio. Monitoring the stock for a potential entry point could be beneficial.",
+      "entry": "Catalyst to watch: upcoming earnings report"
     },
     {
       "ticker": "BIDU",
-      "action": "WATCH",
-      "account": "Investment",
-      "thesis": "Baidu's potential for growth in the Chinese technology sector makes it a stock to monitor for potential future investment.",
-      "entry": "Monitor for entry on a pullback to $100-$120"
+      "action": "NEW",
+      "account": "RRSP",
+      "thesis": "Baidu's investments in AI and data center technology could provide a growth opportunity for the portfolio. Adding the stock to the portfolio could diversify the tech holdings.",
+      "entry": "Entry price range: $120-$150"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of technology, financial, and energy holdings"
+      "text": "The portfolio's tax-efficient structure, utilizing RRSP and TFSA accounts, provides a strong foundation for long-term growth."
     },
     {
       "ticker": "NVDA",
-      "text": "Strong growth potential in the AI and technology sector"
+      "text": "The portfolio's significant holding in Nvidia provides a strong core position in the tech sector."
     },
     {
-      "ticker": "TSLA",
-      "text": "Innovative company with potential for long-term growth"
+      "ticker": "FNGU",
+      "text": "The portfolio's holding in FNGU provides a 3x leveraged exposure to the tech sector, amplifying potential gains."
     },
     {
-      "ticker": "CM.TO",
-      "text": "Established Canadian bank with a strong dividend yield"
+      "ticker": "SPXL",
+      "text": "The portfolio's holding in SPXL provides a 3x leveraged exposure to the S&P 500, amplifying potential gains."
     },
     {
       "ticker": null,
-      "text": "Tax-efficient use of RRSP and TFSA accounts"
+      "text": "The portfolio's diversification across various sectors and asset classes provides a robust risk management framework."
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "High leverage in the portfolio increases risk of significant fluctuations"
-    },
-    {
-      "ticker": "FNGU",
-      "text": "Concentration in a single holding increases risk"
+      "text": "The portfolio's significant exposure to the tech sector may increase the risk of losses if the sector experiences a downturn."
     },
     {
       "ticker": "TSLA",
-      "text": "Volatility in the stock price could lead to significant losses"
+      "text": "The portfolio's holding in Tesla may be subject to increased volatility due to the company's high-growth nature and competitive industry."
     },
     {
-      "ticker": "ENB.TO",
-      "text": "Exposure to the energy sector could lead to losses if oil prices decline"
+      "ticker": "IBKR",
+      "text": "The portfolio's holding in Interactive Brokers may be subject to increased competition in the brokerage industry, potentially impacting the company's growth prospects."
     },
     {
       "ticker": null,
-      "text": "FX book rate drag could lead to currency exchange losses"
+      "text": "The portfolio's use of 3x leveraged ETFs may increase the risk of significant losses if the market moves against the portfolio."
+    },
+    {
+      "ticker": null,
+      "text": "The portfolio's significant USD exposure may result in losses if the CAD strengthens against the USD."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the US-Iran accord and its potential impact on the portfolio's energy holdings"
+      "text": "Monitor the portfolio's 3x leveraged ETFs for potential rebalancing opportunities to maintain an optimal risk profile."
     },
     {
       "num": "02",
-      "text": "Keep an eye on the VIX and adjust the portfolio's VIX-related holdings as needed"
+      "text": "Keep an eye on the VIX index for potential signs of increased market volatility, which could impact the portfolio's holdings."
     },
     {
       "num": "03",
-      "text": "Review the portfolio's leverage and consider reducing it if market conditions become too volatile"
+      "text": "Consider adding to the portfolio's tech holdings to take advantage of potential growth opportunities in the sector."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Consider adding more Canadian dividend-paying stocks to the portfolio"
+      "text": "Develop a long-term plan for the portfolio's tax-efficient structure, including potential conversions between RRSP and TFSA accounts."
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's sector allocation and rebalance as needed"
+      "text": "Consider diversifying the portfolio's holdings across various sectors and asset classes to reduce risk and increase potential returns."
     },
     {
       "num": "03",
-      "text": "Review the portfolio's tax efficiency and consider tax-loss harvesting"
+      "text": "Monitor the portfolio's holdings for potential signs of increased competition or disruption, which could impact the companies' growth prospects."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Consider adding more international holdings to the portfolio to increase diversification"
+      "text": "Develop a long-term investment plan that aligns with the portfolio's goals and risk tolerance, including a potential shift towards more conservative investments as the investor approaches retirement."
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's long-term growth potential and adjust the asset allocation as needed"
+      "text": "Consider adding alternative investments, such as real estate or private equity, to the portfolio to increase diversification and potential returns."
     },
     {
       "num": "03",
-      "text": "Review the portfolio's risk tolerance and adjust the leverage and asset allocation accordingly"
+      "text": "Monitor the portfolio's fees and expenses to ensure they are reasonable and aligned with the investor's goals and risk tolerance."
     }
   ],
-  "daily_outlook": "The portfolio is well-diversified, and the current market conditions are favorable. However, the high leverage and concentration in certain holdings increase the risk of significant fluctuations. Monitor the US-Iran accord and the VIX, and adjust the portfolio as needed.",
+  "daily_outlook": "The portfolio's overall outlook remains positive, with the tech sector continuing to drive growth. However, the portfolio's significant exposure to the sector and use of 3x leveraged ETFs increase the risk of losses if the market moves against the portfolio.",
   "market_mood": "risk-on",
-  "generated_at": "2026-06-19T20:01:14.704960+00:00",
-  "generated_date": "June 19, 2026",
+  "generated_at": "2026-06-22T06:01:16.001886+00:00",
+  "generated_date": "June 22, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []
 }

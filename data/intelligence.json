@@ -1,49 +1,49 @@
 {
   "macro": [
     {
-      "title": "US-Iran Talks",
-      "impact": "HIGH",
+      "title": "Fed Policy",
+      "impact": "MED",
       "confidence": 80,
-      "body": "The ongoing US-Iran talks have the potential to significantly impact global markets, particularly in the energy sector. A successful deal could lead to increased oil production, potentially affecting the global economy. The talks' outcome will likely influence the Fed's monetary policy decisions, which in turn could impact the overall market sentiment.",
-      "bull": "A successful deal could lead to increased market confidence, benefiting the portfolio's leveraged positions.",
+      "body": "The Federal Reserve's policy decisions will continue to influence the market. With the current economic growth and inflation rates, the Fed may maintain its hawkish stance, which could impact the portfolio's leveraged ETFs.",
+      "bull": "A dovish pivot by the Fed could boost the portfolio's growth stocks and leveraged ETFs.",
       "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 40,
-      "base": "The talks' outcome is uncertain, and the market may remain cautious, leading to minimal net change in the portfolio.",
-      "base_estimate": "±$5,000",
-      "base_probability": 30,
-      "bear": "A failed deal could lead to increased tensions, negatively impacting the market and the portfolio's leveraged positions.",
+      "bull_probability": 30,
+      "base": "The Fed's current stance is likely to continue, with minimal changes to the portfolio.",
+      "base_estimate": "±$5,000 — markets grind higher",
+      "base_probability": 50,
+      "bear": "A more aggressive rate hike could negatively impact the portfolio's tech stocks and leveraged ETFs.",
       "bear_estimate": "-$30,000-$40,000 via 3x ETF amplification",
-      "bear_probability": 30
+      "bear_probability": 20
     },
     {
       "title": "Global Economic Growth",
-      "impact": "MED",
-      "confidence": 70,
-      "body": "The global economy is experiencing a slowdown, which could impact the portfolio's holdings, particularly in the tech sector. The slowdown could lead to decreased demand for technology products, affecting the portfolio's tech holdings.",
-      "bull": "A potential recovery in global economic growth could lead to increased demand for technology products, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$10,000-$15,000",
-      "bull_probability": 35,
-      "base": "The economic slowdown may continue, leading to minimal net change in the portfolio.",
-      "base_estimate": "±$2,000",
-      "base_probability": 40,
-      "bear": "A severe economic downturn could negatively impact the portfolio's holdings, particularly in the tech sector.",
-      "bear_estimate": "-$20,000-$25,000",
-      "bear_probability": 25
+      "impact": "LOW",
+      "confidence": 60,
+      "body": "The global economy is expected to continue growing, albeit at a slower pace. This could lead to a rotation into more defensive sectors, potentially impacting the portfolio's tech-heavy holdings.",
+      "bull": "A stronger-than-expected economic growth could boost the portfolio's growth stocks.",
+      "bull_estimate": "+$15,000-$25,000 via tech stocks",
+      "bull_probability": 25,
+      "base": "The economic growth is likely to be moderate, with minimal impact on the portfolio.",
+      "base_estimate": "±$2,000 — slow growth",
+      "base_probability": 60,
+      "bear": "A slowdown in economic growth could negatively impact the portfolio's tech stocks.",
+      "bear_estimate": "-$20,000-$30,000 via tech stock decline",
+      "bear_probability": 15
     },
     {
-      "title": "Fed Policy",
+      "title": "US-Iran Tensions",
       "impact": "MED",
-      "confidence": 60,
-      "body": "The Fed's monetary policy decisions will significantly impact the market, particularly in the short term. The portfolio's leveraged positions are sensitive to changes in interest rates and monetary policy.",
-      "bull": "A dovish Fed policy could lead to increased market confidence, benefiting the portfolio's leveraged positions.",
-      "bull_estimate": "+$15,000-$20,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 45,
-      "base": "The Fed's policy decisions may lead to minimal net change in the portfolio.",
-      "base_estimate": "±$3,000",
-      "base_probability": 35,
-      "bear": "A hawkish Fed policy could negatively impact the portfolio's leveraged positions.",
-      "bear_estimate": "-$25,000-$30,000 via 3x ETF amplification",
-      "bear_probability": 20
+      "confidence": 70,
+      "body": "The US-Iran tensions could lead to increased volatility in the market, particularly in the energy sector. This could impact the portfolio's holdings in ENB.TO and other energy-related stocks.",
+      "bull": "A resolution to the US-Iran tensions could boost the portfolio's energy stocks.",
+      "bull_estimate": "+$5,000-$10,000 via energy stocks",
+      "bull_probability": 20,
+      "base": "The tensions are likely to continue, with minimal impact on the portfolio.",
+      "base_estimate": "±$1,000 — minimal net change",
+      "base_probability": 50,
+      "bear": "An escalation of the tensions could negatively impact the portfolio's energy stocks.",
+      "bear_estimate": "-$10,000-$15,000 via energy stock decline",
+      "bear_probability": 30
     }
   ],
   "risks": [
@@ -51,212 +51,219 @@
       "title": "Leverage Risk",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's high leverage exposure amplifies both gains and losses, making it sensitive to market fluctuations. A significant market downturn could result in substantial losses."
+      "body": "The portfolio's high leverage through FNGU, SPXL, and UDOW amplifies both gains and losses. This increases the risk of significant losses if the market declines."
     },
     {
       "title": "FX Risk",
       "level": "MED",
-      "context": "68% USD exposure, FX book rate 1.3925",
-      "body": "The portfolio's significant USD exposure makes it vulnerable to fluctuations in the USD/CAD exchange rate. A strong CAD could negatively impact the portfolio's value."
+      "context": "68% USD exposure ~ $180K CAD",
+      "body": "The portfolio's high USD exposure increases the risk of losses due to currency fluctuations. A strong CAD could negatively impact the portfolio's USD-denominated holdings."
     },
     {
       "title": "Concentration Risk",
       "level": "MED",
-      "context": "Top 5 holdings: NVDA, FNGU, SPXL, UDOW, TXF.TO",
-      "body": "The portfolio's concentration in a few holdings increases its vulnerability to company-specific risks and market fluctuations. A significant decline in one of these holdings could substantially impact the portfolio's value."
+      "context": "Top 5 holdings ~ 60% of portfolio",
+      "body": "The portfolio's high concentration in a few holdings, particularly NVDA and FNGU, increases the risk of significant losses if these stocks decline."
     }
   ],
   "news": [
     {
       "headline": "Nvidia AI Metric",
-      "impact": "MED",
-      "confidence": 80,
+      "impact": "HIGH",
+      "confidence": 90,
       "category": "Sector & Stock",
-      "body": "Nvidia's AI metric has been gaining attention, potentially benefiting the portfolio's NVDA holding. The news may lead to increased investor interest in the stock.",
-      "exposure": "NVDA ~ $30K CAD",
+      "body": "Nvidia's AI metric has been released, and it is expected to have a significant impact on the company's stock price. As a major holding in the portfolio, this news could lead to a substantial increase in the portfolio's value.",
+      "exposure": "NVDA ~ $40K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 50,
-          "scenario": "Increased investor interest in NVDA could lead to a price increase, benefiting the portfolio.",
-          "estimate": "+$5,000-$7,000"
+          "probability": 40,
+          "scenario": "Nvidia's AI metric exceeds expectations, leading to a significant increase in the stock price.",
+          "estimate": "+$10,000-$15,000 via NVDA"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "The news may have a minimal impact on the portfolio, leading to minimal net change.",
-          "estimate": "±$1,000"
+          "scenario": "Nvidia's AI metric meets expectations, leading to a moderate increase in the stock price.",
+          "estimate": "+$2,000-$5,000 via NVDA"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "The news may not have a significant impact, and the stock price may decline due to other factors.",
-          "estimate": "-$3,000-$5,000"
+          "probability": 30,
+          "scenario": "Nvidia's AI metric disappoints, leading to a decline in the stock price.",
+          "estimate": "-$5,000-$10,000 via NVDA"
         }
       ]
     },
     {
       "headline": "Apple Outlier in Tech Selloff",
-      "impact": "LOW",
-      "confidence": 60,
+      "impact": "MED",
+      "confidence": 80,
       "category": "Sector & Stock",
-      "body": "Apple's stock has been performing well despite the tech selloff, potentially benefiting the portfolio's AAPL holding. The news may lead to increased investor confidence in the stock.",
+      "body": "Apple's stock has been an outlier in the recent tech selloff, and this trend is expected to continue. As a holding in the portfolio, this news could lead to a moderate increase in the portfolio's value.",
       "exposure": "AAPL ~ $10K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 40,
-          "scenario": "Increased investor confidence in AAPL could lead to a price increase, benefiting the portfolio.",
-          "estimate": "+$2,000-$3,000"
+          "probability": 30,
+          "scenario": "Apple's stock continues to outperform the tech sector, leading to a significant increase in the portfolio's value.",
+          "estimate": "+$3,000-$5,000 via AAPL"
         },
         {
           "label": "Base",
-          "probability": 35,
-          "scenario": "The news may have a minimal impact on the portfolio, leading to minimal net change.",
-          "estimate": "±$500"
+          "probability": 40,
+          "scenario": "Apple's stock continues to perform moderately, leading to a minimal increase in the portfolio's value.",
+          "estimate": "+$1,000-$2,000 via AAPL"
         },
         {
           "label": "Bear",
-          "probability": 25,
-          "scenario": "The news may not have a significant impact, and the stock price may decline due to other factors.",
-          "estimate": "-$1,500-$2,500"
+          "probability": 30,
+          "scenario": "Apple's stock declines, leading to a decrease in the portfolio's value.",
+          "estimate": "-$2,000-$3,000 via AAPL"
         }
       ]
     },
     {
-      "headline": "SpaceX Bond Sale",
-      "impact": "LOW",
-      "confidence": 50,
+      "headline": "Tesla Bull Case Unraveling",
+      "impact": "MED",
+      "confidence": 70,
       "category": "Sector & Stock",
-      "body": "SpaceX's bond sale has been successful, potentially benefiting the portfolio's TSLA holding. The news may lead to increased investor interest in the stock.",
+      "body": "Tesla's bull case is unraveling, and the stock is expected to decline. As a holding in the portfolio, this news could lead to a moderate decrease in the portfolio's value.",
       "exposure": "TSLA ~ $15K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 30,
-          "scenario": "Increased investor interest in TSLA could lead to a price increase, benefiting the portfolio.",
-          "estimate": "+$3,000-$5,000"
+          "probability": 20,
+          "scenario": "Tesla's stock rebounds, leading to a significant increase in the portfolio's value.",
+          "estimate": "+$5,000-$10,000 via TSLA"
         },
         {
           "label": "Base",
           "probability": 40,
-          "scenario": "The news may have a minimal impact on the portfolio, leading to minimal net change.",
-          "estimate": "±$1,000"
+          "scenario": "Tesla's stock continues to decline, leading to a moderate decrease in the portfolio's value.",
+          "estimate": "-$2,000-$5,000 via TSLA"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "The news may not have a significant impact, and the stock price may decline due to other factors.",
-          "estimate": "-$2,000-$3,000"
+          "probability": 40,
+          "scenario": "Tesla's stock declines significantly, leading to a substantial decrease in the portfolio's value.",
+          "estimate": "-$10,000-$15,000 via TSLA"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "ENPH",
+      "ticker": "SQ",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Enphase Energy is a leading provider of solar energy solutions, and its stock has been gaining attention due to the growing demand for renewable energy. The company's strong financials and competitive advantage make it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $200-$250"
+      "thesis": "Square's (SQ) growth prospects are attractive, and the company's expanding ecosystem could lead to significant increases in revenue and profitability. The recent pullback in the stock price presents a buying opportunity.",
+      "entry": "Entry price range: $150-$180"
     },
     {
-      "ticker": "CRON",
+      "ticker": "BMO.TO",
+      "action": "ADD",
+      "account": "RRSP",
+      "thesis": "Bank of Montreal's (BMO.TO) dividend yield is attractive, and the company's strong financials could lead to long-term growth. The recent decline in the stock price presents a buying opportunity.",
+      "entry": "Entry price range: $80-$100"
+    },
+    {
+      "ticker": "ENB.TO",
       "action": "WATCH",
-      "account": "Investment",
-      "thesis": "Cronos Group is a Canadian cannabis company with a strong brand portfolio and growing revenue. The company's stock has been volatile, but its potential for long-term growth makes it worth monitoring.",
-      "entry": "Wait for a pullback to $5-$7"
+      "account": "RRSP",
+      "thesis": "Enbridge's (ENB.TO) dividend yield is attractive, and the company's strong financials could lead to long-term growth. However, the recent increase in the stock price may present a better buying opportunity in the future.",
+      "entry": "Monitor for a pullback to $40-$50"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "The portfolio's high risk tolerance and long-term horizon provide flexibility in navigating market fluctuations."
+      "text": "High growth potential in tech stocks"
     },
     {
       "ticker": "NVDA",
-      "text": "Nvidia's strong position in the AI and gaming markets provides a competitive advantage and potential for long-term growth."
+      "text": "Strong growth prospects in AI and gaming"
     },
     {
       "ticker": "FNGU",
-      "text": "The portfolio's leveraged exposure to the S&P 500 provides broad market coverage and potential for amplified gains."
+      "text": "Leveraged ETF providing 3x exposure to the tech sector"
     },
     {
       "ticker": null,
-      "text": "The portfolio's tax-efficient structure, using RRSP and TFSA accounts, helps minimize tax liabilities and optimize returns."
+      "text": "Diversified portfolio with a mix of growth and income-generating stocks"
     },
     {
-      "ticker": null,
-      "text": "The investor's planned home purchase and non-resident status provide a unique opportunity to optimize the portfolio's structure and minimize tax implications."
+      "ticker": "CM.TO",
+      "text": "Strong financials and attractive dividend yield"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "The portfolio's high leverage exposure increases its vulnerability to market downturns and potential losses."
+      "text": "High leverage in the portfolio increasing risk"
     },
     {
       "ticker": "TSLA",
-      "text": "Tesla's stock has been volatile, and its high valuation multiples may make it susceptible to a correction."
+      "text": "Declining stock price and unraveling bull case"
     },
     {
       "ticker": "AAPL",
-      "text": "Apple's stock has been performing well, but its high valuation multiples and dependence on a few key products make it vulnerable to a downturn."
+      "text": "Dependence on a few large holdings increasing risk"
     },
     {
       "ticker": null,
-      "text": "The portfolio's concentration in a few holdings increases its vulnerability to company-specific risks and market fluctuations."
+      "text": "FX risk due to high USD exposure"
     },
     {
-      "ticker": null,
-      "text": "The investor's non-resident status and planned home purchase may require adjustments to the portfolio's structure and tax optimization strategy."
+      "ticker": "ENB.TO",
+      "text": "Regulatory risks in the energy sector"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's leverage exposure and adjust as needed to maintain an optimal risk profile."
+      "text": "Monitor the portfolio's leverage and adjust as needed to manage risk"
     },
     {
       "num": "02",
-      "text": "Keep a close eye on the US-Iran talks and their potential impact on the global economy and markets."
+      "text": "Consider adding more defensive stocks to the portfolio to reduce risk"
     },
     {
       "num": "03",
-      "text": "Consider tax-loss harvesting opportunities to minimize tax liabilities and optimize returns."
+      "text": "Keep a close eye on the USD/CAD exchange rate and adjust the portfolio accordingly"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Diversify the portfolio by adding new holdings and reducing concentration in a few stocks."
+      "text": "Continue to invest in growth stocks with strong prospects"
     },
     {
       "num": "02",
-      "text": "Consider adding more Canadian holdings to take advantage of the investor's non-resident status and minimize tax implications."
+      "text": "Diversify the portfolio by adding more income-generating stocks"
     },
     {
       "num": "03",
-      "text": "Review the portfolio's asset allocation and rebalance as needed to maintain an optimal risk profile and achieve long-term goals."
+      "text": "Consider adding more international stocks to the portfolio to reduce dependence on the US market"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Continue to monitor and adjust the portfolio's leverage exposure to maintain an optimal risk profile and achieve long-term goals."
+      "text": "Focus on long-term growth and ignore short-term market fluctuations"
     },
     {
       "num": "02",
-      "text": "Consider adding more international holdings to diversify the portfolio and take advantage of growth opportunities in emerging markets."
+      "text": "Continue to invest in a mix of growth and income-generating stocks"
     },
     {
       "num": "03",
-      "text": "Review the investor's overall financial plan and adjust the portfolio's structure and strategy as needed to achieve long-term goals and minimize tax implications."
+      "text": "Monitor the portfolio's tax efficiency and adjust as needed to minimize taxes"
     }
   ],
-  "daily_outlook": "The portfolio's outlook is cautiously optimistic, with a focus on monitoring the US-Iran talks and their potential impact on the global economy and markets. The investor's high risk tolerance and long-term horizon provide flexibility in navigating market fluctuations.",
+  "daily_outlook": "The portfolio is expected to be volatile in the short term due to the high leverage and dependence on tech stocks. However, the long-term growth prospects of the holdings are attractive, and the portfolio is well-diversified to manage risk.",
   "market_mood": "risk-on",
-  "generated_at": "2026-06-23T06:01:17.391516+00:00",
+  "generated_at": "2026-06-23T13:44:49.718546+00:00",
   "generated_date": "June 23, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []

@@ -1,49 +1,49 @@
 {
   "macro": [
     {
-      "title": "GDP Growth",
-      "impact": "MED",
-      "confidence": 70,
-      "body": "The current economic landscape suggests a moderate growth trajectory, with some analysts predicting a boom in GDP growth this year. This could have a positive impact on the overall market, potentially benefiting the portfolio's leveraged ETFs. However, it's essential to consider the potential risks and uncertainties associated with this growth.",
-      "bull": "A strong GDP growth could lead to increased investor confidence, driving up the portfolio's value.",
-      "bull_estimate": "+$25,000-$40,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 40,
-      "base": "A moderate GDP growth could result in a stable market, with minimal impact on the portfolio.",
-      "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 30,
-      "bear": "A slow GDP growth could lead to decreased investor confidence, negatively impacting the portfolio's value.",
-      "bear_estimate": "-$30,000-$50,000 via 3x ETF amplification",
-      "bear_probability": 30
-    },
-    {
       "title": "Inflation Dilemma",
       "impact": "HIGH",
       "confidence": 80,
-      "body": "The recent news on inflation suggests that the Fed's inflation dilemma is far from over. This could lead to increased volatility in the market, potentially affecting the portfolio's value. It's crucial to monitor the situation closely and adjust the portfolio accordingly.",
-      "bull": "A resolution to the inflation dilemma could lead to increased investor confidence, driving up the portfolio's value.",
-      "bull_estimate": "+$20,000-$35,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 35,
-      "base": "A prolonged inflation dilemma could result in a stable but uncertain market, with minimal impact on the portfolio.",
-      "base_estimate": "±$3,000 — markets remain cautious",
-      "base_probability": 40,
-      "bear": "An escalation of the inflation dilemma could lead to decreased investor confidence, negatively impacting the portfolio's value.",
-      "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
-      "bear_probability": 25
+      "body": "The inflation dilemma continues to pose a challenge for the global economy. Central banks are walking a tight rope between controlling inflation and avoiding recession. This theme is crucial for the portfolio as it affects the overall market sentiment and the performance of the holdings.",
+      "bull": "If inflation is brought under control, it could lead to a rally in the markets, benefiting the portfolio's leveraged positions.",
+      "bull_estimate": "+$40,000-$60,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 40,
+      "base": "A stable inflation rate would lead to a steady market performance, with minimal impact on the portfolio.",
+      "base_estimate": "±$5,000 — markets grind higher",
+      "base_probability": 30,
+      "bear": "If inflation spirals out of control, it could lead to a market downturn, negatively impacting the portfolio's value.",
+      "bear_estimate": "-$60,000-$80,000 via 3x ETF amplification",
+      "bear_probability": 30
     },
     {
       "title": "Sector Rotations",
       "impact": "MED",
-      "confidence": 60,
-      "body": "The current market landscape suggests potential sector rotations, with some sectors gaining traction while others decline. This could lead to opportunities for the portfolio to rebalance and optimize its holdings.",
-      "bull": "A successful sector rotation could lead to increased portfolio value, driven by growth in key sectors.",
-      "bull_estimate": "+$15,000-$30,000 via sector-specific holdings",
+      "confidence": 70,
+      "body": "Sector rotations are ongoing, with some sectors performing better than others. This theme is relevant for the portfolio as it holds a diversified range of stocks across various sectors.",
+      "bull": "If the portfolio's holdings are in the favored sectors, it could lead to outperformance.",
+      "bull_estimate": "+$15,000-$25,000 via sector rotation",
       "bull_probability": 45,
-      "base": "A moderate sector rotation could result in a stable portfolio, with minimal impact on the overall value.",
-      "base_estimate": "±$2,000 — portfolio remains balanced",
+      "base": "A balanced sector performance would lead to a steady portfolio performance.",
+      "base_estimate": "±$3,000 — sector rotations neutral",
       "base_probability": 35,
-      "bear": "An unsuccessful sector rotation could lead to decreased portfolio value, driven by declines in key sectors.",
-      "bear_estimate": "-$20,000-$40,000 via sector-specific holdings",
+      "bear": "If the portfolio's holdings are in the unfavorable sectors, it could lead to underperformance.",
+      "bear_estimate": "-$10,000-$20,000 via sector rotation",
       "bear_probability": 20
+    },
+    {
+      "title": "GDP Growth",
+      "impact": "LOW",
+      "confidence": 60,
+      "body": "GDP growth is a long-term theme that affects the overall economy. While it is essential to monitor, its immediate impact on the portfolio is relatively low.",
+      "bull": "Strong GDP growth could lead to a rally in the markets, benefiting the portfolio.",
+      "bull_estimate": "+$20,000-$30,000 via GDP growth",
+      "bull_probability": 30,
+      "base": "Stable GDP growth would lead to a steady market performance.",
+      "base_estimate": "±$2,000 — GDP growth neutral",
+      "base_probability": 40,
+      "bear": "Slow GDP growth could lead to a market downturn, negatively impacting the portfolio.",
+      "bear_estimate": "-$15,000-$25,000 via GDP growth",
+      "bear_probability": 30
     }
   ],
   "risks": [
@@ -51,121 +51,121 @@
       "title": "3x Leverage Amplification",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's significant allocation to 3x leveraged ETFs amplifies both gains and losses. This increases the risk of substantial losses if the market declines."
+      "body": "The portfolio's 3x leveraged positions amplify both gains and losses. This risk is high, as a significant market downturn could lead to substantial losses."
     },
     {
       "title": "FX Book Rate Drag",
       "level": "MED",
-      "context": "68% USD exposure ~ $1800/1¢ USD/CAD",
-      "body": "The portfolio's substantial USD exposure and FX book rate of 1.3925 may result in currency-related losses if the CAD strengthens."
+      "context": "68% USD exposure ~ $180K CAD",
+      "body": "The portfolio's USD exposure is significant, and the current FX book rate could lead to a drag on performance if the CAD strengthens."
     },
     {
-      "title": "Account Concentration",
-      "level": "MED",
-      "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's concentration in a few key holdings increases the risk of significant losses if any of these holdings decline substantially."
+      "title": "VIX Decay Risk",
+      "level": "LOW",
+      "context": "VIX > 22",
+      "body": "The portfolio's exposure to the VIX is relatively low, and the current VIX level does not pose a significant decay risk."
     }
   ],
   "news": [
     {
       "headline": "Micron Stock Jumps 16%",
       "impact": "HIGH",
-      "confidence": 85,
+      "confidence": 90,
       "category": "Sector & Stock",
-      "body": "Micron's significant stock jump could have a positive impact on the portfolio's tech holdings, particularly NVDA and other semiconductor-related stocks.",
-      "exposure": "FNGU ~$87K CAD (3x leverage), NVDA ~$20K CAD",
+      "body": "Micron's earnings beat has led to a significant jump in its stock price. This affects the portfolio's holdings in the tech sector, particularly NVDA and AVGO.",
+      "exposure": "NVDA ~$20K CAD, AVGO ~$10K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 50,
-          "scenario": "Micron's stock jump leads to increased investor confidence in the tech sector, driving up the portfolio's value.",
-          "estimate": "+$10,000-$18,000 on leveraged positions"
+          "scenario": "The tech sector rally continues, benefiting the portfolio's holdings.",
+          "estimate": "+$8,000-$12,000 on tech positions"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "Micron's stock jump has a minimal impact on the portfolio, with the market remaining stable.",
-          "estimate": "±$2,000 — minimal net change"
+          "scenario": "The tech sector performance remains steady, with minimal impact on the portfolio.",
+          "estimate": "±$2,000 — tech sector neutral"
         },
         {
           "label": "Bear",
           "probability": 20,
-          "scenario": "Micron's stock jump is short-lived, and the portfolio's tech holdings decline in value.",
-          "estimate": "-$8,000-$15,000 via 3x leverage amplification"
+          "scenario": "The tech sector experiences a downturn, negatively impacting the portfolio's holdings.",
+          "estimate": "-$5,000-$10,000 on tech positions"
         }
       ]
     },
     {
       "headline": "Apple Raises Prices",
       "impact": "MED",
-      "confidence": 70,
+      "confidence": 80,
       "category": "Sector & Stock",
-      "body": "Apple's price increase could have a negative impact on the portfolio's AAPL holding, potentially affecting the overall portfolio value.",
+      "body": "Apple's price increase could lead to a mixed reaction from consumers and investors. This affects the portfolio's holding in AAPL.",
       "exposure": "AAPL ~$15K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "Apple's price increase leads to increased revenue, driving up the portfolio's value.",
-          "estimate": "+$5,000-$10,000 on AAPL holding"
+          "scenario": "The price increase leads to higher revenue and profits for Apple, benefiting the portfolio.",
+          "estimate": "+$3,000-$6,000 on AAPL"
         },
         {
           "label": "Base",
           "probability": 35,
-          "scenario": "Apple's price increase has a minimal impact on the portfolio, with the market remaining stable.",
-          "estimate": "±$1,000 — minimal net change"
+          "scenario": "The price increase has a neutral impact on Apple's sales and the portfolio.",
+          "estimate": "±$1,500 — AAPL neutral"
         },
         {
           "label": "Bear",
           "probability": 25,
-          "scenario": "Apple's price increase leads to decreased sales, negatively impacting the portfolio's value.",
-          "estimate": "-$6,000-$12,000 on AAPL holding"
+          "scenario": "The price increase leads to decreased sales and a negative impact on the portfolio.",
+          "estimate": "-$2,000-$5,000 on AAPL"
         }
       ]
     },
     {
       "headline": "JPMorgan Chase Buyback",
-      "impact": "MED",
-      "confidence": 65,
+      "impact": "LOW",
+      "confidence": 70,
       "category": "Sector & Stock",
-      "body": "JPMorgan Chase's buyback announcement could have a positive impact on the portfolio's financial holdings, particularly CM.TO and RY.TO.",
-      "exposure": "CM.TO ~$8K CAD, RY.TO ~$10K CAD",
+      "body": "JPMorgan Chase's buyback announcement has a relatively low impact on the portfolio, as it does not hold a significant position in the stock.",
+      "exposure": "None",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 45,
-          "scenario": "JPMorgan Chase's buyback leads to increased investor confidence in the financial sector, driving up the portfolio's value.",
-          "estimate": "+$4,000-$8,000 on financial holdings"
+          "probability": 30,
+          "scenario": "The buyback leads to a rally in the financial sector, benefiting the portfolio's holdings in CM.TO and RY.TO.",
+          "estimate": "+$1,000-$3,000 on CDN Fin positions"
         },
         {
           "label": "Base",
-          "probability": 30,
-          "scenario": "JPMorgan Chase's buyback has a minimal impact on the portfolio, with the market remaining stable.",
-          "estimate": "±$1,500 — minimal net change"
+          "probability": 40,
+          "scenario": "The buyback has a neutral impact on the financial sector and the portfolio.",
+          "estimate": "±$500 — CDN Fin neutral"
         },
         {
           "label": "Bear",
-          "probability": 25,
-          "scenario": "JPMorgan Chase's buyback is short-lived, and the portfolio's financial holdings decline in value.",
-          "estimate": "-$5,000-$10,000 on financial holdings"
+          "probability": 30,
+          "scenario": "The buyback leads to a decrease in the financial sector, negatively impacting the portfolio's holdings.",
+          "estimate": "-$1,000-$3,000 on CDN Fin positions"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "COST",
+      "ticker": "LLY",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Costco's strong cash position and potential for a special dividend make it an attractive addition to the portfolio, complementing existing holdings in the consumer sector.",
-      "entry": "Entry price range: $500-$600, catalyst: special dividend announcement"
+      "thesis": "Lilly's obesity drug could be a game-changer, and the stock has potential for long-term growth.",
+      "entry": "Entry price range: $350-$400"
     },
     {
-      "ticker": "SHEL",
+      "ticker": "CSCO",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Royal Dutch Shell's exposure to the energy sector and potential for long-term growth make it a stock to monitor for potential addition to the portfolio, diversifying the energy holdings.",
-      "entry": "Catalyst: significant increase in oil prices or improved energy sector outlook"
+      "thesis": "Cisco's stock has been underperforming, but it has potential for a turnaround. Monitor for entry opportunities.",
+      "entry": "Wait for a pullback to $40-$45"
     }
   ],
   "strengths": [
@@ -175,88 +175,88 @@
     },
     {
       "ticker": "NVDA",
-      "text": "Strong growth potential in the tech sector, driven by NVDA's dominance in AI and semiconductor markets"
+      "text": "Strong growth potential in the tech sector"
+    },
+    {
+      "ticker": "FNGU",
+      "text": "3x leverage provides amplification of gains"
     },
     {
       "ticker": "CM.TO",
-      "text": "Stable financial holdings, providing a steady income stream"
+      "text": "Canadian financial sector provides stability"
     },
     {
-      "ticker": "TSLA",
-      "text": "Exposure to the growing EV market, with TSLA's innovative products and services"
-    },
-    {
-      "ticker": null,
-      "text": "Tax-efficient portfolio structure, utilizing RRSP and TFSA accounts to minimize tax liabilities"
+      "ticker": "AAPL",
+      "text": "Established company with a strong brand and loyal customer base"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "Concentration risk in top holdings, potentially leading to significant losses if any of these holdings decline substantially"
+      "text": "High leverage ratio increases risk of significant losses"
     },
     {
-      "ticker": "FNGU",
-      "text": "High volatility in 3x leveraged ETFs, amplifying both gains and losses"
+      "ticker": "TSLA",
+      "text": "Volatility in the stock price could lead to losses"
     },
     {
-      "ticker": "AAPL",
-      "text": "Dependence on a few key products, potentially leading to decreased sales and revenue if these products decline in popularity"
+      "ticker": "AVGO",
+      "text": "Dependence on a few large customers poses a risk"
     },
     {
-      "ticker": "ENB.TO",
-      "text": "Exposure to the energy sector, potentially affected by fluctuations in oil prices and energy demand"
+      "ticker": "IBKR",
+      "text": "Competition in the brokerage industry could lead to decreased revenue"
     },
     {
-      "ticker": null,
-      "text": "FX risk, potentially resulting in currency-related losses if the CAD strengthens"
+      "ticker": "MSTR",
+      "text": "Regulatory risks associated with cryptocurrency exposure"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's sector allocation and rebalance as needed to maintain an optimal mix of sectors and asset classes"
+      "text": "Monitor the VIX and adjust leverage accordingly"
     },
     {
       "num": "02",
-      "text": "Keep a close eye on the portfolio's cash position and consider adding to existing holdings or initiating new positions in undervalued sectors"
+      "text": "Keep an eye on the USD/CAD exchange rate and adjust FX exposure"
     },
     {
       "num": "03",
-      "text": "Review the portfolio's tax efficiency and consider tax-loss harvesting or other strategies to minimize tax liabilities"
+      "text": "Rebalance the portfolio to maintain target allocations"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Consider adding to the portfolio's exposure to the energy sector, potentially through the addition of new holdings or increased allocation to existing energy stocks"
+      "text": "Consider adding more Canadian dividend-paying stocks"
     },
     {
       "num": "02",
-      "text": "Evaluate the portfolio's growth potential and consider adding to holdings with strong growth prospects, such as tech or healthcare stocks"
+      "text": "Look for opportunities to increase exposure to the tech sector"
     },
     {
       "num": "03",
-      "text": "Assess the portfolio's income generation and consider adding to holdings with stable income streams, such as dividend-paying stocks or bonds"
+      "text": "Monitor the performance of the 3x leveraged ETFs and adjust as needed"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Develop a long-term plan for the portfolio, including a target asset allocation and a strategy for achieving long-term growth and income goals"
+      "text": "Continue to hold NVDA and benefit from its long-term growth potential"
     },
     {
       "num": "02",
-      "text": "Consider adding to the portfolio's exposure to emerging markets or sectors, potentially through the addition of new holdings or increased allocation to existing emerging market stocks"
+      "text": "Diversify the portfolio by adding more international stocks"
     },
     {
       "num": "03",
-      "text": "Evaluate the portfolio's tax efficiency and consider strategies for minimizing tax liabilities over the long term, such as tax-loss harvesting or charitable donations"
+      "text": "Consider tax-loss harvesting to minimize tax liabilities"
     }
   ],
-  "daily_outlook": "The portfolio's outlook remains cautiously optimistic, with a focus on monitoring the market's response to recent news and adjusting the portfolio as needed to maintain an optimal mix of sectors and asset classes.",
+  "daily_outlook": "The portfolio is well-positioned for the current market conditions, with a mix of growth and dividend-paying stocks. However, the high leverage ratio and USD exposure pose risks that need to be monitored.",
   "market_mood": "risk-on",
-  "generated_at": "2026-06-25T13:22:51.808200+00:00",
+  "generated_at": "2026-06-25T20:01:19.526891+00:00",
   "generated_date": "June 25, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []

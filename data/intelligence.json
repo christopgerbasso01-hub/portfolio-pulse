@@ -1,262 +1,269 @@
 {
   "macro": [
     {
-      "title": "Inflation Concerns",
-      "impact": "HIGH",
+      "title": "Inflation Pressures",
+      "impact": "MED",
       "confidence": 80,
-      "body": "The recent surge in inflation has sparked concerns among investors, with the Core PCE inflation rate reaching 3.4% in May. This could lead to a shift in monetary policy, potentially affecting the portfolio's leveraged positions.",
-      "bull": "A controlled inflation environment could lead to a bull market, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$25,000-$35,000 via FNGU/SPXL 3x leverage",
+      "body": "The recent Core PCE inflation rate of 3.4% in May, the highest level since 2023, indicates that inflationary pressures are still present in the economy. This could lead to further interest rate hikes by the Fed, affecting the overall market. The portfolio's high-risk tolerance and significant allocation to leveraged ETFs (49%) make it sensitive to these changes.",
+      "bull": "A controlled inflation environment could lead to a stable market, benefiting the portfolio's growth-oriented holdings.",
+      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
       "bull_probability": 40,
-      "base": "A moderate inflation environment could lead to a stable market, with minimal impact on the portfolio.",
+      "base": "The current inflation rate might lead to a moderate market correction, with the portfolio's value remaining relatively stable.",
       "base_estimate": "±$5,000 — markets grind higher",
       "base_probability": 30,
-      "bear": "An uncontrolled inflation environment could lead to a bear market, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$30,000-$45,000 via 3x ETF amplification",
+      "bear": "Uncontrolled inflation could result in a significant market downturn, negatively impacting the portfolio's value.",
+      "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
       "bear_probability": 30
     },
     {
       "title": "Geopolitical Tensions",
-      "impact": "MED",
-      "confidence": 60,
-      "body": "The ongoing tensions between the US and Iran could lead to market volatility, affecting the portfolio's holdings. However, the situation is being closely monitored, and a peaceful resolution could lead to a market rally.",
-      "bull": "A peaceful resolution could lead to a bull market, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$15,000-$25,000 via FNGU/SPXL 3x leverage",
+      "impact": "HIGH",
+      "confidence": 90,
+      "body": "The ongoing tensions between the US and Iran, particularly regarding the Strait of Hormuz, pose a significant risk to global trade and oil prices. This uncertainty could lead to market volatility, affecting the portfolio's holdings, especially those with international exposure.",
+      "bull": "A resolution to the US-Iran tensions could lead to increased market stability and a boost to the portfolio's value.",
+      "bull_estimate": "+$25,000-$40,000 via reduced volatility",
       "bull_probability": 35,
-      "base": "A stable geopolitical environment could lead to a stable market, with minimal impact on the portfolio.",
-      "base_estimate": "±$3,000 — markets remain steady",
+      "base": "The current tensions might lead to a moderate increase in oil prices, with the portfolio's energy holdings (e.g., ENB.TO) potentially benefiting.",
+      "base_estimate": "+$5,000-$10,000 — energy sector boost",
       "base_probability": 40,
-      "bear": "An escalation of tensions could lead to a bear market, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$20,000-$30,000 via 3x ETF amplification",
+      "bear": "Escalating tensions could result in a significant market downturn, negatively impacting the portfolio's value.",
+      "bear_estimate": "-$50,000-$70,000 via increased volatility",
       "bear_probability": 25
     },
     {
       "title": "Sector Rotations",
-      "impact": "LOW",
-      "confidence": 40,
-      "body": "The market is experiencing sector rotations, with some sectors performing better than others. This could lead to opportunities for the portfolio to rebalance and optimize its holdings.",
-      "bull": "A successful sector rotation could lead to a bull market, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$10,000-$20,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 30,
-      "base": "A stable sector rotation could lead to a stable market, with minimal impact on the portfolio.",
-      "base_estimate": "±$2,000 — markets remain steady",
-      "base_probability": 50,
-      "bear": "An unsuccessful sector rotation could lead to a bear market, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$15,000-$25,000 via 3x ETF amplification",
-      "bear_probability": 20
+      "impact": "MED",
+      "confidence": 70,
+      "body": "The recent shift in investor sentiment towards efficiency and away from tokenmaxxing in the AI sector could lead to sector rotations, affecting the portfolio's tech holdings (20%).",
+      "bull": "A successful rotation into efficient AI companies could benefit the portfolio's tech holdings, such as NVDA.",
+      "bull_estimate": "+$15,000-$25,000 via tech sector growth",
+      "bull_probability": 45,
+      "base": "The rotation might lead to a moderate reallocation of assets within the portfolio, with minimal overall impact.",
+      "base_estimate": "±$2,000 — sector rotation",
+      "base_probability": 30,
+      "bear": "An unsuccessful rotation could result in a decline in the portfolio's tech holdings, negatively impacting its value.",
+      "bear_estimate": "-$20,000-$30,000 via tech sector decline",
+      "bear_probability": 25
     }
   ],
   "risks": [
     {
-      "title": "Leverage Risk",
+      "title": "Leverage Amplification",
       "level": "HIGH",
-      "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's leveraged positions amplify both gains and losses, making it vulnerable to market volatility."
+      "context": "49% of portfolio (~ $135K CAD) in leveraged ETFs (FNGU/SPXL/UDOW)",
+      "body": "The portfolio's significant allocation to leveraged ETFs amplifies both gains and losses, making it sensitive to market volatility."
     },
     {
-      "title": "FX Risk",
+      "title": "FX Book Rate Drag",
       "level": "MED",
-      "context": "68% USD exposure ~ $1800/1¢ USD/CAD",
-      "body": "The portfolio's USD exposure makes it susceptible to currency fluctuations, which could impact its value."
+      "context": "68% USD exposure with a FX book rate of 1.3925",
+      "body": "The portfolio's USD exposure and current FX book rate could result in currency-related losses if the CAD strengthens."
     },
     {
       "title": "Concentration Risk",
-      "level": "LOW",
-      "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's concentration in a few holdings makes it vulnerable to company-specific risks, but the diversification across sectors mitigates this risk."
+      "level": "MED",
+      "context": "Large positions in NVDA, FNGU, and SPXL",
+      "body": "The portfolio's concentration in a few large positions increases its vulnerability to significant losses if any of these holdings experience a downturn."
     }
   ],
   "news": [
     {
-      "headline": "Apple Raises Prices",
+      "headline": "Iran Deal Grants Access to Nuclear Inspectors",
       "impact": "MED",
-      "confidence": 70,
+      "confidence": 80,
       "category": "Sector & Stock",
-      "body": "Apple's price hike could impact the portfolio's AAPL holding, potentially affecting its value.",
-      "exposure": "AAPL ~$10K CAD",
+      "body": "The recent Iran deal could lead to increased stability in the region, potentially benefiting the portfolio's energy holdings (e.g., ENB.TO).",
+      "exposure": "ENB.TO ~$10K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "Apple's price hike leads to increased revenue and profitability, benefiting the portfolio.",
-          "estimate": "+$2,000-$3,000 on AAPL holding"
+          "scenario": "Increased stability in the region leads to higher oil prices, benefiting ENB.TO.",
+          "estimate": "+$2,000-$4,000 on ENB.TO"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "Apple's price hike has a neutral impact on the portfolio, with minimal changes to its value.",
+          "scenario": "The deal has a minimal impact on the portfolio's energy holdings.",
           "estimate": "±$1,000 — minimal net change"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "Apple's price hike leads to decreased sales and revenue, negatively impacting the portfolio.",
-          "estimate": "-$3,000-$5,000 on AAPL holding"
+          "scenario": "The deal leads to decreased oil prices, negatively impacting ENB.TO.",
+          "estimate": "-$3,000-$5,000 on ENB.TO"
         }
       ]
     },
     {
-      "headline": "Micron Stock Jumps 16%",
+      "headline": "Apple Raises Prices on MacBook and iPad",
       "impact": "LOW",
-      "confidence": 50,
+      "confidence": 60,
       "category": "Sector & Stock",
-      "body": "Micron's stock jump could be a positive sign for the tech sector, potentially benefiting the portfolio's tech holdings.",
-      "exposure": "NVDA, TXF.TO, AVGO, TSM, MSFT ~$50K CAD",
+      "body": "Apple's price increase could lead to higher revenue, but may also face resistance from consumers, affecting the portfolio's AAPL holding.",
+      "exposure": "AAPL ~$8K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 35,
-          "scenario": "Micron's stock jump leads to a tech sector rally, benefiting the portfolio's tech holdings.",
-          "estimate": "+$5,000-$10,000 on tech holdings"
+          "scenario": "Apple's price increase leads to higher revenue and profitability.",
+          "estimate": "+$1,500-$3,000 on AAPL"
         },
         {
           "label": "Base",
           "probability": 40,
-          "scenario": "Micron's stock jump has a neutral impact on the portfolio, with minimal changes to its value.",
-          "estimate": "±$2,000 — minimal net change"
-        },
-        {
-          "label": "Bear",
-          "probability": 25,
-          "scenario": "Micron's stock jump is an isolated event, with no significant impact on the portfolio.",
-          "estimate": "-$1,000-$3,000 on tech holdings"
-        }
-      ]
-    },
-    {
-      "headline": "Iran Peace Deal",
-      "impact": "MED",
-      "confidence": 60,
-      "category": "Sector & Stock",
-      "body": "A potential Iran peace deal could lead to increased oil production, affecting the portfolio's energy holdings.",
-      "exposure": "ENB.TO ~$5K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 30,
-          "scenario": "A peace deal leads to increased oil production, benefiting the portfolio's energy holdings.",
-          "estimate": "+$1,000-$2,000 on ENB.TO holding"
-        },
-        {
-          "label": "Base",
-          "probability": 40,
-          "scenario": "A peace deal has a neutral impact on the portfolio, with minimal changes to its value.",
+          "scenario": "The price increase has a minimal impact on Apple's sales and the portfolio's AAPL holding.",
           "estimate": "±$500 — minimal net change"
         },
         {
           "label": "Bear",
+          "probability": 25,
+          "scenario": "The price increase leads to decreased sales and negatively impacts AAPL.",
+          "estimate": "-$2,000-$4,000 on AAPL"
+        }
+      ]
+    },
+    {
+      "headline": "Micron Leads Tech Stocks Rally on Blowout Earnings",
+      "impact": "MED",
+      "confidence": 85,
+      "category": "Sector & Stock",
+      "body": "Micron's strong earnings could lead to a tech sector rally, benefiting the portfolio's tech holdings (e.g., NVDA, TXF.TO).",
+      "exposure": "NVDA ~$20K CAD, TXF.TO ~$5K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 45,
+          "scenario": "The tech sector rally leads to significant gains in NVDA and TXF.TO.",
+          "estimate": "+$8,000-$15,000 on NVDA and TXF.TO"
+        },
+        {
+          "label": "Base",
           "probability": 30,
-          "scenario": "A peace deal leads to decreased oil prices, negatively impacting the portfolio's energy holdings.",
-          "estimate": "-$2,000-$3,000 on ENB.TO holding"
+          "scenario": "The rally has a moderate impact on the portfolio's tech holdings.",
+          "estimate": "+$2,000-$5,000 on NVDA and TXF.TO"
+        },
+        {
+          "label": "Bear",
+          "probability": 25,
+          "scenario": "The rally is short-lived, and the tech sector experiences a downturn.",
+          "estimate": "-$5,000-$10,000 on NVDA and TXF.TO"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "SHEL",
-      "action": "ADD",
+      "ticker": "LILY",
+      "action": "NEW",
       "account": "RRSP",
-      "thesis": "Shell's diversified energy portfolio and strong balance sheet make it an attractive addition to the portfolio, especially given the current geopolitical tensions.",
-      "entry": "Entry price range: $20-$25"
+      "thesis": "Lilly's obesity drug could be a game-changer, and its stock has potential for significant growth.",
+      "entry": "Entry price range: $350-$400"
     },
     {
-      "ticker": "COST",
+      "ticker": "CERE",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Costco's strong retail presence and ability to navigate tariff uncertainties make it a potential addition to the portfolio, but its current valuation requires closer monitoring.",
-      "entry": "Monitor for entry below $500"
+      "thesis": "Cerebras's AI-focused business could benefit from the shift towards efficient AI companies.",
+      "entry": "Monitor for entry on a pullback to $20-$25"
+    },
+    {
+      "ticker": "FUTU",
+      "action": "ADD",
+      "account": "RRSP",
+      "thesis": "FUTU's improving client quality could drive growth, and its stock has potential for long-term appreciation.",
+      "entry": "Add to existing position on a dip to $50-$60"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of tech, finance, and energy holdings"
+      "text": "High-risk tolerance allows for aggressive growth-oriented investments"
     },
     {
       "ticker": "NVDA",
-      "text": "Strong growth potential in the tech sector, particularly in AI and gaming"
+      "text": "Significant gains in NVDA provide a strong foundation for the portfolio"
     },
     {
-      "ticker": "CM.TO",
-      "text": "Stable financial sector holding with a strong dividend yield"
+      "ticker": null,
+      "text": "Tax-efficient use of RRSP and TFSA accounts minimizes tax liabilities"
     },
     {
-      "ticker": "TSLA",
-      "text": "Innovative company with a strong brand and growth potential in the EV sector"
+      "ticker": "FNGU",
+      "text": "Leveraged ETFs provide amplified returns in a growing market"
     },
     {
-      "ticker": "V",
-      "text": "Diversified payment processing company with a strong global presence"
+      "ticker": null,
+      "text": "Diversified holdings across sectors reduce overall portfolio risk"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "High leverage ratio, making the portfolio vulnerable to market volatility"
+      "text": "Concentration in a few large positions increases vulnerability to significant losses"
     },
     {
       "ticker": "AAPL",
-      "text": "Dependence on a few key products, making it vulnerable to company-specific risks"
+      "text": "AAPL's price increase could lead to decreased sales and negatively impact the portfolio"
+    },
+    {
+      "ticker": null,
+      "text": "FX book rate drag could result in currency-related losses if the CAD strengthens"
     },
     {
       "ticker": "ENB.TO",
-      "text": "Exposure to the energy sector, which can be volatile and subject to geopolitical risks"
+      "text": "Energy sector volatility could negatively impact ENB.TO and the portfolio's energy holdings"
     },
     {
-      "ticker": "GBTC",
-      "text": "Exposure to the cryptocurrency market, which can be highly volatile"
-    },
-    {
-      "ticker": "BYDDF",
-      "text": "Exposure to the Chinese market, which can be subject to regulatory risks"
+      "ticker": null,
+      "text": "Leverage amplification increases the portfolio's sensitivity to market volatility"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's leverage ratio and consider reducing it if market volatility increases"
+      "text": "Monitor the impact of the Iran deal on the energy sector and adjust holdings accordingly"
     },
     {
       "num": "02",
-      "text": "Keep a close eye on the tech sector, particularly AI and gaming, for potential growth opportunities"
+      "text": "Keep a close eye on the tech sector rally and consider adding to positions on a pullback"
     },
     {
       "num": "03",
-      "text": "Consider adding more diversification to the portfolio, particularly in the financial sector"
+      "text": "Review the portfolio's concentration risk and consider diversifying holdings to reduce vulnerability"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Consider adding more international exposure to the portfolio, particularly in the European market"
+      "text": "Consider adding to the portfolio's tech holdings, focusing on efficient AI companies"
     },
     {
       "num": "02",
-      "text": "Monitor the energy sector for potential opportunities, particularly in renewable energy"
+      "text": "Evaluate the potential for sector rotations and adjust the portfolio's sector allocation accordingly"
     },
     {
       "num": "03",
-      "text": "Consider adding more dividend-paying stocks to the portfolio, particularly in the financial sector"
+      "text": "Assess the impact of inflationary pressures on the portfolio and consider adjusting the allocation to inflation-resistant assets"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Consider adding more exposure to the healthcare sector, particularly in biotechnology"
+      "text": "Maintain a long-term focus on growth-oriented investments, with a emphasis on tech and healthcare sectors"
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's tax efficiency and consider tax-loss harvesting to minimize tax liabilities"
+      "text": "Continue to utilize tax-efficient accounts, such as RRSP and TFSA, to minimize tax liabilities"
     },
     {
       "num": "03",
-      "text": "Consider adding more alternative investments to the portfolio, particularly in real estate or private equity"
+      "text": "Regularly review and adjust the portfolio's asset allocation to ensure it remains aligned with the investor's risk tolerance and goals"
     }
   ],
-  "daily_outlook": "The portfolio is well-diversified, but the high leverage ratio and exposure to the tech sector make it vulnerable to market volatility. Monitor the portfolio closely and consider reducing leverage or adding more diversification.",
+  "daily_outlook": "The portfolio's outlook remains positive, with a focus on growth-oriented investments and a long-term perspective. However, it is essential to monitor the impact of the Iran deal, tech sector rally, and inflationary pressures on the portfolio's holdings.",
   "market_mood": "risk-on",
-  "generated_at": "2026-06-26T06:01:21.164981+00:00",
+  "generated_at": "2026-06-26T13:15:00.003847+00:00",
   "generated_date": "June 26, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []

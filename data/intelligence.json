@@ -1,269 +1,262 @@
 {
   "macro": [
     {
-      "title": "US-Iran Diplomacy",
-      "impact": "MED",
-      "confidence": 60,
-      "body": "The uncertainty surrounding US-Iran diplomacy could impact global oil prices and, by extension, the broader economy. This could lead to increased market volatility, affecting the portfolio's leveraged positions.",
-      "bull": "A successful diplomatic outcome could lead to decreased oil prices, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 30,
-      "base": "The current diplomatic uncertainty is likely to persist, leading to minimal net change in the portfolio.",
-      "base_estimate": "±$5,000",
-      "base_probability": 40,
-      "bear": "Failed diplomacy could lead to increased oil prices, negatively impacting the portfolio's tech holdings.",
-      "bear_estimate": "-$30,000-$40,000 via 3x ETF amplification",
-      "bear_probability": 30
-    },
-    {
       "title": "Global Economic Resilience",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "The global economy's resilience, despite geopolitical tensions, could lead to continued growth and increased investor confidence. This could positively impact the portfolio's tech and financial holdings.",
-      "bull": "Strong economic growth could lead to increased demand for tech products and services, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$40,000-$50,000 via NVDA, MSFT, and AAPL",
-      "bull_probability": 50,
-      "base": "The economy is likely to continue growing, albeit at a moderate pace, leading to minimal net change in the portfolio.",
-      "base_estimate": "±$10,000",
+      "impact": "MED",
+      "confidence": 70,
+      "body": "The global economy has shown resilience despite the Iran war and other geopolitical tensions. This resilience is expected to continue, driven by strong consumer spending and investments in technology. However, the ongoing conflict and rising oil prices may still pose a risk to economic growth.",
+      "bull": "A continued strong economy would boost the portfolio's tech holdings, such as NVDA and MSFT.",
+      "bull_estimate": "+$20,000-$30,000 via tech sector growth",
+      "bull_probability": 40,
+      "base": "The economy is expected to continue growing, albeit at a slower pace, driven by consumer spending and technological advancements.",
+      "base_estimate": "±$5,000 — steady growth",
       "base_probability": 30,
-      "bear": "A downturn in the global economy could negatively impact the portfolio's holdings across all sectors.",
-      "bear_estimate": "-$50,000-$60,000 via broad market decline",
-      "bear_probability": 20
+      "bear": "A downturn in the global economy would negatively impact the portfolio's leveraged positions, such as FNGU and SPXL.",
+      "bear_estimate": "-$30,000-$50,000 via 3x leverage amplification",
+      "bear_probability": 30
     },
     {
       "title": "Fed Policy and Interest Rates",
+      "impact": "HIGH",
+      "confidence": 80,
+      "body": "The Federal Reserve's monetary policy decisions will continue to impact interest rates and the overall economy. A rate hike or cut could significantly affect the portfolio's holdings, particularly those with high leverage.",
+      "bull": "A rate cut would boost the portfolio's growth-oriented holdings, such as tech stocks.",
+      "bull_estimate": "+$15,000-$25,000 via growth stock rally",
+      "bull_probability": 35,
+      "base": "The Fed is expected to maintain a neutral stance, keeping interest rates stable.",
+      "base_estimate": "±$2,000 — minimal impact",
+      "base_probability": 40,
+      "bear": "A rate hike would negatively impact the portfolio's leveraged positions, such as FNGU and SPXL.",
+      "bear_estimate": "-$25,000-$40,000 via 3x leverage amplification",
+      "bear_probability": 25
+    },
+    {
+      "title": "Sector Rotations",
       "impact": "MED",
-      "confidence": 70,
-      "body": "The Federal Reserve's monetary policy decisions, including interest rate changes, could impact the portfolio's holdings, particularly those with high leverage or sensitivity to interest rates.",
-      "bull": "A dovish Fed policy could lead to decreased interest rates, benefiting the portfolio's leveraged positions.",
-      "bull_estimate": "+$15,000-$25,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 40,
-      "base": "The Fed is likely to maintain a neutral stance, leading to minimal net change in the portfolio.",
-      "base_estimate": "±$5,000",
-      "base_probability": 30,
-      "bear": "A hawkish Fed policy could lead to increased interest rates, negatively impacting the portfolio's holdings with high leverage.",
-      "bear_estimate": "-$25,000-$35,000 via 3x ETF amplification",
-      "bear_probability": 30
+      "confidence": 60,
+      "body": "Sector rotations will continue to impact the portfolio's performance, with some sectors outperforming others. The tech sector, in particular, has shown strength in recent months.",
+      "bull": "A continued rotation into tech would boost the portfolio's holdings, such as NVDA and MSFT.",
+      "bull_estimate": "+$10,000-$20,000 via tech sector growth",
+      "bull_probability": 45,
+      "base": "Sector rotations are expected to continue, with some sectors performing better than others.",
+      "base_estimate": "±$3,000 — steady growth",
+      "base_probability": 35,
+      "bear": "A rotation out of tech would negatively impact the portfolio's holdings, such as NVDA and MSFT.",
+      "bear_estimate": "-$15,000-$30,000 via tech sector decline",
+      "bear_probability": 20
     }
   ],
   "risks": [
     {
-      "title": "Leverage Risk",
+      "title": "Leverage Amplification",
       "level": "HIGH",
-      "context": "49% of portfolio (~ $135K CAD) in leveraged ETFs",
-      "body": "The portfolio's high leverage exposure amplifies both gains and losses, increasing the risk of significant portfolio value swings."
+      "context": "49% of portfolio (~ $135K CAD) is allocated to leveraged ETFs",
+      "body": "The portfolio's leveraged positions, such as FNGU and SPXL, amplify both gains and losses. A significant market downturn could result in substantial losses."
     },
     {
-      "title": "FX Risk",
+      "title": "FX Book Rate Drag",
       "level": "MED",
-      "context": "68% USD exposure (~ $1800/1¢ USD/CAD)",
-      "body": "The portfolio's significant USD exposure increases the risk of foreign exchange losses if the CAD strengthens against the USD."
+      "context": "68% of portfolio is denominated in USD, with a FX book rate of 1.3925",
+      "body": "The portfolio's USD-denominated holdings are subject to currency fluctuations, which could impact performance. A strengthening CAD could result in losses."
     },
     {
       "title": "Concentration Risk",
       "level": "MED",
-      "context": "Large positions in NVDA, FNGU, and SPXL",
-      "body": "The portfolio's concentration in a few large positions increases the risk of significant losses if any of these holdings experience a downturn."
+      "context": "Top 5 holdings account for 60% of portfolio value",
+      "body": "The portfolio's concentration in a few holdings, such as NVDA and FNGU, increases the risk of significant losses if these holdings decline in value."
     }
   ],
   "news": [
     {
-      "headline": "Oil Prices Hover Above $70",
+      "headline": "Nvidia Mostly Sat Out Chip Sector's Best Quarter",
       "impact": "MED",
       "confidence": 70,
       "category": "Sector & Stock",
-      "body": "The current oil price levels could impact the portfolio's energy holdings, such as ENB.TO, and influence the broader market sentiment.",
-      "exposure": "ENB.TO ~ $8K CAD",
+      "body": "Nvidia's recent performance has been lackluster compared to its peers in the chip sector. This could impact the portfolio's holdings, particularly NVDA.",
+      "exposure": "NVDA ~ $43K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 30,
-          "scenario": "Oil prices decrease, benefiting the portfolio's tech holdings.",
-          "estimate": "+$5,000-$10,000 via FNGU/SPXL 3x leverage"
+          "scenario": "Nvidia's future growth prospects remain strong, driven by AI and gaming demand.",
+          "estimate": "+$8,000-$12,000 via NVDA growth"
         },
         {
           "label": "Base",
           "probability": 40,
-          "scenario": "Oil prices remain stable, leading to minimal net change in the portfolio.",
-          "estimate": "±$2,000"
+          "scenario": "Nvidia's performance will continue to be steady, with some fluctuations.",
+          "estimate": "±$2,000 — minimal impact"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "Oil prices increase, negatively impacting the portfolio's tech holdings.",
-          "estimate": "-$10,000-$15,000 via 3x ETF amplification"
+          "scenario": "Nvidia's lackluster performance continues, impacting the portfolio's holdings.",
+          "estimate": "-$6,000-$10,000 via NVDA decline"
         }
       ]
     },
     {
-      "headline": "Salesforce AI Buying Spree",
+      "headline": "Qualcomm Is Most Underrated AI Chipmaker",
+      "impact": "MED",
+      "confidence": 65,
+      "category": "Sector & Stock",
+      "body": "Qualcomm's AI capabilities have been overlooked, presenting an opportunity for growth. This could impact the portfolio's holdings, particularly QCOM.",
+      "exposure": "QCOM ~ $12K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 35,
+          "scenario": "Qualcomm's AI growth prospects drive the stock higher.",
+          "estimate": "+$4,000-$8,000 via QCOM growth"
+        },
+        {
+          "label": "Base",
+          "probability": 40,
+          "scenario": "Qualcomm's performance will continue to be steady, with some fluctuations.",
+          "estimate": "±$1,500 — minimal impact"
+        },
+        {
+          "label": "Bear",
+          "probability": 25,
+          "scenario": "Qualcomm's AI growth prospects are overestimated, impacting the portfolio's holdings.",
+          "estimate": "-$3,000-$6,000 via QCOM decline"
+        }
+      ]
+    },
+    {
+      "headline": "Interactive Brokers Expands Access to Korean Equities",
       "impact": "LOW",
       "confidence": 50,
       "category": "Sector & Stock",
-      "body": "Salesforce's AI-focused acquisitions could lead to increased competition in the tech sector, potentially impacting the portfolio's holdings in NVDA, MSFT, and AAPL.",
-      "exposure": "NVDA ~ $30K CAD, MSFT ~ $15K CAD, AAPL ~ $10K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 20,
-          "scenario": "Increased AI adoption benefits the portfolio's tech holdings.",
-          "estimate": "+$5,000-$10,000 via NVDA, MSFT, and AAPL"
-        },
-        {
-          "label": "Base",
-          "probability": 50,
-          "scenario": "The impact of Salesforce's AI acquisitions is minimal, leading to no significant change in the portfolio.",
-          "estimate": "±$1,000"
-        },
-        {
-          "label": "Bear",
-          "probability": 30,
-          "scenario": "Increased competition in the AI sector negatively impacts the portfolio's tech holdings.",
-          "estimate": "-$5,000-$10,000 via NVDA, MSFT, and AAPL"
-        }
-      ]
-    },
-    {
-      "headline": "Comcast's NBCUniversal Spinoff",
-      "impact": "LOW",
-      "confidence": 40,
-      "category": "Sector & Stock",
-      "body": "The spinoff could lead to increased M&A activity in the media sector, potentially impacting the portfolio's holdings in LYV and other related stocks.",
-      "exposure": "LYV ~ $5K CAD",
+      "body": "Interactive Brokers' expansion into Korean equities presents a new opportunity for growth. This could impact the portfolio's holdings, particularly IBKR.",
+      "exposure": "IBKR ~ $8K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 25,
-          "scenario": "Increased M&A activity benefits the portfolio's media holdings.",
-          "estimate": "+$2,000-$5,000 via LYV"
+          "scenario": "Interactive Brokers' expansion drives growth and increases the stock price.",
+          "estimate": "+$2,000-$4,000 via IBKR growth"
         },
         {
           "label": "Base",
           "probability": 50,
-          "scenario": "The impact of the spinoff is minimal, leading to no significant change in the portfolio.",
-          "estimate": "±$1,000"
+          "scenario": "Interactive Brokers' performance will continue to be steady, with some fluctuations.",
+          "estimate": "±$1,000 — minimal impact"
         },
         {
           "label": "Bear",
           "probability": 25,
-          "scenario": "The spinoff leads to increased competition in the media sector, negatively impacting the portfolio's holdings.",
-          "estimate": "-$2,000-$5,000 via LYV"
+          "scenario": "Interactive Brokers' expansion does not drive significant growth, impacting the portfolio's holdings.",
+          "estimate": "-$1,500-$3,000 via IBKR decline"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "AMD",
+      "ticker": "CRWD",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "AMD's growing presence in the AI and cloud computing markets, combined with its competitive pricing, makes it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $80-$100"
+      "thesis": "CrowdStrike's strong growth prospects in the cybersecurity sector, driven by increasing demand for cloud-based security solutions, make it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $150-$200"
     },
     {
-      "ticker": "BMO.TO",
+      "ticker": "SQ",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "BMO's strong financial performance and dividend yield make it a potential addition to the portfolio, particularly if the Canadian banking sector experiences a downturn.",
-      "entry": "Monitor for entry below $100"
-    },
-    {
-      "ticker": "SAP",
-      "action": "NEW",
-      "account": "RRSP",
-      "thesis": "SAP's leadership in the enterprise software market and its growing cloud presence make it an attractive new holding for the portfolio.",
-      "entry": "Entry price range: $120-$150"
+      "thesis": "Square's expanding ecosystem and growing demand for digital payments make it a potential addition to the portfolio. However, its high valuation requires careful consideration.",
+      "entry": "Monitor for a potential entry point below $150"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of tech, financial, and energy holdings"
+      "text": "Diversified portfolio with a mix of growth and income-generating holdings"
     },
     {
       "ticker": "NVDA",
-      "text": "Strong growth potential in the AI and cloud computing markets"
+      "text": "Strong growth prospects in the tech sector, particularly in AI and gaming"
     },
     {
-      "ticker": "FNGU",
-      "text": "Leveraged exposure to the tech sector, amplifying potential gains"
+      "ticker": "MSFT",
+      "text": "Established player in the tech sector with a diverse range of products and services"
     },
     {
-      "ticker": "CM.TO",
-      "text": "Stable dividend income from Canadian banking sector"
+      "ticker": "V",
+      "text": "Stable and growing payments business with a strong brand"
     },
     {
       "ticker": null,
-      "text": "Tax-efficient use of RRSP and TFSA accounts"
+      "text": "Tax-efficient portfolio structure, utilizing RRSP and TFSA accounts"
     }
   ],
   "concerns": [
     {
-      "ticker": null,
-      "text": "High leverage exposure increases risk of significant portfolio value swings"
+      "ticker": "FNGU",
+      "text": "High leverage and concentration in a single holding, increasing risk"
     },
     {
-      "ticker": "ENB.TO",
-      "text": "Energy sector volatility could negatively impact the portfolio"
-    },
-    {
-      "ticker": "LYV",
-      "text": "Increased competition in the media sector could negatively impact the portfolio"
+      "ticker": "SPXL",
+      "text": "High leverage and potential for significant losses if the market declines"
     },
     {
       "ticker": null,
-      "text": "FX risk due to significant USD exposure"
+      "text": "Concentration in the tech sector, making the portfolio vulnerable to sector-specific downturns"
+    },
+    {
+      "ticker": "IBKR",
+      "text": "Dependence on a single broker for access to international markets, increasing risk"
     },
     {
       "ticker": null,
-      "text": "Concentration risk in a few large positions increases potential losses"
+      "text": "Potential for currency fluctuations to impact USD-denominated holdings"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor oil prices and adjust energy holdings as needed"
+      "text": "Monitor the portfolio's leverage and adjust as needed to maintain a comfortable risk profile"
     },
     {
       "num": "02",
-      "text": "Keep a close eye on interest rate changes and adjust leveraged positions accordingly"
+      "text": "Consider tax-loss harvesting to optimize the portfolio's tax efficiency"
     },
     {
       "num": "03",
-      "text": "Consider adding to tech holdings on dips, particularly in NVDA and MSFT"
+      "text": "Review and adjust the portfolio's sector allocation to ensure diversification and minimize risk"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Rebalance the portfolio to maintain target allocations and reduce concentration risk"
+      "text": "Continue to invest in the tech sector, focusing on growth-oriented holdings like NVDA and MSFT"
     },
     {
       "num": "02",
-      "text": "Consider adding to the portfolio's dividend income stream through Canadian banking sector holdings"
+      "text": "Diversify the portfolio by adding holdings from other sectors, such as healthcare or consumer staples"
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's FX exposure and consider hedging strategies if necessary"
+      "text": "Consider adding a small allocation to emerging markets or international equities to increase diversification"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Continue to focus on long-term growth through tech and financial sector holdings"
+      "text": "Maintain a long-term focus on growth-oriented holdings, such as tech and healthcare"
     },
     {
       "num": "02",
-      "text": "Consider adding to the portfolio's international exposure through holdings in SAP and other global companies"
+      "text": "Continue to diversify the portfolio by adding holdings from other sectors and geographies"
     },
     {
       "num": "03",
-      "text": "Maintain a tax-efficient approach to investing, utilizing RRSP and TFSA accounts effectively"
+      "text": "Consider adding a small allocation to alternative assets, such as real estate or private equity, to increase diversification"
     }
   ],
-  "daily_outlook": "The portfolio is well-positioned for long-term growth, but investors should be aware of the potential risks and adjust their strategy accordingly. Today's market news and events will be closely monitored to identify opportunities and potential threats.",
+  "daily_outlook": "The portfolio is expected to continue its steady growth, driven by the tech sector and other growth-oriented holdings. However, the ongoing geopolitical tensions and potential for market fluctuations require continued monitoring and adjustments to the portfolio's risk profile.",
   "market_mood": "risk-on",
-  "generated_at": "2026-06-30T13:10:48.738971+00:00",
+  "generated_at": "2026-06-30T20:01:04.802661+00:00",
   "generated_date": "June 30, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []

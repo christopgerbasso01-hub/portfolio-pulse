@@ -1,178 +1,171 @@
 {
   "macro": [
     {
-      "title": "US-Iran Tensions",
+      "title": "Global Economic Shifts",
       "impact": "MED",
       "confidence": 70,
-      "body": "The ongoing US-Iran tensions could lead to increased volatility in the oil market, affecting the global economy. This could impact the portfolio's energy holdings, such as ENB.TO.",
-      "bull": "A resolution to the tensions could lead to a decrease in oil prices, benefiting the portfolio's tech holdings, such as NVDA.",
-      "bull_estimate": "+$10,000-$15,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 30,
-      "base": "The current situation is likely to continue, with minimal impact on the portfolio.",
-      "base_estimate": "±$2,000 — minimal net change",
-      "base_probability": 40,
-      "bear": "An escalation of the tensions could lead to a significant increase in oil prices, negatively impacting the portfolio's energy holdings.",
-      "bear_estimate": "-$15,000-$20,000 via 3x ETF amplification",
+      "body": "The global economy is experiencing a shift in power dynamics, with emerging markets gaining prominence. This could lead to changes in trade policies and currency fluctuations, affecting the portfolio's FX book.",
+      "bull": "A stronger global economy could boost the portfolio's leveraged ETFs, such as FNGU and SPXL.",
+      "bull_estimate": "+$20,000-$30,000 via 3x leverage",
+      "bull_probability": 40,
+      "base": "A stable global economy would likely result in minimal changes to the portfolio.",
+      "base_estimate": "±$5,000",
+      "base_probability": 30,
+      "bear": "A weakening global economy could lead to a decline in the portfolio's value, particularly in the tech sector.",
+      "bear_estimate": "-$30,000-$40,000 via 3x leverage",
       "bear_probability": 30
     },
     {
-      "title": "Global Economic Shifts",
+      "title": "Fed Policy",
       "impact": "HIGH",
       "confidence": 80,
-      "body": "The global economy is experiencing a shift, with some countries experiencing growth while others are facing challenges. This could impact the portfolio's holdings in various sectors, such as tech and finance.",
-      "bull": "A strong global economy could lead to increased demand for tech products, benefiting the portfolio's tech holdings, such as MSFT and AAPL.",
-      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 40,
-      "base": "The current global economic situation is likely to continue, with minimal impact on the portfolio.",
-      "base_estimate": "±$5,000 — minimal net change",
+      "body": "The Federal Reserve's monetary policy decisions will significantly impact the portfolio's performance, particularly in the short term. A rate hike could lead to a decline in the portfolio's value, while a rate cut could boost it.",
+      "bull": "A rate cut could lead to a surge in the portfolio's leveraged ETFs, such as FNGU and SPXL.",
+      "bull_estimate": "+$25,000-$35,000 via 3x leverage",
+      "bull_probability": 45,
+      "base": "A stable interest rate environment would likely result in minimal changes to the portfolio.",
+      "base_estimate": "±$5,000",
       "base_probability": 30,
-      "bear": "A global economic downturn could negatively impact the portfolio's holdings in various sectors.",
-      "bear_estimate": "-$25,000-$35,000 via 3x ETF amplification",
-      "bear_probability": 30
+      "bear": "A rate hike could lead to a decline in the portfolio's value, particularly in the tech sector.",
+      "bear_estimate": "-$35,000-$45,000 via 3x leverage",
+      "bear_probability": 25
     },
     {
-      "title": "FX Fluctuations",
+      "title": "Inflation",
       "impact": "MED",
       "confidence": 60,
-      "body": "The Canadian dollar has been fluctuating against the US dollar, which could impact the portfolio's US-held assets, such as TSLA and QCOM.",
-      "bull": "A strong Canadian dollar could lead to an increase in the value of the portfolio's US-held assets.",
-      "bull_estimate": "+$5,000-$10,000 via FX fluctuations",
+      "body": "Inflation rates will impact the portfolio's performance, particularly in the long term. High inflation could lead to a decline in the portfolio's value, while low inflation could boost it.",
+      "bull": "Low inflation could lead to a surge in the portfolio's tech sector holdings, such as NVDA and MSFT.",
+      "bull_estimate": "+$15,000-$25,000",
       "bull_probability": 35,
-      "base": "The current FX situation is likely to continue, with minimal impact on the portfolio.",
-      "base_estimate": "±$1,000 — minimal net change",
+      "base": "Stable inflation rates would likely result in minimal changes to the portfolio.",
+      "base_estimate": "±$5,000",
       "base_probability": 40,
-      "bear": "A weak Canadian dollar could lead to a decrease in the value of the portfolio's US-held assets.",
-      "bear_estimate": "-$5,000-$10,000 via FX fluctuations",
+      "bear": "High inflation could lead to a decline in the portfolio's value, particularly in the tech sector.",
+      "bear_estimate": "-$20,000-$30,000",
       "bear_probability": 25
     }
   ],
   "risks": [
     {
-      "title": "3x Leverage Amplification",
+      "title": "Leverage Risk",
       "level": "HIGH",
-      "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's 3x leveraged ETFs, such as FNGU and SPXL, amplify both gains and losses, increasing the risk of significant portfolio fluctuations."
+      "context": "49% of portfolio (~ $135K CAD)",
+      "body": "The portfolio's high leverage ratio amplifies both gains and losses, making it vulnerable to significant declines in the event of a market downturn."
     },
     {
-      "title": "FX Book Rate Drag",
+      "title": "FX Risk",
       "level": "MED",
-      "context": "68% USD exposure ~ $180,000 CAD",
-      "body": "The portfolio's US-held assets are subject to FX fluctuations, which could lead to a decrease in the value of these assets if the Canadian dollar strengthens."
+      "context": "68% USD exposure (~ $1800/1¢ USD/CAD)",
+      "body": "The portfolio's significant USD exposure makes it susceptible to currency fluctuations, which could impact the portfolio's value."
     },
     {
-      "title": "Account Concentration",
+      "title": "Concentration Risk",
       "level": "MED",
-      "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio is concentrated in a few holdings, such as NVDA and TSLA, which increases the risk of significant losses if these holdings decline in value."
+      "context": "Top 5 holdings: 60% of portfolio (~ $165K CAD)",
+      "body": "The portfolio's high concentration in a few holdings makes it vulnerable to significant declines if any of these holdings experience a downturn."
     }
   ],
   "news": [
     {
-      "headline": "TSLA Delivery Numbers",
-      "impact": "MED",
+      "headline": "NVIDIA Earnings",
+      "impact": "HIGH",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "TSLA's record delivery quarter has led to a decrease in the stock's price, potentially creating a buying opportunity.",
-      "exposure": "TSLA ~ $10,000 CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 40,
-          "scenario": "TSLA's stock price increases due to strong demand and production.",
-          "estimate": "+$2,000-$3,000 on TSLA position"
-        },
-        {
-          "label": "Base",
-          "probability": 30,
-          "scenario": "TSLA's stock price remains stable, with minimal impact on the portfolio.",
-          "estimate": "±$500 — minimal net change"
-        },
-        {
-          "label": "Bear",
-          "probability": 30,
-          "scenario": "TSLA's stock price decreases due to increased competition and production costs.",
-          "estimate": "-$2,000-$3,000 on TSLA position"
-        }
-      ]
-    },
-    {
-      "headline": "NVDA Earnings",
-      "impact": "HIGH",
-      "confidence": 90,
-      "category": "Sector & Stock",
-      "body": "NVDA's strong earnings report has led to an increase in the stock's price, benefiting the portfolio.",
-      "exposure": "NVDA ~ $30,000 CAD",
+      "body": "NVIDIA's strong earnings report could boost the portfolio's tech sector holdings, particularly NVDA.",
+      "exposure": "NVDA ~ $25K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 50,
-          "scenario": "NVDA's stock price continues to increase due to strong demand and innovation.",
-          "estimate": "+$5,000-$10,000 on NVDA position"
+          "scenario": "NVDA's strong earnings report could lead to a surge in the stock's price, boosting the portfolio's value.",
+          "estimate": "+$5,000-$10,000"
         },
         {
           "label": "Base",
-          "probability": 25,
-          "scenario": "NVDA's stock price remains stable, with minimal impact on the portfolio.",
-          "estimate": "±$1,000 — minimal net change"
+          "probability": 30,
+          "scenario": "NVDA's earnings report would likely result in minimal changes to the portfolio.",
+          "estimate": "±$1,000"
         },
         {
           "label": "Bear",
-          "probability": 25,
-          "scenario": "NVDA's stock price decreases due to increased competition and regulatory challenges.",
-          "estimate": "-$5,000-$10,000 on NVDA position"
+          "probability": 20,
+          "scenario": "A disappointing earnings report could lead to a decline in NVDA's stock price, negatively impacting the portfolio.",
+          "estimate": "-$5,000-$10,000"
+        }
+      ]
+    },
+    {
+      "headline": "Tesla Delivery Numbers",
+      "impact": "MED",
+      "confidence": 60,
+      "category": "Sector & Stock",
+      "body": "Tesla's delivery numbers could impact the portfolio's holdings in TSLA.",
+      "exposure": "TSLA ~ $10K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 40,
+          "scenario": "Strong delivery numbers could boost TSLA's stock price, positively impacting the portfolio.",
+          "estimate": "+$2,000-$5,000"
+        },
+        {
+          "label": "Base",
+          "probability": 30,
+          "scenario": "Tesla's delivery numbers would likely result in minimal changes to the portfolio.",
+          "estimate": "±$1,000"
+        },
+        {
+          "label": "Bear",
+          "probability": 30,
+          "scenario": "Disappointing delivery numbers could lead to a decline in TSLA's stock price, negatively impacting the portfolio.",
+          "estimate": "-$2,000-$5,000"
         }
       ]
     },
     {
       "headline": "Visa Threat Intelligence",
       "impact": "LOW",
-      "confidence": 60,
+      "confidence": 40,
       "category": "Sector & Stock",
-      "body": "Visa's threat intelligence platform has been launched, potentially increasing the company's revenue and competitiveness.",
-      "exposure": "V ~ $5,000 CAD",
+      "body": "Visa's threat intelligence report could have a minimal impact on the portfolio's holdings in V.",
+      "exposure": "V ~ $5K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 30,
-          "scenario": "Visa's stock price increases due to the success of the threat intelligence platform.",
-          "estimate": "+$1,000-$2,000 on V position"
+          "probability": 20,
+          "scenario": "The report could lead to a slight increase in V's stock price, positively impacting the portfolio.",
+          "estimate": "+$1,000-$2,000"
         },
         {
           "label": "Base",
-          "probability": 40,
-          "scenario": "Visa's stock price remains stable, with minimal impact on the portfolio.",
-          "estimate": "±$500 — minimal net change"
+          "probability": 60,
+          "scenario": "The report would likely result in minimal changes to the portfolio.",
+          "estimate": "±$500"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "Visa's stock price decreases due to increased competition and regulatory challenges.",
-          "estimate": "-$1,000-$2,000 on V position"
+          "probability": 20,
+          "scenario": "The report could lead to a slight decline in V's stock price, negatively impacting the portfolio.",
+          "estimate": "-$1,000-$2,000"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "AMZN",
+      "ticker": "SQ",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Amazon's strong cloud computing business and growing e-commerce platform make it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $180-$200"
+      "thesis": "Square's strong growth in the payments sector, combined with its expanding ecosystem, makes it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $150-$200"
     },
     {
-      "ticker": "GOOGL",
+      "ticker": "CRWD",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Google's dominant position in the search engine market and growing cloud computing business make it a potential addition to the portfolio.",
-      "entry": "Monitor for entry on a pullback to $2,500-$2,800"
-    },
-    {
-      "ticker": "BABA",
-      "action": "NEW",
-      "account": "RRSP",
-      "thesis": "Alibaba's strong e-commerce platform and growing cloud computing business make it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $200-$250"
+      "thesis": "CrowdStrike's leadership in the cybersecurity sector, combined with its strong growth prospects, makes it a potential addition to the portfolio.",
+      "entry": "Monitor for entry on a pullback to $150-$200"
     }
   ],
   "strengths": [
@@ -182,88 +175,88 @@
     },
     {
       "ticker": "NVDA",
-      "text": "Strong position in NVDA, a leader in the tech industry"
+      "text": "Strong growth prospects in the tech sector"
     },
     {
-      "ticker": "TSLA",
-      "text": "Exposure to the growing electric vehicle market through TSLA"
+      "ticker": "FNGU",
+      "text": "Leveraged ETF providing exposure to the S&P 500"
     },
     {
       "ticker": "V",
-      "text": "Stable income stream from Visa's dividend payments"
+      "text": "Stable payments sector holding with a strong brand"
     },
     {
-      "ticker": null,
-      "text": "Tax-efficient portfolio structure, with RRSP and TFSA accounts"
+      "ticker": "TSM",
+      "text": "Leader in the semiconductor sector with a strong growth trajectory"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "Concentration of portfolio in a few holdings, increasing risk"
+      "text": "High leverage ratio amplifying both gains and losses"
     },
     {
       "ticker": "TSLA",
-      "text": "Volatility of TSLA's stock price, potentially impacting portfolio value"
+      "text": "Volatility in the electric vehicle sector"
     },
     {
-      "ticker": "NVDA",
-      "text": "Regulatory challenges facing NVDA, potentially impacting stock price"
+      "ticker": "IBKR",
+      "text": "Regulatory risks in the brokerage sector"
     },
     {
-      "ticker": null,
-      "text": "FX fluctuations, potentially impacting value of US-held assets"
+      "ticker": "LYV",
+      "text": "Seasonal fluctuations in the entertainment sector"
     },
     {
-      "ticker": null,
-      "text": "Lack of diversification in certain sectors, such as healthcare"
+      "ticker": "MSTR",
+      "text": "Volatility in the cryptocurrency sector"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor TSLA's stock price and consider adding to position on a pullback"
+      "text": "Monitor the portfolio's leverage ratio and adjust as needed to maintain a balanced risk profile"
     },
     {
       "num": "02",
-      "text": "Keep an eye on NVDA's earnings report and consider adding to position on strong results"
+      "text": "Keep a close eye on the tech sector, particularly NVDA and TSM, for potential growth opportunities"
     },
     {
       "num": "03",
-      "text": "Consider rebalancing portfolio to maintain target asset allocation"
+      "text": "Consider rebalancing the portfolio to maintain a diversified mix of sectors and holdings"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Consider adding to tech holdings, such as AMZN or GOOGL, to increase exposure to growing industries"
+      "text": "Continue to build a long-term growth portfolio with a focus on tech and finance holdings"
     },
     {
       "num": "02",
-      "text": "Monitor energy holdings, such as ENB.TO, and consider adding to position on a pullback"
+      "text": "Monitor the portfolio's currency exposure and adjust as needed to minimize FX risk"
     },
     {
       "num": "03",
-      "text": "Consider diversifying portfolio by adding holdings in other sectors, such as healthcare"
+      "text": "Consider adding more dividend-paying stocks to the portfolio to increase income generation"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Consider long-term investment in emerging industries, such as renewable energy or cloud computing"
+      "text": "Maintain a long-term perspective and avoid making emotional decisions based on short-term market fluctuations"
     },
     {
       "num": "02",
-      "text": "Monitor portfolio's tax efficiency and consider tax-loss harvesting to minimize tax liabilities"
+      "text": "Continue to educate oneself on the markets and stay up-to-date on economic and sector trends"
     },
     {
       "num": "03",
-      "text": "Consider increasing exposure to international markets, such as Europe or Asia, to diversify portfolio"
+      "text": "Consider tax implications when making investment decisions and aim to minimize tax liabilities"
     }
   ],
-  "daily_outlook": "The portfolio is well-positioned for long-term growth, with a mix of tech, finance, and energy holdings. However, the concentration of the portfolio in a few holdings increases the risk of significant losses. Monitor the portfolio's asset allocation and consider rebalancing to maintain target weights.",
+  "daily_outlook": "The portfolio is well-positioned for long-term growth, but may experience short-term fluctuations due to market volatility. Monitor the leverage ratio and adjust as needed to maintain a balanced risk profile.",
   "market_mood": "neutral",
-  "generated_at": "2026-07-03T06:01:18.369839+00:00",
+  "generated_at": "2026-07-03T13:01:03.092348+00:00",
   "generated_date": "July 03, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []

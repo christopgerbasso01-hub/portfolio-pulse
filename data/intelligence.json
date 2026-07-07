@@ -1,262 +1,273 @@
 {
   "macro": [
     {
-      "title": "Geopolitical Tensions",
+      "title": "US-Iran Tensions",
       "impact": "HIGH",
       "confidence": 80,
-      "body": "The ongoing tensions between the US and Iran, as well as the recent attacks on tankers near the Strait of Hormuz, may lead to increased volatility in the markets. This could impact the portfolio's leveraged positions, such as FNGU and SPXL.",
-      "bull": "A de-escalation of tensions could lead to a relief rally, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
+      "body": "The recent escalation of tensions between the US and Iran, including the revocation of licenses for Iranian oil sales and attacks on tankers, may lead to increased volatility in the global markets. This could impact the portfolio's leveraged positions, particularly those tied to the energy sector.",
+      "bull": "A potential conflict could lead to higher oil prices, benefiting energy stocks and the overall portfolio.",
+      "bull_estimate": "+$20,000-$30,000 via ENB.TO and other energy holdings",
       "bull_probability": 30,
-      "base": "The current tensions may lead to a prolonged period of uncertainty, resulting in a neutral impact on the portfolio.",
-      "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 40,
-      "bear": "An escalation of tensions could lead to a significant market downturn, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
-      "bear_probability": 30
+      "base": "The situation may stabilize, leading to a moderate impact on the portfolio.",
+      "base_estimate": "±$5,000 — minimal net change",
+      "base_probability": 50,
+      "bear": "An all-out conflict could lead to a significant downturn in the markets, negatively impacting the portfolio's value.",
+      "bear_estimate": "-$40,000-$60,000 via 3x leverage amplification",
+      "bear_probability": 20
     },
     {
-      "title": "Inflation Concerns",
+      "title": "Global Trade Deficit",
+      "impact": "MED",
+      "confidence": 70,
+      "body": "The widening US trade deficit, partly due to record capital goods imports, may lead to a decrease in the value of the US dollar. This could impact the portfolio's FX book and CAD-denominated holdings.",
+      "bull": "A weaker US dollar could lead to an increase in the value of CAD-denominated holdings, benefiting the portfolio.",
+      "bull_estimate": "+$10,000-$15,000 via CAD-denominated holdings",
+      "bull_probability": 40,
+      "base": "The trade deficit may not have a significant impact on the portfolio's value.",
+      "base_estimate": "±$2,000 — minimal net change",
+      "base_probability": 40,
+      "bear": "A significant decrease in the value of the US dollar could lead to a decrease in the portfolio's value, particularly in USD-denominated holdings.",
+      "bear_estimate": "-$15,000-$25,000 via USD-denominated holdings",
+      "bear_probability": 20
+    },
+    {
+      "title": "AI and Tech Sector",
       "impact": "MED",
       "confidence": 60,
-      "body": "The recent increase in oil prices due to the attacks on tankers may lead to higher inflation, which could impact the portfolio's bond holdings and overall returns.",
-      "bull": "A moderate increase in inflation could lead to higher interest rates, benefiting the portfolio's financial holdings, such as CM.TO and RY.TO.",
-      "bull_estimate": "+$5,000-$10,000 via CDN Fin holdings",
-      "bull_probability": 20,
-      "base": "The current inflation concerns may lead to a neutral impact on the portfolio, as the Bank of Canada may maintain its current monetary policy.",
-      "base_estimate": "±$2,000 — inflation remains under control",
-      "base_probability": 50,
-      "bear": "A significant increase in inflation could lead to a decrease in the portfolio's purchasing power and overall returns.",
-      "bear_estimate": "-$10,000-$20,000 via inflation erosion",
-      "bear_probability": 30
-    },
-    {
-      "title": "Sector Rotations",
-      "impact": "LOW",
-      "confidence": 40,
-      "body": "The recent market volatility may lead to sector rotations, with investors moving away from tech and into more defensive sectors, such as consumer staples and healthcare.",
-      "bull": "A rotation into tech could benefit the portfolio's holdings, such as NVDA and MSFT.",
-      "bull_estimate": "+$15,000-$25,000 via tech holdings",
-      "bull_probability": 25,
-      "base": "The current sector rotations may lead to a neutral impact on the portfolio, as the portfolio is diversified across various sectors.",
-      "base_estimate": "±$3,000 — sector rotations have minimal impact",
-      "base_probability": 50,
-      "bear": "A rotation away from tech could negatively impact the portfolio's holdings, such as NVDA and MSFT.",
-      "bear_estimate": "-$20,000-$30,000 via tech holdings",
-      "bear_probability": 25
+      "body": "The growing importance of AI in enterprise workflows, as mentioned by Bank of America, may lead to an increase in the value of tech stocks, particularly those with a strong AI focus.",
+      "bull": "The portfolio's tech holdings, such as NVDA and AVGO, could benefit from the growing demand for AI solutions.",
+      "bull_estimate": "+$15,000-$25,000 via NVDA and AVGO",
+      "bull_probability": 50,
+      "base": "The AI trend may not have a significant impact on the portfolio's value.",
+      "base_estimate": "±$5,000 — minimal net change",
+      "base_probability": 30,
+      "bear": "The portfolio's tech holdings may not be well-positioned to benefit from the AI trend, leading to a decrease in value.",
+      "bear_estimate": "-$10,000-$20,000 via NVDA and AVGO",
+      "bear_probability": 20
     }
   ],
   "risks": [
     {
-      "title": "Leverage Risk",
+      "title": "3x Leverage Amplification",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's leveraged positions, such as FNGU and SPXL, amplify both gains and losses, increasing the risk of significant losses in a market downturn."
+      "body": "The portfolio's leveraged positions, particularly FNGU and SPXL, amplify both gains and losses. This increases the risk of significant losses in the event of a market downturn."
     },
     {
-      "title": "FX Risk",
+      "title": "FX Book Rate Drag",
       "level": "MED",
-      "context": "68% USD exposure ~ $180K CAD",
-      "body": "The portfolio's significant USD exposure increases the risk of losses due to currency fluctuations, particularly if the CAD strengthens against the USD."
+      "context": "FX book rate 1.3925",
+      "body": "The portfolio's FX book rate may not be optimal, potentially leading to a drag on the portfolio's performance due to currency fluctuations."
     },
     {
       "title": "Concentration Risk",
-      "level": "LOW",
+      "level": "MED",
       "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's concentration in a few holdings, such as NVDA and FNGU, increases the risk of significant losses if these holdings experience a downturn."
+      "body": "The portfolio's concentration in a few key holdings, such as NVDA and FNGU, increases the risk of significant losses if any of these holdings experience a downturn."
     }
   ],
   "news": [
     {
-      "headline": "Tankers Hit in Hormuz",
+      "headline": "US Revokes Iranian Oil Sales License",
       "impact": "HIGH",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "The recent attacks on tankers near the Strait of Hormuz may lead to increased volatility in the markets, impacting the portfolio's leveraged positions, such as FNGU and SPXL.",
-      "exposure": "FNGU ~$87K CAD (3x leverage), SPXL ~$22K CAD",
+      "body": "The US revocation of licenses for Iranian oil sales may lead to increased tensions and volatility in the energy sector, impacting the portfolio's energy holdings, such as ENB.TO.",
+      "exposure": "ENB.TO ~ $10K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 30,
-          "scenario": "A de-escalation of tensions could lead to a relief rally, benefiting the portfolio's tech holdings.",
-          "estimate": "+$12,000-$18,000 on leveraged positions"
+          "scenario": "Higher oil prices benefit energy stocks, such as ENB.TO.",
+          "estimate": "+$5,000-$10,000 via ENB.TO"
+        },
+        {
+          "label": "Base",
+          "probability": 50,
+          "scenario": "The situation stabilizes, leading to minimal impact on the portfolio.",
+          "estimate": "±$1,000 — minimal net change"
+        },
+        {
+          "label": "Bear",
+          "probability": 20,
+          "scenario": "The situation escalates, leading to a downturn in the energy sector and the portfolio's value.",
+          "estimate": "-$10,000-$20,000 via ENB.TO"
+        }
+      ]
+    },
+    {
+      "headline": "Broadcom Downgrade Despite 89% Revenue Growth Outlook",
+      "impact": "MED",
+      "confidence": 60,
+      "category": "Sector & Stock",
+      "body": "The downgrade of AVGO despite strong revenue growth outlook may indicate a potential buying opportunity for the portfolio.",
+      "exposure": "AVGO ~ $8K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 40,
+          "scenario": "The portfolio benefits from the potential buying opportunity in AVGO.",
+          "estimate": "+$2,000-$5,000 via AVGO"
         },
         {
           "label": "Base",
           "probability": 40,
-          "scenario": "The current tensions may lead to a prolonged period of uncertainty, resulting in a neutral impact on the portfolio.",
-          "estimate": "±$3,000 — markets grind higher"
+          "scenario": "The downgrade has minimal impact on the portfolio's value.",
+          "estimate": "±$1,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "An escalation of tensions could lead to a significant market downturn, negatively impacting the portfolio's leveraged positions.",
-          "estimate": "-$20,000-$30,000 via 3x leverage amplification"
-        }
-      ]
-    },
-    {
-      "headline": "Samsung Earnings Disappoint",
-      "impact": "MED",
-      "confidence": 60,
-      "category": "Sector & Stock",
-      "body": "The recent disappointing earnings from Samsung may lead to a decrease in the portfolio's tech holdings, such as NVDA and AVGO.",
-      "exposure": "NVDA ~$20K CAD, AVGO ~$10K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
           "probability": 20,
-          "scenario": "A rebound in tech earnings could benefit the portfolio's holdings, such as NVDA and AVGO.",
-          "estimate": "+$5,000-$10,000 via tech holdings"
-        },
-        {
-          "label": "Base",
-          "probability": 50,
-          "scenario": "The current tech earnings may lead to a neutral impact on the portfolio, as the portfolio is diversified across various sectors.",
-          "base_estimate": "±$2,000 — tech earnings have minimal impact"
-        },
-        {
-          "label": "Bear",
-          "probability": 30,
-          "scenario": "A decrease in tech earnings could negatively impact the portfolio's holdings, such as NVDA and AVGO.",
-          "estimate": "-$10,000-$20,000 via tech holdings"
+          "scenario": "The downgrade indicates a potential downturn in AVGO's value, negatively impacting the portfolio.",
+          "estimate": "-$5,000-$10,000 via AVGO"
         }
       ]
     },
     {
-      "headline": "Shell Raises Q2 Gas Output Guidance",
-      "impact": "LOW",
-      "confidence": 40,
+      "headline": "Tesla's Self-Driving Story Faces New Test",
+      "impact": "MED",
+      "confidence": 50,
       "category": "Sector & Stock",
-      "body": "The recent increase in Shell's Q2 gas output guidance may lead to a moderate increase in the portfolio's energy holdings, such as ENB.TO.",
-      "exposure": "ENB.TO ~$5K CAD",
+      "body": "The developments in Tesla's self-driving technology may impact the portfolio's holding in TSLA.",
+      "exposure": "TSLA ~ $12K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 25,
-          "scenario": "A continued increase in energy production could benefit the portfolio's energy holdings, such as ENB.TO.",
-          "estimate": "+$2,000-$5,000 via energy holdings"
+          "probability": 30,
+          "scenario": "Successful self-driving technology benefits TSLA and the portfolio.",
+          "estimate": "+$5,000-$10,000 via TSLA"
         },
         {
           "label": "Base",
           "probability": 50,
-          "scenario": "The current energy production may lead to a neutral impact on the portfolio, as the portfolio is diversified across various sectors.",
-          "estimate": "±$1,000 — energy production has minimal impact"
+          "scenario": "The developments have minimal impact on the portfolio's value.",
+          "estimate": "±$2,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 25,
-          "scenario": "A decrease in energy production could negatively impact the portfolio's energy holdings, such as ENB.TO.",
-          "estimate": "-$2,000-$5,000 via energy holdings"
+          "probability": 20,
+          "scenario": "The self-driving technology faces significant challenges, negatively impacting TSLA and the portfolio.",
+          "estimate": "-$10,000-$20,000 via TSLA"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "SHEL",
+      "ticker": "NVIDIA (NVDA) — add to existing position",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "The recent increase in Shell's Q2 gas output guidance and the company's strong fundamentals make it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $20-$25"
+      "thesis": "The growing importance of AI in enterprise workflows and the potential for NVDA to benefit from this trend make it an attractive addition to the portfolio.",
+      "entry": "Current price range $500-$600"
     },
     {
-      "ticker": "COST",
-      "action": "WATCH",
+      "ticker": "Alphabet (GOOG)",
+      "action": "NEW",
       "account": "Investment",
-      "thesis": "The company's strong retail presence and dividend yield make it an attractive watch candidate, particularly if the portfolio is looking to diversify into consumer staples.",
-      "entry": "Monitor for entry on a pullback to $450-$500"
+      "thesis": "The company's strong position in the tech sector, including its AI-focused initiatives, make it a compelling addition to the portfolio.",
+      "entry": "Current price range $2,500-$3,000"
+    },
+    {
+      "ticker": "Shopify (SHOP)",
+      "action": "NEW",
+      "account": "RRSP",
+      "thesis": "The company's strong growth prospects and position in the e-commerce sector make it an attractive addition to the portfolio.",
+      "entry": "Current price range $500-$600"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "The portfolio's diversified holdings across various sectors reduce the risk of significant losses due to any one sector's downturn."
+      "text": "Diversified portfolio with a mix of tech, energy, and financial holdings"
     },
     {
       "ticker": "NVDA",
-      "text": "The portfolio's significant holding in NVDA provides exposure to the growing tech sector and potential long-term growth."
-    },
-    {
-      "ticker": "FNGU",
-      "text": "The portfolio's leveraged position in FNGU amplifies potential gains in the tech sector, but also increases the risk of significant losses."
-    },
-    {
-      "ticker": "CM.TO",
-      "text": "The portfolio's holding in CM.TO provides exposure to the Canadian financial sector and potential dividend income."
+      "text": "Strong position in the tech sector with a significant holding in NVDA"
     },
     {
       "ticker": "ENB.TO",
-      "text": "The portfolio's holding in ENB.TO provides exposure to the Canadian energy sector and potential dividend income."
+      "text": "Exposure to the energy sector with a holding in ENB.TO"
+    },
+    {
+      "ticker": null,
+      "text": "Tax-efficient use of RRSP and TFSA accounts"
+    },
+    {
+      "ticker": null,
+      "text": "Long-term investment horizon, allowing for riding out market fluctuations"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "The portfolio's significant USD exposure increases the risk of losses due to currency fluctuations, particularly if the CAD strengthens against the USD."
+      "text": "Concentration risk in a few key holdings, such as NVDA and FNGU"
     },
     {
-      "ticker": "FNGU",
-      "text": "The portfolio's leveraged position in FNGU increases the risk of significant losses due to market volatility."
+      "ticker": "TSLA",
+      "text": "Volatility in the holding of TSLA"
     },
     {
-      "ticker": "NVDA",
-      "text": "The portfolio's significant holding in NVDA increases the risk of significant losses due to any downturn in the tech sector."
+      "ticker": null,
+      "text": "FX book rate drag potentially impacting portfolio performance"
     },
     {
-      "ticker": "ENB.TO",
-      "text": "The portfolio's holding in ENB.TO increases the risk of significant losses due to any downturn in the energy sector."
+      "ticker": null,
+      "text": "3x leverage amplification increasing the risk of significant losses"
     },
     {
-      "ticker": "CM.TO",
-      "text": "The portfolio's holding in CM.TO increases the risk of significant losses due to any downturn in the financial sector."
+      "ticker": null,
+      "text": "Potential for market downturns impacting the portfolio's value"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's leveraged positions, such as FNGU and SPXL, for potential adjustments due to market volatility."
+      "text": "Monitor the US-Iran situation and its potential impact on the energy sector and the portfolio's holdings"
     },
     {
       "num": "02",
-      "text": "Consider adding to the portfolio's energy holdings, such as ENB.TO, on a pullback."
+      "text": "Keep an eye on the AI trend and its potential benefits for the portfolio's tech holdings"
     },
     {
       "num": "03",
-      "text": "Maintain a close eye on the portfolio's USD exposure and consider hedging strategies if the CAD strengthens significantly."
+      "text": "Review the portfolio's FX book and consider optimizing the FX rate"
+    },
+    {
+      "num": "04",
+      "text": "Consider rebalancing the portfolio to maintain an optimal asset allocation"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Consider diversifying the portfolio's holdings across various sectors to reduce the risk of significant losses due to any one sector's downturn."
+      "text": "Continue to monitor the portfolio's concentration risk and consider diversifying the holdings"
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's tech holdings, such as NVDA and AVGO, for potential adjustments due to earnings reports and sector trends."
+      "text": "Evaluate the potential for adding new holdings to the portfolio, such as GOOG or SHOP"
     },
     {
       "num": "03",
-      "text": "Consider adding to the portfolio's financial holdings, such as CM.TO, on a pullback."
+      "text": "Assess the portfolio's tax efficiency and consider optimizing the use of RRSP and TFSA accounts"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Maintain a long-term perspective and avoid making emotional decisions based on short-term market fluctuations."
+      "text": "Maintain a long-term investment horizon and focus on riding out market fluctuations"
     },
     {
       "num": "02",
-      "text": "Consider tax-loss harvesting strategies to minimize the portfolio's tax liability."
+      "text": "Continue to diversify the portfolio and reduce concentration risk"
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's overall asset allocation and consider rebalancing as needed to maintain the target allocation."
+      "text": "Monitor the portfolio's performance and adjust the strategy as needed to achieve long-term goals"
     }
   ],
-  "daily_outlook": "The portfolio is well-diversified across various sectors, but the recent market volatility and geopolitical tensions may lead to increased uncertainty. Monitor the portfolio's leveraged positions and consider adjustments as needed.",
+  "daily_outlook": "The portfolio's outlook is cautiously optimistic, with a focus on monitoring the US-Iran situation and the AI trend. The potential for market downturns and concentration risk are concerns, but the portfolio's diversification and long-term investment horizon provide a solid foundation.",
   "market_mood": "risk-on",
-  "generated_at": "2026-07-07T13:23:36.762034+00:00",
+  "generated_at": "2026-07-07T20:01:28.716195+00:00",
   "generated_date": "July 07, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []

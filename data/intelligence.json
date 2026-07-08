@@ -1,49 +1,49 @@
 {
   "macro": [
     {
-      "title": "US-Iran Tensions",
+      "title": "US-Iran Conflict",
       "impact": "HIGH",
       "confidence": 80,
-      "body": "The recent escalation of tensions between the US and Iran, including the revocation of licenses for Iranian oil sales and attacks on tankers, may lead to increased volatility in the global markets. This could impact the portfolio's leveraged positions, particularly those tied to the energy sector.",
-      "bull": "A potential conflict could lead to higher oil prices, benefiting energy stocks and the overall portfolio.",
-      "bull_estimate": "+$20,000-$30,000 via ENB.TO and other energy holdings",
+      "body": "The ongoing conflict between the US and Iran is affecting global markets, particularly oil prices. This could lead to increased volatility in the portfolio's leveraged ETFs.",
+      "bull": "A de-escalation of tensions could lead to a decrease in oil prices, benefiting the portfolio's tech holdings.",
+      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
       "bull_probability": 30,
-      "base": "The situation may stabilize, leading to a moderate impact on the portfolio.",
-      "base_estimate": "±$5,000 — minimal net change",
-      "base_probability": 50,
-      "bear": "An all-out conflict could lead to a significant downturn in the markets, negatively impacting the portfolio's value.",
-      "bear_estimate": "-$40,000-$60,000 via 3x leverage amplification",
-      "bear_probability": 20
+      "base": "The conflict continues, leading to stable oil prices and minimal impact on the portfolio.",
+      "base_estimate": "±$5,000 — markets grind higher",
+      "base_probability": 40,
+      "bear": "An escalation of tensions leads to a significant increase in oil prices, negatively impacting the portfolio's tech holdings.",
+      "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
+      "bear_probability": 30
     },
     {
       "title": "Global Trade Deficit",
       "impact": "MED",
       "confidence": 70,
-      "body": "The widening US trade deficit, partly due to record capital goods imports, may lead to a decrease in the value of the US dollar. This could impact the portfolio's FX book and CAD-denominated holdings.",
-      "bull": "A weaker US dollar could lead to an increase in the value of CAD-denominated holdings, benefiting the portfolio.",
-      "bull_estimate": "+$10,000-$15,000 via CAD-denominated holdings",
-      "bull_probability": 40,
-      "base": "The trade deficit may not have a significant impact on the portfolio's value.",
-      "base_estimate": "±$2,000 — minimal net change",
-      "base_probability": 40,
-      "bear": "A significant decrease in the value of the US dollar could lead to a decrease in the portfolio's value, particularly in USD-denominated holdings.",
-      "bear_estimate": "-$15,000-$25,000 via USD-denominated holdings",
-      "bear_probability": 20
+      "body": "The widening global trade deficit could lead to increased tariffs and trade tensions, affecting the portfolio's tech holdings.",
+      "bull": "A reduction in trade tensions could lead to increased trade and economic growth, benefiting the portfolio's tech holdings.",
+      "bull_estimate": "+$15,000-$25,000 via NVDA, MSFT, AAPL",
+      "bull_probability": 25,
+      "base": "The trade deficit continues, leading to stable trade tensions and minimal impact on the portfolio.",
+      "base_estimate": "±$3,000 — markets grind higher",
+      "base_probability": 50,
+      "bear": "An increase in trade tensions leads to decreased trade and economic growth, negatively impacting the portfolio's tech holdings.",
+      "bear_estimate": "-$30,000-$50,000 via NVDA, MSFT, AAPL",
+      "bear_probability": 25
     },
     {
       "title": "AI and Tech Sector",
-      "impact": "MED",
-      "confidence": 60,
-      "body": "The growing importance of AI in enterprise workflows, as mentioned by Bank of America, may lead to an increase in the value of tech stocks, particularly those with a strong AI focus.",
-      "bull": "The portfolio's tech holdings, such as NVDA and AVGO, could benefit from the growing demand for AI solutions.",
-      "bull_estimate": "+$15,000-$25,000 via NVDA and AVGO",
-      "bull_probability": 50,
-      "base": "The AI trend may not have a significant impact on the portfolio's value.",
-      "base_estimate": "±$5,000 — minimal net change",
+      "impact": "HIGH",
+      "confidence": 90,
+      "body": "The AI and tech sector continues to grow, with increased demand for AI-related products and services.",
+      "bull": "The sector continues to grow, leading to increased demand for the portfolio's tech holdings.",
+      "bull_estimate": "+$50,000-$70,000 via NVDA, MSFT, AAPL",
+      "bull_probability": 40,
+      "base": "The sector grows at a stable rate, leading to minimal impact on the portfolio.",
+      "base_estimate": "±$10,000 — markets grind higher",
       "base_probability": 30,
-      "bear": "The portfolio's tech holdings may not be well-positioned to benefit from the AI trend, leading to a decrease in value.",
-      "bear_estimate": "-$10,000-$20,000 via NVDA and AVGO",
-      "bear_probability": 20
+      "bear": "The sector experiences a downturn, leading to decreased demand for the portfolio's tech holdings.",
+      "bear_estimate": "-$20,000-$30,000 via NVDA, MSFT, AAPL",
+      "bear_probability": 30
     }
   ],
   "risks": [
@@ -51,224 +51,213 @@
       "title": "3x Leverage Amplification",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's leveraged positions, particularly FNGU and SPXL, amplify both gains and losses. This increases the risk of significant losses in the event of a market downturn."
+      "body": "The portfolio's 3x leveraged ETFs amplify both gains and losses, increasing the risk of significant losses in a downturn."
     },
     {
       "title": "FX Book Rate Drag",
       "level": "MED",
-      "context": "FX book rate 1.3925",
-      "body": "The portfolio's FX book rate may not be optimal, potentially leading to a drag on the portfolio's performance due to currency fluctuations."
+      "context": "68% USD exposure ~ $1800/1¢ USD/CAD",
+      "body": "The portfolio's USD exposure is subject to FX rate fluctuations, which could lead to losses if the CAD strengthens."
     },
     {
       "title": "Concentration Risk",
       "level": "MED",
       "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's concentration in a few key holdings, such as NVDA and FNGU, increases the risk of significant losses if any of these holdings experience a downturn."
+      "body": "The portfolio's concentration in a few holdings increases the risk of significant losses if any of these holdings experience a downturn."
     }
   ],
   "news": [
     {
-      "headline": "US Revokes Iranian Oil Sales License",
-      "impact": "HIGH",
+      "headline": "Broadcom Extends Apple Chip Deal",
+      "impact": "MED",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "The US revocation of licenses for Iranian oil sales may lead to increased tensions and volatility in the energy sector, impacting the portfolio's energy holdings, such as ENB.TO.",
-      "exposure": "ENB.TO ~ $10K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 30,
-          "scenario": "Higher oil prices benefit energy stocks, such as ENB.TO.",
-          "estimate": "+$5,000-$10,000 via ENB.TO"
-        },
-        {
-          "label": "Base",
-          "probability": 50,
-          "scenario": "The situation stabilizes, leading to minimal impact on the portfolio.",
-          "estimate": "±$1,000 — minimal net change"
-        },
-        {
-          "label": "Bear",
-          "probability": 20,
-          "scenario": "The situation escalates, leading to a downturn in the energy sector and the portfolio's value.",
-          "estimate": "-$10,000-$20,000 via ENB.TO"
-        }
-      ]
-    },
-    {
-      "headline": "Broadcom Downgrade Despite 89% Revenue Growth Outlook",
-      "impact": "MED",
-      "confidence": 60,
-      "category": "Sector & Stock",
-      "body": "The downgrade of AVGO despite strong revenue growth outlook may indicate a potential buying opportunity for the portfolio.",
-      "exposure": "AVGO ~ $8K CAD",
+      "body": "The extension of the chip deal between Broadcom and Apple could lead to increased demand for Broadcom's products, benefiting the portfolio's AVGO holding.",
+      "exposure": "AVGO ~ $10K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "The portfolio benefits from the potential buying opportunity in AVGO.",
-          "estimate": "+$2,000-$5,000 via AVGO"
+          "scenario": "The deal leads to increased demand for Broadcom's products, benefiting the portfolio's AVGO holding.",
+          "estimate": "+$2,000-$3,000"
         },
         {
           "label": "Base",
-          "probability": 40,
-          "scenario": "The downgrade has minimal impact on the portfolio's value.",
+          "probability": 30,
+          "scenario": "The deal has a minimal impact on the portfolio's AVGO holding.",
           "estimate": "±$1,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "The downgrade indicates a potential downturn in AVGO's value, negatively impacting the portfolio.",
-          "estimate": "-$5,000-$10,000 via AVGO"
+          "probability": 30,
+          "scenario": "The deal leads to decreased demand for Broadcom's products, negatively impacting the portfolio's AVGO holding.",
+          "estimate": "-$1,500-$2,500"
         }
       ]
     },
     {
-      "headline": "Tesla's Self-Driving Story Faces New Test",
+      "headline": "Tesla's New SUV",
       "impact": "MED",
-      "confidence": 50,
+      "confidence": 70,
       "category": "Sector & Stock",
-      "body": "The developments in Tesla's self-driving technology may impact the portfolio's holding in TSLA.",
-      "exposure": "TSLA ~ $12K CAD",
+      "body": "The introduction of Tesla's new SUV could lead to increased demand for Tesla's products, benefiting the portfolio's TSLA holding.",
+      "exposure": "TSLA ~ $15K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 30,
-          "scenario": "Successful self-driving technology benefits TSLA and the portfolio.",
-          "estimate": "+$5,000-$10,000 via TSLA"
+          "probability": 35,
+          "scenario": "The new SUV leads to increased demand for Tesla's products, benefiting the portfolio's TSLA holding.",
+          "estimate": "+$3,000-$5,000"
         },
         {
           "label": "Base",
-          "probability": 50,
-          "scenario": "The developments have minimal impact on the portfolio's value.",
-          "estimate": "±$2,000 — minimal net change"
+          "probability": 40,
+          "scenario": "The new SUV has a minimal impact on the portfolio's TSLA holding.",
+          "estimate": "±$1,500 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "The self-driving technology faces significant challenges, negatively impacting TSLA and the portfolio.",
-          "estimate": "-$10,000-$20,000 via TSLA"
+          "probability": 25,
+          "scenario": "The new SUV leads to decreased demand for Tesla's products, negatively impacting the portfolio's TSLA holding.",
+          "estimate": "-$2,000-$3,500"
+        }
+      ]
+    },
+    {
+      "headline": "Qualcomm's AI Demand",
+      "impact": "MED",
+      "confidence": 80,
+      "category": "Sector & Stock",
+      "body": "The increased demand for AI-related products could benefit the portfolio's QCOM holding.",
+      "exposure": "QCOM ~ $8K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 45,
+          "scenario": "The increased demand for AI-related products benefits the portfolio's QCOM holding.",
+          "estimate": "+$2,500-$4,000"
+        },
+        {
+          "label": "Base",
+          "probability": 30,
+          "scenario": "The increased demand has a minimal impact on the portfolio's QCOM holding.",
+          "estimate": "±$1,000 — minimal net change"
+        },
+        {
+          "label": "Bear",
+          "probability": 25,
+          "scenario": "The increased demand leads to decreased demand for Qualcomm's products, negatively impacting the portfolio's QCOM holding.",
+          "estimate": "-$1,000-$2,000"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "NVIDIA (NVDA) — add to existing position",
-      "action": "ADD",
+      "ticker": "ENPH",
+      "action": "NEW",
       "account": "RRSP",
-      "thesis": "The growing importance of AI in enterprise workflows and the potential for NVDA to benefit from this trend make it an attractive addition to the portfolio.",
-      "entry": "Current price range $500-$600"
+      "thesis": "The growing demand for renewable energy and solar panels could benefit Enphase Energy, a leading provider of solar energy solutions.",
+      "entry": "Entry price range: $200-$250"
     },
     {
-      "ticker": "Alphabet (GOOG)",
+      "ticker": "CRWD",
       "action": "NEW",
       "account": "Investment",
-      "thesis": "The company's strong position in the tech sector, including its AI-focused initiatives, make it a compelling addition to the portfolio.",
-      "entry": "Current price range $2,500-$3,000"
-    },
-    {
-      "ticker": "Shopify (SHOP)",
-      "action": "NEW",
-      "account": "RRSP",
-      "thesis": "The company's strong growth prospects and position in the e-commerce sector make it an attractive addition to the portfolio.",
-      "entry": "Current price range $500-$600"
+      "thesis": "The increasing demand for cybersecurity solutions could benefit CrowdStrike, a leading provider of cloud-delivered endpoint protection.",
+      "entry": "Entry price range: $150-$200"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of tech, energy, and financial holdings"
+      "text": "Diversified portfolio with a mix of tech, finance, and energy holdings"
     },
     {
       "ticker": "NVDA",
-      "text": "Strong position in the tech sector with a significant holding in NVDA"
+      "text": "Strong growth potential in the AI and tech sector"
     },
     {
-      "ticker": "ENB.TO",
-      "text": "Exposure to the energy sector with a holding in ENB.TO"
+      "ticker": "TSLA",
+      "text": "Increasing demand for electric vehicles and renewable energy solutions"
     },
     {
-      "ticker": null,
-      "text": "Tax-efficient use of RRSP and TFSA accounts"
+      "ticker": "MSFT",
+      "text": "Stable cash flows and dividend payments"
     },
     {
-      "ticker": null,
-      "text": "Long-term investment horizon, allowing for riding out market fluctuations"
+      "ticker": "AAPL",
+      "text": "Strong brand loyalty and growing demand for Apple products"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "Concentration risk in a few key holdings, such as NVDA and FNGU"
+      "text": "High concentration of tech holdings, increasing risk of downturn"
+    },
+    {
+      "ticker": "FNGU",
+      "text": "3x leverage amplification increases risk of significant losses"
+    },
+    {
+      "ticker": "SPXL",
+      "text": "Concentration in a few holdings increases risk of significant losses"
     },
     {
       "ticker": "TSLA",
-      "text": "Volatility in the holding of TSLA"
+      "text": "Volatility in Tesla's stock price could lead to significant losses"
     },
     {
-      "ticker": null,
-      "text": "FX book rate drag potentially impacting portfolio performance"
-    },
-    {
-      "ticker": null,
-      "text": "3x leverage amplification increasing the risk of significant losses"
-    },
-    {
-      "ticker": null,
-      "text": "Potential for market downturns impacting the portfolio's value"
+      "ticker": "QCOM",
+      "text": "Dependence on a few major customers increases risk of revenue decline"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the US-Iran situation and its potential impact on the energy sector and the portfolio's holdings"
+      "text": "Monitor the portfolio's 3x leveraged ETFs and consider reducing exposure if volatility increases"
     },
     {
       "num": "02",
-      "text": "Keep an eye on the AI trend and its potential benefits for the portfolio's tech holdings"
+      "text": "Consider adding to the portfolio's tech holdings if the sector experiences a downturn"
     },
     {
       "num": "03",
-      "text": "Review the portfolio's FX book and consider optimizing the FX rate"
-    },
-    {
-      "num": "04",
-      "text": "Consider rebalancing the portfolio to maintain an optimal asset allocation"
+      "text": "Review the portfolio's FX exposure and consider hedging if the CAD strengthens"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to monitor the portfolio's concentration risk and consider diversifying the holdings"
+      "text": "Consider diversifying the portfolio's holdings to reduce concentration risk"
     },
     {
       "num": "02",
-      "text": "Evaluate the potential for adding new holdings to the portfolio, such as GOOG or SHOP"
+      "text": "Monitor the portfolio's cash flows and consider investing in dividend-paying stocks"
     },
     {
       "num": "03",
-      "text": "Assess the portfolio's tax efficiency and consider optimizing the use of RRSP and TFSA accounts"
+      "text": "Review the portfolio's tax efficiency and consider tax-loss harvesting if necessary"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Maintain a long-term investment horizon and focus on riding out market fluctuations"
+      "text": "Consider investing in emerging technologies such as AI and renewable energy"
     },
     {
       "num": "02",
-      "text": "Continue to diversify the portfolio and reduce concentration risk"
+      "text": "Monitor the portfolio's long-term growth potential and consider adding to the portfolio's tech holdings"
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's performance and adjust the strategy as needed to achieve long-term goals"
+      "text": "Review the portfolio's retirement goals and consider adjusting the asset allocation accordingly"
     }
   ],
-  "daily_outlook": "The portfolio's outlook is cautiously optimistic, with a focus on monitoring the US-Iran situation and the AI trend. The potential for market downturns and concentration risk are concerns, but the portfolio's diversification and long-term investment horizon provide a solid foundation.",
-  "market_mood": "risk-on",
-  "generated_at": "2026-07-07T20:01:28.716195+00:00",
-  "generated_date": "July 07, 2026",
+  "daily_outlook": "The portfolio's outlook is neutral, with a mix of positive and negative news affecting the holdings. The ongoing US-Iran conflict and global trade deficit could lead to increased volatility, while the growing demand for AI and tech solutions could benefit the portfolio's tech holdings.",
+  "market_mood": "neutral",
+  "generated_at": "2026-07-08T06:01:27.550928+00:00",
+  "generated_date": "July 08, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []
 }

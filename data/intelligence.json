@@ -1,185 +1,189 @@
 {
   "macro": [
     {
-      "title": "Iran War Impact",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "The ongoing US-Iran conflict is causing market volatility and affecting oil prices. This could lead to a global economic slowdown, impacting the portfolio's overall performance.",
-      "bull": "A swift resolution to the conflict could lead to a market rally, benefiting the portfolio's leveraged positions.",
-      "bull_estimate": "+$25,000-$40,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 30,
-      "base": "A prolonged conflict could lead to a market grind, with minimal net change to the portfolio.",
-      "base_estimate": "±$5,000",
-      "base_probability": 40,
-      "bear": "An escalation of the conflict could lead to a market downturn, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
-      "bear_probability": 30
-    },
-    {
       "title": "Fed Policy",
       "impact": "MED",
-      "confidence": 70,
-      "body": "The Fed's monetary policy decisions will continue to influence the market, with potential rate cuts or hikes affecting the portfolio's interest-sensitive holdings.",
-      "bull": "A dovish Fed policy could lead to a market rally, benefiting the portfolio's growth-oriented positions.",
-      "bull_estimate": "+$15,000-$25,000 via growth stocks",
+      "confidence": 80,
+      "body": "The Federal Reserve's policy decisions will significantly impact the portfolio's performance, particularly with the high leverage in FNGU and SPXL. The current economic conditions and geopolitical tensions may influence the Fed's decisions, potentially leading to changes in interest rates.",
+      "bull": "A dovish Fed policy could boost the portfolio's value, especially with the high growth stocks like NVDA and TSM.",
+      "bull_estimate": "+$25,000-$40,000 via FNGU/SPXL 3x leverage",
       "bull_probability": 40,
-      "base": "A neutral Fed policy could lead to a market grind, with minimal net change to the portfolio.",
-      "base_estimate": "±$2,000",
+      "base": "A neutral Fed policy would likely result in a stable portfolio performance, with minimal changes in value.",
+      "base_estimate": "±$5,000 — markets grind higher",
       "base_probability": 30,
-      "bear": "A hawkish Fed policy could lead to a market downturn, negatively impacting the portfolio's growth-oriented positions.",
-      "bear_estimate": "-$20,000-$30,000 via growth stocks",
+      "bear": "A hawkish Fed policy could negatively impact the portfolio, especially with the high leverage, leading to potential losses.",
+      "bear_estimate": "-$30,000-$50,000 via 3x ETF amplification",
       "bear_probability": 30
     },
     {
-      "title": "Global Growth Slowdown",
-      "impact": "LOW",
-      "confidence": 60,
-      "body": "A potential global economic slowdown could impact the portfolio's holdings, particularly those with international exposure.",
-      "bull": "A strong US economy could lead to a market rally, benefiting the portfolio's US-focused positions.",
-      "bull_estimate": "+$10,000-$20,000 via US stocks",
-      "bull_probability": 20,
-      "base": "A moderate global economic slowdown could lead to a market grind, with minimal net change to the portfolio.",
-      "base_estimate": "±$1,000",
+      "title": "Geopolitical Tensions",
+      "impact": "HIGH",
+      "confidence": 90,
+      "body": "The ongoing geopolitical tensions, particularly between the US and Iran, may lead to increased market volatility, affecting the portfolio's performance. The high leverage in FNGU and SPXL amplifies both gains and losses.",
+      "bull": "A resolution to the tensions could lead to a market rally, benefiting the portfolio's growth stocks like NVDA and TSM.",
+      "bull_estimate": "+$20,000-$35,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 35,
+      "base": "A continuation of the current tensions would likely result in a stable but volatile market, with minimal changes in the portfolio's value.",
+      "base_estimate": "±$5,000 — markets remain cautious",
       "base_probability": 40,
-      "bear": "A severe global economic slowdown could lead to a market downturn, negatively impacting the portfolio's international holdings.",
-      "bear_estimate": "-$30,000-$50,000 via international stocks",
-      "bear_probability": 40
+      "bear": "An escalation of the tensions could lead to a market downturn, negatively impacting the portfolio, especially with the high leverage.",
+      "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
+      "bear_probability": 25
+    },
+    {
+      "title": "Inflation and GDP",
+      "impact": "MED",
+      "confidence": 70,
+      "body": "The current inflation and GDP growth rates may influence the portfolio's performance, particularly with the high growth stocks like NVDA and TSM. A strong economy could lead to increased demand for technology and growth stocks.",
+      "bull": "A strong GDP growth rate could boost the portfolio's value, especially with the high growth stocks like NVDA and TSM.",
+      "bull_estimate": "+$15,000-$25,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 45,
+      "base": "A stable GDP growth rate would likely result in a stable portfolio performance, with minimal changes in value.",
+      "base_estimate": "±$3,000 — markets remain steady",
+      "base_probability": 35,
+      "bear": "A slow GDP growth rate could negatively impact the portfolio, especially with the high leverage, leading to potential losses.",
+      "bear_estimate": "-$20,000-$30,000 via 3x ETF amplification",
+      "bear_probability": 20
     }
   ],
   "risks": [
     {
       "title": "Leverage Risk",
       "level": "HIGH",
-      "context": "49% of portfolio (~ $135K CAD) in leveraged ETFs",
-      "body": "The portfolio's high leverage exposure amplifies both gains and losses, making it vulnerable to market volatility."
+      "context": "49% of portfolio ~ $135K CAD",
+      "body": "The high leverage in FNGU and SPXL amplifies both gains and losses, increasing the portfolio's risk. A market downturn could lead to significant losses."
     },
     {
       "title": "FX Risk",
       "level": "MED",
-      "context": "68% of portfolio in USD (~ $180K CAD)",
-      "body": "The portfolio's significant USD exposure makes it susceptible to currency fluctuations, which could impact returns."
+      "context": "68% USD exposure ~ $1800/1¢ USD/CAD",
+      "body": "The portfolio's high USD exposure increases the risk of FX losses, particularly if the CAD strengthens against the USD."
     },
     {
       "title": "Concentration Risk",
-      "level": "LOW",
-      "context": "Top 5 holdings account for 60% of portfolio (~ $165K CAD)",
-      "body": "The portfolio's concentration in a few key holdings increases its vulnerability to company-specific risks and market volatility."
+      "level": "MED",
+      "context": "Top 5 holdings ~ 60% of portfolio",
+      "body": "The portfolio's high concentration in a few stocks, particularly NVDA, increases the risk of significant losses if any of these stocks experience a downturn."
     }
   ],
   "news": [
     {
-      "headline": "Nvidia's $4 Trillion Run",
+      "headline": "Nvidia's AI Chip Momentum",
       "impact": "HIGH",
-      "confidence": 90,
+      "confidence": 85,
       "category": "Sector & Stock",
-      "body": "Nvidia's impressive market capitalization growth could lead to further gains for the portfolio's NVDA holding.",
-      "exposure": "NVDA ~ $20K CAD",
+      "body": "Nvidia's AI chip momentum continues to drive the stock's growth, benefiting the portfolio's NVDA holding.",
+      "exposure": "NVDA ~ $43K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 50,
-          "scenario": "Nvidia's growth continues, driving the portfolio's NVDA holding higher.",
-          "estimate": "+$5,000-$10,000"
+          "scenario": "Nvidia's AI chip momentum continues, driving the stock's growth and benefiting the portfolio.",
+          "estimate": "+$8,000-$12,000 on NVDA holding"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "Nvidia's growth moderates, with minimal net change to the portfolio's NVDA holding.",
-          "estimate": "±$1,000"
+          "scenario": "Nvidia's AI chip momentum stabilizes, resulting in a stable portfolio performance.",
+          "estimate": "±$2,000 — NVDA remains steady"
         },
         {
           "label": "Bear",
           "probability": 20,
-          "scenario": "Nvidia's growth slows, negatively impacting the portfolio's NVDA holding.",
-          "estimate": "-$5,000-$10,000"
+          "scenario": "Nvidia's AI chip momentum slows, negatively impacting the portfolio's NVDA holding.",
+          "estimate": "-$6,000-$10,000 on NVDA holding"
         }
       ]
     },
     {
-      "headline": "Broadcom's AI Chip Momentum",
+      "headline": "Broadcom's $2 Trillion Club",
       "impact": "MED",
-      "confidence": 80,
+      "confidence": 75,
       "category": "Sector & Stock",
-      "body": "Broadcom's AI chip growth could lead to gains for the portfolio's AVGO holding.",
-      "exposure": "AVGO ~ $10K CAD",
+      "body": "Broadcom's commitment to Apple's $30 billion chip deal drives the stock's growth, benefiting the portfolio's AVGO holding.",
+      "exposure": "AVGO ~ $12K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "Broadcom's AI chip growth accelerates, driving the portfolio's AVGO holding higher.",
-          "estimate": "+$2,000-$5,000"
+          "scenario": "Broadcom's chip deal with Apple drives the stock's growth, benefiting the portfolio.",
+          "estimate": "+$4,000-$6,000 on AVGO holding"
         },
         {
           "label": "Base",
-          "probability": 30,
-          "scenario": "Broadcom's AI chip growth moderates, with minimal net change to the portfolio's AVGO holding.",
-          "estimate": "±$500"
+          "probability": 35,
+          "scenario": "Broadcom's chip deal with Apple stabilizes, resulting in a stable portfolio performance.",
+          "estimate": "±$1,500 — AVGO remains steady"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "Broadcom's AI chip growth slows, negatively impacting the portfolio's AVGO holding.",
-          "estimate": "-$2,000-$5,000"
+          "probability": 25,
+          "scenario": "Broadcom's chip deal with Apple slows, negatively impacting the portfolio's AVGO holding.",
+          "estimate": "-$3,000-$5,000 on AVGO holding"
         }
       ]
     },
     {
       "headline": "Kalshi Traders Expect Higher Gas Prices",
-      "impact": "LOW",
+      "impact": "MED",
       "confidence": 70,
       "category": "Sector & Stock",
-      "body": "Higher gas prices could impact the portfolio's ENB.TO holding.",
-      "exposure": "ENB.TO ~ $5K CAD",
+      "body": "Kalshi traders' expectations of higher gas prices may impact the portfolio's ENB.TO holding.",
+      "exposure": "ENB.TO ~ $8K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 30,
-          "scenario": "Higher gas prices drive the portfolio's ENB.TO holding higher.",
-          "estimate": "+$1,000-$2,000"
+          "probability": 45,
+          "scenario": "Higher gas prices drive the stock's growth, benefiting the portfolio's ENB.TO holding.",
+          "estimate": "+$3,000-$5,000 on ENB.TO holding"
         },
         {
           "label": "Base",
-          "probability": 40,
-          "scenario": "Higher gas prices have minimal net change to the portfolio's ENB.TO holding.",
-          "estimate": "±$500"
+          "probability": 30,
+          "scenario": "Higher gas prices stabilize, resulting in a stable portfolio performance.",
+          "estimate": "±$1,000 — ENB.TO remains steady"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "Higher gas prices negatively impact the portfolio's ENB.TO holding.",
-          "estimate": "-$1,000-$2,000"
+          "probability": 25,
+          "scenario": "Higher gas prices slow, negatively impacting the portfolio's ENB.TO holding.",
+          "estimate": "-$2,000-$4,000 on ENB.TO holding"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "AMZN",
-      "action": "NEW",
+      "ticker": "GOOG",
+      "action": "ADD",
       "account": "RRSP",
-      "thesis": "Amazon's growth potential and diversification make it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $180-$200"
+      "thesis": "Google's AI capabilities and commitment to innovation make it an attractive addition to the portfolio, particularly given the current AI trend.",
+      "entry": "Entry price range: $2,500-$3,000"
     },
     {
-      "ticker": "GOOGL",
-      "action": "NEW",
+      "ticker": "CSCO",
+      "action": "WATCH",
       "account": "Investment",
-      "thesis": "Google's dominant position in the tech industry and growth potential make it a compelling pick.",
-      "entry": "Entry price range: $2,500-$2,800"
+      "thesis": "Cisco's strong position in the networking industry and potential for growth in the AI and cloud sectors make it a stock to monitor for potential entry.",
+      "entry": "Monitor for entry on a pullback to $45-$50"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of growth and income-oriented holdings"
+      "text": "Diversified portfolio with a mix of growth and dividend stocks"
+    },
+    {
+      "ticker": null,
+      "text": "High growth potential with NVDA and TSM holdings"
+    },
+    {
+      "ticker": null,
+      "text": "Strong position in the technology sector with AVGO and QCOM holdings"
     },
     {
       "ticker": null,
       "text": "Tax-efficient use of RRSP and TFSA accounts"
-    },
-    {
-      "ticker": null,
-      "text": "Long-term investment horizon, allowing for riding out market fluctuations"
     },
     {
       "ticker": null,
@@ -189,67 +193,71 @@
   "concerns": [
     {
       "ticker": null,
-      "text": "High leverage exposure, amplifying potential losses"
+      "text": "High leverage in FNGU and SPXL increases portfolio risk"
     },
     {
       "ticker": null,
-      "text": "Concentration in a few key holdings, increasing vulnerability to company-specific risks"
+      "text": "Concentration in a few stocks, particularly NVDA, increases risk"
     },
     {
       "ticker": null,
-      "text": "FX risk due to significant USD exposure"
+      "text": "FX risk due to high USD exposure"
     },
     {
       "ticker": null,
-      "text": "Potential for market volatility and downturns"
+      "text": "Potential for market downturn due to geopolitical tensions"
+    },
+    {
+      "ticker": null,
+      "text": "Need for regular portfolio monitoring and rebalancing"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor portfolio leverage and adjust as needed to maintain a comfortable risk level"
+      "text": "Monitor FNGU and SPXL for potential pullbacks to rebalance portfolio"
     },
     {
       "num": "02",
-      "text": "Rebalance portfolio to maintain target asset allocation and minimize tax liabilities"
+      "text": "Keep an eye on NVDA and TSM for potential additions to the portfolio"
     },
     {
       "num": "03",
-      "text": "Keep a cash allocation to take advantage of potential market opportunities"
+      "text": "Consider hedging strategies to mitigate potential losses due to geopolitical tensions"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Consider adding more international exposure to the portfolio to diversify and reduce reliance on US markets"
+      "text": "Continue to diversify the portfolio by adding new stocks and sectors"
     },
     {
       "num": "02",
-      "text": "Evaluate the potential for adding alternative investments, such as real estate or commodities, to the portfolio"
+      "text": "Monitor and adjust the portfolio's asset allocation to maintain target weights"
     },
     {
       "num": "03",
-      "text": "Develop a plan for tax-efficient withdrawal of funds from the portfolio in the future"
+      "text": "Consider tax-loss harvesting to optimize portfolio performance"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Continue to prioritize long-term growth and wealth accumulation, rather than seeking short-term gains"
+      "text": "Maintain a long-term perspective and avoid making emotional decisions based on short-term market fluctuations"
     },
     {
       "num": "02",
-      "text": "Regularly review and adjust the portfolio's asset allocation to ensure it remains aligned with investment goals and risk tolerance"
+      "text": "Continue to invest in a tax-efficient manner, utilizing RRSP and TFSA accounts"
     },
     {
       "num": "03",
-      "text": "Consider the potential for adding a charitable giving component to the portfolio, to support philanthropic goals"
+      "text": "Regularly review and adjust the portfolio's investment strategy to ensure it remains aligned with the investor's goals and risk tolerance"
     }
   ],
-  "daily_outlook": "The portfolio is well-positioned for long-term growth, but may experience short-term volatility due to market fluctuations. Regular monitoring and adjustments will be necessary to maintain a comfortable risk level and achieve investment goals.",
-  "market_mood": "risk-off",
-  "generated_at": "2026-07-09T20:01:23.334336+00:00",
-  "generated_date": "July 09, 2026",
+  "daily_outlook": "The portfolio's outlook remains cautiously optimistic, with a focus on monitoring and adjusting to changing market conditions. The high leverage in FNGU and SPXL increases the potential for both gains and losses, and regular portfolio rebalancing is necessary to maintain the target asset allocation.",
+  "market_mood": "risk-on",
+  "generated_at": "2026-07-10T06:01:24.292812+00:00",
+  "generated_date": "July 10, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []
 }

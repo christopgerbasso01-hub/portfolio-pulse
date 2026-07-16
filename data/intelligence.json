@@ -1,262 +1,269 @@
 {
   "macro": [
     {
-      "title": "US-Iran Conflict Escalation",
+      "title": "US-Iran Conflict",
       "impact": "HIGH",
       "confidence": 80,
-      "body": "The ongoing conflict between the US and Iran is escalating, with both sides engaging in strikes and retaliations. This escalation could lead to increased volatility in global markets, particularly in the energy sector. The conflict may also lead to a rise in oil prices, which could have a significant impact on the global economy.",
-      "bull": "A potential bull case for the portfolio is that the conflict leads to increased demand for defense and technology stocks, which could benefit holdings such as NVDA and MSFT.",
+      "body": "The ongoing conflict between the US and Iran is affecting global markets, with potential implications for oil prices and trade. This could lead to increased volatility in the markets, impacting the portfolio's leveraged positions.",
+      "bull": "A de-escalation of tensions could lead to a relief rally in the markets, benefiting the portfolio's tech and finance holdings.",
       "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
       "bull_probability": 30,
-      "base": "A base case scenario is that the conflict leads to increased market volatility, but the portfolio's diversified holdings and 3x leverage help to mitigate losses.",
+      "base": "The conflict is likely to continue, leading to ongoing market volatility and potential impacts on the portfolio's holdings.",
       "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 40,
-      "bear": "A bear case scenario is that the conflict leads to a significant decline in global markets, which could result in losses for the portfolio due to its high leverage.",
+      "base_probability": 50,
+      "bear": "An escalation of the conflict could lead to a significant downturn in the markets, negatively impacting the portfolio's leveraged positions.",
       "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
-      "bear_probability": 30
+      "bear_probability": 20
     },
     {
       "title": "Global Economic Growth",
       "impact": "MED",
       "confidence": 70,
-      "body": "Global economic growth is expected to slow down in the coming months, which could lead to decreased demand for goods and services. This slowdown could have a negative impact on the portfolio's holdings in the technology and finance sectors.",
-      "bull": "A potential bull case for the portfolio is that the slowdown leads to increased demand for dividend-paying stocks, which could benefit holdings such as CM.TO and RY.TO.",
-      "bull_estimate": "+$10,000-$20,000 via dividend-paying stocks",
-      "bull_probability": 20,
-      "base": "A base case scenario is that the slowdown leads to decreased market volatility, which could result in minimal changes to the portfolio's value.",
+      "body": "The global economy is experiencing slower growth, which could impact the portfolio's holdings in the tech and finance sectors. However, the Canadian economy is expected to remain relatively stable.",
+      "bull": "A rebound in global economic growth could lead to increased demand for tech and finance products, benefiting the portfolio's holdings.",
+      "bull_estimate": "+$15,000-$25,000 via tech and finance holdings",
+      "bull_probability": 40,
+      "base": "The global economy is likely to continue experiencing slow growth, with minimal impact on the portfolio's holdings.",
       "base_estimate": "±$2,000 — minimal net change",
       "base_probability": 50,
-      "bear": "A bear case scenario is that the slowdown leads to a significant decline in global markets, which could result in losses for the portfolio.",
-      "bear_estimate": "-$30,000-$50,000 via decreased demand",
-      "bear_probability": 30
+      "bear": "A downturn in global economic growth could lead to decreased demand for tech and finance products, negatively impacting the portfolio's holdings.",
+      "bear_estimate": "-$25,000-$40,000 via tech and finance holdings",
+      "bear_probability": 10
     },
     {
       "title": "FX and Trade",
       "impact": "LOW",
       "confidence": 60,
-      "body": "The current FX and trade environment is relatively stable, with the US dollar remaining strong against the Canadian dollar. This stability could lead to minimal changes in the portfolio's value due to FX fluctuations.",
-      "bull": "A potential bull case for the portfolio is that the strong US dollar leads to increased demand for US-based stocks, which could benefit holdings such as AAPL and MSFT.",
-      "bull_estimate": "+$5,000-$10,000 via US-based stocks",
+      "body": "The Canadian dollar is expected to remain relatively stable against the US dollar, with minimal impact on the portfolio's FX book.",
+      "bull": "A strengthening of the Canadian dollar could lead to increased purchasing power for the portfolio's US-denominated holdings.",
+      "bull_estimate": "+$5,000-$10,000 via FX gains",
       "bull_probability": 20,
-      "base": "A base case scenario is that the FX and trade environment remains stable, resulting in minimal changes to the portfolio's value.",
+      "base": "The Canadian dollar is likely to remain stable, with minimal impact on the portfolio's FX book.",
       "base_estimate": "±$1,000 — minimal net change",
       "base_probability": 60,
-      "bear": "A bear case scenario is that the FX and trade environment becomes volatile, leading to losses for the portfolio due to FX fluctuations.",
-      "bear_estimate": "-$10,000-$20,000 via FX fluctuations",
+      "bear": "A weakening of the Canadian dollar could lead to decreased purchasing power for the portfolio's US-denominated holdings.",
+      "bear_estimate": "-$5,000-$10,000 via FX losses",
       "bear_probability": 20
     }
   ],
   "risks": [
     {
-      "title": "3x Leverage Amplification",
+      "title": "Leverage Risk",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's high leverage through 3x ETFs such as FNGU and SPXL amplifies both gains and losses. This amplification increases the risk of significant losses if the market declines."
+      "body": "The portfolio's leveraged positions in FNGU and SPXL amplify both gains and losses, increasing the risk of significant losses in a downturn."
     },
     {
-      "title": "FX Book Rate Drag",
+      "title": "FX Book Risk",
       "level": "MED",
-      "context": "68% USD exposure ~ $180K CAD",
-      "body": "The portfolio's high USD exposure and FX book rate of 1.3925 could lead to losses due to FX fluctuations. A decline in the US dollar could result in a decrease in the portfolio's value."
+      "context": "68% USD exposure ~ $1800/1¢ USD/CAD",
+      "body": "The portfolio's FX book is exposed to fluctuations in the US-Canada exchange rate, which could lead to losses if the Canadian dollar strengthens."
     },
     {
-      "title": "Account Concentration",
+      "title": "Concentration Risk",
       "level": "LOW",
       "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's concentration in a few top holdings, such as NVDA and FNGU, increases the risk of significant losses if these holdings decline in value."
+      "body": "The portfolio's concentration in a few key holdings increases the risk of significant losses if any of these holdings experience a downturn."
     }
   ],
   "news": [
     {
-      "headline": "US Strikes on Iran",
-      "impact": "HIGH",
+      "headline": "UnitedHealth Beats Estimates",
+      "impact": "MED",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "The US has launched multiple strikes on Iran, which could lead to increased volatility in the energy sector and potentially benefit holdings such as ENB.TO.",
-      "exposure": "ENB.TO ~ $10K CAD",
+      "body": "UnitedHealth's strong earnings report could lead to increased confidence in the healthcare sector, benefiting the portfolio's holdings in MSFT and V.",
+      "exposure": "MSFT ~ $10K CAD, V ~ $8K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 30,
-          "scenario": "Increased demand for energy stocks due to conflict escalation",
-          "estimate": "+$5,000-$10,000 via ENB.TO"
+          "probability": 40,
+          "scenario": "The healthcare sector experiences a relief rally, benefiting the portfolio's holdings.",
+          "estimate": "+$2,000-$4,000 via MSFT and V"
         },
         {
           "label": "Base",
-          "probability": 40,
-          "scenario": "Minimal impact on the portfolio due to diversified holdings",
+          "probability": 50,
+          "scenario": "The earnings report has a minimal impact on the portfolio's holdings.",
           "estimate": "±$1,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "Decline in global markets due to conflict escalation",
-          "estimate": "-$10,000-$20,000 via 3x leverage amplification"
+          "probability": 10,
+          "scenario": "The earnings report leads to decreased confidence in the healthcare sector, negatively impacting the portfolio's holdings.",
+          "estimate": "-$2,000-$4,000 via MSFT and V"
+        }
+      ]
+    },
+    {
+      "headline": "TSMC Plans $100B US Investment",
+      "impact": "MED",
+      "confidence": 70,
+      "category": "Sector & Stock",
+      "body": "TSMC's planned investment in the US could lead to increased demand for semiconductors, benefiting the portfolio's holdings in NVDA and TSM.",
+      "exposure": "NVDA ~ $30K CAD, TSM ~ $15K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 50,
+          "scenario": "The investment leads to increased demand for semiconductors, benefiting the portfolio's holdings.",
+          "estimate": "+$5,000-$10,000 via NVDA and TSM"
+        },
+        {
+          "label": "Base",
+          "probability": 40,
+          "scenario": "The investment has a minimal impact on the portfolio's holdings.",
+          "estimate": "±$2,000 — minimal net change"
+        },
+        {
+          "label": "Bear",
+          "probability": 10,
+          "scenario": "The investment leads to increased competition in the semiconductor sector, negatively impacting the portfolio's holdings.",
+          "estimate": "-$5,000-$10,000 via NVDA and TSM"
         }
       ]
     },
     {
       "headline": "Apple's China Breakthrough",
-      "impact": "MED",
-      "confidence": 70,
+      "impact": "LOW",
+      "confidence": 60,
       "category": "Sector & Stock",
-      "body": "Apple's breakthrough in China could lead to increased demand for AAPL stock, potentially benefiting the portfolio.",
-      "exposure": "AAPL ~ $15K CAD",
+      "body": "Apple's breakthrough in China could lead to increased sales and revenue, benefiting the portfolio's holding in AAPL.",
+      "exposure": "AAPL ~ $12K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 20,
-          "scenario": "Increased demand for AAPL stock due to China breakthrough",
-          "estimate": "+$5,000-$10,000 via AAPL"
+          "probability": 30,
+          "scenario": "The breakthrough leads to increased sales and revenue for Apple, benefiting the portfolio's holding.",
+          "estimate": "+$1,000-$3,000 via AAPL"
         },
         {
           "label": "Base",
           "probability": 50,
-          "scenario": "Minimal impact on the portfolio due to diversified holdings",
-          "estimate": "±$1,000 — minimal net change"
-        },
-        {
-          "label": "Bear",
-          "probability": 30,
-          "scenario": "Decline in AAPL stock due to increased competition",
-          "estimate": "-$5,000-$10,000 via AAPL"
-        }
-      ]
-    },
-    {
-      "headline": "NVIDIA's Robotics and Manufacturing Partnership",
-      "impact": "LOW",
-      "confidence": 60,
-      "category": "Sector & Stock",
-      "body": "NVIDIA's partnership with Japan's robotics and manufacturing leaders could lead to increased demand for NVDA stock, potentially benefiting the portfolio.",
-      "exposure": "NVDA ~ $30K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 20,
-          "scenario": "Increased demand for NVDA stock due to partnership",
-          "estimate": "+$5,000-$10,000 via NVDA"
-        },
-        {
-          "label": "Base",
-          "probability": 60,
-          "scenario": "Minimal impact on the portfolio due to diversified holdings",
-          "estimate": "±$1,000 — minimal net change"
+          "scenario": "The breakthrough has a minimal impact on the portfolio's holding.",
+          "estimate": "±$500 — minimal net change"
         },
         {
           "label": "Bear",
           "probability": 20,
-          "scenario": "Decline in NVDA stock due to increased competition",
-          "estimate": "-$5,000-$10,000 via NVDA"
+          "scenario": "The breakthrough leads to increased competition in the Chinese market, negatively impacting Apple's sales and revenue.",
+          "estimate": "-$1,000-$3,000 via AAPL"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "GOOGL",
+      "ticker": "AMZN",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Google's dominance in the technology sector and its growing presence in emerging markets make it an attractive addition to the portfolio. The current news environment, with increased focus on AI and technology, supports the thesis.",
-      "entry": "Entry price range: $2,500-$3,000"
+      "thesis": "Amazon's strong earnings report and growing cloud computing business make it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $180-$200"
     },
     {
-      "ticker": "BABA",
+      "ticker": "BIDU",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Alibaba's strong position in the Chinese e-commerce market and its growing presence in emerging markets make it an attractive watch candidate. The current news environment, with increased focus on trade and globalization, supports the thesis.",
-      "entry": "Monitor for entry on a decline to $200-$250"
+      "thesis": "Baidu's growing presence in the Chinese tech sector and potential for increased demand for its services make it a stock to watch.",
+      "entry": "Monitor for entry on a pullback to $120-$150"
+    },
+    {
+      "ticker": "GOOG",
+      "action": "NEW",
+      "account": "RRSP",
+      "thesis": "Google's strong earnings report and growing advertising business make it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $2,500-$2,800"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified holdings across sectors and geographies"
+      "text": "Diversified portfolio with a mix of tech, finance, and energy holdings"
     },
     {
       "ticker": "NVDA",
-      "text": "Strong position in the technology sector with a high-growth stock"
+      "text": "Strong growth potential in the semiconductor sector"
     },
     {
-      "ticker": "CM.TO",
-      "text": "Dividend-paying stock with a strong track record of stability"
+      "ticker": "MSFT",
+      "text": "Established player in the software sector with a strong track record"
     },
     {
-      "ticker": "ENB.TO",
-      "text": "Energy stock with a strong position in the Canadian market"
+      "ticker": "V",
+      "text": "Growing presence in the payments sector with a strong brand"
     },
     {
-      "ticker": null,
-      "text": "Tax-efficient portfolio structure with RRSP and TFSA accounts"
+      "ticker": "TSLA",
+      "text": "Innovative company in the electric vehicle sector with a strong growth potential"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "High leverage through 3x ETFs increases risk of significant losses"
+      "text": "High leverage in the portfolio increases the risk of significant losses"
     },
     {
       "ticker": "FNGU",
-      "text": "Concentrated position in a single stock increases risk of significant losses"
+      "text": "Concentrated position in a single ETF increases the risk of losses"
+    },
+    {
+      "ticker": "SPXL",
+      "text": "Leveraged ETFs can be volatile and may not be suitable for all investors"
     },
     {
       "ticker": "AAPL",
-      "text": "Dependence on a single stock's performance increases risk of significant losses"
+      "text": "Dependence on a single company for a significant portion of the portfolio's returns"
     },
     {
-      "ticker": null,
-      "text": "FX fluctuations could lead to losses due to high USD exposure"
-    },
-    {
-      "ticker": null,
-      "text": "Lack of diversification in the portfolio's bond holdings increases risk of significant losses"
+      "ticker": "TSM",
+      "text": "Exposure to the semiconductor sector, which can be volatile"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the US-Iran conflict and its impact on the energy sector"
+      "text": "Monitor the US-Iran conflict and its potential impact on the portfolio's holdings"
     },
     {
       "num": "02",
-      "text": "Adjust the portfolio's leverage and risk profile as needed to mitigate potential losses"
+      "text": "Keep an eye on the FX markets and potential fluctuations in the US-Canada exchange rate"
     },
     {
       "num": "03",
-      "text": "Consider adding dividend-paying stocks to the portfolio to reduce volatility"
+      "text": "Review the portfolio's leverage and consider reducing it if the market becomes too volatile"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to diversify the portfolio's holdings across sectors and geographies"
+      "text": "Consider adding more diversification to the portfolio by investing in other sectors or geographies"
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's FX exposure and adjust as needed to minimize losses"
+      "text": "Monitor the portfolio's holdings and consider rebalancing if any of the positions become too large"
     },
     {
       "num": "03",
-      "text": "Consider adding emerging market stocks to the portfolio to increase growth potential"
+      "text": "Keep an eye on the interest rates and potential impact on the portfolio's holdings"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Maintain a long-term perspective and avoid making emotional decisions based on short-term market fluctuations"
+      "text": "Consider investing in a tax-efficient manner to minimize taxes and maximize returns"
     },
     {
       "num": "02",
-      "text": "Continue to invest in high-growth stocks with strong fundamentals"
+      "text": "Review the portfolio's long-term goals and consider making adjustments to the investment strategy"
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's tax efficiency and adjust as needed to minimize tax liabilities"
+      "text": "Monitor the portfolio's fees and consider reducing them if possible"
     }
   ],
-  "daily_outlook": "The portfolio's outlook is neutral, with a potential for increased volatility due to the US-Iran conflict. The portfolio's diversified holdings and 3x leverage amplify both gains and losses, and the high USD exposure increases the risk of FX fluctuations.",
-  "market_mood": "neutral",
-  "generated_at": "2026-07-16T06:01:28.566269+00:00",
+  "daily_outlook": "The portfolio is expected to remain volatile in the short term due to the ongoing US-Iran conflict and potential fluctuations in the FX markets. However, the long-term outlook remains positive due to the diversification of the portfolio and the strong growth potential of its holdings.",
+  "market_mood": "risk-off",
+  "generated_at": "2026-07-16T12:24:22.522285+00:00",
   "generated_date": "July 16, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": []

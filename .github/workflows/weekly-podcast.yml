@@ -41,5 +41,6 @@ jobs:
           git diff --staged --quiet \
             && echo "No changes — skipping commit" \
             || git commit -m "chore: weekly podcast ep $(date -u +'%Y-%m-%d')"
+          git pull --rebase origin main
           git push
       # Vercel auto-deploys from the GitHub push above — no manual deploy needed

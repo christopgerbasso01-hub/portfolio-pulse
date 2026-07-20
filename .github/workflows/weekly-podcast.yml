@@ -37,11 +37,11 @@ jobs:
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/podcast_ep*.mp3 data/podcast_ep*.txt data/podcast_meta.json
-          git add -u -- data/
+          git add -A -- data/
           git diff --staged --quiet \
             && echo "No changes — skipping commit" \
             || git commit -m "chore: weekly podcast ep $(date -u +'%Y-%m-%d')"
+          git restore -- . 2>/dev/null || true
           git pull --rebase origin main
           git push
       # Vercel auto-deploys from the GitHub push above — no manual deploy needed

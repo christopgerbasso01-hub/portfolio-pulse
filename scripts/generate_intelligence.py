@@ -146,6 +146,12 @@ COMPANY_NEWS_TICKERS = [
 # ============================================================
 # OUTPUT SCHEMA — must match renderAISection() in index.html
 # ============================================================
+THEME_CATEGORIES = [
+    "geopolitical", "monetary-policy", "inflation", "fx",
+    "commodities", "credit", "equity-sectors", "corporate",
+    "macro-economic", "regulatory",
+]
+
 OUTPUT_SCHEMA = """
 Return ONE valid JSON object only. No markdown fences, no explanatory text before or after.
 
@@ -153,6 +159,7 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
   "macro": [
     {
       "title": "Theme title under 80 chars",
+      "category": "geopolitical|monetary-policy|inflation|fx|commodities|credit|equity-sectors|corporate|macro-economic|regulatory",
       "impact": "HIGH|MED|LOW",
       "confidence": <integer 0–100, your conviction this theme plays out>,
       "body": "2–4 sentences analysing this macro theme for this specific portfolio",
@@ -294,29 +301,42 @@ def fetch_company_news(api_key: str, ticker: str) -> list[dict]:
 # PROMPT ASSEMBLY
 # ============================================================
 
-def _load_previous_intelligence(path: str = "data/intelligence.json") -> str:
-    """Load the previous intelligence summary to avoid repeating it."""
+def _load_theme_history(path: str = "data/intelligence.json") -> list[dict]:
+    """Load the rolling 7-day macro theme history stored in intelligence.json."""
     try:
         import pathlib
         p = pathlib.Path(path)
         if not p.exists():
-            return ""
-        old = json.loads(p.read_text())
-        # Extract key themes so the LLM knows what was already covered
-        prev_date  = old.get("generated_date", "")
-        prev_mood  = old.get("market_mood", "")
-        prev_macro = " | ".join(m.get("title","") for m in (old.get("macro") or [])[:3])
-        prev_news  = " | ".join(n.get("headline","") for n in (old.get("news") or [])[:4])
-        if not prev_macro and not prev_news:
-            return ""
-        return (
-            f"PREVIOUS BRIEFING ({prev_date}, mood: {prev_mood}):\n"
-            f"  Macro themes already covered: {prev_macro or 'none'}\n"
-            f"  News already covered: {prev_news or 'none'}\n"
-            f"  → TODAY'S BRIEFING MUST DIFFER. Focus on what has CHANGED or is NEW since then."
-        )
+            return []
+        return json.loads(p.read_text()).get("theme_history", [])
     except Exception:
+        return []
+
+
+def _build_theme_context(theme_history: list[dict]) -> str:
+    """Build the 7-day category-based deduplication block for the prompt."""
+    if not theme_history:
         return ""
+
+    lines = ["MACRO THEME HISTORY — last 7 days (most recent first):"]
+    for entry in theme_history[:7]:
+        date   = entry.get("date", "?")
+        themes = entry.get("themes", [])
+        for t in themes:
+            lines.append(f"  [{date}] {t.get('category','?')}: {t.get('title','')}")
+
+    lines += [
+        "",
+        "DEDUPLICATION RULES (apply to all 3 macro slots):",
+        "  • Do NOT use a category listed above as a primary macro theme today UNLESS",
+        "    there is a MATERIAL NEW EVENT in that category — a ceasefire, military strike,",
+        "    rate decision, fresh data release, or new legislation. Ongoing commentary about",
+        "    a known situation does NOT qualify.",
+        "  • If you revisit a recent category, your title MUST name the specific new event.",
+        "  • Categories last seen 4+ days ago may be revisited if the angle is genuinely different.",
+        f"  • Valid categories: {', '.join(THEME_CATEGORIES)}",
+    ]
+    return "\n".join(lines)
 
 
 def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
@@ -364,10 +384,9 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
             movers_block += "\nTODAY'S TOP LOSERS (potential value/harvest candidates):\n"
             movers_block += "\n".join(f"  • {m['symbol']} ({m['name']}) {m['pct']}" for m in movers["losers"][:4])
 
-    today    = datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
-    prev_ctx = _load_previous_intelligence()
-
-    prev_section = f"\n{prev_ctx}\n" if prev_ctx else ""
+    today        = datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
+    theme_ctx    = _build_theme_context(_load_theme_history())
+    prev_section = f"\n{theme_ctx}\n" if theme_ctx else ""
 
     return f"""You are a portfolio intelligence analyst generating a daily briefing for a personal Canadian investment portfolio.
 
@@ -569,6 +588,17 @@ def main() -> int:
     if new_pick_tickers:
         _save_picks_history(new_pick_tickers, picks_history)
         print(f"  ✓ Saved pick history: {new_pick_tickers}")
+
+    # Build rolling 7-day theme history and attach before saving
+    today_str    = now_utc.strftime("%Y-%m-%d")
+    today_themes = [
+        {"category": m.get("category", "macro-economic"), "title": m.get("title", "")}
+        for m in intelligence.get("macro", [])
+    ]
+    history = [e for e in _load_theme_history() if e.get("date") != today_str]
+    history = [{"date": today_str, "themes": today_themes}] + history
+    intelligence["theme_history"] = history[:7]
+    print(f"  ✓ Theme history updated ({len(intelligence['theme_history'])} days)")
 
     save(intelligence)
 

@@ -1,15 +1,15 @@
 {
   "macro": [
     {
-      "title": "US-Iran Tensions",
+      "title": "US-Iran Escalation",
       "category": "geopolitical",
       "impact": "HIGH",
       "confidence": 80,
-      "body": "The escalating US-Iran conflict may lead to increased market volatility, affecting the portfolio's leveraged positions. The conflict's impact on global oil prices and trade could also influence the portfolio's energy and tech holdings.",
-      "bull": "A potential ceasefire or de-escalation could lead to a market rally, benefiting the portfolio's leveraged ETFs.",
-      "bull_estimate": "+$25,000-$35,000 via FNGU/SPXL 3x leverage",
+      "body": "The ongoing US-Iran tensions could lead to increased volatility in the markets, affecting the portfolio's overall performance. The situation is being closely monitored, and any material new events could significantly impact the portfolio.",
+      "bull": "A potential ceasefire or de-escalation could lead to a market rally, benefiting the portfolio's leveraged positions.",
+      "bull_estimate": "+$30,000-$50,000 via FNGU/SPXL 3x leverage",
       "bull_probability": 30,
-      "base": "The conflict's impact on the market may be neutral, with the portfolio's holdings experiencing minimal net change.",
+      "base": "The current situation is likely to continue, with minimal impact on the portfolio.",
       "base_estimate": "±$5,000 — markets grind higher",
       "base_probability": 40,
       "bear": "An escalation of the conflict could lead to a market downturn, negatively impacting the portfolio's leveraged positions.",
@@ -21,245 +21,257 @@
       "category": "monetary-policy",
       "impact": "MED",
       "confidence": 70,
-      "body": "The Federal Reserve's monetary policy decisions may influence the portfolio's holdings, particularly the tech sector. A potential rate cut could boost the market, while a rate hike could lead to a downturn.",
-      "bull": "A rate cut could lead to a market rally, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$15,000-$25,000 via NVDA, MSFT, and AAPL",
-      "bull_probability": 40,
-      "base": "The Fed's policy decisions may have a neutral impact on the market, with the portfolio's holdings experiencing minimal net change.",
+      "body": "The Federal Reserve's policy decisions will continue to influence the markets, and any changes could impact the portfolio's performance. The current environment suggests a potential rate hike, which could affect the portfolio's leveraged positions.",
+      "bull": "A dovish stance by the Fed could lead to a market rally, benefiting the portfolio's leveraged positions.",
+      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 35,
+      "base": "The Fed is likely to maintain its current stance, with minimal impact on the portfolio.",
       "base_estimate": "±$3,000 — markets remain stable",
-      "base_probability": 30,
-      "bear": "A rate hike could lead to a market downturn, negatively impacting the portfolio's tech holdings.",
-      "bear_estimate": "-$20,000-$30,000 via NVDA, MSFT, and AAPL",
-      "bear_probability": 30
+      "base_probability": 45,
+      "bear": "A hawkish stance by the Fed could lead to a market downturn, negatively impacting the portfolio's leveraged positions.",
+      "bear_estimate": "-$25,000-$40,000 via 3x ETF amplification",
+      "bear_probability": 20
     },
     {
       "title": "Inflation",
       "category": "inflation",
       "impact": "LOW",
       "confidence": 60,
-      "body": "The current inflation rate may have a minimal impact on the portfolio's holdings, as the majority of the portfolio is invested in growth stocks and leveraged ETFs.",
-      "bull": "A low inflation rate could lead to increased consumer spending, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$10,000-$15,000 via NVDA, MSFT, and AAPL",
-      "bull_probability": 50,
-      "base": "The inflation rate may have a neutral impact on the market, with the portfolio's holdings experiencing minimal net change.",
+      "body": "The current inflation environment is relatively stable, with minimal impact on the portfolio. However, any changes in inflation expectations could influence the markets and affect the portfolio's performance.",
+      "bull": "A decrease in inflation expectations could lead to a market rally, benefiting the portfolio's leveraged positions.",
+      "bull_estimate": "+$15,000-$25,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 25,
+      "base": "Inflation expectations are likely to remain stable, with minimal impact on the portfolio.",
       "base_estimate": "±$2,000 — markets remain stable",
-      "base_probability": 30,
-      "bear": "A high inflation rate could lead to decreased consumer spending, negatively impacting the portfolio's tech holdings.",
-      "bear_estimate": "-$15,000-$20,000 via NVDA, MSFT, and AAPL",
-      "bear_probability": 20
+      "base_probability": 50,
+      "bear": "An increase in inflation expectations could lead to a market downturn, negatively impacting the portfolio's leveraged positions.",
+      "bear_estimate": "-$20,000-$30,000 via 3x ETF amplification",
+      "bear_probability": 25
     }
   ],
   "risks": [
     {
-      "title": "Leverage Risk",
+      "title": "3x Leverage Amplification",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's high leverage ratio amplifies both gains and losses, making it vulnerable to market volatility."
+      "body": "The portfolio's 3x leveraged positions amplify both gains and losses, increasing the risk of significant losses in a market downturn."
     },
     {
-      "title": "FX Risk",
+      "title": "FX Book Rate Drag",
       "level": "MED",
-      "context": "68% USD exposure ~ $1800/1¢ USD/CAD",
-      "body": "The portfolio's significant USD exposure makes it susceptible to fluctuations in the USD/CAD exchange rate."
+      "context": "68% USD exposure ~ $190K CAD",
+      "body": "The portfolio's FX book rate could lead to losses if the CAD strengthens against the USD, negatively impacting the portfolio's performance."
     },
     {
-      "title": "Concentration Risk",
-      "level": "MED",
+      "title": "Account Concentration",
+      "level": "LOW",
       "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's concentration in a few holdings increases its vulnerability to company-specific risks and market volatility."
+      "body": "The portfolio's concentration in a few holdings increases the risk of significant losses if any of these holdings experience a downturn."
     }
   ],
   "news": [
     {
       "headline": "Tesla Rallies Ahead of Earnings",
-      "impact": "MED",
-      "confidence": 80,
+      "impact": "HIGH",
+      "confidence": 85,
       "category": "Sector & Stock",
-      "body": "Tesla's upcoming earnings report may impact the portfolio's TSLA holding.",
+      "body": "Tesla's upcoming earnings report could significantly impact the portfolio's performance, given its holding in TSLA.",
       "exposure": "TSLA ~ $10K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "Tesla's earnings report exceeds expectations, leading to a rally in TSLA.",
-          "estimate": "+$2,000-$3,000 on TSLA"
+          "scenario": "Tesla's earnings report exceeds expectations, leading to a rally in the stock.",
+          "estimate": "+$5,000-$10,000 on TSLA position"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "Tesla's earnings report meets expectations, resulting in minimal net change for TSLA.",
+          "scenario": "Tesla's earnings report meets expectations, with minimal impact on the portfolio.",
           "estimate": "±$1,000 — TSLA remains stable"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "Tesla's earnings report disappoints, leading to a decline in TSLA.",
-          "estimate": "-$2,000-$3,000 on TSLA"
+          "scenario": "Tesla's earnings report disappoints, leading to a decline in the stock.",
+          "estimate": "-$5,000-$10,000 on TSLA position"
         }
       ]
     },
     {
-      "headline": "NVIDIA AI-Fueled Rally",
-      "impact": "HIGH",
-      "confidence": 90,
+      "headline": "Apple Prepares New iPhone Buying Method",
+      "impact": "MED",
+      "confidence": 75,
       "category": "Sector & Stock",
-      "body": "NVIDIA's AI-fueled rally may impact the portfolio's NVDA holding.",
-      "exposure": "NVDA ~ $30K CAD",
+      "body": "Apple's new iPhone buying method could impact the portfolio's holding in AAPL.",
+      "exposure": "AAPL ~ $8K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 50,
-          "scenario": "NVIDIA's AI-fueled rally continues, leading to a significant increase in NVDA.",
-          "estimate": "+$5,000-$7,000 on NVDA"
+          "probability": 35,
+          "scenario": "The new buying method leads to increased iPhone sales, benefiting AAPL.",
+          "estimate": "+$3,000-$6,000 on AAPL position"
         },
         {
           "label": "Base",
-          "probability": 30,
-          "scenario": "NVIDIA's AI-fueled rally slows down, resulting in minimal net change for NVDA.",
-          "estimate": "±$2,000 — NVDA remains stable"
+          "probability": 40,
+          "scenario": "The new buying method has minimal impact on iPhone sales, with stable AAPL performance.",
+          "estimate": "±$1,500 — AAPL remains stable"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "NVIDIA's AI-fueled rally reverses, leading to a decline in NVDA.",
-          "estimate": "-$3,000-$5,000 on NVDA"
+          "probability": 25,
+          "scenario": "The new buying method leads to decreased iPhone sales, negatively impacting AAPL.",
+          "estimate": "-$3,000-$6,000 on AAPL position"
         }
       ]
     },
     {
       "headline": "Halliburton Beats Estimates",
       "impact": "LOW",
-      "confidence": 70,
+      "confidence": 65,
       "category": "Sector & Stock",
-      "body": "Halliburton's earnings report may have a minimal impact on the portfolio's ENB holding.",
-      "exposure": "ENB ~ $5K CAD",
+      "body": "Halliburton's earnings report has minimal impact on the portfolio, given its lack of exposure to the stock.",
+      "exposure": "None",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 30,
-          "scenario": "Halliburton's earnings report positively impacts ENB, leading to a small increase.",
-          "estimate": "+$1,000-$2,000 on ENB"
+          "probability": 20,
+          "scenario": "The earnings report leads to a rally in the energy sector, potentially benefiting the portfolio's holdings in ENB.TO.",
+          "estimate": "+$1,000-$3,000 on ENB.TO position"
         },
         {
           "label": "Base",
-          "probability": 40,
-          "scenario": "Halliburton's earnings report has a neutral impact on ENB, resulting in minimal net change.",
-          "estimate": "±$500 — ENB remains stable"
+          "probability": 50,
+          "scenario": "The earnings report has minimal impact on the portfolio.",
+          "estimate": "±$500 — portfolio remains stable"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "Halliburton's earnings report negatively impacts ENB, leading to a small decline.",
-          "estimate": "-$1,000-$2,000 on ENB"
+          "scenario": "The earnings report leads to a decline in the energy sector, negatively impacting the portfolio's holdings in ENB.TO.",
+          "estimate": "-$1,000-$3,000 on ENB.TO position"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "SHEL",
+      "ticker": "GOOGL",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Shell's potential LNG deal with Egypt could lead to increased revenue and profitability, making it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $25-$30"
+      "thesis": "Google's new AI models and potential expansion into new markets make it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $2,500-$3,000"
     },
     {
-      "ticker": "HUT",
+      "ticker": "SQ",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Hut 8 Mining's recent surge in stock price may be an opportunity to add a new holding to the portfolio, but it requires further research and monitoring.",
-      "entry": "Monitor for entry below $2.50"
+      "thesis": "Square's growing presence in the payments industry and potential for expansion make it a stock to monitor for potential entry.",
+      "entry": "Monitor for entry on a pullback to $200-$250"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of growth and income-generating holdings"
+      "text": "The portfolio's tax-efficient structure, with holdings in RRSP and TFSA accounts, helps minimize tax liabilities."
     },
     {
       "ticker": "NVDA",
-      "text": "Significant holding in NVIDIA, a leader in the AI and tech industry"
+      "text": "The portfolio's holding in NVDA has significant upside potential, given the company's strong position in the AI and gaming markets."
     },
     {
       "ticker": "MSFT",
-      "text": "Holding in Microsoft, a stable and profitable company with a strong track record"
+      "text": "The portfolio's holding in MSFT provides stable returns and a strong dividend yield."
     },
     {
       "ticker": "AAPL",
-      "text": "Holding in Apple, a well-established company with a loyal customer base"
+      "text": "The portfolio's holding in AAPL offers a stable source of returns, given the company's loyal customer base and diverse product offerings."
     },
     {
-      "ticker": "TSLA",
-      "text": "Holding in Tesla, a pioneer in the electric vehicle industry"
+      "ticker": null,
+      "text": "The portfolio's diversification across various sectors and asset classes helps minimize risk and increase potential returns."
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "High leverage ratio increases vulnerability to market volatility"
+      "text": "The portfolio's concentration in a few holdings increases the risk of significant losses if any of these holdings experience a downturn."
     },
     {
       "ticker": "TSLA",
-      "text": "Tesla's stock price is highly volatile and may be subject to significant fluctuations"
+      "text": "The portfolio's holding in TSLA is subject to significant volatility, given the company's innovative but risky business model."
     },
     {
-      "ticker": "NVDA",
-      "text": "NVIDIA's stock price is highly dependent on the tech industry's performance"
+      "ticker": "ENB.TO",
+      "text": "The portfolio's holding in ENB.TO is exposed to the risks of the energy sector, including fluctuations in commodity prices."
     },
     {
-      "ticker": "ENB",
-      "text": "Enbridge's stock price may be affected by changes in the energy industry"
+      "ticker": null,
+      "text": "The portfolio's lack of exposure to certain sectors, such as healthcare, may limit its potential for growth and diversification."
     },
     {
-      "ticker": "GBTC",
-      "text": "Grayscale Bitcoin Trust's stock price is highly volatile and may be subject to significant fluctuations"
+      "ticker": null,
+      "text": "The portfolio's use of 3x leveraged ETFs increases the risk of significant losses in a market downturn."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the US-Iran conflict and its potential impact on the portfolio's holdings"
+      "text": "Monitor the US-Iran situation and be prepared to adjust the portfolio's leveraged positions accordingly."
     },
     {
       "num": "02",
-      "text": "Keep an eye on the Federal Reserve's monetary policy decisions and their potential impact on the portfolio"
+      "text": "Keep an eye on the Fed's policy decisions and adjust the portfolio's interest-rate sensitive holdings as needed."
     },
     {
       "num": "03",
-      "text": "Consider rebalancing the portfolio to maintain an optimal asset allocation"
+      "text": "Consider adding to the portfolio's holdings in the technology sector, given its strong growth potential."
+    },
+    {
+      "num": "04",
+      "text": "Review the portfolio's tax efficiency and consider rebalancing to minimize tax liabilities."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to invest in growth stocks and leveraged ETFs to take advantage of potential market rallies"
+      "text": "Consider diversifying the portfolio's holdings across various sectors and asset classes to minimize risk and increase potential returns."
     },
     {
       "num": "02",
-      "text": "Diversify the portfolio by adding new holdings in different sectors and industries"
+      "text": "Monitor the portfolio's concentration in a few holdings and consider rebalancing to reduce risk."
     },
     {
       "num": "03",
-      "text": "Consider investing in dividend-paying stocks to generate regular income"
+      "text": "Keep an eye on the portfolio's exposure to the energy sector and consider adjusting holdings as needed to minimize risk."
+    },
+    {
+      "num": "04",
+      "text": "Consider adding to the portfolio's holdings in the healthcare sector, given its potential for growth and diversification."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Maintain a long-term perspective and avoid making emotional decisions based on short-term market fluctuations"
+      "text": "Consider the portfolio's long-term goals and risk tolerance when making investment decisions."
     },
     {
       "num": "02",
-      "text": "Continue to invest in a tax-efficient manner, utilizing RRSP and TFSA accounts to minimize taxes"
+      "text": "Monitor the portfolio's tax efficiency and consider rebalancing to minimize tax liabilities over the long term."
     },
     {
       "num": "03",
-      "text": "Consider investing in a mix of low-cost index funds and actively managed funds to diversify the portfolio"
+      "text": "Keep an eye on the portfolio's diversification across various sectors and asset classes to minimize risk and increase potential returns over the long term."
+    },
+    {
+      "num": "04",
+      "text": "Consider the portfolio's exposure to emerging trends and technologies, such as AI and renewable energy, and adjust holdings as needed to capitalize on growth opportunities."
     }
   ],
-  "daily_outlook": "The portfolio's outlook remains positive, with a potential for growth in the tech and energy sectors. However, the US-Iran conflict and Federal Reserve's monetary policy decisions may impact the market, and the portfolio's holdings should be monitored closely.",
+  "daily_outlook": "The portfolio's performance is expected to be influenced by the ongoing US-Iran tensions and the Fed's policy decisions. The portfolio's holdings in the technology sector, such as NVDA and MSFT, are expected to continue to perform well. However, the portfolio's concentration in a few holdings and use of 3x leveraged ETFs increase the risk of significant losses in a market downturn.",
   "market_mood": "risk-on",
-  "generated_at": "2026-07-21T19:35:05.714810+00:00",
+  "generated_at": "2026-07-21T20:00:54.295231+00:00",
   "generated_date": "July 21, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": [],
@@ -269,7 +281,7 @@
       "themes": [
         {
           "category": "geopolitical",
-          "title": "US-Iran Tensions"
+          "title": "US-Iran Escalation"
         },
         {
           "category": "monetary-policy",

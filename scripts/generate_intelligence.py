@@ -152,6 +152,66 @@ THEME_CATEGORIES = [
     "macro-economic", "regulatory",
 ]
 
+# Keywords used to filter general news headlines when a category is in the ban window.
+# Intentionally specific to avoid over-filtering unrelated articles.
+CATEGORY_KEYWORDS: dict[str, list[str]] = {
+    "geopolitical":    ["iran", "israel", "hamas", "hezbollah", "gaza", "ukraine", "russia",
+                        "nato", "ceasefire", "military strike", "missile", "sanction",
+                        "middle east conflict", "escalat", "geopolit"],
+    "monetary-policy": ["federal reserve", "fomc", "jerome powell", "rate hike", "rate cut",
+                        "interest rate decision", "basis point", "central bank rate",
+                        "monetary policy", "fed funds"],
+    "inflation":       ["consumer price index", "cpi data", "pce inflation", "producer price",
+                        "inflation rate", "inflation report", "deflation", "stagflation"],
+    "fx":              ["dollar index", "dxy", "usd/cad", "cad/usd", "currency war",
+                        "forex market", "exchange rate volatility"],
+    "commodities":     ["crude oil price", "wti crude", "brent crude", "opec", "natural gas price",
+                        "gold price", "silver price", "commodity rout", "oil rally"],
+    "credit":          ["treasury yield", "bond yield", "credit spread", "junk bond",
+                        "high-yield bond", "debt ceiling", "sovereign debt"],
+    "equity-sectors":  ["sector rotation", "rotation out of", "tech sector selloff",
+                        "financials outperform", "sector etf"],
+    "macro-economic":  ["gdp growth", "gdp report", "recession risk", "nonfarm payroll",
+                        "jobs report", "unemployment rate", "economic contraction"],
+    "regulatory":      ["antitrust ruling", "sec enforcement", "regulation passed",
+                        "legislation signed", "compliance deadline"],
+    "corporate":       [],
+}
+
+
+def _get_banned_categories(theme_history: list[dict], days: int = 3) -> set[str]:
+    """Return category names covered in the last N days."""
+    from datetime import timedelta
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    banned: set[str] = set()
+    for entry in theme_history:
+        if entry.get("date", "") >= cutoff:
+            for t in entry.get("themes", []):
+                if t.get("category"):
+                    banned.add(t["category"])
+    return banned
+
+
+def _filter_banned_headlines(news: list[dict], banned: set[str]) -> tuple[list[dict], int]:
+    """Remove general news headlines that match banned category keywords.
+    Returns (kept_headlines, count_removed).
+    """
+    if not banned:
+        return news, 0
+    keywords = []
+    for cat in banned:
+        keywords.extend(CATEGORY_KEYWORDS.get(cat, []))
+    if not keywords:
+        return news, 0
+    kept, removed = [], 0
+    for item in news:
+        text = (item.get("headline", "") + " " + item.get("summary", "")).lower()
+        if any(kw in text for kw in keywords):
+            removed += 1
+        else:
+            kept.append(item)
+    return kept, removed
+
 OUTPUT_SCHEMA = """
 Return ONE valid JSON object only. No markdown fences, no explanatory text before or after.
 
@@ -176,7 +236,7 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
   ],
   "risks": [
     {
-      "title": "Risk factor name",
+      "title": "Specific risk name — vary this daily. Draw from: leverage amplification, FX exposure, earnings concentration, cash drag, liquidity risk, single-stock risk, tax timing risk, sector overlap, account rule constraints, correlation risk, volatility decay, or any other portfolio-specific risk relevant TODAY.",
       "level": "HIGH|MED|LOW",
       "context": "Brief metric e.g. '49% of portfolio ~ $135K CAD'",
       "body": "2–3 sentences explaining the risk specific to this portfolio"
@@ -313,30 +373,49 @@ def _load_theme_history(path: str = "data/intelligence.json") -> list[dict]:
         return []
 
 
-def _build_theme_context(theme_history: list[dict]) -> str:
-    """Build the 7-day category-based deduplication block for the prompt."""
-    if not theme_history:
-        return ""
+def _load_risk_history(path: str = "data/intelligence.json") -> list[str]:
+    """Load the rolling 5-day risk title history stored in intelligence.json."""
+    try:
+        import pathlib
+        p = pathlib.Path(path)
+        if not p.exists():
+            return []
+        return json.loads(p.read_text()).get("risk_history", [])
+    except Exception:
+        return []
 
-    lines = ["MACRO THEME HISTORY — last 7 days (most recent first):"]
-    for entry in theme_history[:7]:
-        date   = entry.get("date", "?")
-        themes = entry.get("themes", [])
-        for t in themes:
-            lines.append(f"  [{date}] {t.get('category','?')}: {t.get('title','')}")
 
-    lines += [
-        "",
-        "DEDUPLICATION RULES (apply to all 3 macro slots):",
-        "  • Do NOT use a category listed above as a primary macro theme today UNLESS",
-        "    there is a MATERIAL NEW EVENT in that category — a ceasefire, military strike,",
-        "    rate decision, fresh data release, or new legislation. Ongoing commentary about",
-        "    a known situation does NOT qualify.",
-        "  • If you revisit a recent category, your title MUST name the specific new event.",
-        "  • Categories last seen 4+ days ago may be revisited if the angle is genuinely different.",
-        f"  • Valid categories: {', '.join(THEME_CATEGORIES)}",
-    ]
-    return "\n".join(lines)
+def _build_theme_context(theme_history: list[dict], risk_history: list[str]) -> str:
+    """Build the deduplication block for both macro themes and risk factors."""
+    lines = []
+
+    if theme_history:
+        lines.append("MACRO THEME HISTORY — last 7 days (most recent first):")
+        for entry in theme_history[:7]:
+            date   = entry.get("date", "?")
+            themes = entry.get("themes", [])
+            for t in themes:
+                lines.append(f"  [{date}] {t.get('category','?')}: {t.get('title','')}")
+        lines += [
+            "",
+            "MACRO DEDUPLICATION RULES (apply to all 3 macro slots):",
+            "  • Do NOT use a category listed above as a primary macro theme today UNLESS",
+            "    there is a MATERIAL NEW EVENT — a ceasefire, rate decision, fresh data release,",
+            "    military strike, or new legislation. Ongoing commentary does NOT qualify.",
+            "  • If you revisit a recent category, your title MUST name the specific new event.",
+            "  • Categories last seen 4+ days ago may be revisited if the angle is different.",
+            f"  • Valid categories: {', '.join(THEME_CATEGORIES)}",
+        ]
+
+    if risk_history:
+        lines += [
+            "",
+            f"RISK TITLES USED RECENTLY (last 5 days) — do NOT reuse these exact titles:",
+            *[f"  • {r}" for r in risk_history],
+            "  → Pick 3 DIFFERENT risk angles relevant to today's conditions.",
+        ]
+
+    return "\n".join(lines) if lines else ""
 
 
 def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
@@ -385,8 +464,17 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
             movers_block += "\n".join(f"  • {m['symbol']} ({m['name']}) {m['pct']}" for m in movers["losers"][:4])
 
     today        = datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
-    theme_ctx    = _build_theme_context(_load_theme_history())
-    prev_section = f"\n{theme_ctx}\n" if theme_ctx else ""
+    theme_history = _load_theme_history()
+    risk_history  = _load_risk_history()
+    theme_ctx     = _build_theme_context(theme_history, risk_history)
+    prev_section  = f"\n{theme_ctx}\n" if theme_ctx else ""
+
+    # Filter general news headlines that match banned categories
+    banned_cats = _get_banned_categories(theme_history, days=3)
+    if banned_cats:
+        general_news, n_removed = _filter_banned_headlines(general_news, banned_cats)
+        if n_removed:
+            print(f"  ✓ Filtered {n_removed} headlines matching banned categories: {banned_cats}")
 
     return f"""You are a portfolio intelligence analyst generating a daily briefing for a personal Canadian investment portfolio.
 
@@ -419,8 +507,12 @@ SECTION DISTINCTIVENESS — each section must cover UNIQUE ground, zero repetiti
              Do NOT mention specific portfolio tickers. Do NOT repeat events covered in 'news'.
 - news:      Specific headlines from TODAY'S feed ONLY. Each item = one distinct event.
              Do NOT restate macro themes — only the event and its direct holding impact.
-- risks:     Portfolio-specific TECHNICAL risks ONLY (3x leverage amplification, FX book rate drag,
-             account concentration). Do NOT rehash macro themes already in 'macro'.
+- risks:     3 DISTINCT portfolio-specific risks relevant to TODAY's market conditions.
+             Rotate focus daily — do not reuse the same risk titles as recent briefings.
+             Pool to draw from: leverage decay, FX drag, earnings concentration, cash drag,
+             liquidity gaps, single-stock tail risk, tax timing, sector overlap, correlation
+             risk, volatility regime shift, account rule constraints, or any fresh risk.
+             Do NOT rehash macro themes already in 'macro'.
 - picks:     Genuinely NEW tickers not already held, OR a specific sizing action on an existing position.
              Do NOT suggest anything already covered as a strength.
 - strengths: Structural/positional advantages ONLY (low cost basis, tax shelter, realised gains locked in).
@@ -599,6 +691,14 @@ def main() -> int:
     history = [{"date": today_str, "themes": today_themes}] + history
     intelligence["theme_history"] = history[:7]
     print(f"  ✓ Theme history updated ({len(intelligence['theme_history'])} days)")
+
+    # Build rolling 5-day risk title history and attach before saving
+    today_risk_titles = [r.get("title", "") for r in intelligence.get("risks", []) if r.get("title")]
+    existing_risk_history = _load_risk_history()
+    # Remove today's if re-running, then prepend
+    risk_hist = [t for t in existing_risk_history if t not in today_risk_titles]
+    intelligence["risk_history"] = (today_risk_titles + risk_hist)[:15]  # ~5 days × 3
+    print(f"  ✓ Risk history updated ({len(intelligence['risk_history'])} titles)")
 
     save(intelligence)
 

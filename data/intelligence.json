@@ -5,14 +5,14 @@
       "category": "geopolitical",
       "impact": "HIGH",
       "confidence": 80,
-      "body": "The ongoing US-Iran conflict poses significant risks to global economic stability, particularly in the energy sector. This could lead to increased volatility in the markets, affecting the portfolio's leveraged positions.",
-      "bull": "A potential ceasefire or de-escalation could lead to a relief rally in the markets, benefiting the portfolio's leveraged ETFs.",
-      "bull_estimate": "+$25,000-$40,000 via FNGU/SPXL 3x leverage",
+      "body": "The ongoing US-Iran conflict has the potential to disrupt global oil supplies, leading to increased prices and market volatility. This could have a significant impact on the portfolio's energy holdings and overall performance.",
+      "bull": "A ceasefire or de-escalation could lead to a relief rally in the markets, benefiting the portfolio's leveraged ETFs.",
+      "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
       "bull_probability": 30,
-      "base": "The conflict continues with minimal impact on global markets, and the portfolio's holdings remain stable.",
-      "base_estimate": "±$5,000 — minimal net change",
+      "base": "The conflict continues at its current pace, with minimal impact on the portfolio.",
+      "base_estimate": "±$5,000 — markets grind higher",
       "base_probability": 40,
-      "bear": "The conflict escalates, leading to a significant downturn in the markets, negatively impacting the portfolio's leveraged positions.",
+      "bear": "The conflict escalates, leading to a significant increase in oil prices and market volatility, negatively impacting the portfolio.",
       "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
       "bear_probability": 30
     },
@@ -21,32 +21,32 @@
       "category": "monetary-policy",
       "impact": "MED",
       "confidence": 70,
-      "body": "The Federal Reserve's monetary policy decisions will significantly influence the markets, particularly in the short term. The portfolio's leveraged ETFs are sensitive to interest rate changes.",
+      "body": "The Federal Reserve's monetary policy decisions have a significant impact on the portfolio's performance, particularly with regards to interest rates and inflation.",
       "bull": "A dovish Fed policy could lead to increased market liquidity, benefiting the portfolio's growth-oriented holdings.",
-      "bull_estimate": "+$15,000-$25,000 via FNGU/SPXL 3x leverage",
+      "bull_estimate": "+$15,000-$25,000 via NVDA and other growth stocks",
       "bull_probability": 40,
-      "base": "The Fed maintains a neutral stance, and the markets remain stable.",
-      "base_estimate": "±$2,000 — minimal net change",
+      "base": "The Fed maintains its current policy stance, with minimal impact on the portfolio.",
+      "base_estimate": "±$3,000 — markets remain stable",
       "base_probability": 30,
-      "bear": "A hawkish Fed policy could lead to decreased market liquidity, negatively impacting the portfolio's growth-oriented holdings.",
-      "bear_estimate": "-$20,000-$30,000 via 3x ETF amplification",
+      "bear": "A hawkish Fed policy could lead to decreased market liquidity, negatively impacting the portfolio.",
+      "bear_estimate": "-$20,000-$30,000 via decreased growth stock performance",
       "bear_probability": 30
     },
     {
       "title": "Inflation Concerns",
       "category": "inflation",
-      "impact": "LOW",
+      "impact": "MED",
       "confidence": 60,
-      "body": "Inflation concerns are relatively low, but any unexpected increase in inflation could impact the portfolio's bond holdings and overall asset allocation.",
-      "bull": "Low inflation could lead to increased demand for growth-oriented assets, benefiting the portfolio's tech holdings.",
-      "bull_estimate": "+$10,000-$15,000 via NVDA/TSM/AAPL",
-      "bull_probability": 50,
-      "base": "Inflation remains stable, and the portfolio's holdings are unaffected.",
-      "base_estimate": "±$1,000 — minimal net change",
-      "base_probability": 30,
-      "bear": "High inflation could lead to decreased demand for growth-oriented assets, negatively impacting the portfolio's tech holdings.",
-      "bear_estimate": "-$15,000-$20,000 via NVDA/TSM/AAPL",
-      "bear_probability": 20
+      "body": "Inflation concerns have the potential to impact the portfolio's performance, particularly with regards to the value of the US dollar and commodity prices.",
+      "bull": "A decrease in inflation concerns could lead to increased market confidence, benefiting the portfolio's growth-oriented holdings.",
+      "bull_estimate": "+$10,000-$20,000 via NVDA and other growth stocks",
+      "bull_probability": 35,
+      "base": "Inflation concerns remain stable, with minimal impact on the portfolio.",
+      "base_estimate": "±$2,000 — markets remain stable",
+      "base_probability": 40,
+      "bear": "An increase in inflation concerns could lead to decreased market confidence, negatively impacting the portfolio.",
+      "bear_estimate": "-$15,000-$25,000 via decreased growth stock performance",
+      "bear_probability": 25
     }
   ],
   "risks": [
@@ -54,121 +54,128 @@
       "title": "Leverage Risk",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's leveraged ETFs (FNGU/SPXL/UDOW) amplify market movements, increasing potential gains but also potential losses."
+      "body": "The portfolio's high leverage exposure increases its potential for significant gains, but also amplifies potential losses. This risk is particularly relevant given the current market volatility."
     },
     {
       "title": "FX Risk",
       "level": "MED",
-      "context": "68% USD exposure ~ $190K CAD",
-      "body": "The portfolio's significant USD exposure poses a risk due to potential CAD/USD exchange rate fluctuations."
+      "context": "68% USD exposure",
+      "body": "The portfolio's significant USD exposure increases its sensitivity to currency fluctuations, which could impact its performance."
     },
     {
       "title": "Concentration Risk",
       "level": "MED",
       "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's concentration in a few holdings (NVDA, FNGU, SPXL, TSM, AAPL) increases the risk of significant losses if any of these holdings experience a downturn."
+      "body": "The portfolio's concentration in a few key holdings increases its vulnerability to significant losses if any of these holdings experience a downturn."
     }
   ],
   "news": [
     {
-      "headline": "Iran Strikes on CIA Facilities",
+      "headline": "US-Iran Tensions Escalate",
       "impact": "HIGH",
-      "confidence": 80,
+      "confidence": 85,
       "category": "Sector & Stock",
-      "body": "The recent Iran strikes on CIA facilities could lead to increased tensions between the US and Iran, potentially impacting the portfolio's holdings.",
+      "body": "The escalation of US-Iran tensions has led to increased oil prices and market volatility, which could impact the portfolio's energy holdings and overall performance.",
       "exposure": "FNGU ~$87K CAD (3x leverage), SPXL ~$22K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 30,
-          "scenario": "A potential ceasefire or de-escalation could lead to a relief rally in the markets, benefiting the portfolio's leveraged ETFs.",
+          "probability": 25,
+          "scenario": "A ceasefire or de-escalation leads to a relief rally in the markets, benefiting the portfolio's leveraged ETFs.",
           "estimate": "+$12,000-$18,000 on leveraged positions"
         },
         {
           "label": "Base",
-          "probability": 40,
-          "scenario": "The conflict continues with minimal impact on global markets, and the portfolio's holdings remain stable.",
+          "probability": 50,
+          "scenario": "The conflict continues at its current pace, with minimal impact on the portfolio.",
           "estimate": "±$3,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "The conflict escalates, leading to a significant downturn in the markets, negatively impacting the portfolio's leveraged positions.",
+          "probability": 25,
+          "scenario": "The conflict escalates, leading to a significant increase in oil prices and market volatility, negatively impacting the portfolio.",
           "estimate": "-$20,000-$30,000 via 3x leverage amplification"
         }
       ]
     },
     {
-      "headline": "TSMC Q2 Earnings",
+      "headline": "NVIDIA Earnings Beat Estimates",
       "impact": "MED",
-      "confidence": 70,
+      "confidence": 80,
       "category": "Sector & Stock",
-      "body": "TSMC's Q2 earnings report could provide insight into the company's performance and the overall semiconductor industry.",
-      "exposure": "TSM ~$10K CAD",
+      "body": "NVIDIA's earnings beat has led to increased investor confidence in the stock, which could positively impact the portfolio's performance.",
+      "exposure": "NVDA ~$20K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "A strong earnings report could lead to increased demand for TSMC's stock, benefiting the portfolio.",
-          "estimate": "+$2,000-$3,000 on TSM position"
+          "scenario": "NVIDIA's strong earnings lead to increased investor confidence, driving the stock price higher.",
+          "estimate": "+$5,000-$10,000 on NVDA position"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "The earnings report is neutral, and the portfolio's holdings remain stable.",
+          "scenario": "NVIDIA's earnings have a minimal impact on the portfolio.",
           "estimate": "±$1,000 — minimal net change"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "A weak earnings report could lead to decreased demand for TSMC's stock, negatively impacting the portfolio.",
-          "estimate": "-$3,000-$4,000 on TSM position"
+          "scenario": "NVIDIA's earnings are not sustainable, leading to a decrease in investor confidence and a decline in the stock price.",
+          "estimate": "-$5,000-$10,000 on NVDA position"
         }
       ]
     },
     {
-      "headline": "Amazon Cuts Jobs in AI Unit",
+      "headline": "Tesla Holds Bitcoin Stockpile",
       "impact": "LOW",
       "confidence": 60,
       "category": "Sector & Stock",
-      "body": "Amazon's decision to cut jobs in its AI unit could indicate a shift in the company's strategy or a response to market conditions.",
-      "exposure": "None",
+      "body": "Tesla's decision to hold its Bitcoin stockpile has minimal impact on the portfolio's performance.",
+      "exposure": "TSLA ~$10K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 20,
-          "scenario": "The job cuts could lead to increased efficiency and cost savings for Amazon, potentially benefiting the company's stock.",
-          "estimate": "+$1,000-$2,000 on potential Amazon position"
+          "scenario": "Tesla's Bitcoin holdings lead to increased investor confidence, driving the stock price higher.",
+          "estimate": "+$2,000-$5,000 on TSLA position"
         },
         {
           "label": "Base",
-          "probability": 50,
-          "scenario": "The job cuts have minimal impact on the portfolio or the market.",
+          "probability": 60,
+          "scenario": "Tesla's Bitcoin holdings have a minimal impact on the portfolio.",
           "estimate": "±$500 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "The job cuts could indicate a larger issue with Amazon's AI unit or the company's overall strategy, potentially negatively impacting the portfolio.",
-          "estimate": "-$2,000-$3,000 on potential Amazon position"
+          "probability": 20,
+          "scenario": "Tesla's Bitcoin holdings lead to decreased investor confidence, driving the stock price lower.",
+          "estimate": "-$2,000-$5,000 on TSLA position"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "SHEL",
+      "ticker": "AMZN",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Shell's potential deal with Egypt for a multi-year LNG contract could provide a stable source of revenue and growth for the company.",
-      "entry": "Monitor for entry between $20-$25"
+      "thesis": "Amazon's strong earnings and growing cloud business make it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $180-$200"
     },
     {
-      "ticker": "BABA",
+      "ticker": "BMO.TO",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Alibaba's potential growth in the e-commerce and cloud computing sectors could make it an attractive addition to the portfolio.",
-      "entry": "Wait for a potential pullback to $100-$120"
+      "thesis": "Bank of Montreal's stable earnings and dividend yield make it a potential addition to the portfolio.",
+      "entry": "Monitor for entry on a pullback to $100-$110"
+    },
+    {
+      "ticker": "ENB.TO",
+      "action": "NEW",
+      "account": "RRSP",
+      "thesis": "Enbridge's stable earnings and dividend yield make it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $50-$60"
     }
   ],
   "strengths": [
@@ -178,92 +185,109 @@
     },
     {
       "ticker": "NVDA",
-      "text": "Strong growth potential in the tech sector"
+      "text": "Strong earnings growth and increasing market share"
     },
     {
-      "ticker": "TSM",
-      "text": "Leader in the semiconductor industry with a strong track record of innovation"
+      "ticker": "TSLA",
+      "text": "Innovative products and growing market share"
     },
     {
-      "ticker": "AAPL",
-      "text": "Stable and consistent performer in the tech sector"
+      "ticker": "MSFT",
+      "text": "Stable earnings and growing cloud business"
     },
     {
-      "ticker": "FNGU",
-      "text": "Leveraged ETF providing exposure to the growth-oriented Nasdaq index"
+      "ticker": null,
+      "text": "Tax-efficient investment strategy using RRSP and TFSA accounts"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "High leverage in the portfolio increases potential risks"
+      "text": "High leverage exposure increases potential for significant losses"
     },
     {
       "ticker": "FNGU",
-      "text": "Concentration in a single leveraged ETF increases potential risks"
+      "text": "Concentration in a few key holdings increases vulnerability to downturns"
     },
     {
-      "ticker": "TSM",
-      "text": "Dependence on the semiconductor industry's performance"
-    },
-    {
-      "ticker": "AAPL",
-      "text": "Potential risks from increased competition in the tech sector"
+      "ticker": "TSLA",
+      "text": "Volatility in the stock price due to market sentiment and competition"
     },
     {
       "ticker": "NVDA",
-      "text": "Potential risks from increased competition in the AI and gaming sectors"
+      "text": "Dependence on a few key products and markets"
+    },
+    {
+      "ticker": null,
+      "text": "FX risk due to significant USD exposure"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the US-Iran conflict and its potential impact on the portfolio's holdings"
+      "text": "Monitor US-Iran tensions and adjust portfolio accordingly"
     },
     {
       "num": "02",
-      "text": "Adjust the portfolio's leverage and risk exposure as needed in response to market conditions"
+      "text": "Consider adding to NVIDIA position on a pullback"
     },
     {
       "num": "03",
-      "text": "Consider adding a hedge or diversification strategy to mitigate potential risks"
+      "text": "Review and adjust FX hedging strategy as needed"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to monitor the portfolio's sector and geographic diversification"
+      "text": "Continue to diversify portfolio with a mix of growth and income-oriented holdings"
     },
     {
       "num": "02",
-      "text": "Consider adding new holdings or sectors to the portfolio to maintain diversification and growth potential"
+      "text": "Monitor and adjust sector allocations as needed"
     },
     {
       "num": "03",
-      "text": "Review and adjust the portfolio's asset allocation as needed to maintain an optimal risk-return profile"
+      "text": "Consider adding to Enbridge position on a pullback"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Maintain a long-term perspective and focus on the portfolio's overall growth and income objectives"
+      "text": "Maintain a long-term perspective and avoid making emotional decisions based on short-term market fluctuations"
     },
     {
       "num": "02",
-      "text": "Consider tax-efficient strategies to minimize tax liabilities and maximize after-tax returns"
+      "text": "Continue to invest in a tax-efficient manner using RRSP and TFSA accounts"
     },
     {
       "num": "03",
-      "text": "Review and adjust the portfolio's estate planning and wealth transfer strategies as needed"
+      "text": "Review and adjust portfolio strategy as needed to ensure alignment with investment goals and risk tolerance"
     }
   ],
-  "daily_outlook": "The portfolio's outlook remains cautiously optimistic, with a focus on monitoring the US-Iran conflict and its potential impact on the portfolio's holdings. The portfolio's diversification and growth-oriented holdings are expected to provide a stable foundation for long-term growth.",
+  "daily_outlook": "The portfolio's performance is expected to be influenced by the ongoing US-Iran tensions and the upcoming earnings season. Investors should monitor the situation closely and adjust their strategy accordingly.",
   "market_mood": "risk-off",
-  "generated_at": "2026-07-22T20:00:54.496248+00:00",
-  "generated_date": "July 22, 2026",
+  "generated_at": "2026-07-23T06:01:00.753063+00:00",
+  "generated_date": "July 23, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": [],
   "theme_history": [
+    {
+      "date": "2026-07-23",
+      "themes": [
+        {
+          "category": "geopolitical",
+          "title": "US-Iran Escalation"
+        },
+        {
+          "category": "monetary-policy",
+          "title": "Fed Policy"
+        },
+        {
+          "category": "inflation",
+          "title": "Inflation Concerns"
+        }
+      ]
+    },
     {
       "date": "2026-07-22",
       "themes": [

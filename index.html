@@ -2597,9 +2597,16 @@ function _applyTodayToCharts(totalValue, roiPct, dailyChange, snapAccts) {
   // account view:   ds 0=Account MV, 1=Contributions  (no per-account datasets present)
   const MV_DS = { TFSA: 2, Investment: 3, FHSA: 4, RRSP: 5 };
 
+  // Live contribution total for current filter — always reflects CONTRIB_STATE, never stale
+  const _liveContrib = _fAcct
+    ? Math.round(CONTRIB_STATE[_fAcct] || 0)
+    : Math.round(CONTRIB_TOTAL());
+
   if (mvIdx >= 0) {
     mvLabels[mvIdx] = today;
     portfolioValueChart.data.datasets[0].data[mvIdx] = _mvForDs0;
+    if (portfolioValueChart.data.datasets[1])
+      portfolioValueChart.data.datasets[1].data[mvIdx] = _liveContrib;
     if (!_fAcct) { // per-account datasets only exist in 'all' view
       Object.entries(MV_DS).forEach(([acct, dsIdx]) => {
         if (portfolioValueChart.data.datasets[dsIdx])
@@ -2609,8 +2616,7 @@ function _applyTodayToCharts(totalValue, roiPct, dailyChange, snapAccts) {
   } else {
     mvLabels.push(today);
     portfolioValueChart.data.datasets[0].data.push(_mvForDs0);
-    const lastC = portfolioValueChart.data.datasets[1]?.data?.slice(-1)[0] || 0;
-    if (portfolioValueChart.data.datasets[1]) portfolioValueChart.data.datasets[1].data.push(lastC);
+    if (portfolioValueChart.data.datasets[1]) portfolioValueChart.data.datasets[1].data.push(_liveContrib);
     if (!_fAcct) { // per-account datasets only exist in 'all' view
       Object.entries(MV_DS).forEach(([acct, dsIdx]) => {
         if (portfolioValueChart.data.datasets[dsIdx])

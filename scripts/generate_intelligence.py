@@ -476,6 +476,16 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
         if n_removed:
             print(f"  ✓ Filtered {n_removed} headlines matching banned categories: {banned_cats}")
 
+    # Restrict schema category enum to non-banned categories so model can't pick them
+    _schema = OUTPUT_SCHEMA
+    if banned_cats:
+        allowed_cats = [c for c in THEME_CATEGORIES if c not in banned_cats]
+        _schema = _schema.replace(
+            "geopolitical|monetary-policy|inflation|fx|commodities|credit|equity-sectors|corporate|macro-economic|regulatory",
+            "|".join(allowed_cats)
+        )
+        print(f"  ✓ Schema restricted to categories: {allowed_cats}")
+
     return f"""You are a portfolio intelligence analyst generating a daily briefing for a personal Canadian investment portfolio.
 
 TODAY'S DATE: {today}
@@ -524,7 +534,7 @@ SECTION DISTINCTIVENESS — each section must cover UNIQUE ground, zero repetiti
 - strategy_long:  Actions for 2–10+ years ONLY. Horizon-appropriate, not a repeat of short/mid.
 - tax:        CRA/account-mechanics notes ONLY. Not strategy already in strategy sections.
 
-{OUTPUT_SCHEMA}"""
+{_schema}"""
 
 
 # ============================================================

@@ -385,31 +385,65 @@ def _load_risk_history(path: str = "data/intelligence.json") -> list[str]:
         return []
 
 
-def _build_theme_context(theme_history: list[dict], risk_history: list[str]) -> str:
-    """Build the deduplication block for both macro themes and risk factors."""
+def _load_macro_history(path: str = "data/intelligence.json") -> list[dict]:
+    """Load the rolling 15-article full macro history stored in intelligence.json."""
+    try:
+        import pathlib
+        p = pathlib.Path(path)
+        if not p.exists():
+            return []
+        return json.loads(p.read_text()).get("macro_history", [])
+    except Exception:
+        return []
+
+
+def _build_theme_context(theme_history: list[dict], risk_history: list[str],
+                         macro_history: list[dict] = None) -> str:
+    """Build the deduplication block for macro themes, full article history, and risk factors."""
     lines = []
 
-    if theme_history:
+    if macro_history:
+        lines.append("MACRO ARTICLES ALREADY PUBLISHED (last 15) — read every article before writing.")
+        lines.append("Do NOT repeat the topic, angle, conclusion, or specific data point from any article below.")
+        lines.append("A different title is NOT enough — the body content must cover genuinely new ground.")
+        lines.append("")
+        for m in macro_history:
+            date = m.get("date", "?")
+            cat  = m.get("category", "?")
+            title = m.get("title", "")
+            body  = m.get("body", "")
+            bull  = m.get("bull", "")
+            base  = m.get("base", "")
+            bear  = m.get("bear", "")
+            lines.append(f"[{date} | {cat}] {title}")
+            if body:
+                lines.append(f"  Body: {body}")
+            if bull or base or bear:
+                lines.append(f"  Bull: {bull} | Base: {base} | Bear: {bear}")
+            lines.append("")
+    elif theme_history:
+        # Fallback to title-only history if full articles not yet populated
         lines.append("MACRO THEME HISTORY — last 5 days (most recent first):")
         for entry in theme_history[:5]:
             date   = entry.get("date", "?")
             themes = entry.get("themes", [])
             for t in themes:
                 lines.append(f"  [{date}] {t.get('category','?')}: {t.get('title','')}")
+
+    if macro_history or theme_history:
         lines += [
-            "",
             "MACRO DEDUPLICATION RULES (apply to all 3 macro slots):",
-            "  • Do NOT use a category listed above as a primary macro theme today UNLESS",
-            "    there is a MATERIAL NEW EVENT — a ceasefire, rate decision, fresh data release,",
-            "    military strike, or new legislation. Ongoing commentary does NOT qualify.",
-            "  • If you revisit a recent category, your title MUST name the specific new event.",
-            "  • Categories last seen 4+ days ago may be revisited if the angle is different.",
+            "  • Do NOT use a category or topic covered in the articles above UNLESS there is a",
+            "    MATERIAL NEW EVENT — a ceasefire, rate decision, fresh data release, military",
+            "    strike, or new legislation. Ongoing commentary does NOT qualify.",
+            "  • If you revisit a recent category, your body MUST address the specific new event",
+            "    and explain how it differs from what was already published above.",
             f"  • Valid categories: {', '.join(THEME_CATEGORIES)}",
+            "",
         ]
 
     if risk_history:
         lines += [
-            "",
             f"RISK TITLES USED RECENTLY (last 5 days) — do NOT reuse these exact titles:",
             *[f"  • {r}" for r in risk_history],
             "  → Pick 3 DIFFERENT risk angles relevant to today's conditions.",
@@ -466,7 +500,8 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
     today        = datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
     theme_history = _load_theme_history()
     risk_history  = _load_risk_history()
-    theme_ctx     = _build_theme_context(theme_history, risk_history)
+    macro_history = _load_macro_history()
+    theme_ctx     = _build_theme_context(theme_history, risk_history, macro_history)
     prev_section  = f"\n{theme_ctx}\n" if theme_ctx else ""
 
     # Filter general news headlines that match banned categories
@@ -696,7 +731,7 @@ def main() -> int:
         _save_picks_history(new_pick_tickers, picks_history)
         print(f"  ✓ Saved pick history: {new_pick_tickers}")
 
-    # Build rolling 7-day theme history and attach before saving
+    # Build rolling 7-day theme history (title+category, used for schema banning)
     today_str    = now_utc.strftime("%Y-%m-%d")
     today_themes = [
         {"category": m.get("category", "macro-economic"), "title": m.get("title", "")}
@@ -706,6 +741,25 @@ def main() -> int:
     history = [{"date": today_str, "themes": today_themes}] + history
     intelligence["theme_history"] = history[:7]
     print(f"  ✓ Theme history updated ({len(intelligence['theme_history'])} days)")
+
+    # Build rolling 15-article full macro history (full body text for content-level dedup)
+    new_macro_articles = [
+        {
+            "date":     today_str,
+            "category": m.get("category", "macro-economic"),
+            "title":    m.get("title", ""),
+            "body":     m.get("body", ""),
+            "bull":     m.get("bull", ""),
+            "base":     m.get("base", ""),
+            "bear":     m.get("bear", ""),
+        }
+        for m in intelligence.get("macro", [])
+    ]
+    existing_macro_hist = _load_macro_history()
+    # Remove any articles from today (in case of a re-run), then prepend fresh ones
+    existing_macro_hist = [a for a in existing_macro_hist if a.get("date") != today_str]
+    intelligence["macro_history"] = (new_macro_articles + existing_macro_hist)[:15]
+    print(f"  ✓ Macro history updated ({len(intelligence['macro_history'])} articles)")
 
     # Build rolling 5-day risk title history and attach before saving
     today_risk_titles = [r.get("title", "") for r in intelligence.get("risks", []) if r.get("title")]

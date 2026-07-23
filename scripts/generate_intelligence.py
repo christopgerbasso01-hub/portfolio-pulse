@@ -390,8 +390,8 @@ def _build_theme_context(theme_history: list[dict], risk_history: list[str]) -> 
     lines = []
 
     if theme_history:
-        lines.append("MACRO THEME HISTORY — last 7 days (most recent first):")
-        for entry in theme_history[:7]:
+        lines.append("MACRO THEME HISTORY — last 5 days (most recent first):")
+        for entry in theme_history[:5]:
             date   = entry.get("date", "?")
             themes = entry.get("themes", [])
             for t in themes:
@@ -423,7 +423,7 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
                  discovery_news: list[dict] = None,
                  movers: dict = None) -> str:
     general_block = (
-        "\n".join(f"• {a['headline']}" for a in general_news[:22])
+        "\n".join(f"• {a['headline']}" for a in general_news[:15])
         or "(no general news fetched)"
     )
 
@@ -431,7 +431,7 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
     for ticker, articles in company_news.items():
         if articles:
             company_block += f"\n{ticker}:\n"
-            for a in articles[:3]:
+            for a in articles[:2]:
                 company_block += f"  • {a['headline']}\n"
     if not company_block:
         company_block = "(no company-specific news fetched)"
@@ -451,17 +451,17 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
     discovery_block = ""
     if fresh_news:
         discovery_block = "\nMARKET DISCOVERY NEWS (use these to find picks BEYOND held positions):\n"
-        discovery_block += "\n".join(f"  • {n['symbol']}: {n['headline']}" for n in fresh_news[:20])
+        discovery_block += "\n".join(f"  • {n['symbol']}: {n['headline']}" for n in fresh_news[:10])
 
     # Market movers
     movers_block = ""
     if movers:
         if movers.get("gainers"):
             movers_block += "\nTODAY'S TOP GAINERS (potential momentum plays):\n"
-            movers_block += "\n".join(f"  • {m['symbol']} ({m['name']}) {m['pct']}" for m in movers["gainers"][:6])
+            movers_block += "\n".join(f"  • {m['symbol']} ({m['name']}) {m['pct']}" for m in movers["gainers"][:4])
         if movers.get("losers"):
             movers_block += "\nTODAY'S TOP LOSERS (potential value/harvest candidates):\n"
-            movers_block += "\n".join(f"  • {m['symbol']} ({m['name']}) {m['pct']}" for m in movers["losers"][:4])
+            movers_block += "\n".join(f"  • {m['symbol']} ({m['name']}) {m['pct']}" for m in movers["losers"][:3])
 
     today        = datetime.now(timezone.utc).strftime("%A, %B %d, %Y")
     theme_history = _load_theme_history()
@@ -559,6 +559,11 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 print(f"  ⏳ Rate limited on {model} attempt {attempt+1}/4 — waiting {wait}s")
                 time.sleep(wait)
                 continue
+
+            if resp.status_code == 413:
+                print(f"  ⚠ 413 Payload Too Large on {model} — prompt is {len(prompt):,} chars. "
+                      f"Skipping to next model.")
+                break   # try smaller model
 
             resp.raise_for_status()
             text = resp.json()["choices"][0]["message"]["content"].strip()

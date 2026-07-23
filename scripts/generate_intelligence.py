@@ -756,8 +756,11 @@ def main() -> int:
         for m in intelligence.get("macro", [])
     ]
     existing_macro_hist = _load_macro_history()
-    # Remove any articles from today (in case of a re-run), then prepend fresh ones
-    existing_macro_hist = [a for a in existing_macro_hist if a.get("date") != today_str]
+    # Deduplicate by title only — drop any stored article whose title matches a new one
+    # (handles exact re-runs), but keep all other same-day articles so multiple daily
+    # runs accumulate rather than overwrite each other
+    new_titles = {a.get("title", "") for a in new_macro_articles}
+    existing_macro_hist = [a for a in existing_macro_hist if a.get("title", "") not in new_titles]
     intelligence["macro_history"] = (new_macro_articles + existing_macro_hist)[:15]
     print(f"  ✓ Macro history updated ({len(intelligence['macro_history'])} articles)")
 

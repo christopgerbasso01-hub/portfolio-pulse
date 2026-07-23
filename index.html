@@ -1431,8 +1431,8 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       </div>
       <div style="margin-top:8px;font-size:11px;color:var(--green)" id="bmAlphaLine">✓ Portfolio ALPHA over S&amp;P 500: +64.3 percentage points</div>
       <div style="margin-top:10px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:6px;padding:8px 12px;font-size:10px;color:var(--text3);line-height:1.6" id="bmMethodology">
-        <b style="color:var(--text2)">How benchmarks are calculated:</b> Each index assumes your exact same dollar contributions ($162,632 total) were deposited into the index on the same dates as your portfolio — this is <em>contribution-weighted</em> benchmarking, not simple point-to-point returns.
-        <br><b style="color:var(--text2)">Example (S&P 500):</b> $162,632 contributed since Aug 2021, weighted by deposit timing → <span id="bmSP500ExampleVal" style="color:var(--blue-bright);font-family:var(--mono)">$191,800</span> if invested in SPY. Live daily index moves are applied on each refresh. Your portfolio's actual value vs this benchmark = your alpha.
+        <b style="color:var(--text2)">How benchmarks are calculated:</b> Each index assumes your exact same dollar contributions (<span id="benchmarkContribDesc">$169,632 total</span>) were deposited into the index on the same dates as your portfolio — this is <em>contribution-weighted</em> benchmarking, not simple point-to-point returns.
+        <br><b style="color:var(--text2)">Example (S&P 500):</b> <span id="benchmarkContribDescEx">$169,632</span> contributed since Aug 2021, weighted by deposit timing → <span id="bmSP500ExampleVal" style="color:var(--blue-bright);font-family:var(--mono)">$191,800</span> if invested in SPY. Live daily index moves are applied on each refresh. Your portfolio's actual value vs this benchmark = your alpha.
       </div>
     </div>
     <!-- Right: contributions chart -->
@@ -2152,6 +2152,10 @@ let CASH_POSITIONS          = deepCopy(_CASH_BASE);
 let CLOSED_POSITIONS_STATIC = deepCopy(_CLOSED_BASE);
 let CONTRIB_STATE           = { ..._CONTRIB_BASE };
 const CONTRIB_TOTAL         = () => Object.values(CONTRIB_STATE).reduce((a, b) => a + b, 0);
+// Benchmark tranches: one entry per CONTRIBUTION tx with index prices at deposit time.
+// Persisted in localStorage and synced to KV so snapshot.py can compute true
+// contribution-weighted benchmark values (amount/entry_price * today_price per index).
+let BENCHMARK_TRANCHES = JSON.parse(localStorage.getItem('bm_tranches_v1') || '[]');
 
 // Cache of last API response — used to re-render after a transaction is logged
 // IMPORTANT: var (not let/const) so it becomes a window property and is
@@ -4099,10 +4103,14 @@ async function mergeKvChartData() {
 
       // ── Portfolio Value chart ─────────────────────────────────
       if (!existingMvLabels.has(pt.date)) {
+        const acctCost = pt.account_cost || {};
+        const snapshotContrib = Object.values(acctCost).reduce((a, b) => a + b, 0);
         let idx = portfolioValueChart.data.labels.indexOf(monthKey);
         if (idx >= 0 && pt.total_value) {
           // Replace monthly placeholder with actual daily value
           portfolioValueChart.data.datasets[0].data[idx] = pt.total_value;
+          // Update contribution line with actual contributions at this date if known
+          if (snapshotContrib > 0) portfolioValueChart.data.datasets[1].data[idx] = snapshotContrib;
           const accts = pt.accounts || {};
           if (accts.TFSA)       _ensureDS(portfolioValueChart, MV_DS.TFSA,       '#10b981', 'TFSA')[idx]       = accts.TFSA;
           if (accts.Investment) _ensureDS(portfolioValueChart, MV_DS.Investment,  '#94a3b8', 'Non-Reg')[idx]    = accts.Investment;
@@ -4112,8 +4120,9 @@ async function mergeKvChartData() {
         } else if (!existingMvLabels.has(monthKey) && pt.total_value) {
           portfolioValueChart.data.labels.push(pt.date);
           portfolioValueChart.data.datasets[0].data.push(pt.total_value);
+          // Use actual contribution total from snapshot; fall back to forward-fill
           const lastC = portfolioValueChart.data.datasets[1].data.slice(-1)[0] || 0;
-          portfolioValueChart.data.datasets[1].data.push(lastC);
+          portfolioValueChart.data.datasets[1].data.push(snapshotContrib || lastC);
           const accts = pt.accounts || {};
           [['TFSA','#10b981','TFSA'], ['Investment','#94a3b8','Non-Reg'], ['FHSA','#a78bfa','FHSA'], ['RRSP','#fbbf24','RRSP']].forEach(([k,c,l]) => {
             _ensureDS(portfolioValueChart, MV_DS[k], c, l).push(accts[k] || null);
@@ -4161,6 +4170,53 @@ function _ensureDS(chart, idx, color, label) {
 function _dsPush(chart, idx, val) {
   const ds = chart.data.datasets[idx];
   if (ds) ds.data[ds.data.length - 1] = val;
+}
+
+// Inject the live CONTRIB_STATE totals into all contribution chart arrays and
+// any visible chart datasets. Called after applyAllTransactions() so CONTRIB_STATE
+// is current. Mutates the static cAllTime/cInv/etc arrays so setChartFilter also
+// picks up the live value without needing an extra call.
+function _applyLiveContribToCharts() {
+  const curMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+  function _upsert(arr, val) {
+    if (!arr.length) { arr.push({ x: curMonth, y: val }); return; }
+    const last = arr[arr.length - 1];
+    if (last.x === curMonth) last.y = val;
+    else if (last.x < curMonth) arr.push({ x: curMonth, y: val });
+  }
+  // Mutate raw arrays (used by contribChart + setChartFilter contribution line)
+  _upsert(cAllTime, Math.round(CONTRIB_TOTAL()));
+  _upsert(cInv,     Math.round(CONTRIB_STATE.Investment || 0));
+  _upsert(cTFSA,    Math.round(CONTRIB_STATE.TFSA       || 0));
+  _upsert(cFHSA,    Math.round(CONTRIB_STATE.FHSA       || 0));
+  _upsert(cRRSP,    Math.round(CONTRIB_STATE.RRSP       || 0));
+  // Also mutate interpolated arrays used by per-account portfolio value chart paths
+  if (typeof cAllTimed !== 'undefined') _upsert(cAllTimed, Math.round(CONTRIB_TOTAL()));
+  if (typeof cInvd     !== 'undefined') _upsert(cInvd,     Math.round(CONTRIB_STATE.Investment || 0));
+  if (typeof cTFSAd    !== 'undefined') _upsert(cTFSAd,    Math.round(CONTRIB_STATE.TFSA       || 0));
+  if (typeof cFHSAd    !== 'undefined') _upsert(cFHSAd,    Math.round(CONTRIB_STATE.FHSA       || 0));
+  if (typeof cRRSPd    !== 'undefined') _upsert(cRRSPd,    Math.round(CONTRIB_STATE.RRSP       || 0));
+
+  // Re-render standalone contribution chart
+  if (typeof contribChart !== 'undefined' && contribChart) {
+    contribChart.data.labels           = cAllTime.map(p => p.x);
+    contribChart.data.datasets[0].data = cAllTime.map(p => p.y);
+    contribChart.update('none');
+  }
+  // Update dashed contribution line tail on portfolio value chart
+  if (typeof portfolioValueChart !== 'undefined' && portfolioValueChart) {
+    const ds1 = portfolioValueChart.data.datasets[1];
+    if (ds1 && ds1.data.length > 0) {
+      ds1.data[ds1.data.length - 1] = Math.round(CONTRIB_TOTAL());
+      portfolioValueChart.update('none');
+    }
+  }
+  // Keep benchmark methodology text in sync with live total
+  const _ct = Math.round(CONTRIB_TOTAL());
+  const bmDesc = document.getElementById('benchmarkContribDesc');
+  if (bmDesc) bmDesc.textContent = `$${_ct.toLocaleString()} total`;
+  const bmDescEx = document.getElementById('benchmarkContribDescEx');
+  if (bmDescEx) bmDescEx.textContent = `$${_ct.toLocaleString()}`;
 }
 
 function initCharts() {
@@ -5679,6 +5735,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderHoldingsTable(null);
   updateRowCount();
   initCharts();
+  _applyLiveContribToCharts();  // inject live CONTRIB_STATE into contribution chart arrays
   mergeKvChartData();   // append recent daily snapshots from KV
   initContribRoom();
 
@@ -6921,6 +6978,7 @@ function _saveComputedHoldings() {
           computed_holdings:   compact,
           cash_positions:      cashCompact,
           contributions_cad:   { ...CONTRIB_STATE },
+          benchmark_tranches:  BENCHMARK_TRANCHES,
           realized_gains_cad:  Math.round(_realizedGains),
           usd_book_rate:       USD_BOOK_RATE,
           holdings_updated_at: new Date().toISOString(),
@@ -6960,6 +7018,11 @@ async function syncTransactionsFromKV() {
       applyAllTransactions();
       await refreshAfterTx();
       renderTxHistory();
+    }
+    // Bootstrap benchmark tranches from KV when localStorage has none (e.g. new device)
+    if (Array.isArray(s.benchmark_tranches) && s.benchmark_tranches.length > 0 && BENCHMARK_TRANCHES.length === 0) {
+      BENCHMARK_TRANCHES = s.benchmark_tranches;
+      localStorage.setItem('bm_tranches_v1', JSON.stringify(BENCHMARK_TRANCHES));
     }
   } catch {}
 }
@@ -7180,6 +7243,7 @@ async function refreshAfterTx() {
   if (el) el.textContent = fmt$(CONTRIB_TOTAL());
   // Keep KV holdings in sync — podcast generator reads this on every Monday run
   _saveComputedHoldings();
+  _applyLiveContribToCharts();
 }
 
 // ── Modal UI ─────────────────────────────────────────────────
@@ -7466,6 +7530,18 @@ async function submitTx() {
   }
 
   saveTransaction(tx);
+  if (_txType === 'CONTRIBUTION') {
+    const _bm = _lastLiveData?.benchmarks || {};
+    BENCHMARK_TRANCHES.push({
+      date:         new Date().toISOString().slice(0, 10),
+      amount:       tx.amount,
+      account:      tx.account,
+      sp500_price:  _bm.sp500?.price   || null,
+      tsx_price:    _bm.tsx?.price     || null,
+      nasdaq_price: _bm.nasdaq?.price  || null,
+    });
+    localStorage.setItem('bm_tranches_v1', JSON.stringify(BENCHMARK_TRANCHES));
+  }
   applyAllTransactions();
   await refreshAfterTx();
   renderTxHistory();

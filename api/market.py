@@ -73,7 +73,7 @@ _FALLBACK_HOLDINGS = [
 # Fallback constants — used only when KV is unavailable
 _FALLBACK_CONTRIBUTIONS_CAD = {
     "TFSA":       44500.0,
-    "Investment": 78000.0,
+    "Investment": 85000.0,
     "FHSA":       24000.0,
     "RRSP":       16132.0,
 }

@@ -41,7 +41,7 @@ SNAPSHOT_TTL = 95 * 86400   # 95 days (~3 months of daily history)
 # Update USD_BOOK_RATE only after a major rebalancing at a significantly different rate.
 CONTRIBUTIONS_CAD = {
     "TFSA":       44500.0,
-    "Investment": 78000.0,
+    "Investment": 85000.0,
     "FHSA":       24000.0,
     "RRSP":       16132.0,
 }
@@ -252,6 +252,7 @@ def take_snapshot() -> dict:
     # ── 3. Read dynamic portfolio constants from KV (set by dashboard on every load) ──
     # Fall back to module-level hardcoded constants only on the very first run
     # before the dashboard has populated KV.
+    tranches       = settings.get("benchmark_tranches") or []
     contributions  = settings.get("contributions_cad") or CONTRIBUTIONS_CAD
     realized_gains = settings.get("realized_gains_cad")
     if realized_gains is None:
@@ -322,7 +323,7 @@ def take_snapshot() -> dict:
 
     # ── 8. Compound today's benchmark returns into benchmark:state ────────────
     try:
-        bm_state = _update_benchmark_state(prices, today)
+        bm_state = _update_benchmark_state(prices, today, tranches)
         kv_set("benchmark:state", bm_state, ttl_seconds=2 * 365 * 86400)
         print(
             f"  [snapshot] benchmark_state: "
@@ -357,43 +358,68 @@ def get_recent_snapshots(days: int = 8) -> dict:
     return result
 
 
-def _update_benchmark_state(prices: dict, today: str) -> dict:
+def _update_benchmark_state(prices: dict, today: str, tranches: list = None) -> dict:
     """
     Compound today's EOD benchmark returns into the stored benchmark_state.
     Called once per day at market close via take_snapshot().
 
-    benchmark:state holds contribution-weighted values — i.e., what a passive
-    investor would have today if they had deployed the same contributions into
-    each index instead.  Values start from a seeded baseline and compound daily
-    via the EOD snapshot rather than being frozen constants.
+    benchmark:state holds true contribution-weighted values:
+      • *_base  — the compounding component (all contributions up to the first
+                  tranche date), grows daily via index % returns.
+      • *_val   — base + live tranche values = total benchmark market value.
+
+    Each tranche in `tranches` represents a dated contribution with the index
+    price at deposit time, so its current value = (amount / entry_price) * today_price.
     """
     try:
         current = kv_get("benchmark:state") or {}
     except Exception:
         current = {}
 
-    # First-time seed: contribution-weighted values at $162,632 total contributions
-    # (scaled from previous hardcoded values 191800/185400/196300 at $149,632).
-    # After this initial seed the values compound nightly and never need manual updates.
-    SEEDS = {
-        "sp500_val":   208478.0,
-        "tsx_val":     201435.0,
-        "nasdaq_val":  213384.0,
+    SEED_BASES = {
+        "sp500_base":  208478.0,
+        "tsx_base":    201435.0,
+        "nasdaq_base": 213384.0,
         "ref_contrib": 162632.0,
     }
 
-    state = dict(current) if current.get("ref_contrib") else dict(SEEDS)
+    # Bootstrap: use existing state if initialised; migrate old *_val-only states.
+    if current.get("ref_contrib"):
+        state = dict(current)
+        if "sp500_base" not in state:
+            state["sp500_base"]  = state.get("sp500_val",  SEED_BASES["sp500_base"])
+            state["tsx_base"]    = state.get("tsx_val",    SEED_BASES["tsx_base"])
+            state["nasdaq_base"] = state.get("nasdaq_val", SEED_BASES["nasdaq_base"])
+    else:
+        state = dict(SEED_BASES)
 
-    # YF ticker symbols used by market.py for each benchmark
-    BENCH_TICKERS = {"sp500": "^GSPC", "tsx": "^GSPTSE", "nasdaq": "^IXIC"}
-    VAL_KEYS      = {"sp500": "sp500_val", "tsx": "tsx_val", "nasdaq": "nasdaq_val"}
+    BENCH = {
+        "sp500":  ("^GSPC",   "sp500_price"),
+        "tsx":    ("^GSPTSE", "tsx_price"),
+        "nasdaq": ("^IXIC",   "nasdaq_price"),
+    }
 
-    for bench, ticker in BENCH_TICKERS.items():
-        key = VAL_KEYS[bench]
-        p   = prices.get(ticker)
+    for bench, (ticker, tranche_price_key) in BENCH.items():
+        base_key = f"{bench}_base"
+        val_key  = f"{bench}_val"
+        p        = prices.get(ticker)
+
+        # 1. Compound base daily by today's index % move
         if p and p.get("change_pct") is not None:
-            old_val = float(state.get(key) or SEEDS[key])
-            state[key] = round(old_val * (1 + p["change_pct"] / 100), 2)
+            old_base = float(state.get(base_key) or SEED_BASES[base_key])
+            state[base_key] = round(old_base * (1 + p["change_pct"] / 100), 2)
+
+        # 2. Compute live value of each dated contribution tranche
+        today_price = (p or {}).get("price")
+        tranche_val = 0.0
+        if today_price and tranches:
+            for t in tranches:
+                entry = t.get(tranche_price_key)
+                if entry and entry > 0:
+                    tranche_val += (t["amount"] / entry) * today_price
+
+        # 3. Total = compounded base + live tranche value
+        state[val_key] = round(state[base_key] + tranche_val, 2)
 
     state["last_updated"] = today
     return state
@@ -490,6 +516,7 @@ class handler(BaseHTTPRequestHandler):
                     "roi_pct":      snaps[d].get("roi_pct"),
                     "daily_change": snaps[d].get("daily_change"),
                     "accounts":     snaps[d].get("accounts", {}),
+                    "account_cost": snaps[d].get("account_cost", {}),
                 }
                 for d in sorted(snaps.keys())
             ]

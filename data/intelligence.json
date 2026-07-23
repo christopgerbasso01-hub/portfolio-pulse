@@ -1,265 +1,284 @@
 {
   "macro": [
     {
-      "title": "US-Iran Tensions",
-      "category": "geopolitical",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "The ongoing US-Iran tensions could lead to increased volatility in the markets, affecting the portfolio's leveraged positions. The situation is being closely monitored by investors, and any escalation could result in a market downturn.",
-      "bull": "A de-escalation of tensions could lead to a relief rally, benefiting the portfolio's leveraged positions.",
-      "bull_estimate": "+$25,000-$35,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 30,
-      "base": "The current situation is likely to continue, with minimal impact on the portfolio.",
-      "base_estimate": "±$5,000 — markets grind higher",
-      "base_probability": 40,
-      "bear": "An escalation of tensions could lead to a significant market downturn, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
-      "bear_probability": 30
-    },
-    {
-      "title": "Fed Policy",
-      "category": "monetary-policy",
+      "title": "Commodity Surge",
+      "category": "commodities",
       "impact": "MED",
       "confidence": 70,
-      "body": "The Federal Reserve's policy decisions will continue to influence the markets, with a potential rate hike in the near future. This could impact the portfolio's leveraged positions and overall performance.",
-      "bull": "A dovish stance by the Fed could lead to a market rally, benefiting the portfolio's leveraged positions.",
-      "bull_estimate": "+$15,000-$25,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 40,
-      "base": "The Fed is likely to maintain its current stance, with minimal impact on the portfolio.",
-      "base_estimate": "±$2,000 — markets remain stable",
-      "base_probability": 30,
-      "bear": "A hawkish stance by the Fed could lead to a market downturn, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$25,000-$40,000 via 3x ETF amplification",
+      "body": "The recent surge in oil prices due to geopolitical tensions may impact the global economy, potentially leading to higher inflation and affecting commodity-dependent sectors. This could have a medium impact on the portfolio, particularly on the energy sector. The surge in commodity prices may also lead to increased costs for companies, potentially affecting their profitability.",
+      "bull": "A continued surge in commodity prices could lead to increased revenues for energy companies, potentially benefiting the portfolio.",
+      "bull_estimate": "+$10,000-$15,000 via ENB.TO",
+      "bull_probability": 30,
+      "base": "A stabilization of commodity prices could lead to a neutral impact on the portfolio, with minimal changes in the energy sector.",
+      "base_estimate": "±$2,000 — minimal net change",
+      "base_probability": 40,
+      "bear": "A decline in commodity prices could lead to decreased revenues for energy companies, potentially negatively impacting the portfolio.",
+      "bear_estimate": "-$8,000-$12,000 via ENB.TO",
       "bear_probability": 30
     },
     {
-      "title": "Inflation Concerns",
-      "category": "inflation",
+      "title": "Regulatory Shifts",
+      "category": "regulatory",
       "impact": "LOW",
       "confidence": 60,
-      "body": "Inflation concerns are currently low, but any unexpected increase in inflation could impact the portfolio's performance. The portfolio's leveraged positions could be affected by changes in inflation expectations.",
-      "bull": "A low inflation environment could lead to a market rally, benefiting the portfolio's leveraged positions.",
-      "bull_estimate": "+$10,000-$20,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 50,
-      "base": "Inflation is likely to remain stable, with minimal impact on the portfolio.",
-      "base_estimate": "±$1,000 — markets remain stable",
+      "body": "The recent introduction of the 'AI Kill Switch' bill in Congress may have a low impact on the portfolio, as it is still in its early stages and its effects on the tech sector are uncertain. However, it may lead to increased regulatory scrutiny on AI-related companies, potentially affecting their growth.",
+      "bull": "A favorable regulatory environment for AI companies could lead to increased growth and innovation, potentially benefiting the portfolio.",
+      "bull_estimate": "+$5,000-$10,000 via NVDA",
+      "bull_probability": 25,
+      "base": "A neutral regulatory environment could lead to minimal changes in the tech sector, with no significant impact on the portfolio.",
+      "base_estimate": "±$1,000 — minimal net change",
+      "base_probability": 50,
+      "bear": "A restrictive regulatory environment for AI companies could lead to decreased growth and innovation, potentially negatively impacting the portfolio.",
+      "bear_estimate": "-$5,000-$10,000 via NVDA",
+      "bear_probability": 25
+    },
+    {
+      "title": "FX Volatility",
+      "category": "fx",
+      "impact": "MED",
+      "confidence": 80,
+      "body": "The recent fluctuations in the USD/CAD exchange rate may have a medium impact on the portfolio, particularly on the FX book. A significant change in the exchange rate could lead to gains or losses in the portfolio, depending on the direction of the change.",
+      "bull": "A strengthening of the CAD could lead to gains in the FX book, potentially benefiting the portfolio.",
+      "bull_estimate": "+$5,000-$10,000 via FX book",
+      "bull_probability": 40,
+      "base": "A stabilization of the exchange rate could lead to minimal changes in the FX book, with no significant impact on the portfolio.",
+      "base_estimate": "±$1,000 — minimal net change",
       "base_probability": 30,
-      "bear": "An unexpected increase in inflation could lead to a market downturn, negatively impacting the portfolio's leveraged positions.",
-      "bear_estimate": "-$20,000-$35,000 via 3x ETF amplification",
-      "bear_probability": 20
+      "bear": "A weakening of the CAD could lead to losses in the FX book, potentially negatively impacting the portfolio.",
+      "bear_estimate": "-$5,000-$10,000 via FX book",
+      "bear_probability": 30
     }
   ],
   "risks": [
     {
-      "title": "Leverage Amplification Risk",
+      "title": "Leverage Decay Risk",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's high leverage amplifies both gains and losses, making it vulnerable to significant market fluctuations."
+      "body": "The high leverage in the portfolio, particularly in the FNGU, SPXL, and UDOW positions, may lead to significant losses if the market declines. The 3x leverage amplifies both gains and losses, making the portfolio more volatile."
     },
     {
       "title": "FX Exposure Risk",
       "level": "MED",
       "context": "68% USD exposure ~ $180K CAD",
-      "body": "The portfolio's significant USD exposure makes it susceptible to currency fluctuations, which could impact its overall performance."
+      "body": "The significant USD exposure in the portfolio may lead to losses if the CAD strengthens against the USD. The FX book is currently valued at 1.3925, and any significant change in the exchange rate could impact the portfolio."
     },
     {
-      "title": "Single-Stock Risk",
+      "title": "Earnings Concentration Risk",
       "level": "LOW",
-      "context": "NVDA ~ $25K CAD",
-      "body": "The portfolio's significant holding in NVDA makes it vulnerable to company-specific risks, which could impact its overall performance."
+      "context": "Tech sector ~ 20% of portfolio",
+      "body": "The concentration of earnings in the tech sector, particularly in NVDA, may lead to losses if the sector experiences a downturn. However, the portfolio is diversified across various sectors, reducing the risk."
     }
   ],
   "news": [
     {
-      "headline": "US House Votes to Curb Trump's Iran War Powers",
+      "headline": "NVIDIA's Next Breakout",
       "impact": "HIGH",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "The US House vote to curb Trump's Iran war powers could lead to a de-escalation of tensions, positively impacting the portfolio's leveraged positions.",
-      "exposure": "FNGU ~$87K CAD (3x leverage), SPXL ~$22K CAD",
+      "body": "The recent article on NVIDIA's next breakout may indicate a potential increase in the stock's price, benefiting the portfolio. The article highlights the company's strong position in the AI sector and its potential for future growth.",
+      "exposure": "NVDA ~ $30K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "A de-escalation of tensions leads to a relief rally, benefiting the portfolio's leveraged positions.",
-          "estimate": "+$12,000-$18,000 on leveraged positions"
+          "scenario": "NVIDIA's stock price increases, benefiting the portfolio.",
+          "estimate": "+$10,000-$15,000 via NVDA"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "The current situation continues, with minimal impact on the portfolio.",
-          "estimate": "±$3,000 — minimal net change"
-        },
-        {
-          "label": "Bear",
-          "probability": 30,
-          "scenario": "An escalation of tensions leads to a market downturn, negatively impacting the portfolio's leveraged positions.",
-          "estimate": "-$20,000-$30,000 via 3x leverage amplification"
-        }
-      ]
-    },
-    {
-      "headline": "JPMorgan Report Finds Dramatic Jump in AI-Themed ETFs",
-      "impact": "MED",
-      "confidence": 70,
-      "category": "Sector & Stock",
-      "body": "The increase in AI-themed ETFs could lead to increased interest in tech stocks, positively impacting the portfolio's holdings in NVDA and other tech companies.",
-      "exposure": "NVDA ~$25K CAD, TXF.TO ~$10K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 50,
-          "scenario": "Increased interest in AI-themed ETFs leads to a rally in tech stocks, benefiting the portfolio's holdings.",
-          "estimate": "+$8,000-$12,000 on tech positions"
-        },
-        {
-          "label": "Base",
-          "probability": 30,
-          "scenario": "The current situation continues, with minimal impact on the portfolio.",
+          "scenario": "NVIDIA's stock price remains stable, with minimal impact on the portfolio.",
           "estimate": "±$2,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "The increase in AI-themed ETFs leads to a market downturn, negatively impacting the portfolio's holdings.",
-          "estimate": "-$10,000-$15,000 via tech stock decline"
+          "probability": 30,
+          "scenario": "NVIDIA's stock price declines, negatively impacting the portfolio.",
+          "estimate": "-$8,000-$12,000 via NVDA"
         }
       ]
     },
     {
-      "headline": "Albertsons Stock Plunges as Weaker Grocery Spending Expected",
-      "impact": "LOW",
+      "headline": "Live Nation Earnings",
+      "impact": "MED",
       "confidence": 60,
       "category": "Sector & Stock",
-      "body": "The decline in Albertsons stock is unlikely to have a significant impact on the portfolio, as it does not hold any positions in the company.",
-      "exposure": "None",
+      "body": "The upcoming earnings report for Live Nation may indicate a potential increase or decrease in the stock's price, depending on the company's performance. The portfolio has a significant position in LYV, and the earnings report may impact the portfolio's value.",
+      "exposure": "LYV ~ $10K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 20,
-          "scenario": "The decline in Albertsons stock leads to a broader market rally, benefiting the portfolio's leveraged positions.",
-          "estimate": "+$5,000-$8,000 on leveraged positions"
+          "probability": 30,
+          "scenario": "Live Nation's earnings report is positive, increasing the stock's price and benefiting the portfolio.",
+          "estimate": "+$3,000-$5,000 via LYV"
         },
         {
           "label": "Base",
-          "probability": 60,
-          "scenario": "The current situation continues, with minimal impact on the portfolio.",
+          "probability": 40,
+          "scenario": "Live Nation's earnings report is neutral, with minimal impact on the portfolio.",
           "estimate": "±$1,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "The decline in Albertsons stock leads to a market downturn, negatively impacting the portfolio's leveraged positions.",
-          "estimate": "-$5,000-$8,000 via 3x leverage amplification"
+          "probability": 30,
+          "scenario": "Live Nation's earnings report is negative, decreasing the stock's price and negatively impacting the portfolio.",
+          "estimate": "-$3,000-$5,000 via LYV"
+        }
+      ]
+    },
+    {
+      "headline": "JPMorgan AI-Themed ETFs",
+      "impact": "LOW",
+      "confidence": 50,
+      "category": "Sector & Stock",
+      "body": "The recent report on JPMorgan's AI-themed ETFs may indicate a potential increase in interest in AI-related investments, potentially benefiting the portfolio's tech sector holdings. However, the impact is likely to be low, as the portfolio is already diversified across various sectors.",
+      "exposure": "Tech sector ~ 20% of portfolio",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 25,
+          "scenario": "The report leads to increased interest in AI-related investments, benefiting the portfolio's tech sector holdings.",
+          "estimate": "+$2,000-$5,000 via tech sector"
+        },
+        {
+          "label": "Base",
+          "probability": 50,
+          "scenario": "The report has minimal impact on the portfolio, with no significant changes in the tech sector.",
+          "estimate": "±$1,000 — minimal net change"
+        },
+        {
+          "label": "Bear",
+          "probability": 25,
+          "scenario": "The report leads to decreased interest in AI-related investments, negatively impacting the portfolio's tech sector holdings.",
+          "estimate": "-$2,000-$5,000 via tech sector"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "CSCO",
+      "ticker": "ASML",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Cisco Systems is a well-established company with a strong track record of innovation and growth. The current market conditions make it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $45-$50"
+      "thesis": "The recent surge in AI-related investments and the potential for increased demand for semiconductor equipment make ASML an attractive addition to the portfolio. The company's strong position in the industry and its potential for future growth make it a compelling pick.",
+      "entry": "Entry price range: $500-$600, catalyst: increased demand for semiconductor equipment"
     },
     {
-      "ticker": "INTC",
+      "ticker": "COST",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Intel Corporation is a leading company in the tech industry, and its current valuation makes it an attractive potential addition to the portfolio.",
-      "entry": "Monitor for entry on a pullback to $50-$55"
+      "thesis": "The recent article on Costco's potential for high dividend growth and its strong position in the retail sector make it an attractive watch candidate. The company's ability to adapt to changing consumer behavior and its potential for future growth make it a compelling pick.",
+      "entry": "Entry price range: $500-$600, catalyst: increased demand for retail sector"
+    },
+    {
+      "ticker": "BIDU",
+      "action": "SPECULATIVE",
+      "account": "RRSP",
+      "thesis": "The recent surge in AI-related investments and the potential for increased demand for Chinese tech stocks make BIDU an attractive speculative pick. The company's strong position in the industry and its potential for future growth make it a compelling pick, although it is a higher-risk investment.",
+      "entry": "Entry price range: $100-$150, catalyst: increased demand for Chinese tech stocks"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "The portfolio's high risk tolerance and long-term horizon provide a strong foundation for growth."
-    },
-    {
-      "ticker": "NVDA",
-      "text": "The portfolio's significant holding in NVDA provides exposure to the growing tech industry."
-    },
-    {
-      "ticker": "FNGU",
-      "text": "The portfolio's holding in FNGU provides 3x leverage to the growth of the tech industry."
-    },
-    {
-      "ticker": "SPXL",
-      "text": "The portfolio's holding in SPXL provides 3x leverage to the growth of the S&P 500."
+      "text": "Diversified portfolio across various sectors"
     },
     {
       "ticker": null,
-      "text": "The portfolio's diversification across various sectors and industries reduces risk and increases potential for long-term growth."
+      "text": "Significant position in tech sector, particularly in NVDA"
+    },
+    {
+      "ticker": null,
+      "text": "Strong position in energy sector, particularly in ENB.TO"
+    },
+    {
+      "ticker": null,
+      "text": "FX book provides potential for gains in USD/CAD exchange rate fluctuations"
+    },
+    {
+      "ticker": null,
+      "text": "Leveraged positions provide potential for amplified gains"
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "The portfolio's high leverage amplifies both gains and losses, making it vulnerable to significant market fluctuations."
-    },
-    {
-      "ticker": "NVDA",
-      "text": "The portfolio's significant holding in NVDA makes it vulnerable to company-specific risks."
-    },
-    {
-      "ticker": "FNGU",
-      "text": "The portfolio's holding in FNGU is subject to the risks associated with 3x leverage, including the potential for significant losses."
-    },
-    {
-      "ticker": "SPXL",
-      "text": "The portfolio's holding in SPXL is subject to the risks associated with 3x leverage, including the potential for significant losses."
+      "text": "High leverage in portfolio, particularly in FNGU, SPXL, and UDOW positions"
     },
     {
       "ticker": null,
-      "text": "The portfolio's significant USD exposure makes it susceptible to currency fluctuations, which could impact its overall performance."
+      "text": "Significant USD exposure, potentially leading to losses if CAD strengthens"
+    },
+    {
+      "ticker": null,
+      "text": "Concentration of earnings in tech sector, particularly in NVDA"
+    },
+    {
+      "ticker": null,
+      "text": "Potential for decreased growth in energy sector, particularly in ENB.TO"
+    },
+    {
+      "ticker": null,
+      "text": "FX book may lead to losses if USD/CAD exchange rate fluctuates unfavorably"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the US-Iran situation and be prepared to adjust the portfolio accordingly."
+      "text": "Monitor FNGU, SPXL, and UDOW positions for potential losses due to high leverage"
     },
     {
       "num": "02",
-      "text": "Keep an eye on the Fed's policy decisions and their potential impact on the portfolio."
+      "text": "Consider reducing USD exposure to minimize potential losses"
     },
     {
       "num": "03",
-      "text": "Consider rebalancing the portfolio to maintain an optimal asset allocation."
+      "text": "Keep a close eye on NVDA's performance, as it has a significant impact on the portfolio"
+    },
+    {
+      "num": "04",
+      "text": "Consider adding to energy sector positions, particularly in ENB.TO, if oil prices continue to rise"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to focus on long-term growth and avoid making emotional decisions based on short-term market fluctuations."
+      "text": "Continue to diversify portfolio across various sectors to minimize risk"
     },
     {
       "num": "02",
-      "text": "Consider adding more diversification to the portfolio to reduce risk and increase potential for long-term growth."
+      "text": "Consider increasing position in tech sector, particularly in NVDA, if AI-related investments continue to surge"
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's leverage and consider adjusting it as needed to maintain an optimal risk profile."
+      "text": "Monitor FX book for potential gains in USD/CAD exchange rate fluctuations"
+    },
+    {
+      "num": "04",
+      "text": "Consider reducing leverage in portfolio to minimize potential losses"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Maintain a long-term perspective and avoid making decisions based on short-term market fluctuations."
+      "text": "Continue to invest in growth-oriented stocks, particularly in tech sector"
     },
     {
       "num": "02",
-      "text": "Continue to focus on growth and consider adding more aggressive investments to the portfolio."
+      "text": "Consider increasing position in energy sector, particularly in ENB.TO, if oil prices continue to rise"
     },
     {
       "num": "03",
-      "text": "Consider tax-loss harvesting to minimize tax liabilities and optimize the portfolio's performance."
+      "text": "Monitor portfolio's sector allocation and consider rebalancing if necessary"
+    },
+    {
+      "num": "04",
+      "text": "Consider adding to portfolio's dividend-paying stocks to increase income generation"
     }
   ],
-  "daily_outlook": "The portfolio is well-positioned for long-term growth, but the current market conditions require close monitoring and potential adjustments to maintain an optimal risk profile.",
-  "market_mood": "risk-on",
-  "generated_at": "2026-07-23T20:01:01.356123+00:00",
+  "daily_outlook": "The portfolio's outlook is neutral, with a potential for gains in the tech sector and energy sector. However, the high leverage in the portfolio and significant USD exposure may lead to losses if the market declines or the CAD strengthens.",
+  "market_mood": "neutral",
+  "generated_at": "2026-07-23T20:09:03.324599+00:00",
   "generated_date": "July 23, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": [],
@@ -268,16 +287,16 @@
       "date": "2026-07-23",
       "themes": [
         {
-          "category": "geopolitical",
-          "title": "US-Iran Tensions"
+          "category": "commodities",
+          "title": "Commodity Surge"
         },
         {
-          "category": "monetary-policy",
-          "title": "Fed Policy"
+          "category": "regulatory",
+          "title": "Regulatory Shifts"
         },
         {
-          "category": "inflation",
-          "title": "Inflation Concerns"
+          "category": "fx",
+          "title": "FX Volatility"
         }
       ]
     },
@@ -317,10 +336,11 @@
     }
   ],
   "risk_history": [
-    "Leverage Amplification Risk",
+    "Leverage Decay Risk",
     "FX Exposure Risk",
-    "Single-Stock Risk",
     "Earnings Concentration Risk",
+    "Leverage Amplification Risk",
+    "Single-Stock Risk",
     "FX Drag Risk"
   ]
 }

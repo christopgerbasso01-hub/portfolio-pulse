@@ -405,22 +405,18 @@ def _build_theme_context(theme_history: list[dict], risk_history: list[str],
     if macro_history:
         lines.append("MACRO ARTICLES ALREADY PUBLISHED (last 15) — read every article before writing.")
         lines.append("Do NOT repeat the topic, angle, conclusion, or specific data point from any article below.")
-        lines.append("A different title is NOT enough — the body content must cover genuinely new ground.")
+        lines.append("A different title is NOT enough — the gist must cover genuinely new ground.")
         lines.append("")
-        for m in macro_history:
-            date = m.get("date", "?")
-            cat  = m.get("category", "?")
+        # Inject last 9 articles (3 runs) into prompt — title + 100-char body snippet only
+        # Full articles are stored in macro_history for the file; we trim here to stay under prompt size limits
+        for m in macro_history[:9]:
+            date  = m.get("date", "?")
+            cat   = m.get("category", "?")
             title = m.get("title", "")
             body  = m.get("body", "")
-            bull  = m.get("bull", "")
-            base  = m.get("base", "")
-            bear  = m.get("bear", "")
-            lines.append(f"[{date} | {cat}] {title}")
-            if body:
-                lines.append(f"  Body: {body}")
-            if bull or base or bear:
-                lines.append(f"  Bull: {bull} | Base: {base} | Bear: {bear}")
-            lines.append("")
+            snippet = body[:100].rstrip() + ("…" if len(body) > 100 else "")
+            lines.append(f"[{date} | {cat}] {title} — {snippet}")
+        lines.append("")
     elif theme_history:
         # Fallback to title-only history if full articles not yet populated
         lines.append("MACRO THEME HISTORY — last 5 days (most recent first):")

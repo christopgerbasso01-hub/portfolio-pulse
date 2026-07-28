@@ -1,72 +1,72 @@
 {
   "macro": [
     {
-      "title": "El Niño Impact",
-      "category": "macro-economic",
+      "title": "Sector Rotation",
+      "category": "equity-sectors",
       "impact": "MED",
       "confidence": 70,
-      "body": "The potential El Niño event could lead to increased global warming, affecting commodity prices and economic growth. This might impact the portfolio's holdings in the energy and industrial sectors.",
-      "bull": "Higher commodity prices could boost the portfolio's energy holdings.",
-      "bull_estimate": "+$10,000-$15,000 via ENB.TO and other energy holdings",
+      "body": "The recent market trends suggest a rotation from tech to other sectors, which could impact the portfolio's performance. This rotation could be driven by investors seeking value in other sectors. The portfolio's high allocation to tech stocks may be affected by this trend.",
+      "bull": "If the rotation continues, the portfolio's tech stocks may decline, but other sectors may provide opportunities for growth.",
+      "bull_estimate": "-$10,000 to -$15,000 via tech stock decline",
       "bull_probability": 30,
-      "base": "The El Niño event may have a neutral impact on the portfolio, with minimal effects on overall performance.",
+      "base": "The sector rotation may not have a significant impact on the portfolio, as the tech stocks are still strong.",
       "base_estimate": "±$2,000 — minimal net change",
-      "base_probability": 40,
-      "bear": "A severe El Niño event could lead to decreased economic growth, negatively impacting the portfolio's overall performance.",
-      "bear_estimate": "-$15,000-$20,000 via decreased economic growth",
-      "bear_probability": 30
+      "base_probability": 50,
+      "bear": "If the rotation accelerates, the portfolio's tech stocks may decline significantly, leading to a substantial loss.",
+      "bear_estimate": "-$25,000 to -$35,000 via tech stock decline",
+      "bear_probability": 20
+    },
+    {
+      "title": "Commodity Price Volatility",
+      "category": "commodities",
+      "impact": "LOW",
+      "confidence": 40,
+      "body": "The potential El Niño event could lead to increased global warming, affecting commodity prices. However, the impact on the portfolio is expected to be limited, as it does not have significant exposure to commodity-related stocks.",
+      "bull": "If commodity prices increase, the portfolio's energy stocks, such as ENB.TO, may benefit.",
+      "bull_estimate": "+$2,000 to +$3,000 via energy stock gain",
+      "bull_probability": 20,
+      "base": "The commodity price volatility may not have a significant impact on the portfolio.",
+      "base_estimate": "±$1,000 — minimal net change",
+      "base_probability": 60,
+      "bear": "If commodity prices decline, the portfolio's energy stocks may be affected negatively.",
+      "bear_estimate": "-$2,000 to -$3,000 via energy stock decline",
+      "bear_probability": 20
     },
     {
       "title": "Regulatory Environment",
       "category": "regulatory",
-      "impact": "LOW",
-      "confidence": 60,
-      "body": "The regulatory environment in Canada and the US may have implications for the portfolio's holdings in the tech and financial sectors.",
-      "bull": "Favorable regulations could boost the portfolio's tech holdings.",
-      "bull_estimate": "+$5,000-$10,000 via NVDA and other tech holdings",
-      "bull_probability": 25,
-      "base": "The regulatory environment may have a minimal impact on the portfolio, with no significant effects on overall performance.",
-      "base_estimate": "±$1,000 — minimal net change",
-      "base_probability": 50,
-      "bear": "Unfavorable regulations could negatively impact the portfolio's tech holdings.",
-      "bear_estimate": "-$5,000-$10,000 via decreased tech sector performance",
-      "bear_probability": 25
-    },
-    {
-      "title": "Credit Market Trends",
-      "category": "credit",
       "impact": "MED",
-      "confidence": 65,
-      "body": "The credit market trends could impact the portfolio's holdings in the financial sector, particularly in terms of interest rates and borrowing costs.",
-      "bull": "Favorable credit market trends could boost the portfolio's financial holdings.",
-      "bull_estimate": "+$8,000-$12,000 via CM.TO and other financial holdings",
-      "bull_probability": 35,
-      "base": "The credit market trends may have a neutral impact on the portfolio, with minimal effects on overall performance.",
-      "base_estimate": "±$2,500 — minimal net change",
+      "confidence": 60,
+      "body": "The regulatory environment in Canada and the US may have implications for the portfolio's holdings in the financial sector, particularly the banks. Changes in regulations could impact the banks' profitability and stock performance.",
+      "bull": "If the regulatory environment becomes more favorable, the portfolio's bank stocks, such as CM.TO and RY.TO, may benefit.",
+      "bull_estimate": "+$5,000 to +$7,000 via bank stock gain",
+      "bull_probability": 40,
+      "base": "The regulatory environment may not have a significant impact on the portfolio.",
+      "base_estimate": "±$2,000 — minimal net change",
       "base_probability": 40,
-      "bear": "Unfavorable credit market trends could negatively impact the portfolio's financial holdings.",
-      "bear_estimate": "-$10,000-$15,000 via decreased financial sector performance",
-      "bear_probability": 25
+      "bear": "If the regulatory environment becomes more stringent, the portfolio's bank stocks may be affected negatively.",
+      "bear_estimate": "-$5,000 to -$7,000 via bank stock decline",
+      "bear_probability": 20
     }
   ],
   "risks": [
     {
-      "title": "Leverage Decay Risk",
+      "title": "Leverage Amplification Risk",
       "level": "HIGH",
-      "context": "49% of portfolio ~ $135K CAD in leveraged ETFs",
-      "body": "The portfolio's high leverage exposure increases the risk of decay, particularly if the market experiences a downturn or high volatility."
+      "context": "49% of portfolio (~ $135K CAD) is allocated to leveraged ETFs",
+      "body": "The portfolio's high allocation to leveraged ETFs, such as FNGU and SPXL, amplifies both gains and losses. If the market declines, the portfolio may experience significant losses due to the leverage."
     },
     {
       "title": "FX Exposure Risk",
       "level": "MED",
-      "context": "68% USD exposure ~ $180K CAD",
-      "body": "The portfolio's significant USD exposure increases the risk of FX losses, particularly if the CAD strengthens against the USD."
+      "context": "68% of portfolio is denominated in USD",
+      "body": "The portfolio's high USD denomination exposes it to FX risk. If the CAD strengthens against the USD, the portfolio's value may decline."
     },
     {
       "title": "Earnings Concentration Risk",
-      "level": "MED",
-      "context": "High concentration of tech holdings ~ $55K CAD",
-      "body": "The portfolio's high concentration of tech holdings increases the risk of significant losses if the tech sector experiences a downturn or if individual tech stocks underperform."
+      "level": "LOW",
+      "context": "NVDA is a significant holding in the portfolio",
+      "body": "The portfolio's high allocation to NVDA stock exposes it to earnings concentration risk. If NVDA's earnings disappoint, the portfolio may experience a significant decline."
     }
   ],
   "news": [
@@ -75,198 +75,195 @@
       "impact": "HIGH",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "Nvidia's potential investment in OpenAI could significantly impact the portfolio's NVDA holding, potentially leading to increased growth and returns.",
-      "exposure": "NVDA ~ $20K CAD",
+      "body": "Nvidia's potential $250B backstop for OpenAI may impact the portfolio's NVDA holding. This investment may provide a significant growth opportunity for Nvidia.",
+      "exposure": "NVDA ~ $43K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 40,
-          "scenario": "Nvidia's investment in OpenAI leads to significant growth and increased returns for the portfolio.",
-          "estimate": "+$8,000-$12,000 on NVDA holding"
+          "probability": 50,
+          "scenario": "Nvidia's investment in OpenAI pays off, leading to significant growth for the company.",
+          "estimate": "+$10,000 to +$15,000 on NVDA gain"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "Nvidia's investment in OpenAI has a neutral impact on the portfolio, with minimal effects on overall performance.",
+          "scenario": "The investment has a minimal impact on Nvidia's stock performance.",
           "estimate": "±$2,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "Nvidia's investment in OpenAI leads to decreased returns or losses for the portfolio, potentially due to increased competition or regulatory issues.",
-          "estimate": "-$5,000-$10,000 on NVDA holding"
+          "probability": 20,
+          "scenario": "The investment does not pay off, leading to a decline in Nvidia's stock price.",
+          "estimate": "-$5,000 to -$10,000 on NVDA decline"
         }
       ]
     },
     {
       "headline": "Apple Ends Day as World's Most Valuable Company",
       "impact": "MED",
-      "confidence": 70,
+      "confidence": 60,
       "category": "Sector & Stock",
-      "body": "Apple's increased valuation could impact the portfolio's AAPL holding, potentially leading to increased growth and returns.",
-      "exposure": "AAPL ~ $10K CAD",
+      "body": "Apple's new status as the world's most valuable company may impact the portfolio's AAPL holding. This achievement may lead to increased investor confidence in the company.",
+      "exposure": "AAPL ~ $12K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 35,
-          "scenario": "Apple's increased valuation leads to significant growth and increased returns for the portfolio.",
-          "estimate": "+$3,000-$6,000 on AAPL holding"
+          "probability": 40,
+          "scenario": "Apple's stock price increases due to its new status, leading to a gain for the portfolio.",
+          "estimate": "+$2,000 to +$3,000 on AAPL gain"
         },
         {
           "label": "Base",
           "probability": 40,
-          "scenario": "Apple's increased valuation has a neutral impact on the portfolio, with minimal effects on overall performance.",
-          "estimate": "±$1,500 — minimal net change"
-        },
-        {
-          "label": "Bear",
-          "probability": 25,
-          "scenario": "Apple's increased valuation leads to decreased returns or losses for the portfolio, potentially due to increased competition or regulatory issues.",
-          "estimate": "-$2,000-$5,000 on AAPL holding"
-        }
-      ]
-    },
-    {
-      "headline": "Broadcom Lands $200 Billion Samsung AI Chip Deal",
-      "impact": "MED",
-      "confidence": 65,
-      "category": "Sector & Stock",
-      "body": "Broadcom's significant deal with Samsung could impact the portfolio's AVGO holding, potentially leading to increased growth and returns.",
-      "exposure": "AVGO ~ $5K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 30,
-          "scenario": "Broadcom's deal with Samsung leads to significant growth and increased returns for the portfolio.",
-          "estimate": "+$2,000-$4,000 on AVGO holding"
-        },
-        {
-          "label": "Base",
-          "probability": 45,
-          "scenario": "Broadcom's deal with Samsung has a neutral impact on the portfolio, with minimal effects on overall performance.",
+          "scenario": "The event has a minimal impact on Apple's stock performance.",
           "estimate": "±$1,000 — minimal net change"
         },
         {
           "label": "Bear",
-          "probability": 25,
-          "scenario": "Broadcom's deal with Samsung leads to decreased returns or losses for the portfolio, potentially due to increased competition or regulatory issues.",
-          "estimate": "-$1,500-$3,000 on AVGO holding"
+          "probability": 20,
+          "scenario": "The event does not lead to a significant increase in Apple's stock price, and the portfolio experiences a decline.",
+          "estimate": "-$1,000 to -$2,000 on AAPL decline"
+        }
+      ]
+    },
+    {
+      "headline": "Qualcomm Reports Earnings Tomorrow",
+      "impact": "MED",
+      "confidence": 50,
+      "category": "Sector & Stock",
+      "body": "Qualcomm's upcoming earnings report may impact the portfolio's QCOM holding. The report may provide insight into the company's future growth prospects.",
+      "exposure": "QCOM ~ $8K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 30,
+          "scenario": "Qualcomm's earnings report exceeds expectations, leading to a gain for the portfolio.",
+          "estimate": "+$1,500 to +$2,500 on QCOM gain"
+        },
+        {
+          "label": "Base",
+          "probability": 50,
+          "scenario": "The earnings report has a minimal impact on Qualcomm's stock performance.",
+          "estimate": "±$1,000 — minimal net change"
+        },
+        {
+          "label": "Bear",
+          "probability": 20,
+          "scenario": "The earnings report disappoints, leading to a decline in Qualcomm's stock price.",
+          "estimate": "-$1,500 to -$2,500 on QCOM decline"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "CRWD",
+      "ticker": "SHEL",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "CrowdStrike's strong growth and increasing demand for cybersecurity solutions make it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $150-$200"
+      "thesis": "Shell's strong fundamentals and upcoming earnings report make it an attractive addition to the portfolio. The company's energy stocks may benefit from the potential El Niño event.",
+      "entry": "Entry price range: $45-$50 CAD"
     },
     {
-      "ticker": "OKTA",
+      "ticker": "LYV",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Okta's growing presence in the identity and access management market makes it a potential addition to the portfolio, particularly if the stock price declines.",
-      "entry": "Monitor for potential entry points below $70"
-    },
-    {
-      "ticker": "ZM",
-      "action": "NEW",
-      "account": "RRSP",
-      "thesis": "Zoom's strong growth and increasing demand for remote communication solutions make it an attractive addition to the portfolio, particularly if the stock price declines.",
-      "entry": "Entry price range: $200-$250"
+      "thesis": "Live Nation's upcoming earnings report and potential growth in the entertainment industry make it a stock to watch. The company's stock may benefit from increased demand for live events.",
+      "entry": "Monitor for entry after earnings report"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of tech, financial, and energy holdings"
+      "text": "The portfolio's high risk tolerance and long-term investment horizon provide flexibility in navigating market volatility."
     },
     {
       "ticker": "NVDA",
-      "text": "Strong growth potential in the tech sector, particularly with Nvidia's potential investment in OpenAI"
+      "text": "Nvidia's strong position in the AI and gaming markets provides a growth opportunity for the portfolio."
+    },
+    {
+      "ticker": "FNGU",
+      "text": "The portfolio's allocation to FNGU provides exposure to the growth potential of the tech sector."
     },
     {
       "ticker": "CM.TO",
-      "text": "Stable financial holdings with a strong track record of dividend payments"
-    },
-    {
-      "ticker": "ENB.TO",
-      "text": "Energy holdings with a strong potential for growth and dividend payments"
+      "text": "The portfolio's allocation to Canadian bank stocks, such as CM.TO, provides a stable source of income and dividend growth."
     },
     {
       "ticker": null,
-      "text": "Tax-efficient portfolio structure with a mix of RRSP and Investment accounts"
+      "text": "The portfolio's tax-efficient structure, utilizing RRSP and TFSA accounts, minimizes tax liabilities and maximizes returns."
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "High leverage exposure increases the risk of decay and potential losses"
+      "text": "The portfolio's high allocation to tech stocks exposes it to sector-specific risk and potential declines in the tech sector."
     },
     {
       "ticker": "AAPL",
-      "text": "Concentration of tech holdings increases the risk of significant losses if the tech sector experiences a downturn"
+      "text": "Apple's high valuation and potential for a decline in stock price pose a risk to the portfolio."
     },
     {
-      "ticker": "AVGO",
-      "text": "Dependence on a few key holdings increases the risk of losses if those holdings underperform"
-    },
-    {
-      "ticker": null,
-      "text": "FX exposure increases the risk of losses if the CAD strengthens against the USD"
+      "ticker": "QCOM",
+      "text": "Qualcomm's upcoming earnings report and potential for a decline in stock price pose a risk to the portfolio."
     },
     {
       "ticker": null,
-      "text": "Earnings concentration risk increases the risk of losses if individual tech stocks underperform"
+      "text": "The portfolio's high leverage amplifies both gains and losses, increasing the risk of significant declines in the portfolio's value."
+    },
+    {
+      "ticker": "ENB.TO",
+      "text": "The portfolio's allocation to energy stocks, such as ENB.TO, exposes it to commodity price volatility and potential declines in the energy sector."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's leverage exposure and consider reducing it if the market experiences high volatility"
+      "text": "Monitor the portfolio's leverage and adjust as necessary to maintain an optimal risk profile."
     },
     {
       "num": "02",
-      "text": "Diversify the portfolio by adding new holdings in different sectors, such as healthcare or consumer staples"
+      "text": "Rebalance the portfolio to maintain the target asset allocation and minimize sector-specific risk."
     },
     {
       "num": "03",
-      "text": "Consider tax-loss harvesting to minimize tax liabilities and optimize the portfolio's performance"
+      "text": "Consider tax-loss harvesting to minimize tax liabilities and maximize returns."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to invest in the tech sector, particularly in companies with strong growth potential and increasing demand for their products"
+      "text": "Continue to invest in the portfolio's core positions, such as NVDA and FNGU, to maintain exposure to growth sectors."
     },
     {
       "num": "02",
-      "text": "Diversify the portfolio by adding new holdings in different geographic regions, such as emerging markets or Europe"
+      "text": "Diversify the portfolio by adding new positions, such as SHEL, to reduce sector-specific risk and increase potential returns."
     },
     {
       "num": "03",
-      "text": "Consider investing in alternative assets, such as real estate or private equity, to further diversify the portfolio"
+      "text": "Consider increasing the portfolio's allocation to Canadian bank stocks, such as CM.TO, to provide a stable source of income and dividend growth."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Continue to invest in the tech sector, particularly in companies with strong growth potential and increasing demand for their products"
+      "text": "Maintain a long-term investment horizon and avoid making emotional decisions based on short-term market fluctuations."
     },
     {
       "num": "02",
-      "text": "Consider investing in sustainable energy and environmental solutions, as demand for these products is expected to increase in the long term"
+      "text": "Continue to invest in the portfolio's core positions and add new positions to maintain an optimal asset allocation and risk profile."
     },
     {
       "num": "03",
-      "text": "Diversify the portfolio by adding new holdings in different asset classes, such as bonds or commodities, to reduce risk and increase potential returns"
+      "text": "Consider increasing the portfolio's allocation to tax-efficient accounts, such as RRSP and TFSA, to minimize tax liabilities and maximize returns."
+    },
+    {
+      "num": "04",
+      "text": "Monitor the portfolio's fees and expenses to ensure they are minimized and do not negatively impact returns."
     }
   ],
-  "daily_outlook": "The portfolio is well-positioned for growth, with a mix of tech, financial, and energy holdings. However, the high leverage exposure and concentration of tech holdings increase the risk of losses if the market experiences a downturn.",
-  "market_mood": "risk-on",
-  "generated_at": "2026-07-28T12:57:20.107239+00:00",
+  "daily_outlook": "The portfolio's high risk tolerance and long-term investment horizon provide flexibility in navigating market volatility. The upcoming earnings reports and potential sector rotation may impact the portfolio's performance.",
+  "market_mood": "mixed",
+  "generated_at": "2026-07-28T20:00:55.956030+00:00",
   "generated_date": "July 28, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": [],
@@ -275,16 +272,16 @@
       "date": "2026-07-28",
       "themes": [
         {
-          "category": "macro-economic",
-          "title": "El Niño Impact"
+          "category": "equity-sectors",
+          "title": "Sector Rotation"
+        },
+        {
+          "category": "commodities",
+          "title": "Commodity Price Volatility"
         },
         {
           "category": "regulatory",
           "title": "Regulatory Environment"
-        },
-        {
-          "category": "credit",
-          "title": "Credit Market Trends"
         }
       ]
     },
@@ -377,6 +374,33 @@
   "macro_history": [
     {
       "date": "2026-07-28",
+      "category": "equity-sectors",
+      "title": "Sector Rotation",
+      "body": "The recent market trends suggest a rotation from tech to other sectors, which could impact the portfolio's performance. This rotation could be driven by investors seeking value in other sectors. The portfolio's high allocation to tech stocks may be affected by this trend.",
+      "bull": "If the rotation continues, the portfolio's tech stocks may decline, but other sectors may provide opportunities for growth.",
+      "base": "The sector rotation may not have a significant impact on the portfolio, as the tech stocks are still strong.",
+      "bear": "If the rotation accelerates, the portfolio's tech stocks may decline significantly, leading to a substantial loss."
+    },
+    {
+      "date": "2026-07-28",
+      "category": "commodities",
+      "title": "Commodity Price Volatility",
+      "body": "The potential El Niño event could lead to increased global warming, affecting commodity prices. However, the impact on the portfolio is expected to be limited, as it does not have significant exposure to commodity-related stocks.",
+      "bull": "If commodity prices increase, the portfolio's energy stocks, such as ENB.TO, may benefit.",
+      "base": "The commodity price volatility may not have a significant impact on the portfolio.",
+      "bear": "If commodity prices decline, the portfolio's energy stocks may be affected negatively."
+    },
+    {
+      "date": "2026-07-28",
+      "category": "regulatory",
+      "title": "Regulatory Environment",
+      "body": "The regulatory environment in Canada and the US may have implications for the portfolio's holdings in the financial sector, particularly the banks. Changes in regulations could impact the banks' profitability and stock performance.",
+      "bull": "If the regulatory environment becomes more favorable, the portfolio's bank stocks, such as CM.TO and RY.TO, may benefit.",
+      "base": "The regulatory environment may not have a significant impact on the portfolio.",
+      "bear": "If the regulatory environment becomes more stringent, the portfolio's bank stocks may be affected negatively."
+    },
+    {
+      "date": "2026-07-28",
       "category": "macro-economic",
       "title": "El Niño Impact",
       "body": "The potential El Niño event could lead to increased global warming, affecting commodity prices and economic growth. This might impact the portfolio's holdings in the energy and industrial sectors.",
@@ -386,30 +410,12 @@
     },
     {
       "date": "2026-07-28",
-      "category": "regulatory",
-      "title": "Regulatory Environment",
-      "body": "The regulatory environment in Canada and the US may have implications for the portfolio's holdings in the tech and financial sectors.",
-      "bull": "Favorable regulations could boost the portfolio's tech holdings.",
-      "base": "The regulatory environment may have a minimal impact on the portfolio, with no significant effects on overall performance.",
-      "bear": "Unfavorable regulations could negatively impact the portfolio's tech holdings."
-    },
-    {
-      "date": "2026-07-28",
       "category": "credit",
       "title": "Credit Market Trends",
       "body": "The credit market trends could impact the portfolio's holdings in the financial sector, particularly in terms of interest rates and borrowing costs.",
       "bull": "Favorable credit market trends could boost the portfolio's financial holdings.",
       "base": "The credit market trends may have a neutral impact on the portfolio, with minimal effects on overall performance.",
       "bear": "Unfavorable credit market trends could negatively impact the portfolio's financial holdings."
-    },
-    {
-      "date": "2026-07-28",
-      "category": "equity-sectors",
-      "title": "Sector Rotation",
-      "body": "The recent market trends suggest a rotation from tech to other sectors, which could impact the portfolio's performance. The tech sector, which accounts for a significant portion of the portfolio, may experience a decline in value. However, this rotation could also present opportunities for growth in other sectors.",
-      "bull": "A successful rotation could lead to gains in the portfolio's non-tech holdings, such as CDN Fin and Other sectors.",
-      "base": "The rotation may have a minimal impact on the portfolio, with the tech sector remaining stable.",
-      "bear": "A significant decline in the tech sector could lead to substantial losses in the portfolio."
     },
     {
       "date": "2026-07-28",
@@ -467,15 +473,6 @@
     },
     {
       "date": "2026-07-27",
-      "category": "commodities",
-      "title": "Commodity Price Volatility",
-      "body": "The recent surge in oil prices and the potential for continued volatility in commodity markets could have significant implications for the portfolio's energy holdings, such as ENB.TO.",
-      "bull": "A continued surge in oil prices could lead to significant gains in the portfolio's energy holdings.",
-      "base": "Commodity prices may remain relatively stable, with minimal impact on the portfolio's energy holdings.",
-      "bear": "A decline in oil prices could lead to significant losses in the portfolio's energy holdings."
-    },
-    {
-      "date": "2026-07-27",
       "category": "monetary-policy",
       "title": "Fed Decision",
       "body": "The upcoming Fed decision could significantly impact the portfolio's performance, particularly with the high leverage exposure. A rate hike or cut could lead to increased market volatility.",
@@ -512,10 +509,10 @@
     }
   ],
   "risk_history": [
-    "Leverage Decay Risk",
+    "Leverage Amplification Risk",
     "FX Exposure Risk",
     "Earnings Concentration Risk",
-    "Leverage Amplification Risk",
+    "Leverage Decay Risk",
     "Sector Overlap Risk",
     "FX Drag Risk",
     "Single-Stock Risk"

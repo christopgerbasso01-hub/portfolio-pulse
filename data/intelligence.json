@@ -1,277 +1,284 @@
 {
   "macro": [
     {
-      "title": "US-Iran Tensions",
-      "category": "geopolitical",
-      "impact": "HIGH",
+      "title": "Fed Rate Hold",
+      "category": "monetary-policy",
+      "impact": "MED",
       "confidence": 80,
-      "body": "The recent escalation of US-Iran tensions could lead to increased volatility in the markets, affecting the portfolio's performance. The potential for further conflict could lead to higher oil prices, impacting the energy sector and the overall economy.",
-      "bull": "A de-escalation of tensions could lead to a relief rally in the markets, benefiting the portfolio's leveraged positions.",
+      "body": "The Fed's decision to keep rates steady may lead to increased market volatility. This could impact the portfolio's performance, particularly with its high-risk tolerance and significant holdings in leveraged ETFs.",
+      "bull": "A steady rate could lead to increased investor confidence, boosting the portfolio's value.",
       "bull_estimate": "+$20,000-$30,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 30,
-      "base": "The current tensions could lead to a prolonged period of volatility, resulting in a neutral impact on the portfolio.",
+      "bull_probability": 40,
+      "base": "The rate hold may not significantly impact the portfolio, with markets continuing to grind higher.",
       "base_estimate": "±$5,000",
-      "base_probability": 40,
-      "bear": "A further escalation of tensions could lead to a significant market downturn, negatively impacting the portfolio's performance.",
-      "bear_estimate": "-$40,000-$60,000 via 3x ETF amplification",
+      "base_probability": 30,
+      "bear": "A rate hold could lead to decreased investor confidence, negatively impacting the portfolio's value.",
+      "bear_estimate": "-$25,000-$40,000 via 3x ETF amplification",
       "bear_probability": 30
     },
     {
-      "title": "Credit Market Trends",
-      "category": "credit",
-      "impact": "MED",
-      "confidence": 70,
-      "body": "The current credit market trends could impact the portfolio's holdings in the financial sector, particularly the leveraged ETFs. A tightening of credit conditions could lead to higher borrowing costs, affecting the overall economy.",
-      "bull": "A loosening of credit conditions could lead to increased borrowing and spending, benefiting the portfolio's leveraged positions.",
-      "bull_estimate": "+$10,000-$20,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 25,
-      "base": "The current credit market trends could lead to a stable credit environment, resulting in a neutral impact on the portfolio.",
-      "base_estimate": "±$2,000",
-      "base_probability": 50,
-      "bear": "A significant tightening of credit conditions could lead to a market downturn, negatively impacting the portfolio's performance.",
+      "title": "US-Iran Sanctions",
+      "category": "geopolitical",
+      "impact": "HIGH",
+      "confidence": 90,
+      "body": "The new US-Iran sanctions could lead to increased tensions and market volatility, affecting the portfolio's performance.",
+      "bull": "A resolution to the tensions could lead to increased investor confidence, boosting the portfolio's value.",
+      "bull_estimate": "+$15,000-$25,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 20,
+      "base": "The sanctions may not significantly impact the portfolio, with markets continuing to grind higher.",
+      "base_estimate": "±$5,000",
+      "base_probability": 40,
+      "bear": "Escalating tensions could lead to decreased investor confidence, negatively impacting the portfolio's value.",
       "bear_estimate": "-$30,000-$50,000 via 3x ETF amplification",
-      "bear_probability": 25
+      "bear_probability": 40
     },
     {
-      "title": "Sector Rotation",
+      "title": "Global Economic Slowdown",
       "category": "macro-economic",
-      "impact": "LOW",
-      "confidence": 60,
-      "body": "The recent market trends suggest a rotation from tech to other sectors, which could impact the portfolio's performance. The tech sector has been a significant contributor to the portfolio's gains, and a rotation away from tech could lead to a decrease in the portfolio's value.",
-      "bull": "A continued rotation into tech could lead to further gains for the portfolio, benefiting from the sector's growth.",
-      "bull_estimate": "+$15,000-$25,000 via tech holdings",
-      "bull_probability": 20,
-      "base": "The current sector rotation could lead to a neutral impact on the portfolio, as the gains in other sectors offset the losses in tech.",
-      "base_estimate": "±$1,000",
-      "base_probability": 60,
-      "bear": "A significant rotation away from tech could lead to a decrease in the portfolio's value, negatively impacting the portfolio's performance.",
-      "bear_estimate": "-$20,000-$30,000 via tech holdings",
-      "bear_probability": 20
+      "impact": "MED",
+      "confidence": 70,
+      "body": "A global economic slowdown could lead to decreased investor confidence, negatively impacting the portfolio's performance.",
+      "bull": "A slowdown could lead to increased investor demand for safe-haven assets, boosting the portfolio's value.",
+      "bull_estimate": "+$10,000-$20,000 via FNGU/SPXL 3x leverage",
+      "bull_probability": 30,
+      "base": "The slowdown may not significantly impact the portfolio, with markets continuing to grind higher.",
+      "base_estimate": "±$5,000",
+      "base_probability": 40,
+      "bear": "A severe slowdown could lead to decreased investor confidence, negatively impacting the portfolio's value.",
+      "bear_estimate": "-$20,000-$35,000 via 3x ETF amplification",
+      "bear_probability": 30
     }
   ],
   "risks": [
     {
-      "title": "Leverage Amplification Risk",
+      "title": "Leverage Decay Risk",
       "level": "HIGH",
       "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's high leverage amplifies both gains and losses, making it susceptible to significant market fluctuations. A downturn in the market could lead to a substantial decrease in the portfolio's value."
+      "body": "The portfolio's high leverage could lead to significant losses if the market declines. The 3x leverage amplifies both gains and losses, making it essential to monitor the market closely."
     },
     {
       "title": "FX Exposure Risk",
       "level": "MED",
-      "context": "68% USD exposure ~ $180K CAD",
-      "body": "The portfolio's significant USD exposure makes it vulnerable to fluctuations in the USD/CAD exchange rate. A strengthening of the CAD could lead to a decrease in the portfolio's value."
+      "context": "68% USD exposure",
+      "body": "The portfolio's significant USD exposure could lead to losses if the CAD strengthens. The FX book is currently at 1.3925, and any significant changes could impact the portfolio's value."
     },
     {
       "title": "Earnings Concentration Risk",
-      "level": "LOW",
-      "context": "Top 5 holdings ~ 60% of portfolio",
-      "body": "The portfolio's concentration in a few top holdings makes it susceptible to significant losses if any of these holdings experience a downturn. However, the current holdings have a strong track record of performance."
+      "level": "MED",
+      "context": "20% of portfolio in Tech sector",
+      "body": "The portfolio's significant concentration in the Tech sector could lead to losses if the sector experiences a downturn. The holdings in NVDA, TXF.TO, AVGO, TSM, MSFT, AAPL, QCOM, and MSTR make it essential to monitor the sector's performance closely."
     }
   ],
   "news": [
     {
-      "headline": "Nvidia Partner ChipAgents Raises $60M",
+      "headline": "Qualcomm Lands BMW Deal",
       "impact": "MED",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "Nvidia's partner ChipAgents has raised $60M to accelerate chip design with AI agents. This could lead to increased innovation and growth in the tech sector, benefiting the portfolio's NVDA holding.",
-      "exposure": "NVDA ~ $20K CAD",
+      "body": "Qualcomm's new deal with BMW could lead to increased demand for its products, positively impacting the portfolio's holding in QCOM.",
+      "exposure": "QCOM ~ $5,000 CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "Increased innovation and growth in the tech sector, benefiting NVDA",
-          "estimate": "+$5,000-$10,000"
+          "scenario": "QCOM's stock price increases due to the new deal, boosting the portfolio's value.",
+          "estimate": "+$1,000-$2,000"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "Neutral impact on NVDA, as the news is already priced in",
-          "estimate": "±$1,000"
-        },
-        {
-          "label": "Bear",
-          "probability": 30,
-          "scenario": "Competition from other chip designers could negatively impact NVDA",
-          "estimate": "-$5,000-$10,000"
-        }
-      ]
-    },
-    {
-      "headline": "Elon Musk Thanks Micron on Tesla's Earnings Call",
-      "impact": "LOW",
-      "confidence": 60,
-      "category": "Sector & Stock",
-      "body": "Elon Musk's praise for Micron on Tesla's earnings call could indicate a potential partnership or collaboration between the two companies. This could lead to increased growth and innovation in the tech sector, benefiting the portfolio's TSLA holding.",
-      "exposure": "TSLA ~ $10K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 30,
-          "scenario": "Increased growth and innovation in the tech sector, benefiting TSLA",
-          "estimate": "+$2,000-$5,000"
-        },
-        {
-          "label": "Base",
-          "probability": 40,
-          "scenario": "Neutral impact on TSLA, as the news is already priced in",
+          "scenario": "The deal does not significantly impact QCOM's stock price, with the portfolio's value remaining relatively unchanged.",
           "estimate": "±$500"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "Competition from other electric vehicle manufacturers could negatively impact TSLA",
-          "estimate": "-$2,000-$5,000"
+          "scenario": "The deal is not as significant as expected, leading to a decrease in QCOM's stock price and negatively impacting the portfolio's value.",
+          "estimate": "-$1,000-$2,000"
         }
       ]
     },
     {
-      "headline": "Broadcom: A Quality Stock for Buy-and-Hold Investors",
+      "headline": "TSLA Delivered Bad News",
       "impact": "MED",
       "confidence": 70,
       "category": "Sector & Stock",
-      "body": "The article highlights Broadcom's strong track record of performance and its potential for long-term growth. This could lead to increased investor confidence and a potential increase in the stock's value, benefiting the portfolio's AVGO holding.",
-      "exposure": "AVGO ~ $15K CAD",
+      "body": "The bad news delivered by Ford to TSLA could lead to decreased investor confidence, negatively impacting the portfolio's holding in TSLA.",
+      "exposure": "TSLA ~ $8,000 CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 35,
-          "scenario": "Increased investor confidence and a potential increase in AVGO's value",
-          "estimate": "+$3,000-$6,000"
+          "probability": 20,
+          "scenario": "TSLA's stock price increases despite the bad news, boosting the portfolio's value.",
+          "estimate": "+$1,500-$3,000"
         },
         {
           "label": "Base",
-          "probability": 35,
-          "scenario": "Neutral impact on AVGO, as the news is already priced in",
+          "probability": 40,
+          "scenario": "The bad news does not significantly impact TSLA's stock price, with the portfolio's value remaining relatively unchanged.",
           "estimate": "±$1,000"
         },
         {
           "label": "Bear",
+          "probability": 40,
+          "scenario": "The bad news leads to a decrease in TSLA's stock price, negatively impacting the portfolio's value.",
+          "estimate": "-$2,000-$4,000"
+        }
+      ]
+    },
+    {
+      "headline": "Humana Tops Quarterly Estimates",
+      "impact": "LOW",
+      "confidence": 60,
+      "category": "Sector & Stock",
+      "body": "Humana's strong quarterly estimates could lead to increased investor confidence, positively impacting the portfolio's value.",
+      "exposure": "None",
+      "outcomes": [
+        {
+          "label": "Bull",
           "probability": 30,
-          "scenario": "Competition from other semiconductor manufacturers could negatively impact AVGO",
-          "estimate": "-$3,000-$6,000"
+          "scenario": "The strong estimates lead to increased demand for healthcare stocks, boosting the portfolio's value.",
+          "estimate": "+$1,000-$2,000"
+        },
+        {
+          "label": "Base",
+          "probability": 40,
+          "scenario": "The estimates do not significantly impact the portfolio's value, with the market remaining relatively unchanged.",
+          "estimate": "±$500"
+        },
+        {
+          "label": "Bear",
+          "probability": 30,
+          "scenario": "The estimates are not as significant as expected, leading to a decrease in the portfolio's value.",
+          "estimate": "-$1,000-$2,000"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "AMZN",
+      "ticker": "CRWD",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Amazon's strong track record of innovation and growth makes it an attractive addition to the portfolio. The current market conditions and the company's potential for long-term growth make it a compelling pick.",
-      "entry": "Entry price range: $180-$200"
+      "thesis": "CrowdStrike's strong growth and increasing demand for cybersecurity solutions make it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $150-$200"
     },
     {
-      "ticker": "GOOGL",
+      "ticker": "OKTA",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "Google's dominant position in the tech sector and its potential for long-term growth make it an attractive pick. However, the current valuation and market conditions make it a watch candidate for now.",
-      "entry": "Monitor for entry on a pullback to $2,500-$2,800"
+      "thesis": "Okta's strong growth and increasing demand for identity and access management solutions make it a potential addition to the portfolio.",
+      "entry": "Monitor for entry opportunities"
+    },
+    {
+      "ticker": "ZS",
+      "action": "NEW",
+      "account": "RRSP",
+      "thesis": "Zscaler's strong growth and increasing demand for cloud-based security solutions make it an attractive new holding for the portfolio.",
+      "entry": "Entry price range: $100-$150"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Diversified portfolio with a mix of tech, financial, and energy holdings"
+      "text": "The portfolio's high-risk tolerance and significant holdings in leveraged ETFs provide potential for high returns."
     },
     {
       "ticker": "NVDA",
-      "text": "Strong track record of performance and growth potential"
+      "text": "The portfolio's holding in NVDA provides exposure to the growing demand for AI and gaming solutions."
     },
     {
-      "ticker": "TSLA",
-      "text": "Innovative company with a strong brand and growth potential"
+      "ticker": "FNGU",
+      "text": "The portfolio's holding in FNGU provides 3x leverage to the tech sector, amplifying potential gains."
     },
     {
-      "ticker": "AVGO",
-      "text": "Quality stock with a strong track record of performance and growth potential"
+      "ticker": "SPXL",
+      "text": "The portfolio's holding in SPXL provides 3x leverage to the S&P 500, amplifying potential gains."
     },
     {
       "ticker": null,
-      "text": "Tax-efficient portfolio with a mix of RRSP and investment accounts"
+      "text": "The portfolio's tax-efficient structure, utilizing RRSP and Investment accounts, minimizes tax liabilities."
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "High leverage amplifies both gains and losses, making the portfolio susceptible to market fluctuations"
+      "text": "The portfolio's high leverage and significant USD exposure increase the risk of losses if the market declines or the CAD strengthens."
     },
     {
       "ticker": "TSLA",
-      "text": "Competition from other electric vehicle manufacturers could negatively impact TSLA"
+      "text": "The portfolio's holding in TSLA is subject to high volatility and potential losses if the company's performance does not meet expectations."
     },
     {
-      "ticker": "NVDA",
-      "text": "Competition from other chip designers could negatively impact NVDA"
-    },
-    {
-      "ticker": null,
-      "text": "FX exposure makes the portfolio vulnerable to fluctuations in the USD/CAD exchange rate"
+      "ticker": "QCOM",
+      "text": "The portfolio's holding in QCOM is subject to potential losses if the company's performance does not meet expectations or if the sector experiences a downturn."
     },
     {
       "ticker": null,
-      "text": "Concentration in a few top holdings makes the portfolio susceptible to significant losses if any of these holdings experience a downturn"
+      "text": "The portfolio's concentration in the Tech sector increases the risk of losses if the sector experiences a downturn."
+    },
+    {
+      "ticker": null,
+      "text": "The portfolio's lack of diversification across sectors and asset classes increases the risk of losses if the market declines."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's leverage and adjust as needed to maintain a comfortable risk level"
+      "text": "Monitor the market closely and be prepared to adjust the portfolio's leverage and holdings as needed to minimize losses."
     },
     {
       "num": "02",
-      "text": "Keep an eye on the USD/CAD exchange rate and adjust the portfolio's FX exposure as needed"
+      "text": "Consider adding new holdings to the portfolio to diversify across sectors and asset classes."
     },
     {
       "num": "03",
-      "text": "Consider adding to the portfolio's tech holdings on a pullback"
+      "text": "Review the portfolio's tax-efficient structure and consider adjustments to minimize tax liabilities."
     },
     {
       "num": "04",
-      "text": "Review the portfolio's tax efficiency and make adjustments as needed to minimize tax liabilities"
+      "text": "Monitor the performance of the portfolio's holdings and consider rebalancing as needed to maintain the target asset allocation."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to diversify the portfolio by adding new holdings and sectors"
+      "text": "Consider increasing the portfolio's allocation to the Tech sector, given the strong growth and increasing demand for technology solutions."
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's sector allocation and adjust as needed to maintain a balanced mix"
+      "text": "Review the portfolio's holdings and consider adding new positions to diversify across sectors and asset classes."
     },
     {
       "num": "03",
-      "text": "Consider increasing the portfolio's allocation to the tech sector"
+      "text": "Monitor the market and consider adjusting the portfolio's leverage and holdings as needed to minimize losses and maximize gains."
     },
     {
       "num": "04",
-      "text": "Review the portfolio's long-term goals and adjust the investment strategy as needed"
+      "text": "Consider tax-loss harvesting to minimize tax liabilities and optimize the portfolio's performance."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Continue to invest for the long term and avoid making emotional decisions based on short-term market fluctuations"
+      "text": "Consider increasing the portfolio's allocation to emerging markets and sectors, given the potential for long-term growth and returns."
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's progress towards its long-term goals and adjust the investment strategy as needed"
+      "text": "Review the portfolio's holdings and consider adding new positions to diversify across sectors and asset classes."
     },
     {
       "num": "03",
-      "text": "Consider increasing the portfolio's allocation to dividend-paying stocks for long-term income generation"
+      "text": "Monitor the market and consider adjusting the portfolio's leverage and holdings as needed to minimize losses and maximize gains."
     },
     {
       "num": "04",
-      "text": "Review the portfolio's tax efficiency and make adjustments as needed to minimize tax liabilities over the long term"
+      "text": "Consider the portfolio's long-term goals and risk tolerance, and adjust the asset allocation and holdings accordingly."
     }
   ],
-  "daily_outlook": "The portfolio is well-diversified and has a strong track record of performance. However, the current market conditions and geopolitical tensions make it essential to monitor the portfolio's risk level and adjust as needed. The portfolio's tech holdings are well-positioned for long-term growth, but the current valuation and market conditions make it a good idea to consider adding to these holdings on a pullback.",
-  "market_mood": "risk-on",
-  "generated_at": "2026-07-29T13:04:39.776925+00:00",
+  "daily_outlook": "The portfolio's value may be impacted by the Fed's rate hold and the US-Iran sanctions. Monitor the market closely and be prepared to adjust the portfolio's leverage and holdings as needed to minimize losses.",
+  "market_mood": "risk-off",
+  "generated_at": "2026-07-29T20:00:56.673699+00:00",
   "generated_date": "July 29, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": [],
@@ -280,16 +287,16 @@
       "date": "2026-07-29",
       "themes": [
         {
-          "category": "geopolitical",
-          "title": "US-Iran Tensions"
+          "category": "monetary-policy",
+          "title": "Fed Rate Hold"
         },
         {
-          "category": "credit",
-          "title": "Credit Market Trends"
+          "category": "geopolitical",
+          "title": "US-Iran Sanctions"
         },
         {
           "category": "macro-economic",
-          "title": "Sector Rotation"
+          "title": "Global Economic Slowdown"
         }
       ]
     },
@@ -399,6 +406,33 @@
   "macro_history": [
     {
       "date": "2026-07-29",
+      "category": "monetary-policy",
+      "title": "Fed Rate Hold",
+      "body": "The Fed's decision to keep rates steady may lead to increased market volatility. This could impact the portfolio's performance, particularly with its high-risk tolerance and significant holdings in leveraged ETFs.",
+      "bull": "A steady rate could lead to increased investor confidence, boosting the portfolio's value.",
+      "base": "The rate hold may not significantly impact the portfolio, with markets continuing to grind higher.",
+      "bear": "A rate hold could lead to decreased investor confidence, negatively impacting the portfolio's value."
+    },
+    {
+      "date": "2026-07-29",
+      "category": "geopolitical",
+      "title": "US-Iran Sanctions",
+      "body": "The new US-Iran sanctions could lead to increased tensions and market volatility, affecting the portfolio's performance.",
+      "bull": "A resolution to the tensions could lead to increased investor confidence, boosting the portfolio's value.",
+      "base": "The sanctions may not significantly impact the portfolio, with markets continuing to grind higher.",
+      "bear": "Escalating tensions could lead to decreased investor confidence, negatively impacting the portfolio's value."
+    },
+    {
+      "date": "2026-07-29",
+      "category": "macro-economic",
+      "title": "Global Economic Slowdown",
+      "body": "A global economic slowdown could lead to decreased investor confidence, negatively impacting the portfolio's performance.",
+      "bull": "A slowdown could lead to increased investor demand for safe-haven assets, boosting the portfolio's value.",
+      "base": "The slowdown may not significantly impact the portfolio, with markets continuing to grind higher.",
+      "bear": "A severe slowdown could lead to decreased investor confidence, negatively impacting the portfolio's value."
+    },
+    {
+      "date": "2026-07-29",
       "category": "geopolitical",
       "title": "US-Iran Tensions",
       "body": "The recent escalation of US-Iran tensions could lead to increased volatility in the markets, affecting the portfolio's performance. The potential for further conflict could lead to higher oil prices, impacting the energy sector and the overall economy.",
@@ -504,40 +538,13 @@
       "bull": "A stronger CAD could reduce the portfolio's FX losses, particularly in the leveraged ETF positions.",
       "base": "The CAD may remain relatively stable, with minimal impact on the portfolio's FX exposure.",
       "bear": "A weakening CAD could increase the portfolio's FX losses, particularly in the leveraged ETF positions."
-    },
-    {
-      "date": "2026-07-27",
-      "category": "monetary-policy",
-      "title": "Fed Decision",
-      "body": "The upcoming Fed decision could significantly impact the portfolio's performance, particularly with the high leverage exposure. A rate hike or cut could lead to increased market volatility.",
-      "bull": "A dovish Fed decision could boost the portfolio's value, especially with the high tech holdings.",
-      "base": "A neutral Fed decision would likely result in minimal changes to the portfolio's value.",
-      "bear": "A hawkish Fed decision could lead to a decline in the portfolio's value, especially with the high leverage exposure."
-    },
-    {
-      "date": "2026-07-27",
-      "category": "inflation",
-      "title": "Inflation Concerns",
-      "body": "The recent inflation data suggests a potential surge in prices, which could impact the overall economy and the portfolio's performance. However, the current inflation concerns are relatively low compared to other macro themes.",
-      "bull": "A low inflation environment could lead to a boost in the portfolio's value, especially with the high tech holdings.",
-      "base": "A moderate inflation environment would likely result in minimal changes to the portfolio's value.",
-      "bear": "A high inflation environment could lead to a decline in the portfolio's value, especially with the high leverage exposure."
-    },
-    {
-      "date": "2026-07-24",
-      "category": "credit",
-      "title": "Credit Market Tightening",
-      "body": "The credit market is showing signs of tightening, with interest rates rising and credit spreads widening. This could have a limited impact on the portfolio, given its focus on equities and lack of direct credit exposure.",
-      "bull": "If the credit market continues to tighten, the portfolio's holdings could see a minimal impact, but the overall market sentiment could be affected.",
-      "base": "The credit market tightening could have a limited impact on the portfolio, given its diversified holdings.",
-      "bear": "If the credit market tightening accelerates, the portfolio's holdings could see a decline in value, but the impact would likely be limited."
     }
   ],
   "risk_history": [
-    "Leverage Amplification Risk",
+    "Leverage Decay Risk",
     "FX Exposure Risk",
     "Earnings Concentration Risk",
-    "Leverage Decay Risk",
+    "Leverage Amplification Risk",
     "FX Drag Risk",
     "Sector Overlap Risk",
     "Single-Stock Risk"

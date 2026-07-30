@@ -1,272 +1,272 @@
 {
   "macro": [
     {
-      "title": "Fed Hold Impact",
-      "category": "monetary-policy",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "The Fed's decision to hold rates steady may lead to increased market volatility, affecting the portfolio's leveraged positions. This could result in amplified gains or losses, depending on the market's direction.",
-      "bull": "If the market reacts positively, the portfolio's 3x leveraged ETFs could see significant gains.",
-      "bull_estimate": "+$35,000-$50,000 via FNGU/SPXL 3x leverage",
-      "bull_probability": 40,
-      "base": "The market may grind higher, resulting in minimal net change to the portfolio.",
-      "base_estimate": "±$5,000",
-      "base_probability": 30,
-      "bear": "If the market reacts negatively, the portfolio's 3x leveraged ETFs could see significant losses.",
-      "bear_estimate": "-$45,000-$65,000 via 3x ETF amplification",
-      "bear_probability": 30
-    },
-    {
-      "title": "US-Iran Tensions",
-      "category": "geopolitical",
+      "title": "FX Volatility",
+      "category": "fx",
       "impact": "MED",
-      "confidence": 70,
-      "body": "The recent escalation of US-Iran tensions could lead to increased volatility in the markets, affecting the portfolio's oil-related holdings.",
-      "bull": "If the tensions ease, the portfolio's energy holdings could see gains.",
-      "bull_estimate": "+$5,000-$10,000",
-      "bull_probability": 30,
-      "base": "The tensions may have a minimal impact on the portfolio.",
+      "confidence": 80,
+      "body": "The recent fluctuations in the USD/CAD exchange rate could significantly impact the portfolio's value. As 68% of the portfolio is denominated in USD, a strong US dollar could lead to a decrease in the portfolio's value when converted to CAD.",
+      "bull": "A weakening US dollar could lead to an increase in the portfolio's value.",
+      "bull_estimate": "+$10,000-$15,000",
+      "bull_probability": 40,
+      "base": "A stable USD/CAD exchange rate would have a minimal impact on the portfolio.",
       "base_estimate": "±$1,000",
-      "base_probability": 40,
-      "bear": "If the tensions escalate, the portfolio's energy holdings could see losses.",
-      "bear_estimate": "-$10,000-$15,000",
+      "base_probability": 30,
+      "bear": "A strong US dollar could lead to a decrease in the portfolio's value.",
+      "bear_estimate": "-$12,000-$18,000",
       "bear_probability": 30
     },
     {
-      "title": "Global Economic Slowdown",
-      "category": "macro-economic",
+      "title": "Credit Market Trends",
+      "category": "credit",
       "impact": "LOW",
       "confidence": 60,
-      "body": "A global economic slowdown could lead to decreased investor confidence, negatively impacting the portfolio's growth-oriented holdings.",
-      "bull": "If the slowdown is mild, the portfolio's growth holdings could see minimal impact.",
-      "bull_estimate": "±$2,000",
-      "bull_probability": 40,
-      "base": "The slowdown may lead to a moderate decline in the portfolio's growth holdings.",
-      "base_estimate": "-$5,000-$10,000",
-      "base_probability": 30,
-      "bear": "If the slowdown is severe, the portfolio's growth holdings could see significant losses.",
-      "bear_estimate": "-$15,000-$25,000",
-      "bear_probability": 30
+      "body": "The current credit market trends could impact the portfolio's holdings in the financial sector. However, the portfolio's exposure to the financial sector is relatively small, at 10%.",
+      "bull": "An improvement in credit market trends could lead to an increase in the value of the portfolio's financial sector holdings.",
+      "bull_estimate": "+$2,000-$3,000",
+      "bull_probability": 20,
+      "base": "The current credit market trends are unlikely to have a significant impact on the portfolio.",
+      "base_estimate": "±$500",
+      "base_probability": 60,
+      "bear": "A deterioration in credit market trends could lead to a decrease in the value of the portfolio's financial sector holdings.",
+      "bear_estimate": "-$3,000-$5,000",
+      "bear_probability": 20
+    },
+    {
+      "title": "Sector Rotation",
+      "category": "macro-economic",
+      "impact": "MED",
+      "confidence": 70,
+      "body": "The recent market trends suggest a rotation from tech to other sectors. This could impact the portfolio's tech holdings, which make up 20% of the portfolio.",
+      "bull": "A continued rotation into tech could lead to an increase in the value of the portfolio's tech holdings.",
+      "bull_estimate": "+$15,000-$20,000",
+      "bull_probability": 35,
+      "base": "The sector rotation is unlikely to have a significant impact on the portfolio.",
+      "base_estimate": "±$2,000",
+      "base_probability": 40,
+      "bear": "A rotation out of tech could lead to a decrease in the value of the portfolio's tech holdings.",
+      "bear_estimate": "-$10,000-$15,000",
+      "bear_probability": 25
     }
   ],
   "risks": [
     {
-      "title": "Leverage Amplification Risk",
+      "title": "Leverage Decay Risk",
       "level": "HIGH",
-      "context": "49% of portfolio ~ $135K CAD",
-      "body": "The portfolio's high leverage exposure amplifies both gains and losses, making it vulnerable to significant market fluctuations."
+      "context": "49% of the portfolio is invested in leveraged ETFs, which amplifies both gains and losses.",
+      "body": "The portfolio's leverage could lead to significant losses if the market declines. The 3x leverage amplifies the S&P/NASDAQ/Dow both ways, increasing the potential for large losses."
     },
     {
       "title": "FX Exposure Risk",
       "level": "MED",
-      "context": "68% USD exposure",
-      "body": "The portfolio's significant USD exposure makes it susceptible to FX fluctuations, which could impact the portfolio's value."
+      "context": "68% of the portfolio is denominated in USD, which exposes the portfolio to FX risk.",
+      "body": "The portfolio's FX exposure could lead to losses if the USD/CAD exchange rate fluctuates. A strong US dollar could decrease the portfolio's value when converted to CAD."
     },
     {
       "title": "Earnings Concentration Risk",
       "level": "LOW",
-      "context": "Tech sector holdings",
-      "body": "The portfolio's concentration in the tech sector makes it vulnerable to earnings disappointments or sector-specific downturns."
+      "context": "The portfolio has a significant concentration of tech stocks, which could be impacted by earnings reports.",
+      "body": "The portfolio's tech holdings could be impacted by earnings reports, which could lead to a decrease in value if the reports are disappointing."
     }
   ],
   "news": [
     {
-      "headline": "Samsung Electronics Beats Estimates",
-      "impact": "MED",
-      "confidence": 80,
+      "headline": "Nvidia Beats Earnings Estimates",
+      "impact": "HIGH",
+      "confidence": 90,
       "category": "Sector & Stock",
-      "body": "Samsung Electronics' strong quarterly results could positively impact the portfolio's holdings in the tech sector, particularly AVGO.",
-      "exposure": "AVGO ~ $10K CAD",
+      "body": "Nvidia's earnings beat could lead to an increase in the value of the portfolio's NVDA holdings.",
+      "exposure": "NVDA ~$20,000 CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 40,
-          "scenario": "The portfolio's tech holdings see gains due to the positive earnings report.",
-          "estimate": "+$2,000-$5,000"
+          "probability": 50,
+          "scenario": "Nvidia's earnings beat leads to a increase in the value of the portfolio's NVDA holdings.",
+          "estimate": "+$5,000-$10,000"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "The earnings report has a minimal impact on the portfolio.",
+          "scenario": "Nvidia's earnings beat has a minimal impact on the portfolio.",
           "estimate": "±$1,000"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "The earnings report is not enough to offset broader market declines.",
+          "probability": 20,
+          "scenario": "Nvidia's earnings beat is followed by a decline in the value of the portfolio's NVDA holdings.",
           "estimate": "-$3,000-$5,000"
         }
       ]
     },
     {
-      "headline": "Tesla Delivered 480,126 Vehicles",
-      "impact": "LOW",
-      "confidence": 60,
+      "headline": "Tesla's Six-Day Losing Streak",
+      "impact": "MED",
+      "confidence": 80,
       "category": "Sector & Stock",
-      "body": "Tesla's vehicle delivery numbers could have a minimal impact on the portfolio's holdings in TSLA.",
-      "exposure": "TSLA ~ $5K CAD",
+      "body": "Tesla's losing streak could lead to a decrease in the value of the portfolio's TSLA holdings.",
+      "exposure": "TSLA ~$10,000 CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 30,
-          "scenario": "The delivery numbers positively impact the portfolio's TSLA holdings.",
+          "scenario": "Tesla's losing streak is followed by a rebound in the value of the portfolio's TSLA holdings.",
+          "estimate": "+$2,000-$5,000"
+        },
+        {
+          "label": "Base",
+          "probability": 40,
+          "scenario": "Tesla's losing streak has a minimal impact on the portfolio.",
+          "estimate": "±$1,000"
+        },
+        {
+          "label": "Bear",
+          "probability": 30,
+          "scenario": "Tesla's losing streak continues, leading to a decrease in the value of the portfolio's TSLA holdings.",
+          "estimate": "-$3,000-$5,000"
+        }
+      ]
+    },
+    {
+      "headline": "Shell's Record Profit",
+      "impact": "LOW",
+      "confidence": 70,
+      "category": "Sector & Stock",
+      "body": "Shell's record profit could lead to an increase in the value of the portfolio's SHEL holdings.",
+      "exposure": "SHEL ~$5,000 CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 20,
+          "scenario": "Shell's record profit leads to an increase in the value of the portfolio's SHEL holdings.",
           "estimate": "+$1,000-$2,000"
         },
         {
           "label": "Base",
-          "probability": 40,
-          "scenario": "The delivery numbers have a minimal impact on the portfolio.",
+          "probability": 60,
+          "scenario": "Shell's record profit has a minimal impact on the portfolio.",
           "estimate": "±$500"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "The delivery numbers are not enough to offset broader market declines.",
-          "estimate": "-$2,000-$3,000"
-        }
-      ]
-    },
-    {
-      "headline": "Microsoft Cloud Services Surpass $100B",
-      "impact": "MED",
-      "confidence": 80,
-      "category": "Sector & Stock",
-      "body": "Microsoft's strong cloud services growth could positively impact the portfolio's holdings in MSFT.",
-      "exposure": "MSFT ~ $8K CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 40,
-          "scenario": "The portfolio's MSFT holdings see gains due to the strong cloud services growth.",
-          "estimate": "+$2,000-$5,000"
-        },
-        {
-          "label": "Base",
-          "probability": 30,
-          "scenario": "The cloud services growth has a minimal impact on the portfolio.",
-          "estimate": "±$1,000"
-        },
-        {
-          "label": "Bear",
-          "probability": 30,
-          "scenario": "The cloud services growth is not enough to offset broader market declines.",
-          "estimate": "-$3,000-$5,000"
+          "probability": 20,
+          "scenario": "Shell's record profit is followed by a decline in the value of the portfolio's SHEL holdings.",
+          "estimate": "-$1,000-$2,000"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "AMD",
+      "ticker": "ENPH",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "AMD's strong position in the AI chip market, combined with its recent partnerships, makes it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $70-$80"
+      "thesis": "Enphase Energy is a leading provider of solar energy solutions, and its stock has been trending upwards. The company's strong financials and growing demand for renewable energy make it an attractive addition to the portfolio.",
+      "entry": "Entry price range: $200-$250"
     },
     {
-      "ticker": "GOOGL",
+      "ticker": "SQ",
       "action": "WATCH",
       "account": "Investment",
-      "thesis": "GOOGL's dominance in the tech sector, combined with its strong earnings growth, makes it a potential addition to the portfolio.",
-      "entry": "Monitor for entry on a pullback to $2,500-$2,800"
+      "thesis": "Square is a leading provider of payment solutions, and its stock has been trending upwards. The company's strong financials and growing demand for digital payments make it an attractive potential addition to the portfolio.",
+      "entry": "Monitor for entry on a pullback to $150-$200"
     },
     {
-      "ticker": "BABA",
+      "ticker": "CRON",
       "action": "SPECULATIVE",
       "account": "RRSP",
-      "thesis": "BABA's growth potential in the Chinese e-commerce market, combined with its recent partnerships, makes it a speculative addition to the portfolio.",
-      "entry": "Entry price range: $100-$120"
+      "thesis": "Cronos Group is a leading provider of cannabis products, and its stock has been trending upwards. The company's strong financials and growing demand for cannabis products make it an attractive speculative addition to the portfolio.",
+      "entry": "Entry price range: $5-$10"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "The portfolio's high growth potential due to its tech sector holdings"
-    },
-    {
-      "ticker": "NVDA",
-      "text": "NVDA's strong position in the AI chip market"
-    },
-    {
-      "ticker": "MSFT",
-      "text": "MSFT's dominant position in the cloud services market"
-    },
-    {
-      "ticker": "TSM",
-      "text": "TSM's strong growth potential in the semiconductor market"
+      "text": "The portfolio has a strong foundation in tech stocks, with a significant holding in NVDA."
     },
     {
       "ticker": null,
-      "text": "The portfolio's tax-efficient structure due to the use of RRSP and TFSA accounts"
+      "text": "The portfolio has a diversified mix of sectors, including tech, finance, and energy."
+    },
+    {
+      "ticker": null,
+      "text": "The portfolio has a significant amount of cash available for investment, which could be used to take advantage of market opportunities."
+    },
+    {
+      "ticker": null,
+      "text": "The portfolio's use of leveraged ETFs provides the potential for amplified returns."
+    },
+    {
+      "ticker": null,
+      "text": "The portfolio's tax-efficient structure, with a focus on RRSP and TFSA accounts, helps to minimize tax liabilities."
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "The portfolio's high leverage exposure"
-    },
-    {
-      "ticker": "TSLA",
-      "text": "TSLA's high volatility and potential for significant losses"
-    },
-    {
-      "ticker": "GBTC",
-      "text": "GBTC's high volatility and potential for significant losses"
-    },
-    {
-      "ticker": "BYDDF",
-      "text": "BYDDF's high volatility and potential for significant losses"
+      "text": "The portfolio's high concentration of tech stocks makes it vulnerable to sector-specific downturns."
     },
     {
       "ticker": null,
-      "text": "The portfolio's concentration in the tech sector"
+      "text": "The portfolio's use of leveraged ETFs increases the potential for significant losses if the market declines."
+    },
+    {
+      "ticker": null,
+      "text": "The portfolio's FX exposure could lead to losses if the USD/CAD exchange rate fluctuates."
+    },
+    {
+      "ticker": null,
+      "text": "The portfolio's lack of diversification in certain sectors, such as healthcare and consumer staples, makes it vulnerable to sector-specific downturns."
+    },
+    {
+      "ticker": null,
+      "text": "The portfolio's high-risk tolerance may not be suitable for all market conditions, and may lead to significant losses if the market declines."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's leverage exposure and adjust as needed to maintain a risk-neutral position"
+      "text": "Monitor the portfolio's leverage and adjust as needed to minimize potential losses."
     },
     {
       "num": "02",
-      "text": "Keep a close eye on the tech sector and adjust the portfolio's holdings as needed to maintain a balanced position"
+      "text": "Consider adding to the portfolio's cash position to take advantage of potential market opportunities."
     },
     {
       "num": "03",
-      "text": "Consider adding a small position in a dividend-paying stock to reduce the portfolio's volatility"
+      "text": "Review the portfolio's sector allocation and consider rebalancing to minimize sector-specific risks."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to build the portfolio's position in the tech sector, focusing on high-growth companies with strong earnings potential"
+      "text": "Consider adding to the portfolio's holdings in the energy sector, which has been trending upwards."
     },
     {
       "num": "02",
-      "text": "Consider adding a small position in a real estate investment trust (REIT) to diversify the portfolio's holdings"
+      "text": "Review the portfolio's tax-efficient structure and consider making adjustments to minimize tax liabilities."
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's tax efficiency and adjust as needed to minimize tax liabilities"
+      "text": "Monitor the portfolio's FX exposure and consider making adjustments to minimize potential losses."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Continue to focus on long-term growth and wealth creation, rather than short-term gains"
+      "text": "Consider adding to the portfolio's holdings in the tech sector, which has been trending upwards."
     },
     {
       "num": "02",
-      "text": "Consider adding a small position in a socially responsible investment (SRI) to align the portfolio with the investor's values"
+      "text": "Review the portfolio's long-term goals and consider making adjustments to the investment strategy to achieve them."
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's risk profile and adjust as needed to maintain a balanced position"
+      "text": "Monitor the portfolio's overall performance and consider making adjustments to the investment strategy as needed."
     }
   ],
-  "daily_outlook": "The portfolio is well-positioned for long-term growth, but may experience short-term volatility due to its high leverage exposure and concentration in the tech sector. Monitor the portfolio's holdings and adjust as needed to maintain a risk-neutral position.",
-  "market_mood": "risk-on",
-  "generated_at": "2026-07-30T06:00:55.530971+00:00",
+  "daily_outlook": "The portfolio's outlook is neutral, with a focus on monitoring the market and adjusting the investment strategy as needed. The portfolio's high-risk tolerance and use of leveraged ETFs make it vulnerable to significant losses if the market declines, but also provide the potential for amplified returns.",
+  "market_mood": "neutral",
+  "generated_at": "2026-07-30T12:48:43.055262+00:00",
   "generated_date": "July 30, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": [],
@@ -275,16 +275,16 @@
       "date": "2026-07-30",
       "themes": [
         {
-          "category": "monetary-policy",
-          "title": "Fed Hold Impact"
+          "category": "fx",
+          "title": "FX Volatility"
         },
         {
-          "category": "geopolitical",
-          "title": "US-Iran Tensions"
+          "category": "credit",
+          "title": "Credit Market Trends"
         },
         {
           "category": "macro-economic",
-          "title": "Global Economic Slowdown"
+          "title": "Sector Rotation"
         }
       ]
     },
@@ -394,6 +394,33 @@
   "macro_history": [
     {
       "date": "2026-07-30",
+      "category": "fx",
+      "title": "FX Volatility",
+      "body": "The recent fluctuations in the USD/CAD exchange rate could significantly impact the portfolio's value. As 68% of the portfolio is denominated in USD, a strong US dollar could lead to a decrease in the portfolio's value when converted to CAD.",
+      "bull": "A weakening US dollar could lead to an increase in the portfolio's value.",
+      "base": "A stable USD/CAD exchange rate would have a minimal impact on the portfolio.",
+      "bear": "A strong US dollar could lead to a decrease in the portfolio's value."
+    },
+    {
+      "date": "2026-07-30",
+      "category": "credit",
+      "title": "Credit Market Trends",
+      "body": "The current credit market trends could impact the portfolio's holdings in the financial sector. However, the portfolio's exposure to the financial sector is relatively small, at 10%.",
+      "bull": "An improvement in credit market trends could lead to an increase in the value of the portfolio's financial sector holdings.",
+      "base": "The current credit market trends are unlikely to have a significant impact on the portfolio.",
+      "bear": "A deterioration in credit market trends could lead to a decrease in the value of the portfolio's financial sector holdings."
+    },
+    {
+      "date": "2026-07-30",
+      "category": "macro-economic",
+      "title": "Sector Rotation",
+      "body": "The recent market trends suggest a rotation from tech to other sectors. This could impact the portfolio's tech holdings, which make up 20% of the portfolio.",
+      "bull": "A continued rotation into tech could lead to an increase in the value of the portfolio's tech holdings.",
+      "base": "The sector rotation is unlikely to have a significant impact on the portfolio.",
+      "bear": "A rotation out of tech could lead to a decrease in the value of the portfolio's tech holdings."
+    },
+    {
+      "date": "2026-07-30",
       "category": "monetary-policy",
       "title": "Fed Hold Impact",
       "body": "The Fed's decision to hold rates steady may lead to increased market volatility, affecting the portfolio's leveraged positions. This could result in amplified gains or losses, depending on the market's direction.",
@@ -439,39 +466,12 @@
     },
     {
       "date": "2026-07-29",
-      "category": "credit",
-      "title": "Credit Market Trends",
-      "body": "The current credit market trends could impact the portfolio's holdings in the financial sector, particularly the leveraged ETFs. A tightening of credit conditions could lead to higher borrowing costs, affecting the overall economy.",
-      "bull": "A loosening of credit conditions could lead to increased borrowing and spending, benefiting the portfolio's leveraged positions.",
-      "base": "The current credit market trends could lead to a stable credit environment, resulting in a neutral impact on the portfolio.",
-      "bear": "A significant tightening of credit conditions could lead to a market downturn, negatively impacting the portfolio's performance."
-    },
-    {
-      "date": "2026-07-29",
-      "category": "macro-economic",
-      "title": "Sector Rotation",
-      "body": "The recent market trends suggest a rotation from tech to other sectors, which could impact the portfolio's performance. The tech sector has been a significant contributor to the portfolio's gains, and a rotation away from tech could lead to a decrease in the portfolio's value.",
-      "bull": "A continued rotation into tech could lead to further gains for the portfolio, benefiting from the sector's growth.",
-      "base": "The current sector rotation could lead to a neutral impact on the portfolio, as the gains in other sectors offset the losses in tech.",
-      "bear": "A significant rotation away from tech could lead to a decrease in the portfolio's value, negatively impacting the portfolio's performance."
-    },
-    {
-      "date": "2026-07-29",
       "category": "inflation",
       "title": "Inflation Expectations",
       "body": "The recent inflation data suggests a potential surge in prices, which could impact the portfolio's performance. As the Canadian economy is heavily influenced by the US, any changes in US inflation expectations could have a ripple effect on the Canadian market.",
       "bull": "A moderate increase in inflation could lead to higher interest rates, which might positively impact the portfolio's fixed income holdings.",
       "base": "A stable inflation rate would likely result in a neutral impact on the portfolio.",
       "bear": "A high inflation rate could lead to decreased purchasing power and lower returns on investments."
-    },
-    {
-      "date": "2026-07-29",
-      "category": "fx",
-      "title": "FX Volatility",
-      "body": "The recent fluctuations in the USD/CAD exchange rate could significantly impact the portfolio's value, particularly given its 68% USD exposure.",
-      "bull": "A strengthening CAD could lead to higher returns on USD-denominated investments.",
-      "base": "A stable exchange rate would likely result in a minimal impact on the portfolio.",
-      "bear": "A weakening CAD could lead to lower returns on USD-denominated investments."
     },
     {
       "date": "2026-07-28",
@@ -529,10 +529,10 @@
     }
   ],
   "risk_history": [
-    "Leverage Amplification Risk",
+    "Leverage Decay Risk",
     "FX Exposure Risk",
     "Earnings Concentration Risk",
-    "Leverage Decay Risk",
+    "Leverage Amplification Risk",
     "FX Drag Risk",
     "Sector Overlap Risk",
     "Single-Stock Risk"

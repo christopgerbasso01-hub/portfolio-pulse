@@ -1,51 +1,51 @@
 {
   "macro": [
     {
-      "title": "FX Volatility",
-      "category": "fx",
-      "impact": "MED",
-      "confidence": 80,
-      "body": "The recent fluctuations in the USD/CAD exchange rate could significantly impact the portfolio's value. As the portfolio has a significant portion of its holdings in USD, any changes in the exchange rate could result in gains or losses.",
-      "bull": "A strengthening CAD could lead to losses in the portfolio's USD holdings.",
-      "bull_estimate": "-$10,000-$15,000",
-      "bull_probability": 30,
-      "base": "A stable USD/CAD exchange rate would have a minimal impact on the portfolio.",
-      "base_estimate": "±$1,000",
-      "base_probability": 40,
-      "bear": "A weakening CAD could lead to gains in the portfolio's USD holdings.",
-      "bear_estimate": "+$12,000-$18,000",
-      "bear_probability": 30
-    },
-    {
-      "title": "Global Economic Slowdown",
-      "category": "macro-economic",
-      "impact": "HIGH",
-      "confidence": 90,
-      "body": "A global economic slowdown could lead to decreased investor confidence, negatively impacting the portfolio's value. The portfolio's holdings in leveraged ETFs and tech stocks could be particularly affected.",
-      "bull": "A slowdown could lead to a decrease in interest rates, boosting the portfolio's holdings.",
-      "bull_estimate": "+$15,000-$20,000",
-      "bull_probability": 20,
-      "base": "A slowdown would likely lead to a decrease in the portfolio's value.",
-      "base_estimate": "-$10,000-$15,000",
-      "base_probability": 50,
-      "bear": "A severe slowdown could lead to a significant decline in the portfolio's value.",
-      "bear_estimate": "-$25,000-$30,000",
-      "bear_probability": 30
-    },
-    {
-      "title": "Sector Rotation",
-      "category": "equity-sectors",
+      "title": "Credit Market Shifts",
+      "category": "credit",
       "impact": "MED",
       "confidence": 70,
-      "body": "The recent market trends suggest a rotation from tech to other sectors. This could impact the portfolio's holdings in tech stocks.",
-      "bull": "A rotation into tech could boost the portfolio's holdings.",
-      "bull_estimate": "+$8,000-$12,000",
-      "bull_probability": 25,
-      "base": "A rotation out of tech could lead to a decrease in the portfolio's value.",
-      "base_estimate": "-$5,000-$8,000",
-      "base_probability": 50,
-      "bear": "A severe rotation out of tech could lead to a significant decline in the portfolio's value.",
-      "bear_estimate": "-$15,000-$20,000",
+      "body": "The recent trends in the credit market could lead to increased volatility in the financial sector, affecting the portfolio's holdings in Canadian banks such as CM.TO and RY.TO. A shift in credit market conditions may impact the creditworthiness of borrowers and, in turn, affect the portfolio's exposure to the financial sector.",
+      "bull": "A stable credit market could lead to increased investor confidence, positively impacting the portfolio's financial sector holdings.",
+      "bull_estimate": "+$10,000-$15,000 via CM.TO and RY.TO",
+      "bull_probability": 40,
+      "base": "The credit market is expected to remain relatively stable, with minimal impact on the portfolio's financial sector holdings.",
+      "base_estimate": "±$2,000",
+      "base_probability": 30,
+      "bear": "A downturn in the credit market could lead to decreased investor confidence, negatively impacting the portfolio's financial sector holdings.",
+      "bear_estimate": "-$15,000-$20,000 via CM.TO and RY.TO",
+      "bear_probability": 30
+    },
+    {
+      "title": "Corporate Debt",
+      "category": "corporate",
+      "impact": "LOW",
+      "confidence": 60,
+      "body": "The current corporate debt landscape may lead to increased scrutiny of companies' balance sheets, potentially affecting the portfolio's holdings in tech companies such as NVDA and MSFT. However, the impact is expected to be minimal.",
+      "bull": "A decrease in corporate debt could lead to increased investor confidence, positively impacting the portfolio's tech sector holdings.",
+      "bull_estimate": "+$5,000-$10,000 via NVDA and MSFT",
+      "bull_probability": 35,
+      "base": "The corporate debt landscape is expected to remain relatively stable, with minimal impact on the portfolio's tech sector holdings.",
+      "base_estimate": "±$1,000",
+      "base_probability": 40,
+      "bear": "An increase in corporate debt could lead to decreased investor confidence, negatively impacting the portfolio's tech sector holdings.",
+      "bear_estimate": "-$10,000-$15,000 via NVDA and MSFT",
+      "bear_probability": 25
+    },
+    {
+      "title": "Regulatory Environment",
+      "category": "regulatory",
+      "impact": "MED",
+      "confidence": 80,
+      "body": "The current regulatory environment may lead to increased scrutiny of companies' practices, potentially affecting the portfolio's holdings in various sectors. A change in regulations could impact the portfolio's exposure to certain industries.",
+      "bull": "A favorable regulatory environment could lead to increased investor confidence, positively impacting the portfolio's holdings.",
+      "bull_estimate": "+$15,000-$25,000 via various holdings",
+      "bull_probability": 45,
+      "base": "The regulatory environment is expected to remain relatively stable, with minimal impact on the portfolio's holdings.",
+      "base_estimate": "±$5,000",
+      "base_probability": 30,
+      "bear": "An unfavorable regulatory environment could lead to decreased investor confidence, negatively impacting the portfolio's holdings.",
+      "bear_estimate": "-$20,000-$30,000 via various holdings",
       "bear_probability": 25
     }
   ],
@@ -53,220 +53,213 @@
     {
       "title": "Leverage Amplification Risk",
       "level": "HIGH",
-      "context": "49% of portfolio (~ $135K CAD)",
-      "body": "The portfolio's holdings in leveraged ETFs (FNGU, SPXL, UDOW) amplify both gains and losses. A significant market downturn could result in substantial losses."
+      "context": "49% of portfolio (~ $135K CAD) in leveraged ETFs",
+      "body": "The portfolio's significant exposure to leveraged ETFs, such as FNGU and SPXL, amplifies both gains and losses. A market downturn could result in substantial losses due to the 3x leverage."
     },
     {
-      "title": "FX Drag Risk",
+      "title": "FX Exposure Risk",
       "level": "MED",
-      "context": "68% of portfolio in USD",
-      "body": "The portfolio's significant holdings in USD could result in losses due to a strengthening CAD. This could offset gains in the portfolio's USD holdings."
+      "context": "68% USD exposure (~ $180K CAD) with a FX book of 1.3925",
+      "body": "The portfolio's significant USD exposure, combined with the current FX rate, may result in losses if the CAD strengthens against the USD."
     },
     {
-      "title": "Earnings Concentration Risk",
-      "level": "MED",
-      "context": "20% of portfolio in tech stocks (NVDA, TXF.TO, AVGO, TSM, MSFT, AAPL, QCOM, MSTR)",
-      "body": "The portfolio's significant holdings in tech stocks could result in losses if the tech sector experiences a downturn. This could be exacerbated by the portfolio's leverage."
+      "title": "Sector Overlap Risk",
+      "level": "LOW",
+      "context": "Multiple holdings in the tech sector (NVDA, MSFT, AAPL, etc.)",
+      "body": "The portfolio's concentration in the tech sector may result in increased volatility if the sector experiences a downturn."
     }
   ],
   "news": [
     {
-      "headline": "Tesla Weighs Sale of China Business",
+      "headline": "Andy Jassy Soothes Amazon AI Concerns",
       "impact": "MED",
-      "confidence": 80,
+      "confidence": 70,
       "category": "Sector & Stock",
-      "body": "Tesla's potential sale of its China business could impact the portfolio's holding in TSLA. This could result in a decrease in the stock's value.",
-      "exposure": "TSLA ~ $10K CAD",
+      "body": "Amazon's CEO, Andy Jassy, has addressed concerns over the company's AI spending, which may positively impact the tech sector and the portfolio's holdings in NVDA and MSFT.",
+      "exposure": "NVDA ~$20K CAD, MSFT ~$15K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 20,
-          "scenario": "Tesla's sale of its China business could lead to an increase in the stock's value.",
-          "estimate": "+$2,000-$3,000"
+          "probability": 40,
+          "scenario": "The tech sector experiences a rally due to increased investor confidence in AI spending.",
+          "estimate": "+$8,000-$12,000 via NVDA and MSFT"
         },
         {
           "label": "Base",
-          "probability": 50,
-          "scenario": "The sale could lead to a decrease in the stock's value.",
-          "estimate": "-$1,500-$2,500"
+          "probability": 30,
+          "scenario": "The tech sector remains relatively stable, with minimal impact on the portfolio's holdings.",
+          "estimate": "±$2,000"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "The sale could lead to a significant decline in the stock's value.",
-          "estimate": "-$3,500-$5,000"
+          "scenario": "The tech sector experiences a downturn due to decreased investor confidence in AI spending.",
+          "estimate": "-$10,000-$15,000 via NVDA and MSFT"
         }
       ]
     },
     {
-      "headline": "Microsoft Wins Back Jim Cramer's Support",
+      "headline": "Fintech Broker Offers Pre-IPO Access to Databricks",
       "impact": "LOW",
       "confidence": 60,
       "category": "Sector & Stock",
-      "body": "Microsoft's recent quarterly results could lead to an increase in the stock's value. This could positively impact the portfolio's holding in MSFT.",
-      "exposure": "MSFT ~ $5K CAD",
+      "body": "The fintech broker's offer of pre-IPO access to Databricks may indicate increased interest in the AI sector, potentially positively impacting the portfolio's holdings in NVDA and MSFT.",
+      "exposure": "NVDA ~$20K CAD, MSFT ~$15K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 30,
-          "scenario": "Microsoft's stock could increase in value.",
-          "estimate": "+$1,000-$2,000"
+          "probability": 35,
+          "scenario": "The AI sector experiences a rally due to increased investor interest.",
+          "estimate": "+$5,000-$10,000 via NVDA and MSFT"
         },
         {
           "label": "Base",
           "probability": 40,
-          "scenario": "The stock's value could remain stable.",
-          "estimate": "±$500"
+          "scenario": "The AI sector remains relatively stable, with minimal impact on the portfolio's holdings.",
+          "estimate": "±$1,000"
         },
         {
           "label": "Bear",
-          "probability": 30,
-          "scenario": "The stock's value could decrease.",
-          "estimate": "-$1,000-$2,000"
+          "probability": 25,
+          "scenario": "The AI sector experiences a downturn due to decreased investor interest.",
+          "estimate": "-$8,000-$12,000 via NVDA and MSFT"
         }
       ]
     },
     {
-      "headline": "IBM CEO Says Quantum Computing Will Have Measurable Impact",
-      "impact": "LOW",
-      "confidence": 50,
+      "headline": "Microsoft Shares Surge",
+      "impact": "MED",
+      "confidence": 75,
       "category": "Sector & Stock",
-      "body": "IBM's announcement could lead to an increase in the stock's value. This could positively impact the portfolio's potential future holdings in the tech sector.",
-      "exposure": "None",
+      "body": "Microsoft's surging shares may indicate increased investor confidence in the tech sector, potentially positively impacting the portfolio's holdings in MSFT and NVDA.",
+      "exposure": "MSFT ~$15K CAD, NVDA ~$20K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 25,
-          "scenario": "IBM's stock could increase in value.",
-          "estimate": "+$1,000-$2,000"
+          "probability": 45,
+          "scenario": "The tech sector experiences a rally due to increased investor confidence.",
+          "estimate": "+$10,000-$15,000 via MSFT and NVDA"
         },
         {
           "label": "Base",
-          "probability": 50,
-          "scenario": "The announcement could have a minimal impact on the portfolio.",
-          "estimate": "±$500"
+          "probability": 30,
+          "scenario": "The tech sector remains relatively stable, with minimal impact on the portfolio's holdings.",
+          "estimate": "±$3,000"
         },
         {
           "label": "Bear",
           "probability": 25,
-          "scenario": "The announcement could lead to a decrease in the stock's value.",
-          "estimate": "-$1,000-$2,000"
+          "scenario": "The tech sector experiences a downturn due to decreased investor confidence.",
+          "estimate": "-$12,000-$18,000 via MSFT and NVDA"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "SHEL",
-      "action": "ADD",
-      "account": "RRSP",
-      "thesis": "Shell's recent earnings call and presentation suggest a stable outlook for the company. The portfolio could benefit from adding a stable energy stock.",
-      "entry": "Entry price range: $20-$25"
-    },
-    {
-      "ticker": "IBKR",
-      "action": "WATCH",
-      "account": "Investment",
-      "thesis": "Interactive Brokers' recent news and market trends suggest a potential increase in the stock's value. The portfolio could benefit from monitoring the stock for a potential entry point.",
-      "entry": "Monitor for entry point"
-    },
-    {
-      "ticker": "LYV",
+      "ticker": "DATAB",
       "action": "NEW",
       "account": "RRSP",
-      "thesis": "Live Nation Entertainment's recent earnings call and presentation suggest a strong outlook for the company. The portfolio could benefit from adding a new position in the stock.",
-      "entry": "Entry price range: $50-$60"
+      "thesis": "Databricks' AI-focused platform may experience increased demand due to the growing interest in AI, making it a potential addition to the portfolio.",
+      "entry": "Monitor for IPO or pre-IPO access"
+    },
+    {
+      "ticker": "CRWD",
+      "action": "ADD",
+      "account": "Investment",
+      "thesis": "CrowdStrike's cybersecurity solutions may experience increased demand due to the growing need for AI-powered security, making it a potential addition to the portfolio.",
+      "entry": "Entry price range: $150-$200"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "The portfolio's significant holdings in USD could result in gains if the CAD weakens."
-    },
-    {
-      "ticker": "FNGU",
-      "text": "The portfolio's holding in FNGU provides exposure to the tech sector and could result in significant gains if the sector experiences an upturn."
+      "text": "Diversified portfolio with a mix of tech, financial, and other sector holdings"
     },
     {
       "ticker": "NVDA",
-      "text": "The portfolio's holding in NVDA provides a strong foundation for the tech sector and could result in significant gains if the company's stock increases in value."
+      "text": "Strong growth potential in the AI sector"
     },
     {
       "ticker": "MSFT",
-      "text": "The portfolio's holding in MSFT provides a stable foundation for the tech sector and could result in significant gains if the company's stock increases in value."
+      "text": "Established player in the tech sector with a diverse range of products and services"
+    },
+    {
+      "ticker": "CM.TO",
+      "text": "Stable Canadian bank with a strong track record of performance"
     },
     {
       "ticker": null,
-      "text": "The portfolio's tax-efficient structure could result in significant savings over the long term."
+      "text": "Tax-efficient portfolio structure with a mix of RRSP and Investment accounts"
     }
   ],
   "concerns": [
     {
-      "ticker": "TSLA",
-      "text": "The portfolio's holding in TSLA could result in significant losses if the company's stock decreases in value."
-    },
-    {
-      "ticker": "FNGU",
-      "text": "The portfolio's holding in FNGU could result in significant losses if the tech sector experiences a downturn."
-    },
-    {
       "ticker": null,
-      "text": "The portfolio's significant holdings in USD could result in losses if the CAD strengthens."
+      "text": "High leverage exposure via FNGU and SPXL"
     },
     {
       "ticker": "NVDA",
-      "text": "The portfolio's holding in NVDA could result in significant losses if the company's stock decreases in value."
+      "text": "Concentration risk in the tech sector"
+    },
+    {
+      "ticker": "MSFT",
+      "text": "Dependence on a few key products and services"
+    },
+    {
+      "ticker": "CM.TO",
+      "text": "Exposure to the Canadian banking sector"
     },
     {
       "ticker": null,
-      "text": "The portfolio's leverage could result in significant losses if the market experiences a downturn."
+      "text": "FX exposure risk due to USD-denominated holdings"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's holdings in USD and consider rebalancing if the CAD strengthens."
+      "text": "Monitor FNGU and SPXL for potential rebalancing opportunities"
     },
     {
       "num": "02",
-      "text": "Consider adding a new position in the energy sector to diversify the portfolio."
+      "text": "Keep an eye on the tech sector for potential additions or adjustments"
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's leverage and consider reducing it if the market experiences a downturn."
+      "text": "Review the portfolio's FX exposure and consider hedging strategies"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Consider adding a new position in the tech sector to take advantage of potential growth."
+      "text": "Consider adding more diversification to the portfolio via international holdings"
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's holdings in the financial sector and consider rebalancing if the sector experiences a downturn."
+      "text": "Monitor the regulatory environment for potential impacts on the portfolio's holdings"
     },
     {
       "num": "03",
-      "text": "Consider adding a new position in the healthcare sector to diversify the portfolio."
+      "text": "Review the portfolio's sector allocation and consider adjustments"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Consider adding a new position in the renewable energy sector to take advantage of potential long-term growth."
+      "text": "Consider adding more long-term growth potential to the portfolio via holdings in emerging sectors"
     },
     {
       "num": "02",
-      "text": "Monitor the portfolio's holdings in the tech sector and consider rebalancing if the sector experiences a downturn."
+      "text": "Monitor the portfolio's tax efficiency and consider adjustments to minimize tax liabilities"
     },
     {
       "num": "03",
-      "text": "Consider adding a new position in the consumer staples sector to diversify the portfolio."
+      "text": "Review the portfolio's overall risk profile and consider adjustments to maintain an optimal risk-return balance"
     }
   ],
-  "daily_outlook": "The portfolio's outlook is neutral, with potential for gains in the tech sector and losses in the energy sector. Monitor the portfolio's holdings and consider rebalancing as needed.",
-  "market_mood": "neutral",
-  "generated_at": "2026-07-31T13:00:59.172814+00:00",
+  "daily_outlook": "The portfolio is expected to remain relatively stable, with potential opportunities for growth in the tech sector. However, the high leverage exposure and FX risk require close monitoring.",
+  "market_mood": "risk-on",
+  "generated_at": "2026-07-31T20:01:00.663730+00:00",
   "generated_date": "July 31, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": [],
@@ -275,16 +268,16 @@
       "date": "2026-07-31",
       "themes": [
         {
-          "category": "fx",
-          "title": "FX Volatility"
+          "category": "credit",
+          "title": "Credit Market Shifts"
         },
         {
-          "category": "macro-economic",
-          "title": "Global Economic Slowdown"
+          "category": "corporate",
+          "title": "Corporate Debt"
         },
         {
-          "category": "equity-sectors",
-          "title": "Sector Rotation"
+          "category": "regulatory",
+          "title": "Regulatory Environment"
         }
       ]
     },
@@ -394,6 +387,33 @@
   "macro_history": [
     {
       "date": "2026-07-31",
+      "category": "credit",
+      "title": "Credit Market Shifts",
+      "body": "The recent trends in the credit market could lead to increased volatility in the financial sector, affecting the portfolio's holdings in Canadian banks such as CM.TO and RY.TO. A shift in credit market conditions may impact the creditworthiness of borrowers and, in turn, affect the portfolio's exposure to the financial sector.",
+      "bull": "A stable credit market could lead to increased investor confidence, positively impacting the portfolio's financial sector holdings.",
+      "base": "The credit market is expected to remain relatively stable, with minimal impact on the portfolio's financial sector holdings.",
+      "bear": "A downturn in the credit market could lead to decreased investor confidence, negatively impacting the portfolio's financial sector holdings."
+    },
+    {
+      "date": "2026-07-31",
+      "category": "corporate",
+      "title": "Corporate Debt",
+      "body": "The current corporate debt landscape may lead to increased scrutiny of companies' balance sheets, potentially affecting the portfolio's holdings in tech companies such as NVDA and MSFT. However, the impact is expected to be minimal.",
+      "bull": "A decrease in corporate debt could lead to increased investor confidence, positively impacting the portfolio's tech sector holdings.",
+      "base": "The corporate debt landscape is expected to remain relatively stable, with minimal impact on the portfolio's tech sector holdings.",
+      "bear": "An increase in corporate debt could lead to decreased investor confidence, negatively impacting the portfolio's tech sector holdings."
+    },
+    {
+      "date": "2026-07-31",
+      "category": "regulatory",
+      "title": "Regulatory Environment",
+      "body": "The current regulatory environment may lead to increased scrutiny of companies' practices, potentially affecting the portfolio's holdings in various sectors. A change in regulations could impact the portfolio's exposure to certain industries.",
+      "bull": "A favorable regulatory environment could lead to increased investor confidence, positively impacting the portfolio's holdings.",
+      "base": "The regulatory environment is expected to remain relatively stable, with minimal impact on the portfolio's holdings.",
+      "bear": "An unfavorable regulatory environment could lead to decreased investor confidence, negatively impacting the portfolio's holdings."
+    },
+    {
+      "date": "2026-07-31",
       "category": "fx",
       "title": "FX Volatility",
       "body": "The recent fluctuations in the USD/CAD exchange rate could significantly impact the portfolio's value. As the portfolio has a significant portion of its holdings in USD, any changes in the exchange rate could result in gains or losses.",
@@ -499,42 +519,15 @@
       "bull": "A steady rate could lead to increased investor confidence, boosting the portfolio's value.",
       "base": "The rate hold may not significantly impact the portfolio, with markets continuing to grind higher.",
       "bear": "A rate hold could lead to decreased investor confidence, negatively impacting the portfolio's value."
-    },
-    {
-      "date": "2026-07-29",
-      "category": "geopolitical",
-      "title": "US-Iran Sanctions",
-      "body": "The new US-Iran sanctions could lead to increased tensions and market volatility, affecting the portfolio's performance.",
-      "bull": "A resolution to the tensions could lead to increased investor confidence, boosting the portfolio's value.",
-      "base": "The sanctions may not significantly impact the portfolio, with markets continuing to grind higher.",
-      "bear": "Escalating tensions could lead to decreased investor confidence, negatively impacting the portfolio's value."
-    },
-    {
-      "date": "2026-07-29",
-      "category": "inflation",
-      "title": "Inflation Expectations",
-      "body": "The recent inflation data suggests a potential surge in prices, which could impact the portfolio's performance. As the Canadian economy is heavily influenced by the US, any changes in US inflation expectations could have a ripple effect on the Canadian market.",
-      "bull": "A moderate increase in inflation could lead to higher interest rates, which might positively impact the portfolio's fixed income holdings.",
-      "base": "A stable inflation rate would likely result in a neutral impact on the portfolio.",
-      "bear": "A high inflation rate could lead to decreased purchasing power and lower returns on investments."
-    },
-    {
-      "date": "2026-07-28",
-      "category": "commodities",
-      "title": "Commodity Price Volatility",
-      "body": "The potential El Niño event could lead to increased global warming, affecting commodity prices. However, the impact on the portfolio is expected to be limited, as it does not have significant exposure to commodity-related stocks.",
-      "bull": "If commodity prices increase, the portfolio's energy stocks, such as ENB.TO, may benefit.",
-      "base": "The commodity price volatility may not have a significant impact on the portfolio.",
-      "bear": "If commodity prices decline, the portfolio's energy stocks may be affected negatively."
     }
   ],
   "risk_history": [
     "Leverage Amplification Risk",
+    "FX Exposure Risk",
+    "Sector Overlap Risk",
     "FX Drag Risk",
     "Earnings Concentration Risk",
-    "FX Exposure Risk",
     "Leverage Decay Risk",
-    "Single-Stock Risk",
-    "Sector Overlap Risk"
+    "Single-Stock Risk"
   ]
 }

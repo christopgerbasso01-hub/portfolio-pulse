@@ -34,6 +34,7 @@ KV_URL        = os.environ.get("KV_REST_API_URL", "")
 KV_TOKEN      = os.environ.get("KV_REST_API_TOKEN", "")
 CRON_SECRET   = os.environ.get("CRON_SECRET", "")
 VAPID_PRIVATE = os.environ.get("VAPID_PRIVATE_KEY", "")
+FMP_API_KEY   = os.environ.get("FMP_API_KEY", "")   # dividend payment dates
 VAPID_SUBJECT = "mailto:noreply@portfoliopulse.app"
 
 # Thresholds

@@ -2593,36 +2593,24 @@ function _applyTodayToCharts(totalValue, roiPct, dailyChange, snapAccts) {
   let mvIdx = mvLabels.indexOf(today);
   if (mvIdx < 0) mvIdx = mvLabels.indexOf(monthKey);
 
-  // 'all' view:     ds 0=Total MV, 1=Contributions, 2=TFSA, 3=Investment, 4=FHSA, 5=RRSP
-  // account view:   ds 0=Account MV, 1=Contributions  (no per-account datasets present)
-  const MV_DS = { TFSA: 2, Investment: 3, FHSA: 4, RRSP: 5 };
+  // This chart always has exactly two datasets: 0=Market Value, 1=Contributions.
 
   // Live contribution total for current filter — always reflects CONTRIB_STATE, never stale
   const _liveContrib = _fAcct
     ? Math.round(CONTRIB_STATE[_fAcct] || 0)
     : Math.round(CONTRIB_TOTAL());
 
+  // Only datasets 0 (Market Value) and 1 (Contributions) are drawn on this chart —
+  // per-account lines are reached via the filter buttons, not overlaid here.
   if (mvIdx >= 0) {
     mvLabels[mvIdx] = today;
     portfolioValueChart.data.datasets[0].data[mvIdx] = _mvForDs0;
     if (portfolioValueChart.data.datasets[1])
       portfolioValueChart.data.datasets[1].data[mvIdx] = _liveContrib;
-    if (!_fAcct) { // per-account datasets only exist in 'all' view
-      Object.entries(MV_DS).forEach(([acct, dsIdx]) => {
-        if (portfolioValueChart.data.datasets[dsIdx])
-          portfolioValueChart.data.datasets[dsIdx].data[mvIdx] = snapAccts[acct] || null;
-      });
-    }
   } else {
     mvLabels.push(today);
     portfolioValueChart.data.datasets[0].data.push(_mvForDs0);
     if (portfolioValueChart.data.datasets[1]) portfolioValueChart.data.datasets[1].data.push(_liveContrib);
-    if (!_fAcct) { // per-account datasets only exist in 'all' view
-      Object.entries(MV_DS).forEach(([acct, dsIdx]) => {
-        if (portfolioValueChart.data.datasets[dsIdx])
-          portfolioValueChart.data.datasets[dsIdx].data.push(snapAccts[acct] || null);
-      });
-    }
   }
   portfolioValueChart.update('none');
 
@@ -4092,8 +4080,7 @@ async function mergeKvChartData() {
     };
     // Dataset indices in roiChart: 0=All, 1=TFSA, 2=Investment, 3=FHSA, 4=RRSP
     const ROI_DS = { all: 0, TFSA: 1, Investment: 2, FHSA: 3, RRSP: 4 };
-    // Dataset indices in portfolioValueChart for per-account lines: 0=Total, 1=Contrib, 2=TFSA, 3=Inv, 4=FHSA, 5=RRSP
-    const MV_DS  = { all: 0, TFSA: 2, Investment: 3, FHSA: 4, RRSP: 5 };
+    // portfolioValueChart only ever has 0=Market Value, 1=Contributions.
 
     let addedMv = 0, addedRoi = 0;
     // Today's value is always injected live by _applyTodayToCharts — skip all current-month
@@ -4139,10 +4126,9 @@ async function mergeKvChartData() {
         if (snapshotContrib > 0) cData[idx] = snapshotContrib;
         else if (cData[idx] == null) cData[idx] = idx > 0 ? cData[idx - 1] : 0;  // forward-fill
 
-        if (accts.TFSA)       _ensureDS(portfolioValueChart, MV_DS.TFSA,       '#10b981', 'TFSA')[idx]    = accts.TFSA;
-        if (accts.Investment) _ensureDS(portfolioValueChart, MV_DS.Investment, '#94a3b8', 'Non-Reg')[idx] = accts.Investment;
-        if (accts.FHSA)       _ensureDS(portfolioValueChart, MV_DS.FHSA,       '#a78bfa', 'FHSA')[idx]    = accts.FHSA;
-        if (accts.RRSP)       _ensureDS(portfolioValueChart, MV_DS.RRSP,       '#fbbf24', 'RRSP')[idx]    = accts.RRSP;
+        // No per-account datasets here: the portfolio value chart shows only the
+        // solid Market Value line and the dotted Contributions line. Per-account
+        // values are reached via the account filter buttons instead.
         addedMv++;
       }
 
@@ -4351,12 +4337,10 @@ function setChartFilter(key, btn) {
     ...lineDef('#64748b', 'Contributions', cAligned),
     borderDash: [4, 4],
   };
-  // Hide per-account sub-datasets (2+) in single-account views — they're created by
-  // mergeKvChartData for the 'all' view and must not appear as stale extra lines
-  // when a specific account is selected.
-  portfolioValueChart.data.datasets.forEach((ds, idx) => {
-    if (idx >= 2) ds.hidden = (key !== 'all');
-  });
+  // This chart shows exactly two series in every view — the solid Market Value line
+  // and the dotted Contributions line. Per-account values are reached via the filter
+  // buttons above, never overlaid as extra dotted lines.
+  portfolioValueChart.data.datasets.length = 2;
   portfolioValueChart.update();
   document.getElementById('mvChartTitle').textContent = `Portfolio Market Value — ${l}`;
 

@@ -1,12 +1,17 @@
 /**
  * Portfolio Pulse — Service Worker
  * Strategy:
- *   App shell (HTML/fonts/libraries) → Cache-first, update in background
- *   API calls (/api/*) → Network-first, fall back to last cached response
- *   Icons / manifest → Cache-first
+ *   HTML documents        → Network-first, fall back to cache (offline only)
+ *   API calls (/api/*)    → Network-first, fall back to last cached response
+ *   Static assets / icons → Cache-first, update in background
+ *
+ * NOTE: HTML must NOT be cache-first. index.html carries all the app's JS
+ * inline, so a cache-first document response pins the user to the previously
+ * deployed build — a new deploy would only appear on the load *after* the
+ * next one, and a hard refresh does not bypass the service worker.
  */
 
-const CACHE     = 'portfolio-pulse-v78';
+const CACHE     = 'portfolio-pulse-v79';
 const API_CACHE = 'portfolio-pulse-api-v27';
 
 const APP_SHELL = [
@@ -61,6 +66,23 @@ self.addEventListener('fetch', e => {
           return resp;
         })
         .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // HTML documents: network-first. The cached copy is an offline fallback only,
+  // never the primary response — otherwise a fresh deploy stays invisible.
+  if (request.mode === 'navigate' || request.destination === 'document') {
+    e.respondWith(
+      fetch(request)
+        .then(resp => {
+          if (resp.ok) {
+            const clone = resp.clone();
+            caches.open(CACHE).then(c => c.put(request, clone));
+          }
+          return resp;
+        })
+        .catch(() => caches.match(request).then(r => r || caches.match('/')))
     );
     return;
   }

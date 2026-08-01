@@ -769,26 +769,42 @@ class handler(BaseHTTPRequestHandler):
                 except Exception as exc:
                     res["yahoo_quoteSummary"] = {"error": str(exc)[:100]}
 
-            # 2. FMP legacy path (what the scan currently calls)
+            # 2. FMP — does the stable endpoint return FUTURE (announced) rows?
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             for label, url, params in (
-                ("fmp_legacy",
-                 f"https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/{t}",
-                 {"apikey": FMP_API_KEY}),
                 ("fmp_stable",
                  "https://financialmodelingprep.com/stable/dividends",
                  {"symbol": t, "apikey": FMP_API_KEY}),
+                ("fmp_calendar",
+                 "https://financialmodelingprep.com/stable/dividends-calendar",
+                 {"from": today, "to": "2026-12-31", "apikey": FMP_API_KEY}),
             ):
                 try:
                     r = requests.get(url, params=params, timeout=12)
-                    txt = r.text[:160]
-                    n = 0
-                    if r.ok:
-                        j = r.json()
-                        n = len(j.get("historical", []) if isinstance(j, dict) else j)
-                    res[label] = {"http": r.status_code, "rows": n,
-                                  "body": None if n else txt}
+                    if not r.ok:
+                        res[label] = {"http": r.status_code, "body": r.text[:110]}
+                        continue
+                    j = r.json()
+                    rows = j.get("historical", []) if isinstance(j, dict) else j
+                    if label == "fmp_calendar":
+                        rows = [x for x in rows if x.get("symbol") == t]
+                    fut = [x for x in rows if (x.get("date") or "") >= today]
+                    res[label] = {"http": 200, "rows": len(rows), "future": len(fut),
+                                  "sample": (fut or rows)[:1]}
                 except Exception as exc:
                     res[label] = {"error": str(exc)[:100]}
+
+            # 3. Nasdaq public API — free, no key, US listings only
+            try:
+                ac = "etf" if t in ("SPXL", "UDOW", "TXF.TO") else "stocks"
+                r = requests.get(f"https://api.nasdaq.com/api/quote/{t}/dividends",
+                                 params={"assetclass": ac}, headers=ua, timeout=12)
+                d = (r.json() or {}).get("data") or {}
+                rows = (d.get("dividends") or {}).get("rows") or []
+                res["nasdaq"] = {"http": r.status_code, "next_ex": d.get("exDividendDate"),
+                                 "rows": len(rows), "sample": rows[:1]}
+            except Exception as exc:
+                res["nasdaq"] = {"error": str(exc)[:100]}
             out["sources"][t] = res
 
         self._respond(200, {"ok": True, "probe": out})

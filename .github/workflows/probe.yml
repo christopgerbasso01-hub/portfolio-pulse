@@ -6,5 +6,5 @@ jobs:
     steps:
       - run: |
           curl -s -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json" -d '{"action":"probe"}' \
+            -H "Content-Type: application/json" -d '{"action":"probe","tickers":["AAPL","MSFT","COST","V","AVGO","QCOM","IBKR","NVDA","MU","TSM","SHEL","ET","KGS","SPXL","UDOW","CM.TO","RY.TO","BMO.TO","ENB.TO","TXF.TO"]}' \
             --max-time 120 https://portfolio-pulse-dun.vercel.app/api/dividends

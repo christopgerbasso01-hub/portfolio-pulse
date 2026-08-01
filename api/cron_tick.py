@@ -70,13 +70,14 @@ def is_rate_limited(tick_type: str) -> bool:
         return False  # If KV fails, allow the call
 
 
-def call_endpoint(path: str) -> dict:
+def call_endpoint(path: str, payload: dict = None, timeout: int = 25) -> dict:
     """Call a Vercel API endpoint with CRON_SECRET auth."""
     headers = {"Content-Type": "application/json"}
     if CRON_SECRET:
         headers["Authorization"] = f"Bearer {CRON_SECRET}"
     try:
-        r = requests.post(f"{BASE_URL}{path}", headers=headers, timeout=25)
+        r = requests.post(f"{BASE_URL}{path}", headers=headers,
+                          json=payload, timeout=timeout)
         return {"status": r.status_code, "body": r.json() if r.ok else r.text[:200]}
     except Exception as exc:
         return {"status": 0, "error": str(exc)}
@@ -109,9 +110,15 @@ class handler(BaseHTTPRequestHandler):
         elif tick_type == "eod":
             snap  = call_endpoint("/api/snapshot")
             notif = call_endpoint("/api/notify")
-            print(f"  [cron_tick] eod snapshot→{snap.get('status')} notify→{notif.get('status')}")
+            # Dividend Autopilot rides along on the daily tick — it only ever
+            # queues entries for manual confirmation, never books anything.
+            # Longer timeout: the scan fans out across ~25 tickers.
+            div = call_endpoint("/api/dividends", {"action": "scan"}, timeout=30)
+            div_n = (div.get("body") or {}).get("detected", 0) if div.get("status") == 200 else "err"
+            print(f"  [cron_tick] eod snapshot→{snap.get('status')} "
+                  f"notify→{notif.get('status')} dividends→{div.get('status')} ({div_n})")
             self._respond(200, {"ok": True, "type": "eod",
-                               "snapshot": snap, "notify": notif})
+                               "snapshot": snap, "notify": notif, "dividends": div})
 
         elif tick_type in ("intelligence", "podcast"):
             # Trigger GitHub Actions workflow dispatch

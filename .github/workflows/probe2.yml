@@ -1,0 +1,19 @@
+name: probe2
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finnhub dividend coverage
+        env:
+          K: ${{ secrets.FINNHUB_API_KEY }}
+        run: |
+          for t in AAPL CM.TO TXF.TO SPXL ENB.TO; do
+            echo "--- $t ---"
+            echo -n "  /stock/dividend : "
+            curl -s "https://finnhub.io/api/v1/stock/dividend?symbol=$t&from=2026-01-01&to=2026-12-31&token=$K" -w " [%{http_code}]" | head -c 220; echo
+            echo -n "  /stock/dividend2: "
+            curl -s "https://finnhub.io/api/v1/stock/dividend2?symbol=$t&token=$K" -w " [%{http_code}]" | head -c 160; echo
+          done
+          echo "--- calendar (all upcoming) ---"
+          curl -s "https://finnhub.io/api/v1/calendar/dividend?from=2026-08-01&to=2026-09-30&token=$K" -w " [%{http_code}]" | head -c 300; echo

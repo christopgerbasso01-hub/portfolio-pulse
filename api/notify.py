@@ -391,14 +391,27 @@ def fetch_dividend_events(ticker: str) -> list:
 
 
 def fetch_payment_dates(ticker: str) -> dict:
-    """{ex_date: payment_date} from FMP. Empty dict when unavailable."""
+    """{ex_date: payment_date} from FMP. Empty dict when unavailable.
+
+    Uses the /stable/dividends endpoint. The old
+    /api/v3/historical-price-full/stock_dividend path now returns 403
+    ("Legacy Endpoint ... no longer supported"), which is why payment dates
+    silently went missing for every ticker.
+
+    Coverage on the current plan is US common stocks only; Canadian (.TO)
+    listings and leveraged ETFs return 402 Premium, so those fall back to the
+    estimated payment date.
+    """
     if not FMP_API_KEY:
         return {}
-    url = f"https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/{ticker}"
     try:
-        r = requests.get(url, params={"apikey": FMP_API_KEY}, timeout=12)
-        r.raise_for_status()
-        rows = r.json().get("historical", []) or []
+        r = requests.get("https://financialmodelingprep.com/stable/dividends",
+                         params={"symbol": ticker, "apikey": FMP_API_KEY}, timeout=12)
+        if not r.ok:                       # 402 = not on plan, 403 = retired path
+            return {}
+        rows = r.json()
+        if isinstance(rows, dict):
+            rows = rows.get("historical", []) or []
     except Exception:
         return {}
     return {row["date"]: row["paymentDate"]
@@ -714,11 +727,7 @@ class handler(BaseHTTPRequestHandler):
             return
 
         action = body.get("action")
-        if action == "probe":
-            if not self._auth():
-                return
-            self._dividends_probe(body)
-        elif action == "scan":
+        if action == "scan":
             if not self._auth():          # scan is cron-only
                 return
             self._dividends_scan(body)
@@ -726,88 +735,6 @@ class handler(BaseHTTPRequestHandler):
             self._dividends_resolve(body, action)
         else:
             self._respond(400, {"error": "action must be scan|confirm|adjust|dismiss"})
-
-    def _dividends_probe(self, body: dict):
-        """TEMPORARY diagnostic: which announced-dividend sources actually work
-        from Vercel's IP with the real keys? Also explains the fmp_ok=0 result.
-        Remove once the calendar's data sources are settled."""
-        tickers = body.get("tickers") or ["AAPL", "CM.TO", "TXF.TO", "SPXL"]
-        ua = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"}
-        out = {"fmp_key_present": bool(FMP_API_KEY), "sources": {}}
-
-        # 1. Yahoo quoteSummary (needs a crumb) — announced next ex/pay date
-        crumb, sess = None, requests.Session()
-        try:
-            sess.get("https://fc.yahoo.com/", headers=ua, timeout=10)
-            c = sess.get("https://query1.finance.yahoo.com/v1/test/getcrumb",
-                         headers=ua, timeout=10)
-            crumb = c.text.strip() if c.ok and len(c.text.strip()) < 30 else None
-            out["yahoo_crumb"] = crumb or f"failed: {c.text[:40]}"
-        except Exception as exc:
-            out["yahoo_crumb"] = f"error: {exc}"
-
-        for t in tickers:
-            res = {}
-            if crumb:
-                try:
-                    r = sess.get(
-                        f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{t}",
-                        params={"modules": "calendarEvents,summaryDetail", "crumb": crumb},
-                        headers=ua, timeout=12)
-                    if r.ok:
-                        q = (r.json().get("quoteSummary") or {}).get("result") or [{}]
-                        ce = q[0].get("calendarEvents") or {}
-                        res["yahoo_quoteSummary"] = {
-                            "http": r.status_code,
-                            "ex":   (ce.get("exDividendDate") or {}).get("fmt"),
-                            "pay":  (ce.get("dividendDate") or {}).get("fmt"),
-                        }
-                    else:
-                        res["yahoo_quoteSummary"] = {"http": r.status_code,
-                                                     "body": r.text[:100]}
-                except Exception as exc:
-                    res["yahoo_quoteSummary"] = {"error": str(exc)[:100]}
-
-            # 2. FMP — does the stable endpoint return FUTURE (announced) rows?
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            for label, url, params in (
-                ("fmp_stable",
-                 "https://financialmodelingprep.com/stable/dividends",
-                 {"symbol": t, "apikey": FMP_API_KEY}),
-                ("fmp_calendar",
-                 "https://financialmodelingprep.com/stable/dividends-calendar",
-                 {"from": today, "to": "2026-12-31", "apikey": FMP_API_KEY}),
-            ):
-                try:
-                    r = requests.get(url, params=params, timeout=12)
-                    if not r.ok:
-                        res[label] = {"http": r.status_code, "body": r.text[:110]}
-                        continue
-                    j = r.json()
-                    rows = j.get("historical", []) if isinstance(j, dict) else j
-                    if label == "fmp_calendar":
-                        rows = [x for x in rows if x.get("symbol") == t]
-                    fut = [x for x in rows if (x.get("date") or "") >= today]
-                    res[label] = {"http": 200, "rows": len(rows), "future": len(fut),
-                                  "sample": (fut or rows)[:1]}
-                except Exception as exc:
-                    res[label] = {"error": str(exc)[:100]}
-
-            # 3. Nasdaq public API — free, no key, US listings only
-            try:
-                ac = "etf" if t in ("SPXL", "UDOW", "TXF.TO") else "stocks"
-                r = requests.get(f"https://api.nasdaq.com/api/quote/{t}/dividends",
-                                 params={"assetclass": ac}, headers=ua, timeout=12)
-                d = (r.json() or {}).get("data") or {}
-                rows = (d.get("dividends") or {}).get("rows") or []
-                res["nasdaq"] = {"http": r.status_code, "next_ex": d.get("exDividendDate"),
-                                 "rows": len(rows), "sample": rows[:1]}
-            except Exception as exc:
-                res["nasdaq"] = {"error": str(exc)[:100]}
-            out["sources"][t] = res
-
-        self._respond(200, {"ok": True, "probe": out})
 
     def _dividends_scan(self, body: dict):
         try:

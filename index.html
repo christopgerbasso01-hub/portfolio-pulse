@@ -4167,11 +4167,30 @@ async function mergeKvChartData() {
       }
     });
 
-    if (addedMv > 0)  portfolioValueChart.update('none');
-    if (addedRoi > 0) roiChart.update('none');
+    // A newly-created "YYYY-MM" label is appended to the end of the array, but
+    // _applyTodayToCharts may have already pushed today's dated point — which would
+    // leave the tail ordered "2026-08-01, 2026-07". Re-sort so the x-axis is always
+    // chronological. ISO labels sort correctly as plain strings, including the
+    // month-vs-day case ("2026-07" < "2026-08" < "2026-08-01").
+    if (addedMv > 0)  { _sortChartChronologically(portfolioValueChart); portfolioValueChart.update('none'); }
+    if (addedRoi > 0) { _sortChartChronologically(roiChart);            roiChart.update('none'); }
   } catch (e) {
     console.warn('[KV charts] fetch failed:', e.message);
   }
+}
+
+// Reorder a chart's labels chronologically, permuting every dataset the same way
+// so all series stay aligned with their label.
+function _sortChartChronologically(chart) {
+  const labels = chart.data.labels;
+  const order  = labels.map((_, i) => i)
+                       .sort((a, b) => (labels[a] < labels[b] ? -1 : labels[a] > labels[b] ? 1 : 0));
+  if (order.every((v, i) => v === i)) return;            // already in order — nothing to do
+  chart.data.labels = order.map(i => labels[i]);
+  chart.data.datasets.forEach(ds => {
+    const d = ds.data;
+    ds.data = order.map(i => (i < d.length ? d[i] : null));
+  });
 }
 
 // Ensure a dataset exists at the given index in a Chart.js chart,

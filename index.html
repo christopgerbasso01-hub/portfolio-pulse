@@ -2574,10 +2574,16 @@ function updateHeaderKPIs(data) {
   }
 }
 
+// Last args passed to _applyTodayToCharts, replayed after a chart rebuild.
+let _lastTodayArgs = null;
+
 // Directly update portfolioValueChart + roiChart with today's live values.
 // Called on every market data refresh — no KV round-trip, no timing dependency.
 function _applyTodayToCharts(totalValue, roiPct, dailyChange, snapAccts) {
   if (typeof portfolioValueChart === 'undefined' || typeof roiChart === 'undefined') return;
+  // Remember the last live values so a chart rebuild (filter switch) can replay them
+  // instead of waiting up to a full refresh interval for today's point to reappear.
+  _lastTodayArgs = [totalValue, roiPct, dailyChange, snapAccts];
   const today    = new Date().toISOString().slice(0, 10); // "2026-06-09"
   const monthKey = today.slice(0, 7);                     // "2026-06"
 
@@ -4057,6 +4063,10 @@ const acctLabels = { all: 'All Accounts', tfsa: 'TFSA', inv: 'Investment', fhsa:
 // and appends them to the portfolio value + ROI charts so they stay
 // current without manual code updates.
 // ============================================================
+// Collapsed KV month-end snapshots, held in memory so ANY chart rebuild can re-apply
+// them. Fetched once by mergeKvChartData; re-applied by setChartFilter on every switch.
+let _KV_MONTH_END = null;   // { "2026-07": snapshotPoint, ... }
+
 async function mergeKvChartData() {
   try {
     const r = await fetch('/api/snapshot');
@@ -4070,99 +4080,111 @@ async function mergeKvChartData() {
       '2026-06-05': { total_value: 269871, roi_pct: 65.94 },
     };
 
-    const existingMvLabels  = new Set(portfolioValueChart.data.labels);
-    const existingRoiLabels = new Set(roiChart.data.labels);
-
-    // Account contributions for ROI calculation (needed for per-account ROI)
-    const contribByAcct = {
-      TFSA: CONTRIB_STATE.TFSA || 44500, Investment: CONTRIB_STATE.Investment || 78000,
-      FHSA: CONTRIB_STATE.FHSA || 24000, RRSP: CONTRIB_STATE.RRSP || 16132,
-    };
-    // Dataset indices in roiChart: 0=All, 1=TFSA, 2=Investment, 3=FHSA, 4=RRSP
-    const ROI_DS = { all: 0, TFSA: 1, Investment: 2, FHSA: 3, RRSP: 4 };
-    // portfolioValueChart only ever has 0=Market Value, 1=Contributions.
-
-    let addedMv = 0, addedRoi = 0;
-    // Today's value is always injected live by _applyTodayToCharts — skip all current-month
-    // snapshots here so they don't race with it and append duplicate date labels.
-    const _thisMonth = new Date().toISOString().slice(0, 7); // "2026-08"
-
     // ── Collapse daily snapshots into ONE locked point per completed month ─────
     // Both charts show: one point per closed month (labelled "YYYY-MM", value locked at
     // that month's close) + a single live point for today appended by _applyTodayToCharts.
     // Within each month we keep the LAST WEEKDAY snapshot, so a month ending on a Sat/Sun
     // locks to the prior Friday's market close.
-    const _monthEnd = {};
+    const _thisMonth = new Date().toISOString().slice(0, 7); // "2026-08"
+    const monthEnd = {};
     pts.forEach(rawPt => {
       if (!rawPt.date) return;
       const mk = rawPt.date.slice(0, 7);
-      if (mk >= _thisMonth) return;                          // current/future month → live point only
+      if (mk >= _thisMonth) return;                        // current/future month → live point only
       const dow = new Date(rawPt.date + 'T12:00:00Z').getUTCDay();
-      if (dow === 0 || dow === 6) return;                    // weekend snapshot → not a market close
-      if (!_monthEnd[mk] || rawPt.date > _monthEnd[mk].date) _monthEnd[mk] = rawPt;
+      if (dow === 0 || dow === 6) return;                  // weekend snapshot → not a market close
+      if (!monthEnd[mk] || rawPt.date > monthEnd[mk].date) monthEnd[mk] = rawPt;
+    });
+    // Fold corrections in once, at collapse time
+    Object.keys(monthEnd).forEach(mk => {
+      const p = monthEnd[mk];
+      if (_KV_CORRECTIONS[p.date]) monthEnd[mk] = Object.assign({}, p, _KV_CORRECTIONS[p.date]);
     });
 
-    Object.keys(_monthEnd).sort().forEach(monthKey => {
-      const rawPt = _monthEnd[monthKey];
-      // Apply correction if this date had a bad KV snapshot
-      const pt = _KV_CORRECTIONS[rawPt.date] ? Object.assign({}, rawPt, _KV_CORRECTIONS[rawPt.date]) : rawPt;
-      const accts = pt.accounts || {};
-
-      // ── Portfolio Value chart ─────────────────────────────────
-      if (pt.total_value) {
-        const acctCost = pt.account_cost || {};
-        const snapshotContrib = Object.values(acctCost).reduce((a, b) => a + b, 0);
-        let idx = portfolioValueChart.data.labels.indexOf(monthKey);
-        if (idx < 0) {
-          portfolioValueChart.data.labels.push(monthKey);
-          idx = portfolioValueChart.data.labels.length - 1;
-          existingMvLabels.add(monthKey);
-        }
-        // Keep every series aligned with the label array before writing at idx
-        portfolioValueChart.data.datasets.forEach(ds => { while (ds.data.length <= idx) ds.data.push(null); });
-
-        portfolioValueChart.data.datasets[0].data[idx] = pt.total_value;
-        const cData = portfolioValueChart.data.datasets[1].data;
-        if (snapshotContrib > 0) cData[idx] = snapshotContrib;
-        else if (cData[idx] == null) cData[idx] = idx > 0 ? cData[idx - 1] : 0;  // forward-fill
-
-        // No per-account datasets here: the portfolio value chart shows only the
-        // solid Market Value line and the dotted Contributions line. Per-account
-        // values are reached via the account filter buttons instead.
-        addedMv++;
-      }
-
-      // ── ROI chart ─────────────────────────────────────────────
-      if (pt.roi_pct != null) {
-        let ridx = roiChart.data.labels.indexOf(monthKey);
-        if (ridx < 0) {
-          roiChart.data.labels.push(monthKey);
-          ridx = roiChart.data.labels.length - 1;
-          existingRoiLabels.add(monthKey);
-        }
-        roiChart.data.datasets.forEach(ds => { while (ds.data.length <= ridx) ds.data.push(null); });
-
-        roiChart.data.datasets[ROI_DS.all].data[ridx] = pt.roi_pct;
-        Object.entries(ROI_DS).forEach(([k, dsIdx]) => {
-          if (k === 'all' || !accts[k]) return;
-          const c = contribByAcct[k];
-          if (c > 0 && roiChart.data.datasets[dsIdx])
-            roiChart.data.datasets[dsIdx].data[ridx] = +((accts[k] - c) / c * 100).toFixed(2);
-        });
-        addedRoi++;
-      }
-    });
-
-    // A newly-created "YYYY-MM" label is appended to the end of the array, but
-    // _applyTodayToCharts may have already pushed today's dated point — which would
-    // leave the tail ordered "2026-08-01, 2026-07". Re-sort so the x-axis is always
-    // chronological. ISO labels sort correctly as plain strings, including the
-    // month-vs-day case ("2026-07" < "2026-08" < "2026-08-01").
-    if (addedMv > 0)  { _sortChartChronologically(portfolioValueChart); portfolioValueChart.update('none'); }
-    if (addedRoi > 0) { _sortChartChronologically(roiChart);            roiChart.update('none'); }
+    _KV_MONTH_END = monthEnd;
+    _applyKvToCharts();
   } catch (e) {
     console.warn('[KV charts] fetch failed:', e.message);
   }
+}
+
+// Apply the collapsed KV month-end snapshots to both charts for the ACTIVE filter.
+// Idempotent and safe to call repeatedly. This MUST run again after every filter switch:
+// setChartFilter rebuilds both charts from the static monthly arrays, which stop at the
+// last hard-coded month, so without re-applying, the recent months silently disappear.
+function _applyKvToCharts() {
+  if (!_KV_MONTH_END) return;
+  if (typeof portfolioValueChart === 'undefined' || typeof roiChart === 'undefined') return;
+
+  const acctKey = { all: null, tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' }[currentFilter] || null;
+  const contribByAcct = {
+    TFSA: CONTRIB_STATE.TFSA || 44500, Investment: CONTRIB_STATE.Investment || 85000,
+    FHSA: CONTRIB_STATE.FHSA || 24000, RRSP: CONTRIB_STATE.RRSP || 16132,
+  };
+  // roiChart datasets in the 'all' view: 0=All, 1=TFSA, 2=Investment, 3=FHSA, 4=RRSP.
+  // In a single-account view setChartFilter leaves only dataset 0.
+  const ROI_DS = { TFSA: 1, Investment: 2, FHSA: 3, RRSP: 4 };
+
+  let touchedMv = 0, touchedRoi = 0;
+
+  Object.keys(_KV_MONTH_END).sort().forEach(monthKey => {
+    const pt       = _KV_MONTH_END[monthKey];
+    const accts    = pt.accounts || {};
+    const acctCost = pt.account_cost || {};
+
+    // ── Portfolio value chart (0=Market Value, 1=Contributions) ──
+    const mvVal = acctKey ? accts[acctKey] : pt.total_value;
+    if (mvVal) {
+      let idx = portfolioValueChart.data.labels.indexOf(monthKey);
+      if (idx < 0) {
+        portfolioValueChart.data.labels.push(monthKey);
+        idx = portfolioValueChart.data.labels.length - 1;
+      }
+      // Keep every series aligned with the label array before writing at idx
+      portfolioValueChart.data.datasets.forEach(ds => { while (ds.data.length <= idx) ds.data.push(null); });
+      portfolioValueChart.data.datasets[0].data[idx] = mvVal;
+
+      const cDs = portfolioValueChart.data.datasets[1];
+      if (cDs) {
+        const cVal = acctKey ? acctCost[acctKey] : Object.values(acctCost).reduce((a, b) => a + b, 0);
+        if (cVal > 0) cDs.data[idx] = cVal;
+        else if (cDs.data[idx] == null) cDs.data[idx] = idx > 0 ? cDs.data[idx - 1] : 0;  // forward-fill
+      }
+      touchedMv++;
+    }
+
+    // ── ROI chart ────────────────────────────────────────────────
+    const roiVal = acctKey
+      ? (contribByAcct[acctKey] > 0 && accts[acctKey] != null
+          ? +((accts[acctKey] - contribByAcct[acctKey]) / contribByAcct[acctKey] * 100).toFixed(2)
+          : null)
+      : pt.roi_pct;
+    if (roiVal != null) {
+      let ridx = roiChart.data.labels.indexOf(monthKey);
+      if (ridx < 0) {
+        roiChart.data.labels.push(monthKey);
+        ridx = roiChart.data.labels.length - 1;
+      }
+      roiChart.data.datasets.forEach(ds => { while (ds.data.length <= ridx) ds.data.push(null); });
+      roiChart.data.datasets[0].data[ridx] = roiVal;
+
+      if (!acctKey) {   // per-account ROI series only exist in the 'all' view
+        Object.entries(ROI_DS).forEach(([k, dsIdx]) => {
+          const c = contribByAcct[k];
+          if (c > 0 && accts[k] != null && roiChart.data.datasets[dsIdx])
+            roiChart.data.datasets[dsIdx].data[ridx] = +((accts[k] - c) / c * 100).toFixed(2);
+        });
+      }
+      touchedRoi++;
+    }
+  });
+
+  // A newly-created "YYYY-MM" label lands at the end of the array, but today's dated
+  // point may already be there — leaving the tail "2026-08-01, 2026-07". Re-sort so the
+  // x-axis is always chronological. ISO labels sort correctly as plain strings,
+  // including the month-vs-day case ("2026-07" < "2026-08" < "2026-08-01").
+  if (touchedMv)  { _sortChartChronologically(portfolioValueChart); portfolioValueChart.update('none'); }
+  if (touchedRoi) { _sortChartChronologically(roiChart);            roiChart.update('none'); }
 }
 
 // Reorder a chart's labels chronologically, permuting every dataset the same way
@@ -4179,18 +4201,8 @@ function _sortChartChronologically(chart) {
   });
 }
 
-// Ensure a dataset exists at the given index in a Chart.js chart,
-// creating hidden per-account line datasets as needed.
-function _ensureDS(chart, idx, color, label) {
-  while (chart.data.datasets.length <= idx) {
-    chart.data.datasets.push({
-      label, borderColor: color, borderWidth: 1.5, pointRadius: 0,
-      fill: false, tension: 0.3, borderDash: [3,3],
-      data: new Array(chart.data.labels.length).fill(null),
-    });
-  }
-  return chart.data.datasets[idx].data;
-}
+// (_ensureDS removed — it existed only to create the per-account dotted lines on the
+//  portfolio value chart, which that chart no longer draws.)
 function _dsPush(chart, idx, val) {
   const ds = chart.data.datasets[idx];
   if (ds) ds.data[ds.data.length - 1] = val;
@@ -4343,6 +4355,12 @@ function setChartFilter(key, btn) {
   portfolioValueChart.data.datasets.length = 2;
   portfolioValueChart.update();
   document.getElementById('mvChartTitle').textContent = `Portfolio Market Value — ${l}`;
+
+  // Both charts were just rebuilt from the static monthly arrays, which stop at the last
+  // hard-coded month. Re-apply the collapsed KV month-end points and replay today's live
+  // values, otherwise switching filters silently drops the most recent months.
+  _applyKvToCharts();
+  if (_lastTodayArgs) _applyTodayToCharts(..._lastTodayArgs);
 
   // ── Cascade filter to pie charts ──────────────────────────
   // Filter holdings to the selected account, then rebuild pies

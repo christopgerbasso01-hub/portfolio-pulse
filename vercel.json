@@ -3,67 +3,86 @@
     {
       "src": "api/market.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 30 }
+      "config": {
+        "maxDuration": 30
+      }
     },
     {
       "src": "api/snapshot.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 30 }
+      "config": {
+        "maxDuration": 30
+      }
     },
     {
       "src": "api/push.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 15 }
+      "config": {
+        "maxDuration": 15
+      }
     },
     {
       "src": "api/notify.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 30 }
+      "config": {
+        "maxDuration": 60
+      }
     },
     {
       "src": "api/intraday.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 30 }
+      "config": {
+        "maxDuration": 30
+      }
     },
     {
       "src": "api/research.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 30 }
+      "config": {
+        "maxDuration": 30
+      }
     },
     {
       "src": "api/watchlist.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 15 }
+      "config": {
+        "maxDuration": 15
+      }
     },
     {
       "src": "api/settings.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 15 }
+      "config": {
+        "maxDuration": 15
+      }
     },
     {
       "src": "api/cron_tick.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 30 }
+      "config": {
+        "maxDuration": 30
+      }
     },
     {
       "src": "api/intelligence.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 10 }
+      "config": {
+        "maxDuration": 10
+      }
     },
     {
       "src": "api/pod_listened.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 15 }
+      "config": {
+        "maxDuration": 15
+      }
     },
     {
       "src": "api/quote.py",
       "use": "@vercel/python",
-      "config": { "maxDuration": 15 }
-    },
-    {
-      "src": "api/dividends.py",
-      "use": "@vercel/python",
-      "config": { "maxDuration": 60 }
+      "config": {
+        "maxDuration": 15
+      }
     },
     {
       "src": "**",
@@ -71,27 +90,75 @@
     }
   ],
   "routes": [
-    { "src": "/api/market",               "dest": "/api/market.py"               },
-    { "src": "/api/snapshot",             "dest": "/api/snapshot.py"             },
-    { "src": "/api/push",                 "dest": "/api/push.py"                 },
-    { "src": "/api/notify",               "dest": "/api/notify.py"               },
-    { "src": "/api/intraday",             "dest": "/api/intraday.py"             },
-    { "src": "/api/research",             "dest": "/api/research.py"             },
-    { "src": "/api/watchlist",            "dest": "/api/watchlist.py"            },
-    { "src": "/api/settings",             "dest": "/api/settings.py"             },
-    { "src": "/api/cron_tick",  "dest": "/api/cron_tick.py"  },
-    { "src": "/api/intelligence",         "dest": "/api/intelligence.py"         },
-    { "src": "/api/pod_listened",         "dest": "/api/pod_listened.py"         },
-    { "src": "/api/quote",                "dest": "/api/quote.py"                },
-    { "src": "/api/dividends",            "dest": "/api/dividends.py"            }
+    {
+      "src": "/api/market",
+      "dest": "/api/market.py"
+    },
+    {
+      "src": "/api/snapshot",
+      "dest": "/api/snapshot.py"
+    },
+    {
+      "src": "/api/push",
+      "dest": "/api/push.py"
+    },
+    {
+      "src": "/api/notify",
+      "dest": "/api/notify.py"
+    },
+    {
+      "src": "/api/intraday",
+      "dest": "/api/intraday.py"
+    },
+    {
+      "src": "/api/research",
+      "dest": "/api/research.py"
+    },
+    {
+      "src": "/api/watchlist",
+      "dest": "/api/watchlist.py"
+    },
+    {
+      "src": "/api/settings",
+      "dest": "/api/settings.py"
+    },
+    {
+      "src": "/api/cron_tick",
+      "dest": "/api/cron_tick.py"
+    },
+    {
+      "src": "/api/intelligence",
+      "dest": "/api/intelligence.py"
+    },
+    {
+      "src": "/api/pod_listened",
+      "dest": "/api/pod_listened.py"
+    },
+    {
+      "src": "/api/quote",
+      "dest": "/api/quote.py"
+    },
+    {
+      "src": "/api/dividends",
+      "dest": "/api/notify.py"
+    }
   ],
   "headers": [
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin",  "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
       ]
     }
   ]

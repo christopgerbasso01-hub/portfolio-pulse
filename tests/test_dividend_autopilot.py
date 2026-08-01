@@ -1,7 +1,7 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'api'))
 os.environ.setdefault('KV_REST_API_URL',''); os.environ.setdefault('KV_REST_API_TOKEN','')
-from dividends import shares_at_ex_date, resolve_rate, score_confidence
+from notify import shares_at_ex_date, resolve_rate, score_confidence
 
 fails = []
 def ck(name, got, want):

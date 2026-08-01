@@ -4097,59 +4097,72 @@ async function mergeKvChartData() {
 
     let addedMv = 0, addedRoi = 0;
     // Today's value is always injected live by _applyTodayToCharts — skip all current-month
-    // snapshots here so they don't race with it and append duplicate June date labels.
-    const _thisMonth = new Date().toISOString().slice(0, 7); // "2026-06"
+    // snapshots here so they don't race with it and append duplicate date labels.
+    const _thisMonth = new Date().toISOString().slice(0, 7); // "2026-08"
 
+    // ── Collapse daily snapshots into ONE locked point per completed month ─────
+    // Both charts show: one point per closed month (labelled "YYYY-MM", value locked at
+    // that month's close) + a single live point for today appended by _applyTodayToCharts.
+    // Within each month we keep the LAST WEEKDAY snapshot, so a month ending on a Sat/Sun
+    // locks to the prior Friday's market close.
+    const _monthEnd = {};
     pts.forEach(rawPt => {
       if (!rawPt.date) return;
-      if (rawPt.date.slice(0, 7) >= _thisMonth) return; // skip current (and any future) month
+      const mk = rawPt.date.slice(0, 7);
+      if (mk >= _thisMonth) return;                          // current/future month → live point only
+      const dow = new Date(rawPt.date + 'T12:00:00Z').getUTCDay();
+      if (dow === 0 || dow === 6) return;                    // weekend snapshot → not a market close
+      if (!_monthEnd[mk] || rawPt.date > _monthEnd[mk].date) _monthEnd[mk] = rawPt;
+    });
+
+    Object.keys(_monthEnd).sort().forEach(monthKey => {
+      const rawPt = _monthEnd[monthKey];
       // Apply correction if this date had a bad KV snapshot
       const pt = _KV_CORRECTIONS[rawPt.date] ? Object.assign({}, rawPt, _KV_CORRECTIONS[rawPt.date]) : rawPt;
-      const monthKey = pt.date.slice(0, 7);
+      const accts = pt.accounts || {};
 
       // ── Portfolio Value chart ─────────────────────────────────
-      if (!existingMvLabels.has(pt.date)) {
+      if (pt.total_value) {
         const acctCost = pt.account_cost || {};
         const snapshotContrib = Object.values(acctCost).reduce((a, b) => a + b, 0);
         let idx = portfolioValueChart.data.labels.indexOf(monthKey);
-        if (idx >= 0 && pt.total_value) {
-          // Replace monthly placeholder with actual daily value
-          portfolioValueChart.data.datasets[0].data[idx] = pt.total_value;
-          // Update contribution line with actual contributions at this date if known
-          if (snapshotContrib > 0) portfolioValueChart.data.datasets[1].data[idx] = snapshotContrib;
-          const accts = pt.accounts || {};
-          if (accts.TFSA)       _ensureDS(portfolioValueChart, MV_DS.TFSA,       '#10b981', 'TFSA')[idx]       = accts.TFSA;
-          if (accts.Investment) _ensureDS(portfolioValueChart, MV_DS.Investment,  '#94a3b8', 'Non-Reg')[idx]    = accts.Investment;
-          if (accts.FHSA)       _ensureDS(portfolioValueChart, MV_DS.FHSA,        '#a78bfa', 'FHSA')[idx]       = accts.FHSA;
-          if (accts.RRSP)       _ensureDS(portfolioValueChart, MV_DS.RRSP,        '#fbbf24', 'RRSP')[idx]       = accts.RRSP;
-          addedMv++;
-        } else if (!existingMvLabels.has(monthKey) && pt.total_value) {
-          portfolioValueChart.data.labels.push(pt.date);
-          portfolioValueChart.data.datasets[0].data.push(pt.total_value);
-          // Use actual contribution total from snapshot; fall back to forward-fill
-          const lastC = portfolioValueChart.data.datasets[1].data.slice(-1)[0] || 0;
-          portfolioValueChart.data.datasets[1].data.push(snapshotContrib || lastC);
-          const accts = pt.accounts || {};
-          [['TFSA','#10b981','TFSA'], ['Investment','#94a3b8','Non-Reg'], ['FHSA','#a78bfa','FHSA'], ['RRSP','#fbbf24','RRSP']].forEach(([k,c,l]) => {
-            _ensureDS(portfolioValueChart, MV_DS[k], c, l).push(accts[k] || null);
-          });
-          existingMvLabels.add(pt.date);
-          addedMv++;
+        if (idx < 0) {
+          portfolioValueChart.data.labels.push(monthKey);
+          idx = portfolioValueChart.data.labels.length - 1;
+          existingMvLabels.add(monthKey);
         }
+        // Keep every series aligned with the label array before writing at idx
+        portfolioValueChart.data.datasets.forEach(ds => { while (ds.data.length <= idx) ds.data.push(null); });
+
+        portfolioValueChart.data.datasets[0].data[idx] = pt.total_value;
+        const cData = portfolioValueChart.data.datasets[1].data;
+        if (snapshotContrib > 0) cData[idx] = snapshotContrib;
+        else if (cData[idx] == null) cData[idx] = idx > 0 ? cData[idx - 1] : 0;  // forward-fill
+
+        if (accts.TFSA)       _ensureDS(portfolioValueChart, MV_DS.TFSA,       '#10b981', 'TFSA')[idx]    = accts.TFSA;
+        if (accts.Investment) _ensureDS(portfolioValueChart, MV_DS.Investment, '#94a3b8', 'Non-Reg')[idx] = accts.Investment;
+        if (accts.FHSA)       _ensureDS(portfolioValueChart, MV_DS.FHSA,       '#a78bfa', 'FHSA')[idx]    = accts.FHSA;
+        if (accts.RRSP)       _ensureDS(portfolioValueChart, MV_DS.RRSP,       '#fbbf24', 'RRSP')[idx]    = accts.RRSP;
+        addedMv++;
       }
 
       // ── ROI chart ─────────────────────────────────────────────
-      if (pt.roi_pct != null && !existingRoiLabels.has(pt.date)) {
-        roiChart.data.labels.push(pt.date);
-        roiChart.data.datasets.forEach(ds => ds.data.push(null));
-        _dsPush(roiChart, ROI_DS.all, pt.roi_pct);
-        const accts = pt.accounts || {};
+      if (pt.roi_pct != null) {
+        let ridx = roiChart.data.labels.indexOf(monthKey);
+        if (ridx < 0) {
+          roiChart.data.labels.push(monthKey);
+          ridx = roiChart.data.labels.length - 1;
+          existingRoiLabels.add(monthKey);
+        }
+        roiChart.data.datasets.forEach(ds => { while (ds.data.length <= ridx) ds.data.push(null); });
+
+        roiChart.data.datasets[ROI_DS.all].data[ridx] = pt.roi_pct;
         Object.entries(ROI_DS).forEach(([k, dsIdx]) => {
           if (k === 'all' || !accts[k]) return;
           const c = contribByAcct[k];
-          if (c > 0) _dsPush(roiChart, dsIdx, +((accts[k] - c) / c * 100).toFixed(2));
+          if (c > 0 && roiChart.data.datasets[dsIdx])
+            roiChart.data.datasets[dsIdx].data[ridx] = +((accts[k] - c) / c * 100).toFixed(2);
         });
-        existingRoiLabels.add(pt.date);
         addedRoi++;
       }
     });

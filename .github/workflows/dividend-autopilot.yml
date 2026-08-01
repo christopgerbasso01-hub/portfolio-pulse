@@ -1,0 +1,37 @@
+name: Dividend Autopilot
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Detect and report only — queue nothing, send no notifications'
+        type: boolean
+        default: false
+
+jobs:
+  detect-dividends:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # Detection runs inside the Vercel function, which is where the KV, FMP
+      # and VAPID credentials live. This job only triggers it.
+      - name: Scan for paid dividends
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"scan","dry_run":${{ inputs.dry_run || false }}}' \
+            --max-time 120 \
+            https://portfolio-pulse-dun.vercel.app/api/dividends)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "Status: $HTTP_CODE"
+          echo "$BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Dividend scan failed with status $HTTP_CODE"
+            exit 1
+          fi

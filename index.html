@@ -468,6 +468,28 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 }
 
 /* ============================  INTELLIGENCE BANNER  ============================ */
+/* ── Dividend Autopilot banner ── */
+.dv-banner{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.28);border-radius:8px;padding:12px 16px;margin-bottom:20px}
+.dv-banner-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.dv-banner-title{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--green)}
+.dv-banner-count{font-family:var(--mono);font-size:10px;background:var(--green);color:#04140d;border-radius:10px;padding:1px 7px;font-weight:700}
+.dv-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--border)}
+.dv-row:first-child{border-top:none}
+.dv-main{flex:1;min-width:200px}
+.dv-tkr{font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text1)}
+.dv-acct{font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:6px}
+.dv-calc{font-size:11px;color:var(--text2);margin-top:2px}
+.dv-amt{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--green);white-space:nowrap}
+.dv-conf{font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:3px;text-transform:uppercase}
+.dv-conf.high{background:rgba(16,185,129,.15);color:var(--green)}
+.dv-conf.medium{background:rgba(251,191,36,.15);color:var(--amber)}
+.dv-conf.low{background:rgba(239,68,68,.15);color:var(--red)}
+.dv-actions{display:flex;gap:6px}
+.dv-btn{font-family:var(--mono);font-size:10px;padding:5px 11px;border-radius:4px;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text2)}
+.dv-btn:hover{border-color:var(--text3);color:var(--text1)}
+.dv-btn.primary{background:var(--green);border-color:var(--green);color:#04140d;font-weight:700}
+.dv-btn.primary:hover{opacity:.85;color:#04140d}
+.dv-note{font-size:10px;color:var(--amber);margin-top:3px}
 .intel-banner{display:flex;align-items:center;justify-content:space-between;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:10px 16px;margin-bottom:20px;font-size:12px}
 .intel-banner-left{display:flex;align-items:center;gap:8px;color:var(--text2)}
 .intel-banner-mood{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px}
@@ -1658,6 +1680,19 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   <div class="intel-banner-outlook" id="intelOutlook"></div>
 </div>
 
+<!-- ================================================================  DIVIDEND AUTOPILOT -->
+<!-- Detected dividends awaiting confirmation. Nothing is booked until the user
+     taps Confirm — Adjust records the true amount and teaches the estimator. -->
+<div id="divAutopilot" style="display:none">
+  <div class="dv-banner">
+    <div class="dv-banner-hdr">
+      <span class="dv-banner-title">◆ Autopilot — dividends to confirm</span>
+      <span class="dv-banner-count" id="dvCount">0</span>
+    </div>
+    <div id="dvList"></div>
+  </div>
+</div>
+
 <!-- ================================================================  TODAY AT A GLANCE -->
 <div class="section" id="secGlance" data-tab="insights">
   <div class="section-header">
@@ -2139,6 +2174,7 @@ const _CLOSED_BASE = [
 const _CASH_BASE = [
   { ticker: 'CASH·USD', account: 'TFSA',       ccy: 'USD', amount: 344.41,  name: 'USD Cash' },
   { ticker: 'CASH·CAD', account: 'FHSA',       ccy: 'CAD', amount: 24.34,   name: 'CAD Cash' },
+  { ticker: 'CASH·USD', account: 'FHSA',       ccy: 'USD', amount: 0,       name: 'USD Cash' },
   { ticker: 'CASH·CAD', account: 'Investment', ccy: 'CAD', amount: 58.99,   name: 'CAD Cash' },
   { ticker: 'CASH·USD', account: 'Investment', ccy: 'USD', amount: 50.71,   name: 'USD Cash' },
   { ticker: 'CASH·USD', account: 'RRSP',       ccy: 'USD', amount: 7685.47, name: 'USD Cash' },
@@ -5809,6 +5845,12 @@ window.addEventListener('DOMContentLoaded', () => {
   // Background transaction sync — picks up logs made on other devices every 30s
   setInterval(syncTransactionsFromKV, 30_000);
 
+  // Dividend Autopilot — show any dividends waiting for confirmation.
+  // Polled slowly: the detector runs once a day, so this only needs to catch
+  // a run that lands while the dashboard is already open.
+  fetchPendingDividends();
+  setInterval(fetchPendingDividends, 10 * 60_000);
+
   // Sync notification bell state on load
   checkNotifStatus();
 
@@ -7591,6 +7633,123 @@ async function submitTx() {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('txPreview').textContent = '✅ Transaction saved.';
+}
+
+// ============================================================
+// DIVIDEND AUTOPILOT — confirm queue
+// The detector (scripts/dividend_autopilot.py) only proposes; nothing reaches
+// the portfolio until confirmed here. Confirm/Adjust book through the SAME
+// DIVIDEND transaction path as manual entry, so there is one booking code path.
+// Adjust also reports the true amount back so the estimator learns the real
+// effective rate for that ticker+account (withholding, ADR fees, FX spread).
+// ============================================================
+let PENDING_DIVIDENDS = [];
+
+async function fetchPendingDividends() {
+  try {
+    const r = await fetch(`${CONFIG.API_BASE}/api/dividends`, { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    PENDING_DIVIDENDS = Array.isArray(d.pending) ? d.pending : [];
+    renderPendingDividends();
+  } catch (e) {
+    console.warn('[autopilot] fetch failed:', e.message);
+  }
+}
+
+function renderPendingDividends() {
+  const wrap = document.getElementById('divAutopilot');
+  const list = document.getElementById('dvList');
+  if (!wrap || !list) return;
+  if (!PENDING_DIVIDENDS.length) { wrap.style.display = 'none'; return; }
+
+  document.getElementById('dvCount').textContent = PENDING_DIVIDENDS.length;
+  list.innerHTML = PENDING_DIVIDENDS.map(p => {
+    const sym  = p.ccy === 'USD' ? '$' : 'C$';
+    const conf = (p.confidence || 'MEDIUM').toLowerCase();
+    const wh   = p.withholding > 0
+      ? ` · less ${(p.withholding * 100).toFixed(0)}% withholding`
+      : '';
+    const basis = p.rate_basis === 'learned' ? ' (learned rate)' : '';
+    const notes = [];
+    if (p.estimated_pay) notes.push('payment date estimated');
+    if (p.anomaly)       notes.push('unusually large — verify before confirming');
+    return `
+      <div class="dv-row">
+        <div class="dv-main">
+          <div>
+            <span class="dv-tkr">${p.ticker}</span>
+            <span class="dv-acct">${p.account}</span>
+            <span class="dv-conf ${conf}">${p.confidence || 'MED'}</span>
+          </div>
+          <div class="dv-calc">${(+p.shares).toLocaleString()} sh × ${sym}${(+p.per_share).toFixed(4)}${wh}${basis} · paid ${p.pay_date}</div>
+          ${notes.length ? `<div class="dv-note">⚠ ${notes.join(' · ')}</div>` : ''}
+        </div>
+        <div class="dv-amt">${sym}${(+p.net_amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div class="dv-actions">
+          <button class="dv-btn primary" onclick="resolveDividend('${p.id}','confirm')">Confirm</button>
+          <button class="dv-btn" onclick="resolveDividend('${p.id}','adjust')">Adjust</button>
+          <button class="dv-btn" onclick="resolveDividend('${p.id}','dismiss')">Dismiss</button>
+        </div>
+      </div>`;
+  }).join('');
+  wrap.style.display = '';
+}
+
+async function resolveDividend(id, action) {
+  const entry = PENDING_DIVIDENDS.find(p => p.id === id);
+  if (!entry) return;
+
+  let actualAmount = +entry.net_amount;
+  if (action === 'adjust') {
+    const sym = entry.ccy === 'USD' ? '$' : 'C$';
+    const inp = prompt(
+      `Actual ${entry.ticker} dividend received in ${entry.account} (${entry.ccy}):\n\n` +
+      `Estimated ${sym}${actualAmount.toFixed(2)} from ${(+entry.shares).toLocaleString()} sh × ${sym}${(+entry.per_share).toFixed(4)}.\n` +
+      `Enter the amount your broker actually credited — this teaches the estimator.`,
+      actualAmount.toFixed(2)
+    );
+    if (inp === null) return;                       // cancelled
+    const parsed = parseFloat(String(inp).replace(/[^0-9.\-]/g, ''));
+    if (!isFinite(parsed) || parsed <= 0) { alert('Enter a positive number.'); return; }
+    actualAmount = parsed;
+  }
+
+  if (action === 'dismiss' &&
+      !confirm(`Dismiss the ${entry.ticker} dividend for ${entry.account}?\n\nIt will not be booked and will not be detected again.`)) {
+    return;
+  }
+
+  // Book it through the normal transaction path (skipped for dismiss)
+  if (action !== 'dismiss') {
+    saveTransaction({
+      type:    'DIVIDEND',
+      date:    entry.pay_date,
+      account: entry.account,
+      ticker:  entry.ticker,
+      amount:  actualAmount,
+      ccy:     entry.ccy,
+      rate:    _lastLiveData?.usdcad || USD_BOOK_RATE,
+      source:  'autopilot',
+    });
+    applyAllTransactions();
+    await refreshAfterTx();
+    if (typeof renderTxHistory === 'function') renderTxHistory();
+  }
+
+  // Resolve server-side: drops it from the queue and records the learned rate
+  try {
+    await fetch(`${CONFIG.API_BASE}/api/dividends`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action, actual_amount: actualAmount }),
+    });
+  } catch (e) {
+    console.warn('[autopilot] resolve failed:', e.message);
+  }
+
+  PENDING_DIVIDENDS = PENDING_DIVIDENDS.filter(p => p.id !== id);
+  renderPendingDividends();
 }
 
 async function undoLastTx() {

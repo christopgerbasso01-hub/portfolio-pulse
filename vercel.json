@@ -61,6 +61,11 @@
       "config": { "maxDuration": 15 }
     },
     {
+      "src": "api/dividends.py",
+      "use": "@vercel/python",
+      "config": { "maxDuration": 60 }
+    },
+    {
       "src": "**",
       "use": "@vercel/static"
     }
@@ -77,7 +82,8 @@
     { "src": "/api/cron_tick",  "dest": "/api/cron_tick.py"  },
     { "src": "/api/intelligence",         "dest": "/api/intelligence.py"         },
     { "src": "/api/pod_listened",         "dest": "/api/pod_listened.py"         },
-    { "src": "/api/quote",                "dest": "/api/quote.py"                }
+    { "src": "/api/quote",                "dest": "/api/quote.py"                },
+    { "src": "/api/dividends",            "dest": "/api/dividends.py"            }
   ],
   "headers": [
     {

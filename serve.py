@@ -1,6 +1,6 @@
 import os, http.server, socketserver
 
-PORT = 3333
+PORT = int(os.environ.get("PORT", 3333))
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 class Handler(http.server.SimpleHTTPRequestHandler):

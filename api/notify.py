@@ -714,7 +714,11 @@ class handler(BaseHTTPRequestHandler):
             return
 
         action = body.get("action")
-        if action == "scan":
+        if action == "probe":
+            if not self._auth():
+                return
+            self._dividends_probe(body)
+        elif action == "scan":
             if not self._auth():          # scan is cron-only
                 return
             self._dividends_scan(body)
@@ -722,6 +726,72 @@ class handler(BaseHTTPRequestHandler):
             self._dividends_resolve(body, action)
         else:
             self._respond(400, {"error": "action must be scan|confirm|adjust|dismiss"})
+
+    def _dividends_probe(self, body: dict):
+        """TEMPORARY diagnostic: which announced-dividend sources actually work
+        from Vercel's IP with the real keys? Also explains the fmp_ok=0 result.
+        Remove once the calendar's data sources are settled."""
+        tickers = body.get("tickers") or ["AAPL", "CM.TO", "TXF.TO", "SPXL"]
+        ua = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"}
+        out = {"fmp_key_present": bool(FMP_API_KEY), "sources": {}}
+
+        # 1. Yahoo quoteSummary (needs a crumb) — announced next ex/pay date
+        crumb, sess = None, requests.Session()
+        try:
+            sess.get("https://fc.yahoo.com/", headers=ua, timeout=10)
+            c = sess.get("https://query1.finance.yahoo.com/v1/test/getcrumb",
+                         headers=ua, timeout=10)
+            crumb = c.text.strip() if c.ok and len(c.text.strip()) < 30 else None
+            out["yahoo_crumb"] = crumb or f"failed: {c.text[:40]}"
+        except Exception as exc:
+            out["yahoo_crumb"] = f"error: {exc}"
+
+        for t in tickers:
+            res = {}
+            if crumb:
+                try:
+                    r = sess.get(
+                        f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{t}",
+                        params={"modules": "calendarEvents,summaryDetail", "crumb": crumb},
+                        headers=ua, timeout=12)
+                    if r.ok:
+                        q = (r.json().get("quoteSummary") or {}).get("result") or [{}]
+                        ce = q[0].get("calendarEvents") or {}
+                        res["yahoo_quoteSummary"] = {
+                            "http": r.status_code,
+                            "ex":   (ce.get("exDividendDate") or {}).get("fmt"),
+                            "pay":  (ce.get("dividendDate") or {}).get("fmt"),
+                        }
+                    else:
+                        res["yahoo_quoteSummary"] = {"http": r.status_code,
+                                                     "body": r.text[:100]}
+                except Exception as exc:
+                    res["yahoo_quoteSummary"] = {"error": str(exc)[:100]}
+
+            # 2. FMP legacy path (what the scan currently calls)
+            for label, url, params in (
+                ("fmp_legacy",
+                 f"https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/{t}",
+                 {"apikey": FMP_API_KEY}),
+                ("fmp_stable",
+                 "https://financialmodelingprep.com/stable/dividends",
+                 {"symbol": t, "apikey": FMP_API_KEY}),
+            ):
+                try:
+                    r = requests.get(url, params=params, timeout=12)
+                    txt = r.text[:160]
+                    n = 0
+                    if r.ok:
+                        j = r.json()
+                        n = len(j.get("historical", []) if isinstance(j, dict) else j)
+                    res[label] = {"http": r.status_code, "rows": n,
+                                  "body": None if n else txt}
+                except Exception as exc:
+                    res[label] = {"error": str(exc)[:100]}
+            out["sources"][t] = res
+
+        self._respond(200, {"ok": True, "probe": out})
 
     def _dividends_scan(self, body: dict):
         try:

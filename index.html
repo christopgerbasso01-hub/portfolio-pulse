@@ -1163,6 +1163,150 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   [data-theme="light"] .refresh-btn,[data-theme="light"] .closed-toggle-btn,[data-theme="light"] .clear-btn{border:1px solid rgba(15,23,42,.12);background:#f1f5f9;}
 }
 
+/* ============================================================================
+   HERO — full-bleed portfolio overview (DESKTOP ONLY)
+
+   The mobile pane (#m-app) is never touched by anything in this block. The
+   base .pp-hero-chart rule below reproduces .chart-container's old geometry so
+   that at <=768px the relocated canvas sizes exactly as it did before — the
+   desktop tree stays rendered (parked off-screen, not display:none) precisely
+   so Chart.js keeps drawing.
+
+   Elements hidden here are hidden on DESKTOP ONLY and remain in the DOM and
+   fully updated: the mobile pane reads .textContent off .header-kpis and
+   #acctBalanceStrip, and display:none does not affect textContent.
+   ============================================================================ */
+.pp-hero-chart{position:relative;height:280px}
+
+@media(min-width:769px){
+  /* — allow the hero to bleed past .container without a horizontal scrollbar.
+       overflow-x:clip (not hidden) does NOT create a scroll container, so the
+       sticky .live-bar keeps working. — */
+  body{overflow-x:clip;}
+
+  /* — wordmark — */
+  .header{background:none;border:none;box-shadow:none;padding:0;margin-bottom:18px;}
+  .header-title{margin-bottom:0;align-items:flex-end;}
+  .header-title h1{font-family:var(--mono);font-size:31px;font-weight:700;letter-spacing:-.01em;line-height:1;}
+  .pp-wordmark-1{color:#f1f5f9;}
+  .pp-wordmark-2{color:var(--cyan);}
+  [data-theme="light"] .pp-wordmark-1{color:#0f172a;}
+  [data-theme="light"] .pp-wordmark-2{color:#0891b2;}
+
+  /* — superseded by the hero; kept in the DOM for the mobile pane — */
+  .header-kpis,.header-kpis-2,#acctBalanceStrip,#sec01>.section-header,#mvChartTitle{display:none !important;}
+  #sec01{background:none;border:none;box-shadow:none;padding:0;overflow:visible;}
+
+  /* — the band itself: edge-to-edge — */
+  .pp-hero{
+    position:relative;
+    width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);
+    min-height:432px;display:flex;flex-direction:column;padding-bottom:12px;
+    /* No surface of its own — the page background reads straight through, so the
+       title, hero and the section below form one continuous field with no rules. */
+    background:transparent;border:none;
+    margin-bottom:0;overflow:hidden;
+  }
+
+  /* Stats claim their natural height, the chart takes everything left over.
+     Flex rather than an absolute inset so a wrapped stat row can never end up
+     underneath the plot line. */
+  .pp-hero-inner{flex:0 0 auto;}
+  .pp-hero-chart{
+    position:relative;z-index:1;flex:1 1 auto;
+    height:auto;min-height:236px;margin:14px 16px 0;
+  }
+
+  /* stats are constrained to the page grid even though the band is not */
+  .pp-hero-inner{
+    position:relative;z-index:3;
+    width:100%;max-width:1400px;margin:0 auto;padding:30px 24px 0;
+  }
+
+  .pp-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:32px;}
+  .pp-hero-label{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--text3);margin-bottom:10px;
+  }
+  .pp-hero-figure{display:flex;align-items:baseline;gap:22px;flex-wrap:wrap;}
+  .pp-hero-value{
+    font-family:var(--mono);font-size:58px;font-weight:700;line-height:.98;
+    color:#f8fafc;letter-spacing:-.02em;
+  }
+  .pp-hero-day{display:flex;flex-direction:column;gap:3px;}
+  .pp-hero-day-abs{font-family:var(--mono);font-size:23px;font-weight:700;line-height:1.1;}
+  .pp-hero-day-pct{font-family:var(--mono);font-size:14px;opacity:.78;}
+
+  .pp-hero-alltime{text-align:right;flex-shrink:0;padding-top:2px;}
+  .pp-hero-alltime .pp-hero-label{margin-bottom:8px;}
+  .pp-hero-pnl{font-family:var(--mono);font-size:23px;font-weight:700;white-space:nowrap;}
+  .pp-hero-sep{color:var(--text3);margin:0 9px;font-weight:400;}
+
+  /* six-across stat row */
+  .pp-hero-stats{
+    display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px 26px;
+    margin-top:26px;
+  }
+  .pp-stat{min-width:0;}
+  .pp-stat-label{
+    font-size:12px;color:var(--text2);margin-bottom:5px;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;
+  }
+  .pp-stat-val{font-family:var(--mono);font-size:19px;font-weight:700;color:#e8eefb;}
+
+  /* tone classes — set by updateHeroStats() */
+  .pp-hero .up{color:var(--green);}
+  .pp-hero .dn{color:var(--red);}
+  .pp-hero .flat{color:var(--text2);}
+
+  /* — account filter row, directly beneath the band — */
+  #chartFilters{
+    max-width:1400px;margin:0 auto;padding:18px 24px 0;gap:10px;
+  }
+  #chartFilters .chart-filter-btn{
+    font-size:12px;letter-spacing:.05em;padding:8px 18px;border-radius:999px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:var(--text2);
+  }
+  #chartFilters .chart-filter-btn:hover{
+    border-color:rgba(0,212,255,.45);color:#cbeefb;background:rgba(0,212,255,.07);
+  }
+  #chartFilters .chart-filter-btn.active{
+    background:var(--cyan);border-color:var(--cyan);color:#04121c;font-weight:700;
+    box-shadow:0 6px 18px -8px rgba(0,212,255,.75);
+  }
+
+  /* the sections that follow resume the normal page grid */
+  #sec01 #marketWidget,#sec01>div:not(.pp-hero):not(#chartFilters){
+    max-width:1400px;margin-left:auto;margin-right:auto;
+  }
+  #sec01 #marketWidget{margin-top:22px;}
+
+  /* ——— LIGHT MODE ——— */
+  [data-theme="light"] .pp-hero{background:transparent;border:none;}
+  [data-theme="light"] .pp-hero::after{
+    background:linear-gradient(180deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.84) 40%,rgba(255,255,255,.38) 78%,transparent 100%);
+  }
+  [data-theme="light"] .pp-hero-value{color:#0f172a;}
+  [data-theme="light"] .pp-stat-val{color:#1e293b;}
+  [data-theme="light"] #chartFilters .chart-filter-btn{
+    background:#f1f5f9;border:1px solid rgba(15,23,42,.12);color:var(--text2);
+  }
+  [data-theme="light"] #chartFilters .chart-filter-btn:hover{
+    border-color:rgba(8,145,178,.5);color:#0e7490;background:rgba(8,145,178,.08);
+  }
+  [data-theme="light"] #chartFilters .chart-filter-btn.active{
+    background:#0891b2;border-color:#0891b2;color:#ffffff;
+    box-shadow:0 6px 18px -8px rgba(8,145,178,.6);
+  }
+}
+
+/* — narrower desktops: let the six stats wrap to two rows — */
+@media(min-width:769px) and (max-width:1180px){
+  .pp-hero-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 20px;}
+  .pp-hero-value{font-size:46px;}
+  .pp-hero{min-height:472px;}
+}
+
 </style>
 </head>
 <body>
@@ -1197,7 +1341,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 <!-- ================================================================  HEADER -->
 <div class="header">
   <div class="header-title">
-    <h1>⚡ PORTFOLIO PULSE — LIVE INVESTMENT DASHBOARD</h1>
+    <h1><span class="pp-wordmark-1">PORTFOLIO</span><span class="pp-wordmark-2">PULSE</span></h1>
     <div class="header-meta">
       <div class="header-date" id="headerDate">Loading...</div>
     </div>
@@ -1280,6 +1424,60 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════════════════════════════════
+       HERO — full-bleed portfolio overview.
+       Figures are account-aware: every value below reflects the active
+       #chartFilters button. Populated by updateHeroStats(); no element here
+       is read by the mobile pane (#m-app), which continues to source its
+       numbers from the original .header-kpis / #acctBalanceStrip nodes.
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="pp-hero" id="ppHero">
+    <div class="pp-hero-inner">
+
+      <div class="pp-hero-top">
+        <div class="pp-hero-main">
+          <div class="pp-hero-label">TOTAL PORTFOLIO VALUE (CAD)</div>
+          <div class="pp-hero-figure">
+            <div class="pp-hero-value" id="heroMV">—</div>
+            <div class="pp-hero-day">
+              <div class="pp-hero-day-abs" id="heroDayChg">—</div>
+              <div class="pp-hero-day-pct" id="heroDayPct">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="pp-hero-alltime">
+          <div class="pp-hero-label" id="heroScopeLabel">ALL-TIME</div>
+          <div class="pp-hero-pnl">
+            <span id="heroPnl">—</span><span class="pp-hero-sep">·</span><span id="heroPnlPct">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pp-hero-stats">
+        <div class="pp-stat"><div class="pp-stat-label">Total Contributions</div><div class="pp-stat-val" id="heroContrib">—</div></div>
+        <div class="pp-stat"><div class="pp-stat-label">Unrealized P&amp;L</div><div class="pp-stat-val" id="heroUnrealized">—</div></div>
+        <div class="pp-stat"><div class="pp-stat-label">Realized P&amp;L</div><div class="pp-stat-val" id="heroRealized">—</div></div>
+        <div class="pp-stat"><div class="pp-stat-label">Total Dividends</div><div class="pp-stat-val" id="heroDividends">—</div></div>
+        <div class="pp-stat"><div class="pp-stat-label">Cash on Hand</div><div class="pp-stat-val" id="heroCash">—</div></div>
+        <div class="pp-stat"><div class="pp-stat-label">FX Conversion</div><div class="pp-stat-val" id="heroFX">—</div></div>
+      </div>
+
+    </div>
+
+    <!-- Kept in the DOM (hidden on desktop): setChartFilter() writes to it. -->
+    <div class="chart-title" id="mvChartTitle">Portfolio Market Value — All Accounts</div>
+    <div class="pp-hero-chart"><canvas id="portfolioValueChart"></canvas></div>
+  </div>
+
+  <!-- Account filter — drives the hero figures and every chart below -->
+  <div class="chart-filters" id="chartFilters">
+    <button class="chart-filter-btn active" onclick="setChartFilter('all',this)">All Accounts</button>
+    <button class="chart-filter-btn" onclick="setChartFilter('tfsa',this)">TFSA</button>
+    <button class="chart-filter-btn" onclick="setChartFilter('rrsp',this)">RRSP</button>
+    <button class="chart-filter-btn" onclick="setChartFilter('inv',this)">Investment</button>
+    <button class="chart-filter-btn" onclick="setChartFilter('fhsa',this)">FHSA</button>
+  </div>
+
   <!-- Index Widget -->
   <div class="market-widget" id="marketWidget">
     <div class="mw-item">
@@ -1309,19 +1507,6 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     </div>
   </div>
 
-
-  <div class="chart-filters" id="chartFilters">
-    <button class="chart-filter-btn active" onclick="setChartFilter('all',this)">All Accounts</button>
-    <button class="chart-filter-btn" onclick="setChartFilter('tfsa',this)">TFSA</button>
-    <button class="chart-filter-btn" onclick="setChartFilter('inv',this)">Investment</button>
-    <button class="chart-filter-btn" onclick="setChartFilter('fhsa',this)">FHSA</button>
-    <button class="chart-filter-btn" onclick="setChartFilter('rrsp',this)">RRSP</button>
-  </div>
-
-  <div style="margin-bottom:16px">
-    <div class="chart-title" id="mvChartTitle">Portfolio Market Value — All Accounts</div>
-    <div class="chart-container"><canvas id="portfolioValueChart"></canvas></div>
-  </div>
 
   <div style="margin-bottom:16px">
     <div class="chart-title" id="roiChartTitle">ROI % — All Accounts</div>
@@ -2608,6 +2793,10 @@ function updateHeaderKPIs(data) {
       accounts:         _snapAccts,
     });
   }
+
+  // Hero figures — additive; nothing above this line is affected.
+  // setChartFilter() also routes through here, so switching accounts repaints it.
+  updateHeroStats(data);
 }
 
 // Last args passed to _applyTodayToCharts, replayed after a chart rebuild.
@@ -3277,6 +3466,145 @@ function updateRRSPRoom() {
     limit === 0 ? 'Enter your deduction limit from your latest NOA (CRA My Account)'
     : remaining === 0 ? 'RRSP room fully used for this year'
     : `$${remaining.toLocaleString()} remaining · 18% of prior year earned income (max ~$32,490 for 2026)`;
+}
+
+// ============================================================================
+// HERO STATS  (desktop hero only — mobile #m-app is untouched)
+//
+// Every formula below is lifted verbatim from updateHeaderKPIs(). The ONLY
+// difference is that the source arrays are filtered to one account. Because
+// each holding / closed position / cash row belongs to exactly one account and
+// CONTRIB_TOTAL() is by definition the sum of CONTRIB_STATE, passing
+// acctKey === null reproduces updateHeaderKPIs' numbers exactly.
+//
+// Deliberately preserved quirks (do not "fix" here — see updateHeaderKPIs):
+//   • Realized counts CLOSED_POSITIONS twice: once FX-converted, once raw CAD.
+//   • FX impact is the residual of the SINGLE-counted realized figure.
+// Changing either would move numbers that are correct-as-shipped elsewhere.
+// ============================================================================
+function _heroScopedStats(data, acctKey) {
+  const hPrices   = data.holdings || {};
+  const usdcad    = data.usdcad   || 1.38;
+  const accts     = (data.portfolio && data.portfolio.accounts)     || {};
+  const acctCosts = (data.portfolio && data.portfolio.account_cost) || {};
+
+  const inScope  = r => acctKey === null || r.account === acctKey;
+  const holdings = HOLDINGS_STATIC.filter(inScope);
+  const closed   = CLOSED_POSITIONS_STATIC.filter(inScope);
+  const cash     = CASH_POSITIONS.filter(inScope);
+
+  // ── Daily change — mirrors updateHeaderKPIs and the account balance strip ──
+  let dc = 0, prevMV = 0;
+  holdings.forEach(h => {
+    const p    = hPrices[h.ticker];
+    const fx   = h.ccy === 'USD' ? usdcad : 1;
+    const curP = p?.price ?? 0;
+    const prev = p?.prev ?? curP;
+    dc     += (curP - prev) * h.shares * fx;
+    prevMV += prev * h.shares * fx;
+  });
+  cash.forEach(c => { prevMV += c.ccy === 'USD' ? c.amount * usdcad : c.amount; });
+  const dcp = prevMV > 0 ? dc / prevMV * 100 : 0;
+
+  // ── Per-position aggregates (ACB-based, mirrors holdings table rows) ──────
+  let sumUnrealized = 0, sumRealized = 0, sumMktVal = 0, sumCash = 0;
+
+  holdings.forEach(h => {
+    const fxRate       = h.book_rate || 1;
+    const costBasisCAD = h.ccy === 'USD' ? h.cost_total * fxRate : h.cost_total;
+    const p = hPrices[h.ticker];
+    if (p?.price) {
+      const mv = p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      sumMktVal     += mv;
+      sumUnrealized += mv - costBasisCAD;
+    } else {
+      sumMktVal     += ((h.unrealized || 0) + (h.cost_total || 0)) * (h.ccy === 'USD' ? fxRate : 1);
+      sumUnrealized += (h.unrealized || 0) * (h.ccy === 'USD' ? fxRate : 1);
+    }
+    sumRealized += h.realized || 0;
+  });
+
+  closed.forEach(h => {
+    const fxRate = h.book_rate || USD_BOOK_RATE;
+    sumRealized += (h.total_pnl || 0) * (h.ccy === 'USD' ? fxRate : 1);
+  });
+
+  cash.forEach(c => {
+    const cashVal = c.ccy === 'USD' ? c.amount * usdcad : c.amount;
+    sumMktVal += cashVal;
+    sumCash   += cashVal;
+  });
+
+  const contrib = acctKey === null ? CONTRIB_TOTAL() : (CONTRIB_STATE[acctKey] || 0);
+
+  // FX impact = P&L residual after stripping unrealized and realized.
+  // Uses the single-counted sumRealized, exactly as updateHeaderKPIs does.
+  const totalPnlClient = sumMktVal - contrib;
+  const fx = Math.round(totalPnlClient - sumUnrealized - sumRealized);
+
+  // Second closed-position pass — reproduces the existing Realized card total.
+  let realizedDisplay = sumRealized;
+  closed.forEach(h => { realizedDisplay += (h.total_pnl ?? h.realized ?? 0); });
+
+  const dividends = [
+    ...holdings.map(h => h.dividends || 0),
+    ...closed.map(h => h.dividends || 0),
+  ].reduce((a, b) => a + b, 0);
+
+  // Market value: all-accounts uses the client-side total (matches kpiTotalValue);
+  // per-account prefers the server figure, as metrics() and the benchmark bars do.
+  const mktVal = acctKey === null
+    ? Math.round(sumMktVal)
+    : Math.round(accts[acctKey] || sumMktVal);
+
+  // P&L vs contributions; ROI against cost base — mirrors the account loop.
+  const costBase = acctKey === null ? contrib : (acctCosts[acctKey] || contrib);
+  const pnl      = mktVal - contrib;
+  const pnlPct   = costBase > 0 ? ((mktVal - costBase) / costBase * 100) : 0;
+
+  return { mktVal, dc, dcp, pnl, pnlPct, contrib, fx, dividends,
+           cash: sumCash, unrealized: sumUnrealized, realized: realizedDisplay };
+}
+
+const _HERO_ACCT_MAP   = { all: null, tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' };
+const _HERO_SCOPE_NAME = { all: 'ALL-TIME', tfsa: 'TFSA · ALL-TIME', inv: 'INVESTMENT · ALL-TIME',
+                           fhsa: 'FHSA · ALL-TIME', rrsp: 'RRSP · ALL-TIME' };
+
+function updateHeroStats(data) {
+  if (!data || !document.getElementById('heroMV')) return;
+
+  const s = _heroScopedStats(data, _HERO_ACCT_MAP[currentFilter] ?? null);
+  const put = (id, text, tone) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    if (tone) {
+      el.classList.remove('up', 'dn', 'flat');
+      el.classList.add(tone);
+    }
+  };
+  const tone = v => v > 0 ? 'up' : v < 0 ? 'dn' : 'flat';
+  // fmt$ already renders its own '-' for negatives, so feed it the absolute
+  // value and supply the sign explicitly (− renders better than - at display size).
+  const signed = v => (v >= 0 ? '+' : '−') + fmt$(Math.abs(Math.round(v)));
+
+  put('heroMV', fmt$(s.mktVal));
+
+  put('heroDayChg', signed(s.dc), tone(s.dc));
+  put('heroDayPct', `${s.dcp >= 0 ? '+' : ''}${s.dcp.toFixed(2)}% today`, tone(s.dc));
+
+  put('heroPnl',    signed(s.pnl),                                        tone(s.pnl));
+  put('heroPnlPct', `${s.pnlPct >= 0 ? '+' : ''}${s.pnlPct.toFixed(1)}%`, tone(s.pnl));
+
+  const scopeEl = document.getElementById('heroScopeLabel');
+  if (scopeEl) scopeEl.textContent = _HERO_SCOPE_NAME[currentFilter] || 'ALL-TIME';
+
+  put('heroContrib',    fmt$(Math.round(s.contrib)));
+  put('heroUnrealized', fmt$(Math.round(s.unrealized)), tone(s.unrealized));
+  put('heroRealized',   fmt$(Math.round(s.realized)),   tone(s.realized));
+  put('heroDividends',  fmt$(Math.round(s.dividends)));
+  put('heroCash',       fmt$(Math.round(s.cash)));
+  put('heroFX',         fmt$(s.fx),                     tone(s.fx));
 }
 
 function updateAccountFooters(data) {
@@ -4277,10 +4605,21 @@ function _applyLiveContribToCharts() {
   }
   // Update dashed contribution line tail on portfolio value chart
   if (typeof portfolioValueChart !== 'undefined' && portfolioValueChart) {
-    const ds1 = portfolioValueChart.data.datasets[1];
-    if (ds1 && ds1.data.length > 0) {
-      ds1.data[ds1.data.length - 1] = Math.round(CONTRIB_TOTAL());
-      portfolioValueChart.update('none');
+    const ds1    = portfolioValueChart.data.datasets[1];
+    const labels = portfolioValueChart.data.labels;
+    // Target today's point by label rather than "whatever is last in the array".
+    // The blind last-element write used to land on a phantom slot left over from
+    // the old label/dataset length mismatch; with the series aligned it would
+    // instead clobber the final historical month whenever today's point has not
+    // been appended yet. Same index resolution _applyTodayToCharts() uses.
+    if (ds1 && labels && labels.length) {
+      const today = new Date().toISOString().slice(0, 10);
+      let idx = labels.indexOf(today);
+      if (idx < 0) idx = labels.indexOf(today.slice(0, 7));
+      if (idx >= 0) {
+        ds1.data[idx] = Math.round(CONTRIB_TOTAL());
+        portfolioValueChart.update('none');
+      }
     }
   }
   // Keep benchmark methodology text in sync with live total
@@ -4301,16 +4640,35 @@ function initCharts() {
 
   // Portfolio Value
   const mvLabels = mvAllTimed.map(p => p.x);
+  // cAllTimed runs one month further than mvAllTimed, so mapping the two series
+  // index-by-index left the Contributions dataset longer than the label array.
+  // The overflow point rendered nowhere, which silently swallowed the live-total
+  // write in _applyLiveContribToCharts(). Align by month with a forward fill
+  // instead — the same treatment setChartFilter() applies when it rebuilds.
+  const cAlignedInit = (() => {
+    const cMap = Object.fromEntries(cAllTimed.map(p => [p.x, p.y]));
+    let last = null;
+    return mvLabels.map(x => { if (x in cMap) last = cMap[x]; return last; });
+  })();
   portfolioValueChart = new Chart(document.getElementById('portfolioValueChart').getContext('2d'), {
     type: 'line',
     data: {
       labels: mvLabels,
       datasets: [
         { ...lineDef('#3b82f6', 'Market Value', mvAllTimed.map(p => p.y)), fill: true, backgroundColor: 'rgba(59,130,246,0.08)' },
-        { ...lineDef('#64748b', 'Contributions', cAllTimed.map(p => p.y)), borderDash: [4, 4] }
+        { ...lineDef('#64748b', 'Contributions', cAlignedInit), borderDash: [4, 4] }
       ]
     },
-    options: chartOpts('Value', 'dollar')
+    // Hero chart reads as a clean sparkline — no gridlines, no axis rules.
+    // Scoped to this chart only; roiChart and contribChart keep their grids.
+    options: (() => {
+      const o = chartOpts('Value', 'dollar');
+      o.scales.x.grid   = { display: false, drawTicks: false };
+      o.scales.y.grid   = { display: false, drawTicks: false };
+      o.scales.x.border = { display: false };
+      o.scales.y.border = { display: false };
+      return o;
+    })()
   });
 
   // Account Pie

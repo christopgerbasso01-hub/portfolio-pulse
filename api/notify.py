@@ -347,6 +347,15 @@ LOW_CONFIDENCE_TICKERS = {"ET"}
 # (weaker coverage on .TO listings). Flagged in the payload when applied.
 ASSUMED_PAY_LAG_DAYS = 21
 
+# Past this many days after the ex-date, payment has certainly landed, so an
+# estimated payment date is no longer a reason to distrust the entry. Without
+# this, every dividend from a source lacking payment dates reads as LOW.
+PAYMENT_CERTAIN_DAYS = 45
+
+# On the very first scan the queue is seeded from this far back only. Scanning
+# a full year would flood the queue with dividends already booked by hand.
+FIRST_RUN_LOOKBACK_DAYS = 30
+
 # A single distribution worth more than this share of the position is almost
 # certainly bad data — a split misread as a dividend, or a units error.
 ANOMALY_PCT_OF_POSITION = 0.05
@@ -442,6 +451,10 @@ def resolve_rate(ticker: str, account: str, learned: dict) -> tuple:
 
 
 def score_confidence(ticker: str, basis: str, saw_split: bool, estimated_pay: bool) -> str:
+    """estimated_pay here means 'estimated AND recent enough to be uncertain' —
+    the caller clears it once the ex-date is far enough back that payment is
+    certain, so an old dividend is not marked LOW purely for lacking a feed date.
+    """
     if saw_split:
         return "LOW"
     if ticker in LOW_CONFIDENCE_TICKERS and basis != "learned":
@@ -473,29 +486,46 @@ def record_learned_rate(rates: dict, entry: dict, actual: float) -> dict:
 
 # ── Detection ─────────────────────────────────────────────────────────────────
 
-def detect(settings: dict, state: dict) -> list:
-    """Return newly detected, not-yet-queued dividends."""
-    today    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+def detect(settings: dict, state: dict) -> tuple:
+    """Return (newly detected entries, diagnostics).
+
+    Only considers ex-dates on or after state['start_date']. That boundary is
+    seeded FIRST_RUN_LOOKBACK_DAYS back on the first scan so the queue is not
+    flooded with a year of dividends that were already booked by hand.
+    """
+    now      = datetime.now(timezone.utc)
+    today    = now.strftime("%Y-%m-%d")
     holdings = settings.get("computed_holdings") or []
     txs      = settings.get("transactions") or []
     seen     = state.get("seen") or {}
     learned  = state.get("rates") or {}
     queued   = {p.get("id") for p in (state.get("pending") or [])}
 
+    start_date = state.get("start_date") or \
+        (now - timedelta(days=FIRST_RUN_LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+    # Past this ex-date, payment has certainly landed even without a feed date
+    certain_before = (now - timedelta(days=PAYMENT_CERTAIN_DAYS)).strftime("%Y-%m-%d")
+
     positions = [h for h in holdings
                  if h.get("ticker") and h["ticker"] not in NO_DIVIDEND
                  and (h.get("shares") or 0) > 0]
 
     div_cache, pay_cache, found = {}, {}, []
+    diag = {"start_date": start_date, "tickers": 0, "fmp_ok": 0, "yahoo_ok": 0}
 
     for h in positions:
         ticker, account = h["ticker"], h.get("account", "")
         if ticker not in div_cache:
             div_cache[ticker] = fetch_dividend_events(ticker)
             pay_cache[ticker] = fetch_payment_dates(ticker)
+            diag["tickers"]  += 1
+            diag["yahoo_ok"] += 1 if div_cache[ticker] else 0
+            diag["fmp_ok"]   += 1 if pay_cache[ticker] else 0
 
         for ev in div_cache[ticker]:
             ex_date = ev["ex_date"]
+            if ex_date < start_date:
+                continue                              # before autopilot was armed
             key = f"{ticker}|{account}|{ex_date}"
             if key in seen or key in queued:
                 continue
@@ -521,8 +551,11 @@ def detect(settings: dict, state: dict) -> list:
 
             cost = abs(float(h.get("cost_total") or 0))
             anomaly = cost > 0 and net > cost * ANOMALY_PCT_OF_POSITION
+            # An estimated payment date only casts doubt while the ex-date is
+            # recent; past PAYMENT_CERTAIN_DAYS the money has certainly landed.
+            pay_uncertain = estimated_pay and ex_date >= certain_before
             confidence = "LOW" if anomaly else score_confidence(
-                ticker, basis, saw_split, estimated_pay)
+                ticker, basis, saw_split, pay_uncertain)
 
             found.append({
                 "id": key, "ticker": ticker, "account": account,
@@ -534,7 +567,7 @@ def detect(settings: dict, state: dict) -> list:
                 "detected_at": datetime.now(timezone.utc).isoformat(),
             })
             queued.add(key)
-    return found
+    return found, diag
 
 
 def dividend_notif(entry: dict) -> dict:
@@ -699,25 +732,30 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             state = kv_get(AUTOPILOT_KEY) or {}
-            found = detect(settings, state)
+            # One-time override for an intentional backfill:
+            #   {"action":"scan","start_date":"2026-01-01"}
+            if body.get("start_date"):
+                state["start_date"] = body["start_date"]
+            found, diag = detect(settings, state)
 
             if body.get("dry_run"):
-                self._respond(200, {"ok": True, "dry_run": True,
+                self._respond(200, {"ok": True, "dry_run": True, "diagnostics": diag,
                                     "detected": len(found), "entries": found})
                 return
 
-            if found:
-                state["pending"] = (state.get("pending") or []) + found
-                state.setdefault("seen", {})
-                state.setdefault("rates", {})
-                kv_set(AUTOPILOT_KEY, state, STATE_TTL)
+            state["pending"] = (state.get("pending") or []) + found
+            state.setdefault("seen", {})
+            state.setdefault("rates", {})
+            # Pin the boundary on first run so later scans never reach further back
+            state.setdefault("start_date", diag["start_date"])
+            kv_set(AUTOPILOT_KEY, state, STATE_TTL)
 
             subs = get_subs()
             sent = broadcast([dividend_notif(e) for e in found], subs).get("sent", 0) \
                 if (found and subs) else 0
-            print(f"  [dividends] detected={len(found)} sent={sent}")
+            print(f"  [dividends] detected={len(found)} sent={sent} diag={diag}")
             self._respond(200, {"ok": True, "detected": len(found),
-                                "notifications_sent": sent,
+                                "notifications_sent": sent, "diagnostics": diag,
                                 "pending_total": len(state.get("pending") or []),
                                 "entries": found})
         except Exception as exc:

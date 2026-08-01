@@ -1176,7 +1176,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
    fully updated: the mobile pane reads .textContent off .header-kpis and
    #acctBalanceStrip, and display:none does not affect textContent.
    ============================================================================ */
-.pp-hero-chart{position:relative;height:280px}
+.pp-hero-chart,.pp-roi-chart{position:relative;height:280px}
 
 @media(min-width:769px){
   /* — allow the hero to bleed past .container without a horizontal scrollbar.
@@ -1259,9 +1259,10 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .pp-hero .dn{color:var(--red);}
   .pp-hero .flat{color:var(--text2);}
 
-  /* — account filter row, directly beneath the band — */
+  /* — account filter row: sits inside the band, between the stats and the chart — */
   #chartFilters{
-    max-width:1400px;margin:0 auto;padding:18px 24px 0;gap:10px;
+    position:relative;z-index:3;
+    width:100%;max-width:1400px;margin:0 auto;padding:22px 24px 2px;gap:10px;
   }
   #chartFilters .chart-filter-btn{
     font-size:12px;letter-spacing:.05em;padding:8px 18px;border-radius:999px;
@@ -1275,11 +1276,25 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     box-shadow:0 6px 18px -8px rgba(0,212,255,.75);
   }
 
+  /* — index strip: superseded on desktop. Left in the DOM and still updated by
+       updateMarketWidget(); nothing else reads it. — */
+  #sec01 #marketWidget{display:none !important;}
+
+  /* — ROI: same full-bleed treatment as the hero chart — */
+  .pp-roi{
+    position:relative;
+    width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);
+    margin-top:10px;margin-bottom:26px;padding-bottom:12px;
+    background:transparent;border:none;overflow:hidden;
+  }
+  .pp-roi-head{width:100%;max-width:1400px;margin:0 auto;padding:0 24px;}
+  .pp-roi-head .chart-title{margin-bottom:0;}
+  .pp-roi-chart{height:300px;margin:14px 16px 0;}
+
   /* the sections that follow resume the normal page grid */
-  #sec01 #marketWidget,#sec01>div:not(.pp-hero):not(#chartFilters){
+  #sec01>div:not(.pp-hero):not(.pp-roi){
     max-width:1400px;margin-left:auto;margin-right:auto;
   }
-  #sec01 #marketWidget{margin-top:22px;}
 
   /* ——— LIGHT MODE ——— */
   [data-theme="light"] .pp-hero{background:transparent;border:none;}
@@ -1464,18 +1479,19 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 
     </div>
 
+    <!-- Account filter — drives the hero figures and every chart below.
+         Sits between the stat row and the chart. -->
+    <div class="chart-filters" id="chartFilters">
+      <button class="chart-filter-btn active" onclick="setChartFilter('all',this)">All Accounts</button>
+      <button class="chart-filter-btn" onclick="setChartFilter('tfsa',this)">TFSA</button>
+      <button class="chart-filter-btn" onclick="setChartFilter('rrsp',this)">RRSP</button>
+      <button class="chart-filter-btn" onclick="setChartFilter('inv',this)">Investment</button>
+      <button class="chart-filter-btn" onclick="setChartFilter('fhsa',this)">FHSA</button>
+    </div>
+
     <!-- Kept in the DOM (hidden on desktop): setChartFilter() writes to it. -->
     <div class="chart-title" id="mvChartTitle">Portfolio Market Value — All Accounts</div>
     <div class="pp-hero-chart"><canvas id="portfolioValueChart"></canvas></div>
-  </div>
-
-  <!-- Account filter — drives the hero figures and every chart below -->
-  <div class="chart-filters" id="chartFilters">
-    <button class="chart-filter-btn active" onclick="setChartFilter('all',this)">All Accounts</button>
-    <button class="chart-filter-btn" onclick="setChartFilter('tfsa',this)">TFSA</button>
-    <button class="chart-filter-btn" onclick="setChartFilter('rrsp',this)">RRSP</button>
-    <button class="chart-filter-btn" onclick="setChartFilter('inv',this)">Investment</button>
-    <button class="chart-filter-btn" onclick="setChartFilter('fhsa',this)">FHSA</button>
   </div>
 
   <!-- Index Widget -->
@@ -1508,9 +1524,12 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   </div>
 
 
-  <div style="margin-bottom:16px">
-    <div class="chart-title" id="roiChartTitle">ROI % — All Accounts</div>
-    <div class="chart-container"><canvas id="roiChart"></canvas></div>
+  <!-- ROI — same full-bleed treatment as the hero chart -->
+  <div class="pp-roi" id="ppRoi">
+    <div class="pp-roi-head">
+      <div class="chart-title" id="roiChartTitle">ROI % — All Accounts</div>
+    </div>
+    <div class="pp-roi-chart"><canvas id="roiChart"></canvas></div>
   </div>
 
   <div class="grid-4">
@@ -4404,6 +4423,20 @@ const chartOpts = (ylabel, format = 'pct') => ({
   }
 });
 
+// Presentation-only variant of chartOpts for the two full-bleed charts at the
+// top of the page (portfolio value + ROI): no legend, no gridlines, no axis
+// rules. Purely cosmetic — scales, ticks, tooltips and data are untouched, and
+// contribChart keeps the standard chartOpts with its grid.
+const cleanChartOpts = (ylabel, format) => {
+  const o = chartOpts(ylabel, format);
+  o.plugins.legend.display = false;
+  o.scales.x.grid   = { display: false, drawTicks: false };
+  o.scales.y.grid   = { display: false, drawTicks: false };
+  o.scales.x.border = { display: false };
+  o.scales.y.border = { display: false };
+  return o;
+};
+
 // ============================================================
 // CHARTS INIT
 // ============================================================
@@ -4635,7 +4668,7 @@ function initCharts() {
   roiChart = new Chart(document.getElementById('roiChart').getContext('2d'), {
     type: 'line',
     data: { labels: allXLabels, datasets: [lineDef('#3b82f6', 'All-Time', align(dataAllTime, allXLabels)), lineDef('#10b981', 'TFSA', align(dataTFSAd, allXLabels)), lineDef('#94a3b8', 'Investment', align(dataInvd, allXLabels)), lineDef('#a78bfa', 'FHSA', align(dataFHSAd, allXLabels)), lineDef('#fbbf24', 'RRSP', align(dataRRSPd, allXLabels))] },
-    options: chartOpts('ROI %', 'pct')
+    options: cleanChartOpts('ROI %', 'pct')
   });
 
   // Portfolio Value
@@ -4659,16 +4692,7 @@ function initCharts() {
         { ...lineDef('#64748b', 'Contributions', cAlignedInit), borderDash: [4, 4] }
       ]
     },
-    // Hero chart reads as a clean sparkline — no gridlines, no axis rules.
-    // Scoped to this chart only; roiChart and contribChart keep their grids.
-    options: (() => {
-      const o = chartOpts('Value', 'dollar');
-      o.scales.x.grid   = { display: false, drawTicks: false };
-      o.scales.y.grid   = { display: false, drawTicks: false };
-      o.scales.x.border = { display: false };
-      o.scales.y.border = { display: false };
-      return o;
-    })()
+    options: cleanChartOpts('Value', 'dollar')
   });
 
   // Account Pie

@@ -1233,9 +1233,11 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     font-family:var(--mono);font-size:58px;font-weight:700;line-height:.98;
     color:#f8fafc;letter-spacing:-.02em;
   }
-  .pp-hero-day{display:flex;flex-direction:column;gap:3px;}
+  /* daily change reads as one line, matching the all-time pair on the right */
+  .pp-hero-day{display:flex;align-items:baseline;white-space:nowrap;}
   .pp-hero-day-abs{font-family:var(--mono);font-size:23px;font-weight:700;line-height:1.1;}
-  .pp-hero-day-pct{font-family:var(--mono);font-size:14px;opacity:.78;}
+  .pp-hero-day-pct{font-family:var(--mono);font-size:23px;font-weight:700;line-height:1.1;}
+  .pp-hero-day-suffix{font-family:var(--mono);font-size:13px;color:var(--text3);margin-left:8px;}
 
   .pp-hero-alltime{text-align:right;flex-shrink:0;padding-top:2px;}
   .pp-hero-alltime .pp-hero-label{margin-bottom:8px;}
@@ -1296,8 +1298,20 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     max-width:1400px;margin-left:auto;margin-right:auto;
   }
 
+  /* — sections sit directly on the page background; no outer panel. The inner
+       cards keep their surfaces, so hierarchy still reads. Horizontal padding
+       drops to 0 so section content lines up with the hero's 24px gutter. — */
+  .section{
+    background:transparent;border:none;box-shadow:none;border-radius:0;
+    padding:20px 0 4px;
+  }
+
   /* ——— LIGHT MODE ——— */
   [data-theme="light"] .pp-hero{background:transparent;border:none;}
+  [data-theme="light"] .section{background:transparent;border:none;box-shadow:none;}
+  /* outranks [data-theme="light"] .container .header, which would otherwise
+     paint a white panel behind the wordmark */
+  [data-theme="light"] .container .header{background:transparent;border:none;box-shadow:none;}
   [data-theme="light"] .pp-hero::after{
     background:linear-gradient(180deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.84) 40%,rgba(255,255,255,.38) 78%,transparent 100%);
   }
@@ -1455,8 +1469,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
           <div class="pp-hero-figure">
             <div class="pp-hero-value" id="heroMV">—</div>
             <div class="pp-hero-day">
-              <div class="pp-hero-day-abs" id="heroDayChg">—</div>
-              <div class="pp-hero-day-pct" id="heroDayPct">—</div>
+              <span class="pp-hero-day-abs" id="heroDayChg">—</span><span class="pp-hero-sep">·</span><span class="pp-hero-day-pct" id="heroDayPct">—</span><span class="pp-hero-day-suffix">today</span>
             </div>
           </div>
         </div>
@@ -3610,7 +3623,8 @@ function updateHeroStats(data) {
   put('heroMV', fmt$(s.mktVal));
 
   put('heroDayChg', signed(s.dc), tone(s.dc));
-  put('heroDayPct', `${s.dcp >= 0 ? '+' : ''}${s.dcp.toFixed(2)}% today`, tone(s.dc));
+  // "today" is a static suffix span in the markup, so it stays out of this string
+  put('heroDayPct', `${s.dcp >= 0 ? '+' : ''}${s.dcp.toFixed(2)}%`, tone(s.dc));
 
   put('heroPnl',    signed(s.pnl),                                        tone(s.pnl));
   put('heroPnlPct', `${s.pnlPct >= 0 ? '+' : ''}${s.pnlPct.toFixed(1)}%`, tone(s.pnl));

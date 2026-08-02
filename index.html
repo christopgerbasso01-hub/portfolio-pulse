@@ -119,6 +119,11 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .notif-btn{font-size:14px;background:none;border:none;cursor:pointer;padding:2px 4px;opacity:0.5;transition:opacity .2s;line-height:1}
 .notif-btn:hover{opacity:1}
 .notif-btn.active{opacity:1}
+.report-btn{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--cyan);background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.3);padding:3px 10px;border-radius:9px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.report-btn:hover{background:rgba(0,212,255,.16);border-color:var(--cyan);color:#d8f6ff}
+.report-btn:disabled{opacity:.5;cursor:default}
+[data-theme="light"] .report-btn{color:#0e7490;background:rgba(8,145,178,.1);border-color:rgba(8,145,178,.35)}
+[data-theme="light"] .report-btn:hover{background:rgba(8,145,178,.18);border-color:#0891b2;color:#075985}
 .header-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
 .hkpi{text-align:center}
 .hkpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
@@ -1352,6 +1357,8 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     <span id="lastUpdated">—</span>
     <button class="refresh-btn" onclick="refreshAll()">↻ REFRESH</button>
     <button class="notif-btn" id="notifBtn" onclick="openNotifPanel()" title="Notifications" aria-label="Open notifications">🔕</button>
+    <!-- Calls the same window.generatePortfolioReport() the mobile FAB uses -->
+    <button class="report-btn" id="reportBtn" onclick="generatePortfolioReport()" title="Generate portfolio report" aria-label="Generate portfolio report">📄 GENERATE REPORT</button>
     <button id="mobSettingsBtn" onclick="openMobSettings()" title="Settings" aria-label="Open settings">⚙️</button>
   </div>
 </div>
@@ -4708,6 +4715,13 @@ function initCharts() {
     },
     options: cleanChartOpts('Value', 'dollar')
   });
+  // Expose the Chart instance under a name that cannot collide with an element id.
+  // `let` bindings never land on window, and <canvas id="portfolioValueChart">
+  // already claims window.portfolioValueChart via legacy id-to-global — so the
+  // report's lookup was resolving to the canvas element and silently falling back
+  // to its "chart data loading" placeholder. Read by generatePortfolioReport(),
+  // which lives in a later <script> block (let is per-block on iOS Safari).
+  window._pvChart = portfolioValueChart;
 
   // Account Pie
   acctChart = new Chart(document.getElementById('acctChart').getContext('2d'), {
@@ -9185,7 +9199,14 @@ window.generatePortfolioReport = async function() {
 
     /* ── Portfolio value chart SVG from live chart data ─────────────────── */
     var chartSVG = (function() {
-      var cd = window.portfolioValueChart && window.portfolioValueChart.data;
+      /* window.portfolioValueChart is the <canvas> element (legacy id-to-global),
+         not the Chart instance — initCharts() publishes the real one as _pvChart.
+         The bare identifier is a fallback for engines where the top-level `let`
+         is visible across <script> blocks; typeof guards the ones where it isn't. */
+      var pvc = window._pvChart
+             || (typeof portfolioValueChart !== 'undefined' && portfolioValueChart)
+             || null;
+      var cd = pvc && pvc.data;
       if (!cd || !cd.labels || cd.labels.length < 3) return '<p style="font-size:10px;color:#94a3b8;text-align:center;padding:24px">Chart data loading — open the dashboard, wait for the chart to render, then regenerate the report.</p>';
       var labels = cd.labels;
       var mvRaw  = cd.datasets[0] ? cd.datasets[0].data : [];

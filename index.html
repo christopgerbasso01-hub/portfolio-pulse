@@ -1183,6 +1183,80 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
    ============================================================================ */
 .pp-hero-chart,.pp-roi-chart{position:relative;height:280px}
 
+/* ============================================================================
+   PER-TICKER TRANSACTION HISTORY — desktop expanding row
+   ============================================================================ */
+.pp-tx-cell{padding:0 !important;background:rgba(0,212,255,.03);border-bottom:1px solid var(--border)}
+.pp-tx-panel{padding:14px 16px 16px}
+.pp-tx-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.pp-tx-title{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--cyan)}
+.pp-tx-accts{display:flex;gap:6px;flex-wrap:wrap}
+.pp-tx-acct{font-family:var(--mono);font-size:10px;letter-spacing:.05em;padding:4px 12px;border-radius:999px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:var(--text2);cursor:pointer;transition:all .15s}
+.pp-tx-acct:hover{border-color:rgba(0,212,255,.45);color:#cbeefb}
+.pp-tx-acct.active{background:var(--cyan);border-color:var(--cyan);color:#04121c;font-weight:700}
+.pp-tx-btn{margin-left:auto;font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:6px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:var(--text3);cursor:pointer}
+.pp-tx-btn:hover{color:var(--text);border-color:rgba(255,255,255,.25)}
+.pp-tx-btn+.pp-tx-btn{margin-left:6px}
+.pp-tx-list{display:flex;flex-direction:column;gap:1px}
+.pp-tx-row{display:grid;grid-template-columns:96px 86px 1fr;align-items:baseline;gap:10px;
+  padding:7px 8px;border-radius:6px;font-size:12px}
+.pp-tx-row:nth-child(odd){background:rgba(255,255,255,.02)}
+.pp-tx-date{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.pp-tx-tag{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.05em;text-align:center;
+  padding:2px 6px;border-radius:4px;white-space:nowrap}
+.pp-tag-OPEN{background:rgba(100,116,139,.2);color:var(--text2)}
+.pp-tag-BUY{background:rgba(16,185,129,.15);color:var(--green)}
+.pp-tag-SELL{background:rgba(239,68,68,.15);color:var(--red)}
+.pp-tag-DIVIDEND{background:rgba(59,130,246,.15);color:var(--blue-bright)}
+.pp-tag-SPLIT{background:rgba(139,92,246,.15);color:var(--purple)}
+.pp-tx-desc{font-family:var(--mono);font-size:11px;color:var(--text)}
+.pp-tx-note{display:block;font-family:var(--sans);font-size:10px;color:var(--text3);margin-top:2px}
+.pp-tx-empty{font-family:var(--mono);font-size:11px;color:var(--text3);padding:10px 8px}
+[data-theme="light"] .pp-tx-cell{background:rgba(8,145,178,.04)}
+[data-theme="light"] .pp-tx-title{color:#0e7490}
+[data-theme="light"] .pp-tx-acct{background:#f1f5f9;border-color:rgba(15,23,42,.12)}
+[data-theme="light"] .pp-tx-acct.active{background:#0891b2;border-color:#0891b2;color:#fff}
+[data-theme="light"] .pp-tx-btn{background:#f1f5f9;border-color:rgba(15,23,42,.12)}
+[data-theme="light"] .pp-tx-row:nth-child(odd){background:rgba(15,23,42,.03)}
+
+/* ── mobile bottom sheet (only ever visible inside #m-app) ── */
+.m-tx-backdrop{position:fixed;inset:0;background:rgba(2,8,18,.62);opacity:0;pointer-events:none;
+  transition:opacity .22s ease;z-index:9998}
+.m-tx-backdrop.on{opacity:1;pointer-events:auto}
+.m-tx-sheet{position:fixed;left:0;right:0;bottom:0;z-index:9999;
+  background:var(--surf2);border-top:1px solid var(--bd2);
+  border-radius:18px 18px 0 0;max-height:78vh;display:flex;flex-direction:column;
+  transform:translateY(102%);transition:transform .26s cubic-bezier(.32,.72,0,1);
+  padding-bottom:env(safe-area-inset-bottom,0)}
+.m-tx-sheet.on{transform:translateY(0)}
+.m-tx-grab{width:38px;height:4px;border-radius:2px;background:var(--bd2);margin:9px auto 4px;flex:none}
+.m-tx-head{display:flex;align-items:center;justify-content:space-between;padding:6px 16px 10px;flex:none}
+.m-tx-sym{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--t1);letter-spacing:.04em}
+.m-tx-x{background:none;border:none;color:var(--t3);font-size:17px;cursor:pointer;padding:4px 6px;line-height:1}
+.m-tx-accts{display:flex;gap:7px;padding:0 16px 12px;overflow-x:auto;flex:none;-webkit-overflow-scrolling:touch}
+.m-tx-accts::-webkit-scrollbar{display:none}
+.m-tx-acct{flex:none;font-family:var(--mono);font-size:11px;padding:7px 15px;border-radius:999px;
+  background:var(--surf);border:1px solid var(--bd);color:var(--t2);cursor:pointer;white-space:nowrap}
+.m-tx-acct.on{background:var(--cyan);border-color:var(--cyan);color:#04121c;font-weight:700}
+.m-tx-body{overflow-y:auto;padding:0 16px 20px;-webkit-overflow-scrolling:touch}
+.m-tx-item{padding:11px 0;border-bottom:1px solid var(--bd)}
+.m-tx-item:last-child{border-bottom:none}
+.m-tx-item-top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.m-tx-tag{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.05em;padding:3px 8px;border-radius:5px}
+.m-tx-tag.t-OPEN{background:rgba(100,116,139,.22);color:var(--t2)}
+.m-tx-tag.t-BUY{background:rgba(16,185,129,.16);color:var(--green)}
+.m-tx-tag.t-SELL{background:rgba(239,68,68,.16);color:var(--red)}
+.m-tx-tag.t-DIVIDEND{background:rgba(59,130,246,.16);color:var(--blue-bright)}
+.m-tx-tag.t-SPLIT{background:rgba(139,92,246,.16);color:var(--purple)}
+.m-tx-date{font-family:var(--mono);font-size:11px;color:var(--t3)}
+.m-tx-desc{font-family:var(--mono);font-size:13px;color:var(--t1)}
+.m-tx-note{font-size:11px;color:var(--t3);margin-top:3px}
+.m-tx-empty{font-family:var(--mono);font-size:12px;color:var(--t3);padding:18px 0}
+/* desktop never shows the sheet */
+@media(min-width:769px){.m-tx-backdrop,.m-tx-sheet{display:none !important}}
+
 @media(min-width:769px){
   /* — allow the hero to bleed past .container without a horizontal scrollbar.
        overflow-x:clip (not hidden) does NOT create a scroll container, so the
@@ -3898,7 +3972,7 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
     const retColor = retPct != null ? (retPct >= 0 ? 'green' : 'red') : '';
     const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
     return `<tr data-rowtype="summary" data-account="${g.accounts[0]}" data-sector="${g.sector}" data-pnl="${pnlAttr}" data-mv="${g.mktVal.toFixed(2)}" data-cb="${g.costBasisCAD.toFixed(2)}" data-unreal="${g.unrealizedCAD.toFixed(2)}" data-div="${g.dividends.toFixed(2)}" data-real="${g.realized.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}" data-daychg="${dayDollarCAD.toFixed(2)}">
-      <td class="mono blue" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" onclick="deepDiveHolding('${g.ticker}','${g.accounts[0]}')" title="Research ${g.ticker}">${g.ticker}</td>
+      <td class="mono blue" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" onclick="ppToggleTxRow('${g.ticker}','${g.accounts[0]}',this)" title="Transaction history for ${g.ticker}">${g.ticker}</td>
       <td class="text2">${g.name}</td>
       <td><div style="display:flex;flex-wrap:wrap;gap:3px">${acctBadgesHtml}</div></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
@@ -4018,7 +4092,7 @@ function renderHoldingsTable(liveData) {
     const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
 
     return `<tr data-rowtype="normal" data-ticker="${h.ticker}" data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-mv="${mktVal.toFixed(2)}" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="${unrealizedCAD.toFixed(2)}" data-div="${divCAD.toFixed(2)}" data-real="${realizedCAD.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}">
-      <td class="mono blue" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" onclick="deepDiveHolding('${h.ticker}','${h.account}')" title="Research ${h.ticker}">${h.ticker}</td>
+      <td class="mono blue" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" onclick="ppToggleTxRow('${h.ticker}','${h.account}',this)" title="Transaction history for ${h.ticker}">${h.ticker}</td>
       <td class="text2">${h.name}</td>
       <td><span class="badge ${acctBadge}">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
@@ -4233,6 +4307,9 @@ function filterTable() {
   const rows = document.querySelectorAll('#holdingsBody tr');
   rows.forEach(r => {
     const rowType = r.getAttribute('data-rowtype') || 'normal';
+    // The transaction-detail row is not a holding — it has no data-* figures and
+    // would otherwise be treated as 'normal' and filtered by the ticker search.
+    if (rowType === 'txdetail') return;
     const isSummaryRow = rowType === 'summary';
     const isClosed = rowType === 'closed';
 
@@ -4347,6 +4424,9 @@ function updateSubtotals() {
 
 function sortTable(col) {
   const tbody = document.getElementById('holdingsBody');
+  // An open transaction-detail row would be sorted away from the holding it
+  // belongs to, so close it before reordering.
+  if (typeof ppCloseTxRow === 'function') ppCloseTxRow();
   const rows = [...tbody.querySelectorAll('tr')];
   sortDir[col] = !sortDir[col];
   rows.sort((a, b) => {
@@ -8211,6 +8291,145 @@ function renderTxHistory() {
     </div>`;
   }).join('');
 }
+
+// ============================================================================
+// PER-TICKER TRANSACTION HISTORY
+//
+// Shared by the desktop expanding row and the mobile bottom sheet. Attached to
+// window because the mobile block is a separate <script> and top-level `let`
+// is per-block on iOS Safari.
+//
+// Only ticker-scoped types appear here: BUY, SELL, DIVIDEND, SPLIT.
+// CONTRIBUTION / CASH_DEPOSIT / CASH_WITHDRAW carry no ticker at all, so they
+// belong to the account rather than the position and stay in the tx modal.
+// ============================================================================
+
+// Accounts a ticker is currently held in, plus any it has been traded in.
+window.ppTickerAccounts = function(ticker) {
+  const held = HOLDINGS_STATIC.filter(h => h.ticker === ticker).map(h => h.account);
+  const traded = getTransactions()
+    .filter(t => t.ticker === ticker && t.account)
+    .map(t => t.account);
+  const closed = CLOSED_POSITIONS_STATIC.filter(h => h.ticker === ticker).map(h => h.account);
+  const order = ['TFSA', 'RRSP', 'Investment', 'FHSA'];
+  return [...new Set([...held, ...traded, ...closed])]
+    .sort((a, b) => order.indexOf(a) - order.indexOf(b));
+};
+
+// Chronological history for one ticker in one account.
+//
+// The opening row is derived from _HOLDINGS_BASE, NOT HOLDINGS_STATIC:
+// applyAllTransactions() rebuilds HOLDINGS_STATIC as base + every transaction,
+// so synthesising from the live array would count each logged trade twice.
+// Tickers bought entirely after logging began have no base entry and therefore
+// no opening row — their history is already complete.
+window.ppTickerHistory = function(ticker, account) {
+  const out = [];
+
+  const base = _HOLDINGS_BASE.find(h => h.ticker === ticker && h.account === account);
+  if (base) {
+    const acbCAD = base.ccy === 'USD' ? base.cost_total * (base.book_rate || 1) : base.cost_total;
+    out.push({
+      kind: 'OPEN',
+      date: null,
+      label: 'OPENING',
+      desc: `${base.shares} shares · ACB ${fmt$(acbCAD)}`
+          + (base.ccy === 'USD' ? ` · book FX ${(base.book_rate || 1).toFixed(5)}` : '')
+          + (base.dividends ? ` · ${fmt$(base.dividends)} dividends to date` : ''),
+      note: 'Position established before transaction logging began',
+      id: null,
+    });
+  }
+
+  const comm = t => t.commission != null ? ` · ${fmt$(t.commission, 2)} comm` : '';
+  const fx   = t => t.rate ? ` · FX ${t.rate}` : '';
+
+  getTransactions()
+    // An account-less SPLIT applies to every account holding the ticker
+    // (see applyOneTx), so it must show under each account tab.
+    .filter(t => t.ticker === ticker
+              && (t.account === account || (t.type === 'SPLIT' && !t.account)))
+    .forEach(t => {
+      let desc = '';
+      if (t.type === 'BUY' || t.type === 'SELL')
+        desc = `${t.shares} × $${t.price} ${t.ccy || 'USD'}${fx(t)}${comm(t)}`;
+      else if (t.type === 'DIVIDEND')
+        desc = `+${t.amount} ${t.ccy || 'CAD'}${fx(t)}`;
+      else if (t.type === 'SPLIT')
+        desc = `×${t.ratio} split${t.account ? '' : ' (all accounts)'}`;
+      else return;   // non-ticker types never reach here, but be explicit
+      out.push({ kind: t.type, date: t.date || null, label: t.type, desc, note: '', id: t.id });
+    });
+
+  // Opening first, then by date ascending
+  return out.sort((a, b) => {
+    if (a.kind === 'OPEN') return -1;
+    if (b.kind === 'OPEN') return 1;
+    return (a.date || '').localeCompare(b.date || '');
+  });
+};
+
+const _ppAcctLabel = a => a === 'Investment' ? 'NON-REG' : a;
+
+window.ppTxEntriesHtml = function(ticker, acct) {
+  const entries = ppTickerHistory(ticker, acct);
+  if (!entries.length)
+    return `<div class="pp-tx-empty">No transactions logged for ${ticker} in ${_ppAcctLabel(acct)}.</div>`;
+  return entries.map(e => `<div class="pp-tx-row">
+      <span class="pp-tx-date">${e.date || '—'}</span>
+      <span class="pp-tx-tag pp-tag-${e.kind}">${e.label}</span>
+      <span class="pp-tx-desc">${e.desc}${e.note ? `<span class="pp-tx-note">${e.note}</span>` : ''}</span>
+    </div>`).join('');
+};
+
+window.ppSelectTxAccount = function(ticker, acct) {
+  const list = document.getElementById('ppTxList');
+  if (list) list.innerHTML = ppTxEntriesHtml(ticker, acct);
+  document.querySelectorAll('#ppTxDetailRow .pp-tx-acct')
+    .forEach(b => b.classList.toggle('active', b.dataset.acct === acct));
+};
+
+window.ppTxPanelHtml = function(ticker, acct, accts) {
+  const btns = accts.map(a =>
+    `<button class="pp-tx-acct${a === acct ? ' active' : ''}" data-acct="${a}"
+             onclick="ppSelectTxAccount('${ticker}','${a}')">${_ppAcctLabel(a)}</button>`).join('');
+  return `<div class="pp-tx-panel">
+    <div class="pp-tx-head">
+      <span class="pp-tx-title">${ticker} · TRANSACTION HISTORY</span>
+      <div class="pp-tx-accts">${btns}</div>
+      <button class="pp-tx-btn" onclick="deepDiveHolding('${ticker}','${acct}')" title="Open research">RESEARCH ↗</button>
+      <button class="pp-tx-btn" onclick="ppCloseTxRow()" title="Close">✕</button>
+    </div>
+    <div class="pp-tx-list" id="ppTxList">${ppTxEntriesHtml(ticker, acct)}</div>
+  </div>`;
+};
+
+window.ppCloseTxRow = function() {
+  const r = document.getElementById('ppTxDetailRow');
+  if (r) r.remove();
+};
+
+// Expanding detail row, inserted directly beneath the clicked holding.
+// Carries data-rowtype="txdetail" so filterTable(), buildCards() and
+// updateRowCount() can all skip it — see the guards at each of those.
+window.ppToggleTxRow = function(ticker, account, el) {
+  const tr = el && el.closest ? el.closest('tr') : null;
+  if (!tr) return;
+  const key      = ticker + '|' + account;
+  const existing = document.getElementById('ppTxDetailRow');
+  const sameRow  = existing && existing.dataset.key === key;
+  if (existing) existing.remove();
+  if (sameRow) return;                       // clicking the open row closes it
+
+  const accts = ppTickerAccounts(ticker);
+  const acct  = accts.includes(account) ? account : (accts[0] || account);
+  const row   = document.createElement('tr');
+  row.id = 'ppTxDetailRow';
+  row.setAttribute('data-rowtype', 'txdetail');
+  row.dataset.key = key;
+  row.innerHTML = `<td colspan="16" class="pp-tx-cell">${ppTxPanelHtml(ticker, acct, accts)}</td>`;
+  tr.parentNode.insertBefore(row, tr.nextSibling);
+};
 </script>
 
 <!-- ======================================================  TRANSACTION MODAL -->
@@ -10036,6 +10255,9 @@ function buildCards(){
     var rt=r.getAttribute('data-rowtype');
     var isClosed=r.getAttribute('data-closed')==='true';
     if(isClosed)return false;
+    /* The desktop transaction-detail row is not a holding — it has none of the
+       cells this card template reads, so it must never reach the map below. */
+    if(rt==='txdetail')return false;
     if(isSumMode) return rt==='summary'; /* summary mode: only summary rows */
     return rt!=='summary';               /* all/acct mode: no summary rows */
   });
@@ -10073,7 +10295,10 @@ function buildCards(){
     var pCls=pnlVal>=0?'up':'dn';
     var dayStr=(dayD!=='—'&&dayP!=='—')?dayD+' · '+dayP:(dayD!=='—'?dayD:'—');
     var dCls=dayStr.startsWith('+')?'up':(dayStr.startsWith('-')||dayStr.startsWith('−'))?'dn':'';
-    return'<div class="m-card">'
+    /* Cash rows have no transaction history to show. */
+    var tapAttr = (ticker && ticker !== 'CASH' && ticker.indexOf('CASH') !== 0)
+      ? ' onclick="mOpenTxSheet(\''+ticker+'\',\''+acctAttr+'\')" style="cursor:pointer"' : '';
+    return'<div class="m-card"'+tapAttr+'>'
       +'<div class="m-card-hdr"><div><div class="m-ticker-sym">'+ticker+' '+bHtml+'</div><div class="m-name">'+name+'</div></div>'
       +'<div class="m-card-val"><div class="m-mv">'+mv+'</div><div class="m-dchg '+dCls+'">'+dayStr+'</div></div></div>'
       +'<div class="m-metrics">'
@@ -10083,6 +10308,54 @@ function buildCards(){
       +'</div></div>';
   }).join('');
 }
+
+/* ════ TRANSACTION HISTORY SHEET ═══════════════════════════
+   Reads the same window.ppTickerHistory / ppTickerAccounts the desktop row
+   uses, so both surfaces show identical data. ════════════════════════════ */
+var _mTxTicker='';
+window.mOpenTxSheet=function(ticker,account){
+  if(!ticker||typeof window.ppTickerAccounts!=='function')return;
+  _mTxTicker=ticker;
+  var accts=window.ppTickerAccounts(ticker);
+  var acct=accts.indexOf(account)>=0?account:(accts[0]||account);
+  var sym=document.getElementById('m-tx-sym');
+  if(sym)sym.textContent=ticker;
+  var ab=document.getElementById('m-tx-accts');
+  if(ab){
+    ab.innerHTML=accts.map(function(a){
+      var lbl=a==='Investment'?'NON-REG':a;
+      return'<button class="m-tx-acct'+(a===acct?' on':'')+'" data-acct="'+a+'" onclick="mTxSelectAcct(\''+ticker+'\',\''+a+'\')">'+lbl+'</button>';
+    }).join('');
+  }
+  mTxSelectAcct(ticker,acct);
+  document.getElementById('m-tx-backdrop').classList.add('on');
+  document.getElementById('m-tx-sheet').classList.add('on');
+};
+window.mTxSelectAcct=function(ticker,acct){
+  var body=document.getElementById('m-tx-body');
+  if(body&&typeof window.ppTickerHistory==='function'){
+    var entries=window.ppTickerHistory(ticker,acct);
+    if(!entries.length){
+      body.innerHTML='<div class="m-tx-empty">No transactions logged for '+ticker+' in '+(acct==='Investment'?'Non-Reg':acct)+'.</div>';
+    } else {
+      body.innerHTML=entries.map(function(e){
+        return'<div class="m-tx-item">'
+          +'<div class="m-tx-item-top"><span class="m-tx-tag t-'+e.kind+'">'+e.label+'</span>'
+          +'<span class="m-tx-date">'+(e.date||'—')+'</span></div>'
+          +'<div class="m-tx-desc">'+e.desc+'</div>'
+          +(e.note?'<div class="m-tx-note">'+e.note+'</div>':'')
+          +'</div>';
+      }).join('');
+    }
+  }
+  var btns=document.querySelectorAll('#m-tx-accts .m-tx-acct');
+  Array.prototype.forEach.call(btns,function(b){b.classList.toggle('on',b.dataset.acct===acct);});
+};
+window.mCloseTxSheet=function(){
+  var b=document.getElementById('m-tx-backdrop'),s=document.getElementById('m-tx-sheet');
+  if(b)b.classList.remove('on');
+  if(s)s.classList.remove('on');
+};
 
 /* ════ CAROUSEL DOTS ═══════════════════════════════════════ */
 function initCarouselDots(carousel,dotsId){
@@ -11175,6 +11448,20 @@ document.addEventListener('DOMContentLoaded',function(){
       <button class="m-set-discard" id="m-set-discard-btn">Discard Changes</button>
       <button class="m-set-save" id="m-set-save-btn">Save Changes</button>
     </div>
+  </div>
+
+  <!-- Per-ticker transaction history sheet.
+       Deliberately outside #m-hold-cards: buildCards() replaces that container's
+       innerHTML on every filter and refresh, which would destroy an open sheet. -->
+  <div class="m-tx-backdrop" id="m-tx-backdrop" onclick="mCloseTxSheet()"></div>
+  <div class="m-tx-sheet" id="m-tx-sheet" role="dialog" aria-modal="true" aria-label="Transaction history">
+    <div class="m-tx-grab"></div>
+    <div class="m-tx-head">
+      <div class="m-tx-sym" id="m-tx-sym">—</div>
+      <button class="m-tx-x" onclick="mCloseTxSheet()" aria-label="Close">✕</button>
+    </div>
+    <div class="m-tx-accts" id="m-tx-accts"></div>
+    <div class="m-tx-body" id="m-tx-body"></div>
   </div>
 
   <!-- Tab bar -->

@@ -1850,16 +1850,18 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
           <th onclick="sortTable(2)">Account ↕</th>
           <th onclick="sortTable(3)">Weight ↕</th>
           <th onclick="sortTable(4)">Shares ↕</th>
-          <th onclick="sortTable(5)">Sector ↕</th>
+          <!-- Sector is hidden but still rendered: the sector filter reads
+               data-sector off the row, and sortTable() is position-based. -->
+          <th onclick="sortTable(5)" style="display:none">Sector ↕</th>
           <th onclick="sortTable(6)">Live Price ↕</th>
           <th onclick="sortTable(7)">Cost Base ↕</th>
           <th onclick="sortTable(8)">Market Value ↕</th>
           <th onclick="sortTable(9)">Day Gain $ ↕</th>
           <th onclick="sortTable(10)">Day Gain % ↕</th>
-          <th onclick="sortTable(11)">Total P/L $ ↕</th>
-          <th onclick="sortTable(12)">Total Return % ↕</th>
-          <th onclick="sortTable(13)" style="display:none">Unrealized ↕</th>
-          <th onclick="sortTable(14)" style="display:none">Dividends ↕</th>
+          <th onclick="sortTable(11)">Dividends ↕</th>
+          <th onclick="sortTable(12)">Total P/L $ ↕</th>
+          <th onclick="sortTable(13)">Total Return % ↕</th>
+          <th onclick="sortTable(14)" style="display:none">Unrealized ↕</th>
           <th onclick="sortTable(15)" style="display:none">Realized ↕</th>
         </tr>
       </thead>
@@ -1871,16 +1873,16 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
           <td style="color:var(--text3)">—</td>
           <td style="color:var(--text3)">—</td>
           <td style="color:var(--text3)">—</td>
-          <td style="color:var(--text3)">—</td>
+          <td style="color:var(--text3);display:none">—</td>
           <td style="color:var(--text3)">—</td>
           <td id="stCb">—</td>
           <td id="stMv">—</td>
           <td id="stDayGain">—</td>
           <td style="color:var(--text3)">—</td>
+          <td id="stDiv">—</td>
           <td id="stPnl">—</td>
           <td id="stRet">—</td>
           <td id="stUnreal" style="display:none">—</td>
-          <td id="stDiv" style="display:none">—</td>
           <td id="stReal" style="display:none">—</td>
         </tr>
       </tfoot>
@@ -3901,16 +3903,16 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
       <td><div style="display:flex;flex-wrap:wrap;gap:3px">${acctBadgesHtml}</div></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
       <td class="mono">${sharesStr}</td>
-      <td class="text2 small">${g.sector}</td>
+      <td class="text2 small" style="display:none">${g.sector}</td>
       <td class="mono small ${dayColor}">${liveStr}</td>
       <td class="mono text2">${fmt$(g.costBasisCAD)}</td>
       <td class="mono">${fmt$(g.mktVal)}</td>
       <td class="mono small ${dayColor}">${dayDollarStr}</td>
       <td class="mono small ${dayColor}">${dayStr}</td>
+      <td class="mono small text2">${g.dividends > 0 ? fmt$(g.dividends) : '—'}</td>
       <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
       <td class="mono ${retColor}">${retStr}</td>
       <td class="mono ${unrealColor}" style="display:none">${fmt$(g.unrealizedCAD)}</td>
-      <td class="mono small text2" style="display:none">${g.dividends > 0 ? fmt$(g.dividends) : '—'}</td>
       <td class="mono small ${realColor}" style="display:none">${g.realized !== 0 ? fmt$(g.realized) : '—'}</td>
     </tr>`;
   }).join('');
@@ -3936,15 +3938,15 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
       <td><div style="display:flex;flex-wrap:wrap;gap:3px">${acctBadgesHtml}</div></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.4"></div></div></td>
       <td class="mono text3">—</td>
-      <td class="text2 small">Cash</td>
+      <td class="text2 small" style="display:none">Cash</td>
       <td class="mono small text2">${priceStr}</td>
       <td class="mono text3">—</td>
       <td class="mono">${fmt$(mktVal)}</td>
       <td class="mono small text3">—</td>
       <td class="mono small text3">—</td>
+      <td class="mono small text3">—</td>
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
-      <td class="mono text3" style="display:none">—</td>
       <td class="mono text3" style="display:none">—</td>
       <td class="mono text3" style="display:none">—</td>
     </tr>`;
@@ -4021,16 +4023,16 @@ function renderHoldingsTable(liveData) {
       <td><span class="badge ${acctBadge}">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.7"></div></div></td>
       <td class="mono">${h.shares}</td>
-      <td class="text2 small">${h.sector}</td>
+      <td class="text2 small" style="display:none">${h.sector}</td>
       <td class="mono small ${dayColor}">${liveStr}</td>
       <td class="mono text2">${fmt$(costBasisCAD)}</td>
       <td class="mono">${fmt$(mktVal)}</td>
       <td class="mono small ${dayColor}">${dayDollarStr}</td>
       <td class="mono small ${dayColor}">${dayStr}</td>
+      <td class="mono small text2">${divCAD > 0 ? fmt$(divCAD) : '—'}</td>
       <td class="mono ${pnlColor}">${fmt$(totalPnlCAD)}</td>
       <td class="mono ${retColor}">${retStr}</td>
       <td class="mono ${unrealColor}" style="display:none">${fmt$(unrealizedCAD)}</td>
-      <td class="mono small text2" style="display:none">${divCAD > 0 ? fmt$(divCAD) : '—'}</td>
       <td class="mono small ${realColor}" style="display:none">${realizedCAD !== 0 ? fmt$(realizedCAD) : '—'}</td>
     </tr>`;
   }).join('');
@@ -4052,16 +4054,16 @@ function renderHoldingsTable(liveData) {
       <td><span class="badge badge-closed">CLOSED</span><span class="mono" style="font-size:9px;color:var(--text3);margin-left:4px">${h.account === 'Investment' ? 'NON-REG' : h.account}</span></td>
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
-      <td class="text3 small">${h.sector}</td>
+      <td class="text3 small" style="display:none">${h.sector}</td>
       <td class="mono small text3">—</td>
       <td class="mono text3">${costBasisCAD > 0 ? fmt$(costBasisCAD) : '—'}</td>
       <td class="mono text3">—</td>
       <td class="mono small text3">—</td>
       <td class="mono small text3">—</td>
+      <td class="mono small text2">${divCAD > 0 ? fmt$(divCAD) : '—'}</td>
       <td class="mono ${pnlColor}">${(pnlCAD >= 0 ? '+' : '') + fmt$(pnlCAD)}</td>
       <td class="mono ${pnlColor}">${h.pct_return != null ? (h.pct_return >= 0 ? '+' : '') + h.pct_return.toFixed(1) + '%' : '—'}</td>
       <td class="mono text3" style="display:none">—</td>
-      <td class="mono small text3" style="display:none">${divCAD > 0 ? fmt$(divCAD) : '—'}</td>
       <td class="mono small ${pnlCAD >= 0 ? 'green' : 'red'}" style="display:none">${pnlCAD !== 0 ? fmt$(pnlCAD) : '—'}</td>
     </tr>`;
   }).join('');
@@ -4079,15 +4081,15 @@ function renderHoldingsTable(liveData) {
       <td><span class="badge ${acctBadge}">${c.account === 'Investment' ? 'NON-REG' : c.account}</span></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span class="mono small">${weight}%</span><div style="width:${widthPx}px;height:4px;background:var(--blue-bright);border-radius:2px;opacity:.4"></div></div></td>
       <td class="mono text3">—</td>
-      <td class="text2 small">Cash</td>
+      <td class="text2 small" style="display:none">Cash</td>
       <td class="mono small text2">${priceStr}</td>
       <td class="mono text3">—</td>
       <td class="mono">${fmt$(mktVal)}</td>
       <td class="mono small text3">—</td>
       <td class="mono small text3">—</td>
+      <td class="mono small text3">—</td>
       <td class="mono text3">—</td>
       <td class="mono text3">—</td>
-      <td class="mono text3" style="display:none">—</td>
       <td class="mono text3" style="display:none">—</td>
       <td class="mono text3" style="display:none">—</td>
     </tr>`;
@@ -4192,18 +4194,19 @@ function refreshTablePrices(liveData) {
     _flashCell(cells[10], dayStr, cells[10].textContent);
     cells[10].textContent = dayStr;
     cells[10].className   = `mono small ${dayColor}`;
-    // Cell 11: Total P/L $
-    _flashCell(cells[11], fmt$(totalPnlCAD), cells[11].textContent);
-    cells[11].textContent = fmt$(totalPnlCAD);
-    cells[11].className   = `mono ${totalPnlCAD >= 0 ? 'green' : 'red'}`;
-    // Cell 12: Total Return %
-    _flashCell(cells[12], retStr, cells[12].textContent);
-    cells[12].textContent = retStr;
-    cells[12].className   = `mono ${retPct != null ? (retPct >= 0 ? 'green' : 'red') : ''}`;
-    // Cell 13: Unrealized (hidden — update for data integrity)
-    if (cells[13]) {
-      cells[13].textContent = fmt$(unrealizedCAD);
-      cells[13].className   = `mono ${unrealizedCAD >= 0 ? 'green' : 'red'}`;
+    // Cell 11 is Dividends — static, never repainted by the live-price pass.
+    // Cell 12: Total P/L $
+    _flashCell(cells[12], fmt$(totalPnlCAD), cells[12].textContent);
+    cells[12].textContent = fmt$(totalPnlCAD);
+    cells[12].className   = `mono ${totalPnlCAD >= 0 ? 'green' : 'red'}`;
+    // Cell 13: Total Return %
+    _flashCell(cells[13], retStr, cells[13].textContent);
+    cells[13].textContent = retStr;
+    cells[13].className   = `mono ${retPct != null ? (retPct >= 0 ? 'green' : 'red') : ''}`;
+    // Cell 14: Unrealized (hidden — update for data integrity)
+    if (cells[14]) {
+      cells[14].textContent = fmt$(unrealizedCAD);
+      cells[14].className   = `mono ${unrealizedCAD >= 0 ? 'green' : 'red'}`;
     }
 
     // Update data-* attributes so filterTable/updateSubtotals use fresh values
@@ -10048,8 +10051,11 @@ function buildCards(){
     var dayD=cells[9].textContent.trim();
     var dayP=cells[10].textContent.trim();
     var cost=cells[7].textContent.trim();
-    var pnl=cells[11].textContent.trim();
-    var ret=cells[12].textContent.trim();
+    /* Dividends were inserted at index 11 on the desktop table, pushing
+       Total P/L $ to 12 and Total Return % to 13. Indices bumped so these
+       cards keep showing exactly the same values as before. */
+    var pnl=cells[12].textContent.trim();
+    var ret=cells[13].textContent.trim();
     /* For summary rows, show account from data-account attr */
     var rt=r.getAttribute('data-rowtype');
     var acctAttr=r.getAttribute('data-account')||'';

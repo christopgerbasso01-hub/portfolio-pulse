@@ -1,51 +1,51 @@
 {
   "macro": [
     {
-      "title": "Global Oil Supply",
-      "category": "geopolitical",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "The ongoing tensions in the Middle East, particularly between the US and Iran, have led to a significant disruption in global oil supply. This could lead to higher oil prices, affecting the portfolio's energy holdings. The recent attack on Saudi Red Sea oil exports has further exacerbated the situation.",
-      "bull": "Higher oil prices could benefit the portfolio's energy holdings, such as ENB.TO.",
+      "title": "Global Trade Shifts",
+      "category": "macro-economic",
+      "impact": "MED",
+      "confidence": 70,
+      "body": "The ongoing global trade tensions could lead to a shift in trade patterns, with countries seeking alternative markets. This shift may impact the portfolio's holdings in Canadian financial institutions, such as CM.TO and RY.TO, as they may need to adapt to changing trade flows.",
+      "bull": "A successful navigation of trade shifts could lead to increased profitability for Canadian banks.",
       "bull_estimate": "+$10,000-$15,000",
       "bull_probability": 40,
-      "base": "The situation may stabilize, leading to a moderate impact on the portfolio.",
+      "base": "The trade shifts may have a minimal impact on the portfolio's holdings.",
       "base_estimate": "±$2,000",
       "base_probability": 30,
-      "bear": "A prolonged conflict could lead to a significant increase in oil prices, negatively impacting the portfolio's overall performance.",
-      "bear_estimate": "-$20,000-$30,000",
+      "bear": "A significant disruption in trade patterns could negatively impact the portfolio's holdings.",
+      "bear_estimate": "-$15,000-$20,000",
       "bear_probability": 30
     },
     {
-      "title": "Fed Rate Hike",
-      "category": "monetary-policy",
-      "impact": "MED",
-      "confidence": 70,
-      "body": "The Federal Reserve's potential shift in monetary policy could influence the portfolio's interest rate-sensitive holdings. A rate hike could lead to a decrease in the value of the portfolio's bond holdings.",
-      "bull": "A rate hike could lead to a stronger US dollar, positively impacting the portfolio's USD-denominated holdings.",
+      "title": "Inflation Pressures",
+      "category": "inflation",
+      "impact": "LOW",
+      "confidence": 60,
+      "body": "The recent increase in oil prices due to the US-Iran standoff may lead to higher inflation, which could impact the portfolio's holdings in tech companies, such as NVDA and MSFT, as they may face increased costs.",
+      "bull": "A moderate increase in inflation could lead to higher revenue for tech companies.",
       "bull_estimate": "+$5,000-$10,000",
       "bull_probability": 35,
-      "base": "The rate hike may have a moderate impact on the portfolio, depending on the extent of the hike.",
+      "base": "The inflation pressures may have a minimal impact on the portfolio's holdings.",
       "base_estimate": "±$1,000",
       "base_probability": 40,
-      "bear": "A significant rate hike could lead to a decrease in the value of the portfolio's bond holdings and negatively impact the overall performance.",
-      "bear_estimate": "-$15,000-$25,000",
+      "bear": "A significant increase in inflation could negatively impact the portfolio's holdings.",
+      "bear_estimate": "-$10,000-$15,000",
       "bear_probability": 25
     },
     {
-      "title": "Global Trade Tensions",
-      "category": "macro-economic",
+      "title": "FX Volatility",
+      "category": "fx",
       "impact": "MED",
-      "confidence": 60,
-      "body": "The ongoing global trade tensions could lead to a shift in trade patterns, affecting the portfolio's holdings in companies with international exposure. The recent US-Iran standoff has further complicated the situation.",
-      "bull": "A resolution to the trade tensions could lead to an increase in global trade, positively impacting the portfolio's holdings in companies with international exposure.",
+      "confidence": 65,
+      "body": "The ongoing FX volatility, particularly between the USD and CAD, may impact the portfolio's holdings in US-based companies, such as AAPL and QCOM, as they may face exchange rate risks.",
+      "bull": "A favorable exchange rate could lead to increased profitability for US-based companies.",
       "bull_estimate": "+$8,000-$12,000",
-      "bull_probability": 30,
-      "base": "The situation may stabilize, leading to a moderate impact on the portfolio.",
-      "base_estimate": "±$1,500",
-      "base_probability": 45,
-      "bear": "A prolonged trade war could lead to a significant decrease in global trade, negatively impacting the portfolio's overall performance.",
-      "bear_estimate": "-$18,000-$28,000",
+      "bull_probability": 45,
+      "base": "The FX volatility may have a minimal impact on the portfolio's holdings.",
+      "base_estimate": "±$2,000",
+      "base_probability": 30,
+      "bear": "An unfavorable exchange rate could negatively impact the portfolio's holdings.",
+      "bear_estimate": "-$10,000-$15,000",
       "bear_probability": 25
     }
   ],
@@ -53,224 +53,241 @@
     {
       "title": "Leverage Amplification Risk",
       "level": "HIGH",
-      "context": "49% of the portfolio is invested in leveraged ETFs, totaling ~$135,000 CAD",
-      "body": "The portfolio's high leverage amplifies both gains and losses, making it more susceptible to market volatility. A significant market downturn could lead to substantial losses."
+      "context": "49% of portfolio (~ $135K CAD)",
+      "body": "The portfolio's high leverage through FNGU, SPXL, and UDOW may amplify losses in the event of a market downturn."
     },
     {
-      "title": "FX Exposure Risk",
+      "title": "Single-Stock Risk",
       "level": "MED",
-      "context": "The portfolio has a significant USD exposure, with ~$180,000 CAD invested in USD-denominated assets",
-      "body": "Changes in the USD/CAD exchange rate could impact the portfolio's value, particularly if the Canadian dollar strengthens against the US dollar."
+      "context": "NVDA holding (~ $20K CAD)",
+      "body": "The portfolio's significant holding in NVDA may expose it to single-stock risk, where a decline in NVDA's stock price could negatively impact the portfolio."
     },
     {
-      "title": "Earnings Concentration Risk",
-      "level": "MED",
-      "context": "The portfolio is heavily concentrated in the technology sector, with ~20% of the portfolio invested in tech stocks",
-      "body": "A downturn in the technology sector could lead to significant losses, as the portfolio is heavily exposed to this sector."
+      "title": "Cash Drag Risk",
+      "level": "LOW",
+      "context": "Uninvested RRSP cash (~ $10K CAD)",
+      "body": "The portfolio's uninvested RRSP cash may lead to cash drag, where the cash earns a lower return than the overall market."
     }
   ],
   "news": [
     {
-      "headline": "Iran Says No Progress on Interim Peace Deal",
-      "impact": "HIGH",
-      "confidence": 85,
-      "category": "Geopolitical",
-      "body": "The lack of progress on an interim peace deal between the US and Iran has led to increased tensions in the region, potentially affecting the portfolio's energy holdings.",
-      "exposure": "ENB.TO ~$10,000 CAD",
+      "headline": "Oil Prices Ease",
+      "impact": "MED",
+      "confidence": 70,
+      "category": "Sector & Stock",
+      "body": "The recent decrease in oil prices may impact the portfolio's holdings in energy-related companies, such as ENB.TO.",
+      "exposure": "ENB.TO ~ $5K CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 40,
-          "scenario": "Higher oil prices could benefit the portfolio's energy holdings.",
-          "estimate": "+$2,000-$4,000"
+          "scenario": "A decrease in oil prices could lead to increased demand for energy-related companies.",
+          "estimate": "+$1,000-$2,000"
         },
         {
           "label": "Base",
           "probability": 30,
-          "scenario": "The situation may stabilize, leading to a moderate impact on the portfolio.",
+          "scenario": "The decrease in oil prices may have a minimal impact on the portfolio's holdings.",
           "estimate": "±$500"
         },
         {
           "label": "Bear",
           "probability": 30,
-          "scenario": "A prolonged conflict could lead to a significant increase in oil prices, negatively impacting the portfolio's overall performance.",
-          "estimate": "-$5,000-$10,000"
+          "scenario": "A significant decrease in oil prices could negatively impact the portfolio's holdings.",
+          "estimate": "-$2,000-$3,000"
         }
       ]
     },
     {
-      "headline": "CEO of Intel Gives Jim Cramer Reason to Call it His Favorite Stock",
-      "impact": "MED",
-      "confidence": 70,
-      "category": "Sector & Stock",
-      "body": "The CEO of Intel's comments have led to increased optimism about the company's prospects, potentially benefiting the portfolio's holdings in the technology sector.",
-      "exposure": "NVDA ~$20,000 CAD, TXF.TO ~$5,000 CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 45,
-          "scenario": "The positive sentiment could lead to an increase in the value of the portfolio's technology holdings.",
-          "estimate": "+$3,000-$6,000"
-        },
-        {
-          "label": "Base",
-          "probability": 35,
-          "scenario": "The situation may stabilize, leading to a moderate impact on the portfolio.",
-          "estimate": "±$1,000"
-        },
-        {
-          "label": "Bear",
-          "probability": 20,
-          "scenario": "The optimism may be overblown, leading to a decrease in the value of the portfolio's technology holdings.",
-          "estimate": "-$2,000-$4,000"
-        }
-      ]
-    },
-    {
-      "headline": "Wendy's Stock Jumps on Report of Potential Takeover Bid",
+      "headline": "TSLA Stock Falls",
       "impact": "LOW",
-      "confidence": 50,
+      "confidence": 60,
       "category": "Sector & Stock",
-      "body": "The potential takeover bid for Wendy's has led to an increase in the company's stock price, but this may not have a significant impact on the portfolio.",
-      "exposure": "None",
+      "body": "The recent decline in TSLA's stock price may impact the portfolio's holding in TSLA.",
+      "exposure": "TSLA ~ $3K CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 30,
-          "scenario": "The takeover bid could lead to an increase in the value of similar stocks in the portfolio.",
+          "probability": 35,
+          "scenario": "A rebound in TSLA's stock price could lead to increased profitability.",
           "estimate": "+$1,000-$2,000"
         },
         {
           "label": "Base",
-          "probability": 50,
-          "scenario": "The situation may not have a significant impact on the portfolio.",
-          "estimate": "±$0"
+          "probability": 40,
+          "scenario": "The decline in TSLA's stock price may have a minimal impact on the portfolio's holdings.",
+          "estimate": "±$500"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "The takeover bid could lead to a decrease in the value of similar stocks in the portfolio.",
-          "estimate": "-$1,000-$2,000"
+          "probability": 25,
+          "scenario": "A significant decline in TSLA's stock price could negatively impact the portfolio's holdings.",
+          "estimate": "-$1,500-$2,500"
+        }
+      ]
+    },
+    {
+      "headline": "QCOM Earnings",
+      "impact": "MED",
+      "confidence": 65,
+      "category": "Sector & Stock",
+      "body": "The recent earnings report from QCOM may impact the portfolio's holding in QCOM.",
+      "exposure": "QCOM ~ $4K CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 45,
+          "scenario": "A strong earnings report could lead to increased profitability.",
+          "estimate": "+$1,500-$3,000"
+        },
+        {
+          "label": "Base",
+          "probability": 30,
+          "scenario": "The earnings report may have a minimal impact on the portfolio's holdings.",
+          "estimate": "±$1,000"
+        },
+        {
+          "label": "Bear",
+          "probability": 25,
+          "scenario": "A weak earnings report could negatively impact the portfolio's holdings.",
+          "estimate": "-$2,000-$3,500"
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "PXD",
+      "ticker": "SQ",
+      "action": "ADD",
+      "account": "RRSP",
+      "thesis": "The recent growth in digital payments may lead to increased demand for SQ's services.",
+      "entry": "Entry price range: $200-$250"
+    },
+    {
+      "ticker": "CRWD",
+      "action": "WATCH",
+      "account": "Investment",
+      "thesis": "The increasing demand for cybersecurity solutions may lead to growth in CRWD's stock price.",
+      "entry": "Monitor for entry on a pullback to $150-$180"
+    },
+    {
+      "ticker": "DOCU",
       "action": "NEW",
       "account": "RRSP",
-      "thesis": "The company's strong track record of dividend payments and its position in the energy sector make it an attractive addition to the portfolio.",
-      "entry": "Entry price range: $150-$180"
-    },
-    {
-      "ticker": "BMO.TO",
-      "action": "ADD",
-      "account": "Investment",
-      "thesis": "The company's solid financials and its position in the Canadian banking sector make it a good addition to the portfolio.",
-      "entry": "Entry price range: $100-$120"
-    },
-    {
-      "ticker": "CSCO",
-      "action": "WATCH",
-      "account": "RRSP",
-      "thesis": "The company's strong position in the technology sector and its potential for growth make it a stock to watch.",
-      "entry": "Monitor for entry on a pullback to $40-$50"
+      "thesis": "The growing demand for digital document management solutions may lead to increased adoption of DOCU's services.",
+      "entry": "Entry price range: $70-$90"
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "The portfolio's high risk tolerance and long-term horizon provide a strong foundation for growth."
+      "text": "Diversified portfolio with a mix of tech, financial, and energy holdings"
     },
     {
       "ticker": "NVDA",
-      "text": "The portfolio's holding in NVDA has provided significant returns and continues to be a strong performer."
+      "text": "Strong growth prospects in the tech industry"
     },
     {
       "ticker": "FNGU",
-      "text": "The portfolio's holding in FNGU has provided significant returns and continues to be a strong performer."
+      "text": "Leveraged ETF providing exposure to the S&P 500"
+    },
+    {
+      "ticker": "CM.TO",
+      "text": "Stable dividend income from Canadian banks"
     },
     {
       "ticker": null,
-      "text": "The portfolio's diversification across sectors and asset classes helps to mitigate risk."
-    },
-    {
-      "ticker": null,
-      "text": "The portfolio's tax-efficient structure helps to minimize tax liabilities."
+      "text": "Tax-efficient use of RRSP and TFSA accounts"
     }
   ],
   "concerns": [
     {
-      "ticker": null,
-      "text": "The portfolio's high leverage amplifies both gains and losses, making it more susceptible to market volatility."
+      "ticker": "TSLA",
+      "text": "Volatility in TSLA's stock price may impact portfolio returns"
     },
     {
       "ticker": "ENB.TO",
-      "text": "The portfolio's holding in ENB.TO is exposed to the energy sector, which can be volatile."
+      "text": "Exposure to energy sector volatility"
+    },
+    {
+      "ticker": "QCOM",
+      "text": "Dependence on a few large holdings in the tech sector"
     },
     {
       "ticker": null,
-      "text": "The portfolio's concentration in the technology sector makes it vulnerable to sector-specific downturns."
+      "text": "FX risk due to USD-CAD exchange rate fluctuations"
     },
     {
       "ticker": null,
-      "text": "The portfolio's FX exposure could lead to losses if the Canadian dollar strengthens against the US dollar."
-    },
-    {
-      "ticker": null,
-      "text": "The portfolio's earnings concentration risk could lead to significant losses if the technology sector experiences a downturn."
+      "text": "Leverage amplification risk due to high leverage in FNGU and SPXL"
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor the portfolio's leverage and adjust as needed to maintain an optimal risk profile."
+      "text": "Monitor oil prices and adjust energy holdings accordingly"
     },
     {
       "num": "02",
-      "text": "Consider adding to the portfolio's holdings in the energy sector to take advantage of potential upside."
+      "text": "Keep an eye on interest rates and adjust bond holdings if necessary"
     },
     {
       "num": "03",
-      "text": "Keep a close eye on the portfolio's FX exposure and adjust as needed to minimize losses."
+      "text": "Rebalance portfolio to maintain target asset allocation"
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Continue to diversify the portfolio across sectors and asset classes to mitigate risk."
+      "text": "Consider adding more international exposure to the portfolio"
     },
     {
       "num": "02",
-      "text": "Consider adding to the portfolio's holdings in the technology sector to take advantage of potential upside."
+      "text": "Evaluate the potential for adding more alternative investments, such as real estate or commodities"
     },
     {
       "num": "03",
-      "text": "Monitor the portfolio's tax-efficient structure and make adjustments as needed to minimize tax liabilities."
+      "text": "Assess the tax implications of holding US-based stocks in an RRSP account"
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Maintain a long-term perspective and avoid making emotional decisions based on short-term market fluctuations."
+      "text": "Consider increasing the portfolio's allocation to dividend-paying stocks"
     },
     {
       "num": "02",
-      "text": "Continue to invest in a tax-efficient manner to minimize tax liabilities."
+      "text": "Evaluate the potential for adding more growth-oriented stocks to the portfolio"
     },
     {
       "num": "03",
-      "text": "Consider adding to the portfolio's holdings in the energy sector to take advantage of potential upside."
+      "text": "Assess the long-term implications of holding leveraged ETFs in the portfolio"
     }
   ],
-  "daily_outlook": "The portfolio's overall outlook remains positive, with a focus on long-term growth and diversification. However, the high leverage and concentration in the technology sector require close monitoring.",
-  "market_mood": "risk-on",
-  "generated_at": "2026-08-12T20:00:58.073207+00:00",
-  "generated_date": "August 12, 2026",
+  "daily_outlook": "The portfolio is well-diversified, but may face challenges due to the current market volatility. It is essential to monitor the portfolio's holdings and adjust the strategy as needed.",
+  "market_mood": "risk-off",
+  "generated_at": "2026-08-13T06:00:54.603193+00:00",
+  "generated_date": "August 13, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": [],
   "theme_history": [
+    {
+      "date": "2026-08-13",
+      "themes": [
+        {
+          "category": "macro-economic",
+          "title": "Global Trade Shifts"
+        },
+        {
+          "category": "inflation",
+          "title": "Inflation Pressures"
+        },
+        {
+          "category": "fx",
+          "title": "FX Volatility"
+        }
+      ]
+    },
     {
       "date": "2026-08-12",
       "themes": [
@@ -372,26 +389,36 @@
           "title": "Regulatory Environment"
         }
       ]
-    },
-    {
-      "date": "2026-08-04",
-      "themes": [
-        {
-          "category": "macro-economic",
-          "title": "Global Trade"
-        },
-        {
-          "category": "credit",
-          "title": "Credit Markets"
-        },
-        {
-          "category": "regulatory",
-          "title": "Regulatory Environment"
-        }
-      ]
     }
   ],
   "macro_history": [
+    {
+      "date": "2026-08-13",
+      "category": "macro-economic",
+      "title": "Global Trade Shifts",
+      "body": "The ongoing global trade tensions could lead to a shift in trade patterns, with countries seeking alternative markets. This shift may impact the portfolio's holdings in Canadian financial institutions, such as CM.TO and RY.TO, as they may need to adapt to changing trade flows.",
+      "bull": "A successful navigation of trade shifts could lead to increased profitability for Canadian banks.",
+      "base": "The trade shifts may have a minimal impact on the portfolio's holdings.",
+      "bear": "A significant disruption in trade patterns could negatively impact the portfolio's holdings."
+    },
+    {
+      "date": "2026-08-13",
+      "category": "inflation",
+      "title": "Inflation Pressures",
+      "body": "The recent increase in oil prices due to the US-Iran standoff may lead to higher inflation, which could impact the portfolio's holdings in tech companies, such as NVDA and MSFT, as they may face increased costs.",
+      "bull": "A moderate increase in inflation could lead to higher revenue for tech companies.",
+      "base": "The inflation pressures may have a minimal impact on the portfolio's holdings.",
+      "bear": "A significant increase in inflation could negatively impact the portfolio's holdings."
+    },
+    {
+      "date": "2026-08-13",
+      "category": "fx",
+      "title": "FX Volatility",
+      "body": "The ongoing FX volatility, particularly between the USD and CAD, may impact the portfolio's holdings in US-based companies, such as AAPL and QCOM, as they may face exchange rate risks.",
+      "bull": "A favorable exchange rate could lead to increased profitability for US-based companies.",
+      "base": "The FX volatility may have a minimal impact on the portfolio's holdings.",
+      "bear": "An unfavorable exchange rate could negatively impact the portfolio's holdings."
+    },
     {
       "date": "2026-08-12",
       "category": "geopolitical",
@@ -475,24 +502,6 @@
     },
     {
       "date": "2026-08-11",
-      "category": "macro-economic",
-      "title": "Global Trade Shifts",
-      "body": "The ongoing global trade tensions could lead to a shift in trade patterns, with countries seeking alternative markets and suppliers. This could impact the portfolio's holdings in multinational companies. The recent developments in the US-Iran standoff could also affect global trade, particularly in the energy sector.",
-      "bull": "A resolution to the trade tensions could lead to increased economic growth and higher demand for goods and services, benefiting the portfolio's holdings in the tech and finance sectors.",
-      "base": "The trade tensions are likely to continue, leading to a mixed impact on the portfolio's holdings, with some companies benefiting from alternative trade arrangements and others facing challenges.",
-      "bear": "An escalation of the trade tensions could lead to a significant decline in global trade, negatively impacting the portfolio's holdings in companies with international exposure."
-    },
-    {
-      "date": "2026-08-11",
-      "category": "fx",
-      "title": "FX Volatility",
-      "body": "The recent movements in the USD/CAD exchange rate could impact the portfolio's value, given its significant holdings in US-listed companies. A strong US dollar could lead to a decline in the value of the Canadian dollar, affecting the portfolio's returns.",
-      "bull": "A weakening US dollar could lead to an increase in the value of the Canadian dollar, benefiting the portfolio's holdings in US-listed companies.",
-      "base": "The FX market is likely to remain volatile, with the USD/CAD exchange rate fluctuating in response to economic data and trade developments.",
-      "bear": "A strong US dollar could lead to a significant decline in the value of the Canadian dollar, negatively impacting the portfolio's returns."
-    },
-    {
-      "date": "2026-08-11",
       "category": "inflation",
       "title": "Inflation Expectations",
       "body": "The current inflation trend may have a moderate impact on the portfolio, as rising inflation could lead to higher interest rates and a decrease in the value of bonds and other fixed-income securities.",
@@ -517,24 +526,16 @@
       "bull": "A favorable regulatory environment could boost the portfolio's tech holdings, leading to increased growth and returns.",
       "base": "A neutral regulatory environment would likely have a minimal impact on the portfolio, with returns driven by market performance.",
       "bear": "An unfavorable regulatory environment could negatively impact the portfolio's tech holdings, leading to decreased growth and returns."
-    },
-    {
-      "date": "2026-08-10",
-      "category": "credit",
-      "title": "Credit Market Trends",
-      "body": "The credit market is experiencing a period of relative stability, with interest rates and credit spreads remaining relatively steady. This stability could have a positive impact on the portfolio's fixed income holdings, such as the Canadian financial sector.",
-      "bull": "A continued stable credit market could lead to increased demand for fixed income securities, boosting the portfolio's returns.",
-      "base": "A stable credit market would likely have a minimal impact on the portfolio, with returns driven by market performance.",
-      "bear": "A deterioration in the credit market could lead to decreased demand for fixed income securities, negatively impacting the portfolio's returns."
     }
   ],
   "risk_history": [
     "Leverage Amplification Risk",
+    "Single-Stock Risk",
+    "Cash Drag Risk",
     "FX Exposure Risk",
     "Earnings Concentration Risk",
     "Leverage Decay Risk",
     "FX Drag Risk",
-    "Sector Overlap Risk",
-    "Single-Stock Risk"
+    "Sector Overlap Risk"
   ]
 }

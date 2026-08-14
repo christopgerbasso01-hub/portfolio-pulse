@@ -898,7 +898,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .m-card-val{text-align:right;}
 .m-mv{font-size:16px;font-weight:700;font-family:var(--mono);}
 .m-dchg{font-size:11px;font-weight:700;margin-top:2px;}
-.m-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-top:10px;border-top:1px solid var(--bd);}
+.m-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-top:10px;border-top:1px solid var(--bd);}
 .m-metric-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:2px;}
 .m-metric-v{font-size:13px;font-weight:700;font-family:var(--mono);}
 
@@ -931,9 +931,27 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .m-dot.on{background:var(--cyan);width:14px;border-radius:3px;}
 .m-swipe-hint{font-size:9px;color:var(--t3);text-align:right;margin-bottom:3px;}
 
-/* Chart wrap */
-.m-chart-wrap{background:var(--surf);border:1px solid var(--bd);border-radius:12px;
-               padding:10px 12px 8px;margin-bottom:10px;overflow:hidden;}
+/* Chart wrap — no surface of its own, so the charts sit directly on the app
+   background the way the desktop hero does. */
+.m-chart-wrap{background:transparent;border:none;border-radius:0;
+               padding:10px 2px 8px;margin-bottom:10px;overflow:hidden;}
+
+/* Hero stats — the desktop hero's six figures, 3 x 2 at phone width */
+.m-hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px;
+              margin-top:14px;padding-top:12px;border-top:1px solid var(--bd);}
+.m-hs{min-width:0;}
+.m-hs-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:3px;}
+.m-hs-v{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--t1);
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.m-hs-v.up{color:var(--green);}
+.m-hs-v.dn{color:var(--red);}
+
+/* Value / All-Time Change toggle on the mobile chart */
+.m-mode-row{display:flex;gap:4px;margin-bottom:8px;}
+.m-mode-btn{flex:1;text-align:center;font-size:8px;font-weight:700;letter-spacing:.05em;
+            padding:5px 6px;border-radius:7px;background:var(--surf2);color:var(--t3);
+            cursor:pointer;transition:all .15s;white-space:nowrap;}
+.m-mode-btn.on{background:rgba(0,212,255,.16);color:var(--cyan);}
 .m-chart-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .m-chart-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);font-weight:700;}
 .m-chart-filter{display:flex;gap:4px;}
@@ -9154,6 +9172,18 @@ function createMobileCharts(){
   syncBenchmark();
 }
 
+var mChartMode='value';                 // 'value' | 'change' — mobile MV chart
+window.mSetChartMode=function(mode){
+  mChartMode=(mode==='change')?'change':'value';
+  var btns=document.querySelectorAll('.m-mode-btn');
+  Array.prototype.forEach.call(btns,function(b){
+    b.classList.toggle('on',b.dataset.mmode===mChartMode);
+  });
+  var t=document.getElementById('m-mv-chart-title');
+  if(t)t.textContent=(mChartMode==='change')?'All-Time Change':'Portfolio Value';
+  applyMobileTimeRange();
+};
+
 function applyMobileTimeRange(){
   if(!mMvChart||!mRoiChart)return;
   if(!window.portfolioValueChart||!window.roiChart)return;
@@ -9170,10 +9200,38 @@ function applyMobileTimeRange(){
     if(mOff<0)mOff=0; if(rOff<0)rOff=0;
   }
 
-  mMvChart.data.labels=allMvL.slice(mOff);
-  var md0=srcMv.data.datasets[0],md1=srcMv.data.datasets[1];
-  mMvChart.data.datasets[0].data=md0?md0.data.slice(mOff):[];
-  mMvChart.data.datasets[1].data=md1?md1.data.slice(mOff):[];
+  if(mChartMode==='change'&&typeof window.ppChangeSeries==='function'){
+    /* All-Time Change: value − contributions, from the same derivation the
+       desktop toggle uses. currentFilter is whatever account the desktop chart
+       is on, which the mobile account tabs already drive. */
+    var key=(typeof currentFilter!=='undefined')?currentFilter:'all';
+    var cs2=window.ppChangeSeries(key);
+    var lbl=cs2.map(function(p){return p.x;});
+    var dat=cs2.map(function(p){return p.y;});
+    /* Append today's live point, exactly as the desktop chart does — without it
+       the series stops at the last month-end and undershoots the hero figure. */
+    if(window._lastLiveData&&typeof window._heroScopedStats==='function'){
+      var ak={all:null,tfsa:'TFSA',inv:'Investment',fhsa:'FHSA',rrsp:'RRSP'}[key];
+      var hs=window._heroScopedStats(window._lastLiveData,ak===undefined?null:ak);
+      lbl.push(new Date().toISOString().slice(0,10));
+      dat.push(+(hs.mktVal-hs.contrib).toFixed(2));
+    }
+    var off=0;
+    if(mTimeRange>0){
+      var co=new Date(); co.setMonth(co.getMonth()-mTimeRange);
+      var cstr=co.toISOString().slice(0,7);
+      off=lbl.findIndex(function(l){return l>=cstr;});
+      if(off<0)off=0;
+    }
+    mMvChart.data.labels=lbl.slice(off);
+    mMvChart.data.datasets[0].data=dat.slice(off);
+    mMvChart.data.datasets[1].data=lbl.slice(off).map(function(){return 0;});  // break-even
+  } else {
+    mMvChart.data.labels=allMvL.slice(mOff);
+    var md0=srcMv.data.datasets[0],md1=srcMv.data.datasets[1];
+    mMvChart.data.datasets[0].data=md0?md0.data.slice(mOff):[];
+    mMvChart.data.datasets[1].data=md1?md1.data.slice(mOff):[];
+  }
   mMvChart.update('none');
 
   var rd0=srcRoi.data.datasets[0];
@@ -9207,10 +9265,18 @@ function applyMobileTimeRange(){
   if(footer){
     var vals=(mMvChart.data.datasets[0].data||[]).filter(function(v){return v!=null;});
     var first=vals[0]||0,last=vals[vals.length-1]||0,chg=last-first;
-    var pct=first>0?((chg/first)*100).toFixed(1):'—';
-    footer.innerHTML='<span>'+fmtCur(first)+' start</span>'
-      +'<span class="'+(chg>=0?'up':'dn')+'">'+fmtCur(last)+' now · '
-      +(chg>=0?'+':'')+fmtCur(chg)+' ('+(chg>=0?'+':'')+pct+'%)</span>';
+    if(mChartMode==='change'){
+      /* A percentage of a gain figure is meaningless here, so show the absolute
+         move over the period instead. */
+      footer.innerHTML='<span>'+fmtCur(first)+' start</span>'
+        +'<span class="'+(last>=0?'up':'dn')+'">'+fmtCur(last)+' now · '
+        +(chg>=0?'+':'')+fmtCur(chg)+' over period</span>';
+    } else {
+      var pct=first>0?((chg/first)*100).toFixed(1):'—';
+      footer.innerHTML='<span>'+fmtCur(first)+' start</span>'
+        +'<span class="'+(chg>=0?'up':'dn')+'">'+fmtCur(last)+' now · '
+        +(chg>=0?'+':'')+fmtCur(chg)+' ('+(chg>=0?'+':'')+pct+'%)</span>';
+    }
   }
   // Period label
   var pEl=document.getElementById('m-roi-period');
@@ -9939,6 +10005,42 @@ window.mDiscardSettings=function(){
   window.mCloseSettings();
 };
 
+/* ════ HERO STATS ════════════════════════════════════════════
+   The same six figures as the desktop hero, from the same
+   window._heroScopedStats() call, so the surfaces cannot disagree.
+   Scoped to all accounts: the mobile hero total above them is always the
+   portfolio total regardless of the account tab, so account-scoping the
+   grid would make it contradict the number directly above it.
+══════════════════════════════════════════════════════════════ */
+function mMoney(v){
+  if(v==null||isNaN(v))return'—';
+  return (v<0?'-$':'$')+Math.abs(Math.round(v)).toLocaleString('en-CA');
+}
+function mUpdateHeroStats(){
+  if(typeof window._heroScopedStats!=='function'||!window._lastLiveData)return;
+  var s;
+  try{ s=window._heroScopedStats(window._lastLiveData,null); }catch(e){ return; }
+  var set=function(id,val,tone){
+    var el=document.getElementById(id); if(!el)return;
+    el.textContent=mMoney(val);
+    el.className='m-hs-v'+(tone==null?'':(tone>0?' up':tone<0?' dn':''));
+  };
+  set('m-hs-contrib',s.contrib,null);
+  set('m-hs-unreal', s.unrealized,s.unrealized);
+  set('m-hs-real',   s.realized,  s.realized);
+  set('m-hs-div',    s.dividends, null);
+  set('m-hs-cash',   s.cash,      null);
+  set('m-hs-fx',     s.fx,        s.fx);
+  /* All-time in dollars beside the percentage; "contributed" now lives in the
+     grid above, so it is dropped from this line rather than repeated. */
+  var sub=document.getElementById('m-hero-sub');
+  if(sub){
+    var pct=s.contrib>0?((s.mktVal-s.contrib)/s.contrib*100):0;
+    sub.textContent=(s.pnl>=0?'+':'−')+mMoney(Math.abs(s.pnl)).replace('-','')
+                    +' · '+(pct>=0?'+':'')+pct.toFixed(2)+'% all-time';
+  }
+}
+
 /* ════ SINGLE SYNC FUNCTION ══════════════════════════════════
    Called on init, on refreshAll, and every 5 seconds.
    No MutationObservers — this is the sole data updater.
@@ -10272,6 +10374,10 @@ function syncMobile(){
 
   /* Holdings glance (refreshes gainer/loser on every data refresh) */
   updateHoldingsGlance(window._holdGlanceAcct||'_summary');
+
+  /* Hero stats grid — overwrites the sub line above on success, so if
+     _heroScopedStats is ever unavailable the older ROI text survives. */
+  mUpdateHeroStats();
 }
 
 /* ════ HOLDINGS GLANCE ══════════════════════════════════════ */
@@ -10384,6 +10490,7 @@ function buildCards(){
        cards keep showing exactly the same values as before. */
     var pnl=cells[12].textContent.trim();
     var ret=cells[13].textContent.trim();
+    var divs=cells[11]?cells[11].textContent.trim():'—';   // Dividends column
     /* For summary rows, show account from data-account attr */
     var rt=r.getAttribute('data-rowtype');
     var acctAttr=r.getAttribute('data-account')||'';
@@ -10391,9 +10498,8 @@ function buildCards(){
     /* In summary mode, the account column shows the account; in normal mode show badge */
     var bHtml='';
     if(rt==='summary'){
-      /* Summary: may span multiple accounts — show sector instead */
-      var sector=r.getAttribute('data-sector')||'';
-      if(sector&&sector!=='Cash')bHtml='<span class="b abn" style="font-size:8px">'+sector+'</span>';
+      /* Sector chip dropped to match desktop, which now hides the Sector column.
+         Summary rows span multiple accounts so there is no badge to show instead. */
     } else if(badgeEl){
       bHtml='<span class="b '+(badgeEl.className.match(/badge-(\w+)/)||['',''])[1]+'" style="font-size:8px">'+badgeEl.textContent.trim()+'</span>';
     }
@@ -10409,6 +10515,7 @@ function buildCards(){
       +'<div class="m-card-val"><div class="m-mv">'+mv+'</div><div class="m-dchg '+dCls+'">'+dayStr+'</div></div></div>'
       +'<div class="m-metrics">'
       +'<div><div class="m-metric-l">Cost</div><div class="m-metric-v">'+cost+'</div></div>'
+      +'<div><div class="m-metric-l">Divs</div><div class="m-metric-v">'+divs+'</div></div>'
       +'<div><div class="m-metric-l">P&L</div><div class="m-metric-v '+pCls+'">'+pnl+'</div></div>'
       +'<div><div class="m-metric-l">Return</div><div class="m-metric-v '+pCls+'">'+ret+'</div></div>'
       +'</div></div>';
@@ -10488,7 +10595,10 @@ if(window.innerWidth>768)return;
    so direct querySelector finds nothing. Delegation works
    because it catches bubbled events from any element added later.
 ──────────────────────────────────────────────────────────── */
-var _sortCols={mv:8,cost:7,dayd:9,dayp:10,pld:11,plp:12};
+/* Column indices in the desktop holdings table. Dividends was inserted at 11,
+   pushing Total P/L $ to 12 and Total Return % to 13 — these were left stale by
+   that change, so the "P&L $" chip was sorting the Dividends column. */
+var _sortCols={mv:8,cost:7,dayd:9,dayp:10,div:11,pld:12,plp:13};
 
 document.addEventListener('click',function(e){
   var t=e.target;
@@ -11241,6 +11351,16 @@ document.addEventListener('DOMContentLoaded',function(){
         <div class="m-day-chip neu" id="m-day-chip"><span class="m-day-dollar" id="m-day-dollar">—</span><span class="m-day-pct" id="m-day-pct"></span></div>
       </div>
       <div class="m-hero-sub" id="m-hero-sub">—</div>
+      <!-- Same six figures as the desktop hero, from the same _heroScopedStats()
+           call, so the two surfaces cannot disagree. Follows the account tabs. -->
+      <div class="m-hero-stats" id="m-hero-stats">
+        <div class="m-hs"><div class="m-hs-l">Contributed</div><div class="m-hs-v" id="m-hs-contrib">—</div></div>
+        <div class="m-hs"><div class="m-hs-l">Unrealized</div><div class="m-hs-v" id="m-hs-unreal">—</div></div>
+        <div class="m-hs"><div class="m-hs-l">Realized</div><div class="m-hs-v" id="m-hs-real">—</div></div>
+        <div class="m-hs"><div class="m-hs-l">Dividends</div><div class="m-hs-v" id="m-hs-div">—</div></div>
+        <div class="m-hs"><div class="m-hs-l">Cash</div><div class="m-hs-v" id="m-hs-cash">—</div></div>
+        <div class="m-hs"><div class="m-hs-l">FX Impact</div><div class="m-hs-v" id="m-hs-fx">—</div></div>
+      </div>
     </div>
     <div class="m-acct-tabs" id="m-port-tabs">
       <div class="m-atab on" data-key="all">All · <span>$—</span></div>
@@ -11302,6 +11422,11 @@ document.addEventListener('DOMContentLoaded',function(){
             <div class="m-tr-cf m-cf" data-months="12">1Y</div>
             <div class="m-tr-cf m-cf on" data-months="0">All</div>
           </div>
+        </div>
+        <!-- Value ⇄ All-Time Change, same two modes as the desktop hero -->
+        <div class="m-mode-row">
+          <div class="m-mode-btn on" data-mmode="value"  onclick="mSetChartMode('value')">VALUE</div>
+          <div class="m-mode-btn"    data-mmode="change" onclick="mSetChartMode('change')">ALL-TIME CHANGE</div>
         </div>
         <div style="position:relative;height:150px"><canvas id="m-mv-canvas"></canvas></div>
         <div id="m-mv-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:4px"></div>
@@ -11365,6 +11490,7 @@ document.addEventListener('DOMContentLoaded',function(){
       <div class="m-sort-chip m-hold-sort" data-sort="cost">Cost</div>
       <div class="m-sort-chip m-hold-sort" data-sort="dayd">Day $</div>
       <div class="m-sort-chip m-hold-sort" data-sort="dayp">Day %</div>
+      <div class="m-sort-chip m-hold-sort" data-sort="div">Divs</div>
       <div class="m-sort-chip m-hold-sort" data-sort="pld">P&amp;L $</div>
       <div class="m-sort-chip m-hold-sort" data-sort="plp">P&amp;L %</div>
     </div>

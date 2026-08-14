@@ -4113,8 +4113,11 @@ function renderHoldingsTable(liveData) {
     const pnlColor = pnlCAD >= 0 ? 'green' : 'red';
     const pnlAttr = pnlCAD >= 0 ? 'gain' : 'loss';
     const costBasisCAD = h.cost_total > 0 ? h.cost_total * (h.ccy === 'USD' ? fxRate : 1) : 0;
-    const divTotal = h.dividends || 0;
-    const divCAD   = divTotal * (h.ccy === 'USD' ? fxRate : 1);
+    // Dividends are already stored in CAD — see updateHeaderKPIs, "Realized &
+    // dividends stored in CAD — no FX conversion needed". Converting again here
+    // inflated the seven USD closed positions by their book rate, overstating the
+    // Dividends column by $127 whenever closed rows were shown.
+    const divCAD = h.dividends || 0;
     const acctBadge = acctBadgeClass(h.account);
     return `<tr data-rowtype="closed" data-account="${h.account}" data-sector="${h.sector}" data-pnl="${pnlAttr}" data-closed="true" data-mv="0" data-cb="${costBasisCAD.toFixed(2)}" data-unreal="0" data-div="${divCAD.toFixed(2)}" data-real="${pnlCAD.toFixed(2)}" data-pnlval="${pnlCAD.toFixed(2)}">
       <td class="mono text3">${h.ticker}</td>

@@ -945,6 +945,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .m-hs-v.up{color:var(--green);}
 .m-hs-v.dn{color:var(--red);}
+.m-acct-more{font-family:var(--mono);font-size:10px;color:var(--t3);padding:7px 0 2px;}
 
 /* Value / All-Time Change toggle on the mobile chart */
 .m-mode-row{display:flex;gap:4px;margin-bottom:8px;}
@@ -8940,28 +8941,13 @@ if ('serviceWorker' in navigator) {
 /* ════ CONSTANTS ════════════════════════════════════════════ */
 var ACCT_DATA={
   tfsa:{label:'TFSA',cls:'abt',color:'#4a9eff',type:'TAX-FREE',
-    valId:'acctTFSAValue',roiId:'acctTFSARoi',pnlId:'acctTFSAPnl',footerId:'acctTFSAFooter',
-    // [ticker, shares, live-value-element-id]  — return is computed live
-    hdgs:[['FNGU','495','live-FNGU-TFSA'],['NVDA','40','live-NVDA-TFSA'],
-          ['TXF.TO','320','live-TXF.TO-TFSA'],['SPXL','23','live-SPXL-TFSA'],
-          ['TSLA','14','live-TSLA-TFSA'],['UDOW','84','live-UDOW-TFSA'],
-          ['CM.TO','45','live-CM.TO-TFSA']]},
+    valId:'acctTFSAValue',roiId:'acctTFSARoi',pnlId:'acctTFSAPnl',footerId:'acctTFSAFooter'},
   fhsa:{label:'FHSA',cls:'abf',color:'var(--green)',type:'HOME BUYERS',
-    valId:'acctFHSAValue',roiId:'acctFHSARoi',pnlId:'acctFHSAPnl',footerId:'acctFHSAFooter',
-    hdgs:[['SPXL','53','live-SPXL-FHSA'],['TXF.TO','434','live-TXF.TO-FHSA'],
-          ['UDOW','86','live-UDOW-FHSA'],['FNGU','157','live-FNGU-FHSA'],
-          ['ENB.TO','82','live-ENB.TO-FHSA']]},
+    valId:'acctFHSAValue',roiId:'acctFHSARoi',pnlId:'acctFHSAPnl',footerId:'acctFHSAFooter'},
   rrsp:{label:'RRSP',cls:'abr',color:'var(--amber)',type:'TAX-DEFERRED',
-    valId:'acctRRSPValue',roiId:'acctRRSPRoi',pnlId:'acctRRSPPnl',footerId:'acctRRSPFooter',
-    hdgs:[['TXF.TO','284','live-TXF.TO-RRSP'],['TSM','6','live-TSM-RRSP'],
-          ['UDOW','36','live-UDOW-RRSP'],['FNGU','56','live-FNGU-RRSP'],
-          ['MU','7','live-MU-RRSP'],['Cash','—',null]]},
+    valId:'acctRRSPValue',roiId:'acctRRSPRoi',pnlId:'acctRRSPPnl',footerId:'acctRRSPFooter'},
   inv:{label:'NON-REG',cls:'abn',color:'var(--t3)',type:'TAXABLE',
-    valId:'acctInvValue',roiId:'acctInvRoi',pnlId:'acctInvPnl',footerId:'acctInvFooter',
-    hdgs:[['SPXL','75','live-SPXL-Investment'],['FNGU','665','live-FNGU-Investment'],
-          ['CM.TO','50','live-CM.TO-Investment'],['TXF.TO','221','live-TXF.TO-Investment'],
-          ['TSM','9','live-TSM-Investment'],['RY.TO','19','live-RY.TO-Investment'],
-          ['IBKR','40','live-IBKR-Investment'],['AVGO','22','live-AVGO-Investment']]}
+    valId:'acctInvValue',roiId:'acctInvRoi',pnlId:'acctInvPnl',footerId:'acctInvFooter'}
 };
 
 var ACCTS=[
@@ -9304,6 +9290,11 @@ window.mSelectAcct=function(key,clickedBtn){
   if(tabs)Array.from(tabs.children).forEach(function(b){b.classList.remove('on');});
   if(clickedBtn)clickedBtn.classList.add('on');
 
+  /* Scope the hero to this account: value, day change, all-time and the six
+     stats all repaint from _heroScopedStats for the selected key. */
+  mHeroAcct=(M_ACCT_KEYS[key]!==undefined)?M_ACCT_KEYS[key]:null;
+  mUpdateHeroStats();
+
   var allContent=document.getElementById('m-acct-all');
   var detailCard=document.getElementById('m-acct-detail-card');
 
@@ -9323,28 +9314,37 @@ window.mSelectAcct=function(key,clickedBtn){
       var rTxt=roiEl?roiEl.textContent.trim():'—';
       var pTxt=pnlEl?pnlEl.textContent.trim():'';
       var fTxt=ftrEl?ftrEl.textContent.trim():'';
-      // Build rows dynamically — get value from live-cell and return from HOLDINGS_STATIC
+      /* Rows are built from HOLDINGS_STATIC and live prices, the same way the
+         desktop account cards are. The old path walked a hardcoded ACCT_DATA.hdgs
+         list and pulled each value from a live-{ticker}-{account} element — those
+         elements were removed when the desktop cards became dynamic, so every
+         Value read as an em dash and every return was frozen markup. */
       var acctNameMap={tfsa:'TFSA',fhsa:'FHSA',rrsp:'RRSP',inv:'Investment'};
       var acctName=acctNameMap[key]||'';
-      var rows=d.hdgs.map(function(h){
-        var ticker=h[0], sharesStr=h[1], liveId=h[2];
-        // Live value from desktop table cell
-        var vEl=liveId?document.getElementById(liveId):null;
-        var v=vEl?vEl.textContent.trim():'—';
-        // Return from HOLDINGS_STATIC
-        var retTxt='—', retCls='neu';
-        if(ticker!=='Cash'&&typeof HOLDINGS_STATIC!=='undefined'){
-          var hold=HOLDINGS_STATIC.find(function(h2){return h2.ticker===ticker&&h2.account===acctName;});
-          if(hold){
-            var pct=hold.pct_return!=null?hold.pct_return:null;
-            if(pct!=null){
-              retTxt=(pct>=0?'+':'')+pct.toFixed(1)+'%';
-              retCls=pct>=0?'up':'dn';
-            }
-          }
+      var rows='', moreLine='';
+      if(typeof HOLDINGS_STATIC!=='undefined'){
+        var ld=window._lastLiveData||{}, hp=ld.holdings||{}, fxr=ld.usdcad||1.38;
+        var held=HOLDINGS_STATIC.filter(function(h2){return h2.account===acctName;}).map(function(h2){
+          var fx=h2.ccy==='USD'?fxr:1;
+          var p=hp[h2.ticker];
+          var acb=h2.ccy==='USD'?h2.cost_total*(h2.book_rate||1):h2.cost_total;
+          var mv=(p&&p.price)?p.price*h2.shares*fx
+                             :((h2.unrealized||0)+(h2.cost_total||0))*(h2.ccy==='USD'?(h2.book_rate||1):1);
+          return {ticker:h2.ticker, shares:h2.shares, mv:mv, ret:acb>0?((mv-acb)/acb*100):null};
+        }).sort(function(a,b){return b.mv-a.mv;});
+        var shown=held.slice(0,8), rest=held.slice(8);
+        rows=shown.map(function(x){
+          var retTxt=x.ret==null?'—':(x.ret>=0?'+':'')+x.ret.toFixed(1)+'%';
+          var retCls=x.ret==null?'neu':(x.ret>=0?'up':'dn');
+          var shStr=(x.shares%1===0)?x.shares:x.shares.toFixed(2);
+          return'<tr><td class="t-tk">'+x.ticker+'</td><td>'+shStr+'</td><td>'
+                +mMoney(x.mv)+'</td><td class="'+retCls+'">'+retTxt+'</td></tr>';
+        }).join('');
+        if(rest.length){
+          var restMv=rest.reduce(function(a,x){return a+x.mv;},0);
+          moreLine='<div class="m-acct-more">+'+rest.length+' more · '+mMoney(restMv)+'</div>';
         }
-        return'<tr><td class="t-tk">'+ticker+'</td><td>'+sharesStr+'</td><td>'+v+'</td><td class="'+retCls+'">'+retTxt+'</td></tr>';
-      }).join('');
+      }
       detailCard.innerHTML=
         '<div class="m-acct-detail">'
         +'<div class="m-acct-detail-hdr">'
@@ -9355,6 +9355,7 @@ window.mSelectAcct=function(key,clickedBtn){
         +'</div>'
         +'<table class="m-acct-tbl"><thead><tr><th>Ticker</th><th>Shs</th><th>Value</th><th>Rtn</th></tr></thead>'
         +'<tbody>'+rows+'</tbody></table>'
+        +moreLine
         +(fTxt?'<div class="m-acct-insight">'+fTxt+'</div>':'')
         +'</div>';
     }
@@ -10016,10 +10017,29 @@ function mMoney(v){
   if(v==null||isNaN(v))return'—';
   return (v<0?'-$':'$')+Math.abs(Math.round(v)).toLocaleString('en-CA');
 }
+/* Which account the mobile hero is showing. Driven by the portfolio tabs;
+   'all' means the whole portfolio. */
+var mHeroAcct=null;                       // null = all accounts
+var M_ACCT_KEYS={all:null,tfsa:'TFSA',fhsa:'FHSA',rrsp:'RRSP',inv:'Investment'};
+
 function mUpdateHeroStats(){
   if(typeof window._heroScopedStats!=='function'||!window._lastLiveData)return;
   var s;
-  try{ s=window._heroScopedStats(window._lastLiveData,null); }catch(e){ return; }
+  try{ s=window._heroScopedStats(window._lastLiveData,mHeroAcct); }catch(e){ return; }
+
+  /* Headline value and day change follow the selected account too, so the whole
+     hero describes one scope rather than mixing account stats with a portfolio total. */
+  var totEl=document.getElementById('m-total');
+  if(totEl)totEl.textContent=mMoney(s.mktVal);
+  var chip=document.getElementById('m-day-chip');
+  var dEl=document.getElementById('m-day-dollar');
+  var pEl2=document.getElementById('m-day-pct');
+  if(chip&&dEl){
+    dEl.textContent=(s.dc>=0?'+':'-')+mMoney(Math.abs(s.dc)).replace('-','')
+                    +' ('+(s.dcp>=0?'+':'')+s.dcp.toFixed(2)+'%)';
+    if(pEl2)pEl2.textContent='';
+    chip.className='m-day-chip '+(s.dc>0?'up':s.dc<0?'dn':'neu');
+  }
   var set=function(id,val,tone){
     var el=document.getElementById(id); if(!el)return;
     el.textContent=mMoney(val);

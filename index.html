@@ -1357,6 +1357,17 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     box-shadow:0 6px 18px -8px rgba(0,212,255,.75);
   }
 
+  /* — Value / All-Time Change toggle, sits at the right of the filter row — */
+  .pp-mode-toggle{display:flex;gap:4px;margin-left:auto;padding:3px;border-radius:999px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);}
+  .pp-mode-btn{font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:6px 14px;
+    border-radius:999px;border:none;background:none;color:var(--text3);cursor:pointer;
+    white-space:nowrap;transition:all .15s;}
+  .pp-mode-btn:hover{color:var(--text2);}
+  .pp-mode-btn.active{background:rgba(0,212,255,.14);color:var(--cyan);font-weight:700;}
+  [data-theme="light"] .pp-mode-toggle{background:#f1f5f9;border-color:rgba(15,23,42,.12);}
+  [data-theme="light"] .pp-mode-btn.active{background:rgba(8,145,178,.14);color:#0e7490;}
+
   /* — index strip: superseded on desktop. Left in the DOM and still updated by
        updateMarketWidget(); nothing else reads it. — */
   #sec01 #marketWidget{display:none !important;}
@@ -1581,11 +1592,20 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       <button class="chart-filter-btn" onclick="setChartFilter('rrsp',this)">RRSP</button>
       <button class="chart-filter-btn" onclick="setChartFilter('inv',this)">Investment</button>
       <button class="chart-filter-btn" onclick="setChartFilter('fhsa',this)">FHSA</button>
+
+      <!-- Value ⇄ All-Time Change. Swaps which canvas is visible; the two charts
+           are separate instances so portfolioValueChart's datasets are never
+           repurposed (the mobile pane and the live-update passes read them). -->
+      <div class="pp-mode-toggle">
+        <button class="pp-mode-btn active" data-mode="value"  onclick="ppSetChartMode('value')">VALUE</button>
+        <button class="pp-mode-btn"        data-mode="change" onclick="ppSetChartMode('change')">ALL-TIME CHANGE</button>
+      </div>
     </div>
 
     <!-- Kept in the DOM (hidden on desktop): setChartFilter() writes to it. -->
     <div class="chart-title" id="mvChartTitle">Portfolio Market Value — All Accounts</div>
-    <div class="pp-hero-chart"><canvas id="portfolioValueChart"></canvas></div>
+    <div class="pp-hero-chart" id="ppChartValue"><canvas id="portfolioValueChart"></canvas></div>
+    <div class="pp-hero-chart" id="ppChartChange" style="display:none"><canvas id="changeValueChart"></canvas></div>
   </div>
 
   <!-- Index Widget -->
@@ -4482,6 +4502,42 @@ const mvByAcct = {
 };
 
 // ============================================================
+// ALL-TIME CHANGE SERIES  (portfolio value − contributions, by month)
+//
+// Derived from the same arrays the value chart uses, with the forward-fill
+// alignment setChartFilter already applies to contributions. Read-only: this
+// never mutates mvByAcct, portfolioValueChart, or anything the header KPIs use.
+//
+// The 'all' view is the SUM of the four accounts rather than mvAllTime minus
+// cAllTime. The five market-value arrays are maintained independently and the
+// most recent month-end currently disagrees by ~10.7k, so summing guarantees
+// that flipping between accounts always adds up.
+// ============================================================
+function _ppChangeMap(key) {
+  const s = mvByAcct[key];
+  if (!s) return {};
+  const cMap = Object.fromEntries(s.c.map(p => [p.x, p.y]));
+  let last = null;
+  const out = {};
+  s.mv.forEach(p => {
+    if (p.x in cMap) last = cMap[p.x];
+    if (last != null) out[p.x] = p.y - last;      // value − contributions at that date
+  });
+  return out;
+}
+
+function ppChangeSeries(key) {
+  if (key !== 'all') {
+    const m = _ppChangeMap(key);
+    return Object.keys(m).sort().map(x => ({ x, y: +m[x].toFixed(2) }));
+  }
+  // All Accounts = sum of the four; an account contributes 0 before it existed
+  const maps  = ['tfsa', 'inv', 'fhsa', 'rrsp'].map(_ppChangeMap);
+  const dates = [...new Set(maps.flatMap(m => Object.keys(m)))].sort();
+  return dates.map(x => ({ x, y: +maps.reduce((a, m) => a + (m[x] || 0), 0).toFixed(2) }));
+}
+
+// ============================================================
 // CHART DATA ALIGNMENT
 // ============================================================
 const allXLabels = [...new Set([
@@ -4548,6 +4604,8 @@ Chart.defaults.borderColor = '#1a2e4a';
 Chart.defaults.font.family = "'DM Sans', sans-serif";
 
 let roiChart, portfolioValueChart, acctChart, sectorChart, geoChart, assetChart, contribChart;
+let changeValueChart;                 // All-Time Change chart (separate canvas)
+let ppChartMode = 'value';            // 'value' | 'change' — desktop hero chart only
 let currentFilter = 'all';
 
 const roiByAcct = { all: dataAllTime, tfsa: dataTFSAd, inv: dataInvd, fhsa: dataFHSAd, rrsp: dataRRSPd };
@@ -4802,6 +4860,11 @@ function initCharts() {
   // which lives in a later <script> block (let is per-block on iOS Safari).
   window._pvChart = portfolioValueChart;
 
+  // The All-Time Change chart is NOT created here — its canvas starts hidden, and
+  // Chart.js bakes in a 0x0 backing store when constructed against a display:none
+  // element, which a later resize() cannot recover. It is built lazily by
+  // ppEnsureChangeChart() on the first toggle, once the canvas has a layout box.
+
   // Account Pie
   acctChart = new Chart(document.getElementById('acctChart').getContext('2d'), {
     type: 'doughnut',
@@ -4907,6 +4970,72 @@ function setChartFilter(key, btn) {
     contribChart.data.labels = cData.map(p => p.x);
     contribChart.data.datasets[0].data = cData.map(p => p.y);
     contribChart.update('none');
+  }
+
+  // ── All-Time Change chart — follows the same account filter ────────────────
+  ppRenderChangeChart(key);
+}
+
+// Build the change chart on first use, once its canvas is actually visible.
+function ppEnsureChangeChart() {
+  if (changeValueChart) return true;
+  const cv = document.getElementById('changeValueChart');
+  if (!cv || !cv.clientWidth) return false;          // still no layout box — try again later
+  changeValueChart = new Chart(cv.getContext('2d'), {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: cleanChartOpts('Change', 'dollar'),
+  });
+  return true;
+}
+
+// Repaint the change chart for one account. Reads only the derived series and
+// the live figures; writes nothing that the header KPIs or the value chart use.
+function ppRenderChangeChart(key) {
+  if (!changeValueChart) return;
+  const series = ppChangeSeries(key);
+  const labels = series.map(p => p.x);
+  const data   = series.map(p => p.y);
+
+  // Today's point: live market value − live contributions, same sources the hero uses.
+  const acctKey = { all: null, tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' }[key] ?? null;
+  if (_lastLiveData) {
+    const s = _heroScopedStats(_lastLiveData, acctKey);      // read-only helper
+    const today = new Date().toISOString().slice(0, 10);
+    labels.push(today);
+    data.push(+(s.mktVal - s.contrib).toFixed(2));
+  }
+
+  const colour = (mvByAcct[key] || mvByAcct.all).color;
+  changeValueChart.data.labels = labels;
+  changeValueChart.data.datasets[0] = {
+    ...lineDef(colour, 'All-Time Change', data),
+    fill: true, backgroundColor: colour + '15',
+  };
+  changeValueChart.data.datasets[1] = {
+    ...lineDef('rgba(148,163,184,.55)', 'Break-even', labels.map(() => 0)),
+    borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: false,
+  };
+  changeValueChart.data.datasets.length = 2;
+  changeValueChart.update('none');
+}
+
+// Swap which canvas is visible. Neither chart's data is touched here.
+function ppSetChartMode(mode) {
+  ppChartMode = mode === 'change' ? 'change' : 'value';
+  document.querySelectorAll('.pp-mode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === ppChartMode));
+  const v = document.getElementById('ppChartValue');
+  const c = document.getElementById('ppChartChange');
+  if (v) v.style.display = ppChartMode === 'value'  ? '' : 'none';
+  if (c) c.style.display = ppChartMode === 'change' ? '' : 'none';
+  if (ppChartMode === 'change') {
+    // Wait a frame: the canvas only gains a layout box after the display swap
+    // above, and Chart.js must be constructed against a measurable element.
+    requestAnimationFrame(() => {
+      if (!ppEnsureChangeChart()) return;
+      ppRenderChangeChart(currentFilter);
+    });
   }
 }
 

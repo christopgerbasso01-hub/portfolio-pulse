@@ -1124,10 +1124,11 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .m-tabs{display:flex;background:var(--surf);border-top:1px solid var(--bd);
         padding:8px 0 calc(10px + env(safe-area-inset-bottom,0px));flex-shrink:0;}
 .m-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;}
-.m-tab-ico{font-size:19px;}
+.m-tab-ico{color:var(--t3);}
+.m-tab-ico svg{width:20px;height:20px;display:block;}
 .m-tab-lbl{font-size:9px;font-weight:600;color:var(--t3);}
 .m-tab.on .m-tab-lbl{color:var(--cyan);}
-.m-tab.on .m-tab-ico{filter:drop-shadow(0 0 6px var(--cyan));}
+.m-tab.on .m-tab-ico{color:var(--cyan);filter:drop-shadow(0 0 6px var(--cyan));}
 
 /* Utility classes from mockup */
 .cy{color:var(--cyan);}
@@ -11759,11 +11760,11 @@ document.addEventListener('DOMContentLoaded',function(){
 
   <!-- Tab bar -->
   <div class="m-tabs">
-    <div class="m-tab on" data-tab="portfolio" onclick="mTab('portfolio',this)"><div class="m-tab-ico">📊</div><div class="m-tab-lbl">Portfolio</div></div>
-    <div class="m-tab" data-tab="holdings" onclick="mTab('holdings',this)"><div class="m-tab-ico">📋</div><div class="m-tab-lbl">Holdings</div></div>
-    <div class="m-tab" data-tab="insights" onclick="mTab('insights',this)"><div class="m-tab-ico">💡</div><div class="m-tab-lbl">Insights</div></div>
-    <div class="m-tab" data-tab="podcast" onclick="mTab('podcast',this)"><div class="m-tab-ico">🎙️</div><div class="m-tab-lbl">Podcast</div></div>
-    <div class="m-tab" data-tab="research" onclick="mTab('research',this)"><div class="m-tab-ico">🔎</div><div class="m-tab-lbl">Research</div></div>
+    <div class="m-tab on" data-tab="portfolio" onclick="mTab('portfolio',this)"><div class="m-tab-ico"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 20h2v-8H4v8zm6.5 0h2V4h-2v16zm6.5 0h2v-12h-2v12z"/></svg></div><div class="m-tab-lbl">Portfolio</div></div>
+    <div class="m-tab" data-tab="holdings" onclick="mTab('holdings',this)"><div class="m-tab-ico"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 5h16v2H4V5zm0 6h16v2H4v-2zm0 6h10v2H4v-2z"/></svg></div><div class="m-tab-lbl">Holdings</div></div>
+    <div class="m-tab" data-tab="insights" onclick="mTab('insights',this)"><div class="m-tab-ico"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="10" r="6.5"/><rect x="9.5" y="17.5" width="5" height="2" rx="1"/><rect x="10" y="20" width="4" height="1.6" rx="0.8"/></svg></div><div class="m-tab-lbl">Insights</div></div>
+    <div class="m-tab" data-tab="podcast" onclick="mTab('podcast',this)"><div class="m-tab-ico"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3"/><rect x="11.2" y="15.5" width="1.6" height="4.5"/><rect x="8" y="20" width="8" height="1.6" rx="0.8"/></svg></div><div class="m-tab-lbl">Podcast</div></div>
+    <div class="m-tab" data-tab="research" onclick="mTab('research',this)"><div class="m-tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="20.5" y2="20.5"/></svg></div><div class="m-tab-lbl">Research</div></div>
   </div>
 </div>
 <!-- /MOBILE APP -->

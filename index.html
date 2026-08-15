@@ -877,8 +877,8 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .m-hero-lbl{font-family:var(--mono);font-size:8px;letter-spacing:.09em;text-transform:uppercase;
             color:var(--t3);margin-bottom:4px;white-space:nowrap;}
 .m-hero-figs{display:flex;align-items:center;gap:10px;}
-.m-total{font-size:28px;font-weight:800;letter-spacing:-.5px;color:var(--cyan);line-height:1;
-         font-variant-numeric:tabular-nums;}
+.m-total{font-family:var(--mono);font-size:27px;font-weight:700;letter-spacing:-.02em;
+         color:var(--t1);line-height:1.05;font-variant-numeric:tabular-nums;}
 .m-stack{display:flex;flex-direction:column;justify-content:center;gap:2px;line-height:1.15;}
 .m-stack-d,.m-stack-p{font-family:var(--mono);font-size:14px;font-weight:700;
                       font-variant-numeric:tabular-nums;white-space:nowrap;}
@@ -949,9 +949,11 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
                padding:10px 2px 8px;margin-bottom:10px;overflow:hidden;}
 
 /* Hero stats — the desktop hero's six figures, 3 x 2 at phone width */
-.m-hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px;
-              margin-top:14px;padding-top:12px;border-top:1px solid var(--bd);}
-.m-hs{min-width:0;}
+/* Sits under the value chart; no rule above it, and each cell centres inside
+   its column so the row reads as an even six rather than drifting left. */
+.m-hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px;
+              margin:2px 0 12px;padding:0 2px;}
+.m-hs{min-width:0;text-align:center;}
 .m-hs-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:3px;}
 .m-hs-v{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--t1);
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -8994,18 +8996,27 @@ function fmtCur(v){
 function fmtPct(v){return v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';}
 
 /* ════ CHARTS ═══════════════════════════════════════════════ */
-var mMvChart=null, mRoiChart=null, mTimeRange=0;   // 0 = all · N = trailing months · 'mtd' · 'ytd'
+var mMvChart=null, mRoiChart=null, mTimeRange=0;   // 0 = all · N = trailing months · 'ytd'
 
-/* Earliest label to keep for the current range, as "YYYY-MM". Null means show
-   everything. MTD starts at the 1st of this month, YTD at January 1st. */
+/* Earliest label to keep for the current range, as "YYYY-MM". Null shows all.
+   YTD starts at January 1st. */
 function mRangeCutoff(){
-  var now=new Date();
-  if(mTimeRange==='mtd')return now.toISOString().slice(0,7);
-  if(mTimeRange==='ytd')return now.getFullYear()+'-01';
+  if(mTimeRange==='ytd')return new Date().getFullYear()+'-01';
   var n=parseInt(mTimeRange,10);
   if(!n||n<=0)return null;
   var c=new Date(); c.setMonth(c.getMonth()-n);
   return c.toISOString().slice(0,7);
+}
+
+/* Where to start slicing for a given cutoff. The series is monthly with today
+   appended, so a short window can land past every month-end and leave a single
+   point — 1M did exactly that. Always keep at least two so a line can be drawn:
+   the most recent month-end and today. */
+function mRangeOffset(labels,cutoff){
+  if(!cutoff)return 0;
+  var i=labels.findIndex(function(l){return l>=cutoff;});
+  if(i<0)i=labels.length;
+  return Math.max(0,Math.min(i,labels.length-2));
 }
 
 var CHART_OPTS_BASE={
@@ -9065,15 +9076,9 @@ function makeMvOpts(){
           }
         }
       },
-      y:{
-        display:true,position:'right',
-        title:{display:false},
-        grid:{color:'rgba(255,255,255,0.04)'},
-        ticks:{
-          maxTicksLimit:4,font:{size:8},color:axCol,
-          callback:function(v){return fmtCur(v);}
-        }
-      }
+      /* Axis hidden so the plot uses the full width. Tooltips still carry the
+         exact figure on tap, so nothing is lost. */
+      y:{display:false,grid:{display:false},border:{display:false}}
     }
   });
 }
@@ -9124,16 +9129,8 @@ function makeRoiOpts(){
           }
         }
       },
-      y:{
-        display:true,position:'right',
-        title:{display:false},
-        grid:{color:'rgba(255,255,255,0.04)'},
-        border:{display:false},
-        ticks:{
-          maxTicksLimit:4,font:{size:8},color:axCol,
-          callback:function(v){return(v>=0?'+':'')+v.toFixed(0)+'%';}
-        }
-      }
+      /* Same as the value chart: no axis, full width, figures via tooltip. */
+      y:{display:false,grid:{display:false},border:{display:false}}
     }
   });
 }
@@ -9209,14 +9206,8 @@ function applyMobileTimeRange(){
   var mOff=0, rOff=0;
 
   var cs=mRangeCutoff();
-  if(cs){
-    mOff=allMvL.findIndex(function(l){return l>=cs;});
-    rOff=allRoiL.findIndex(function(l){return l>=cs;});
-    /* A cutoff past every label means the window holds only today's point —
-       fall back to the last couple of points so the chart still draws a line. */
-    if(mOff<0)mOff=Math.max(0,allMvL.length-2);
-    if(rOff<0)rOff=Math.max(0,allRoiL.length-2);
-  }
+  mOff=mRangeOffset(allMvL,cs);
+  rOff=mRangeOffset(allRoiL,cs);
 
   if(mChartMode==='change'&&typeof window.ppChangeSeries==='function'){
     /* All-Time Change: value − contributions, from the same derivation the
@@ -9234,12 +9225,7 @@ function applyMobileTimeRange(){
       lbl.push(new Date().toISOString().slice(0,10));
       dat.push(+(hs.mktVal-hs.contrib).toFixed(2));
     }
-    var off=0;
-    var cstr=mRangeCutoff();
-    if(cstr){
-      off=lbl.findIndex(function(l){return l>=cstr;});
-      if(off<0)off=Math.max(0,lbl.length-2);
-    }
+    var off=mRangeOffset(lbl,mRangeCutoff());
     mMvChart.data.labels=lbl.slice(off);
     mMvChart.data.datasets[0].data=dat.slice(off);
     mMvChart.data.datasets[1].data=lbl.slice(off).map(function(){return 0;});  // break-even
@@ -9297,7 +9283,7 @@ function applyMobileTimeRange(){
   }
   // Period label
   var pEl=document.getElementById('m-roi-period');
-  if(pEl)pEl.textContent=({mtd:'Month to date',ytd:'Year to date',1:'1 month',3:'3 months',
+  if(pEl)pEl.textContent=({ytd:'Year to date',1:'1 month',3:'3 months',
                           6:'6 months',12:'1 year',0:'All time'})[mTimeRange]||'';
 }
 
@@ -10663,7 +10649,7 @@ document.addEventListener('click',function(e){
     document.querySelectorAll('.m-tr-cf').forEach(function(b){b.classList.remove('on');});
     trBtn.classList.add('on');
     var _r=trBtn.dataset.months;
-    mTimeRange=(_r==='mtd'||_r==='ytd')?_r:(parseInt(_r,10)||0);
+    mTimeRange=(_r==='ytd')?_r:(parseInt(_r,10)||0);
     applyMobileTimeRange();
     return;
   }
@@ -11426,16 +11412,6 @@ document.addEventListener('DOMContentLoaded',function(){
         </div>
       </div>
       <div class="m-hero-sub" id="m-hero-sub" style="display:none">—</div>
-      <!-- Same six figures as the desktop hero, from the same _heroScopedStats()
-           call, so the two surfaces cannot disagree. Follows the account tabs. -->
-      <div class="m-hero-stats" id="m-hero-stats">
-        <div class="m-hs"><div class="m-hs-l">Contributed</div><div class="m-hs-v" id="m-hs-contrib">—</div></div>
-        <div class="m-hs"><div class="m-hs-l">Unrealized</div><div class="m-hs-v" id="m-hs-unreal">—</div></div>
-        <div class="m-hs"><div class="m-hs-l">Realized</div><div class="m-hs-v" id="m-hs-real">—</div></div>
-        <div class="m-hs"><div class="m-hs-l">Dividends</div><div class="m-hs-v" id="m-hs-div">—</div></div>
-        <div class="m-hs"><div class="m-hs-l">Cash</div><div class="m-hs-v" id="m-hs-cash">—</div></div>
-        <div class="m-hs"><div class="m-hs-l">FX Impact</div><div class="m-hs-v" id="m-hs-fx">—</div></div>
-      </div>
     </div>
     <div class="m-acct-tabs" id="m-port-tabs">
       <div class="m-atab on" data-key="all">All · <span>$—</span></div>
@@ -11453,14 +11429,13 @@ document.addEventListener('DOMContentLoaded',function(){
           <span class="m-chart-lbl" id="m-mv-chart-title">Portfolio Value</span>
         </div>
         <!-- Mode on the left (what am I looking at), periods on the right (over
-             what span). MTD runs from the 1st of this month, YTD from Jan 1. -->
+             what span). YTD runs from Jan 1 of the current year. -->
         <div class="m-chart-ctl">
           <div class="m-mode-row">
             <div class="m-mode-btn on" data-mmode="value"  onclick="mSetChartMode('value')">VAL</div>
             <div class="m-mode-btn"    data-mmode="change" onclick="mSetChartMode('change')">CHG</div>
           </div>
           <div class="m-chart-filter">
-            <div class="m-tr-cf m-cf" data-months="mtd">MTD</div>
             <div class="m-tr-cf m-cf" data-months="1">1M</div>
             <div class="m-tr-cf m-cf" data-months="3">3M</div>
             <div class="m-tr-cf m-cf" data-months="6">6M</div>
@@ -11471,6 +11446,17 @@ document.addEventListener('DOMContentLoaded',function(){
         </div>
         <div style="position:relative;height:150px"><canvas id="m-mv-canvas"></canvas></div>
         <div id="m-mv-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:4px"></div>
+      </div>
+
+      <!-- Six figures, under the value chart. Same _heroScopedStats() call the
+           desktop hero uses, so the two surfaces cannot disagree. -->
+      <div class="m-hero-stats" id="m-hero-stats">
+        <div class="m-hs"><div class="m-hs-l">Contributed</div><div class="m-hs-v" id="m-hs-contrib">—</div></div>
+        <div class="m-hs"><div class="m-hs-l">Unrealized</div><div class="m-hs-v" id="m-hs-unreal">—</div></div>
+        <div class="m-hs"><div class="m-hs-l">Realized</div><div class="m-hs-v" id="m-hs-real">—</div></div>
+        <div class="m-hs"><div class="m-hs-l">Dividends</div><div class="m-hs-v" id="m-hs-div">—</div></div>
+        <div class="m-hs"><div class="m-hs-l">Cash</div><div class="m-hs-v" id="m-hs-cash">—</div></div>
+        <div class="m-hs"><div class="m-hs-l">FX Impact</div><div class="m-hs-v" id="m-hs-fx">—</div></div>
       </div>
 
       <!-- ROI chart -->

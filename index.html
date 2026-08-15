@@ -807,6 +807,11 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   .m-hold-glance-lbl{font-size:9px;color:var(--t3);margin-bottom:3px;font-weight:600;}
   .m-hold-glance-val{font-size:16px;font-weight:800;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .m-hold-glance-sub{font-size:9px;margin-top:2px;}
+
+  /* Dividend Autopilot banner, reused as-is from desktop (#divAutopilot) —
+     just inset it to match the tab's other cards instead of desktop's own
+     container padding. */
+  .dv-banner{margin:4px 14px 10px;}
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -891,6 +896,11 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 /* Account tabs */
 .m-acct-tabs{display:flex;gap:6px;padding:0 14px 10px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
 .m-acct-tabs::-webkit-scrollbar{display:none;}
+/* Portfolio tab's filter row lives inside .m-scroll (which already carries its
+   own 14px side padding) — drop the redundant side inset so it lines up with
+   the chart above it. The Holdings tab's instance sits outside .m-scroll and
+   keeps the shared class's own padding untouched. */
+#m-port-tabs{padding:0 0 10px;}
 .m-atab{padding:5px 12px;border-radius:18px;border:1px solid var(--bd);font-size:10px;font-weight:700;
         white-space:nowrap;cursor:pointer;color:var(--t2);background:var(--surf);flex-shrink:0;transition:all .15s;}
 .m-atab.on{background:var(--cyan);color:#040e1e;border-color:var(--cyan);}
@@ -8297,13 +8307,22 @@ async function fetchPendingDividends() {
 }
 
 function renderPendingDividends() {
-  const wrap = document.getElementById('divAutopilot');
-  const list = document.getElementById('dvList');
-  if (!wrap || !list) return;
-  if (!PENDING_DIVIDENDS.length) { wrap.style.display = 'none'; return; }
+  const wrap  = document.getElementById('divAutopilot');
+  const list  = document.getElementById('dvList');
+  const mWrap = document.getElementById('m-divAutopilot');
+  const mList = document.getElementById('m-dvList');
+  const has = PENDING_DIVIDENDS.length > 0;
+  if (wrap)  wrap.style.display  = has ? '' : 'none';
+  if (mWrap) mWrap.style.display = has ? '' : 'none';
+  if (!has) return;
 
-  document.getElementById('dvCount').textContent = PENDING_DIVIDENDS.length;
-  list.innerHTML = PENDING_DIVIDENDS.map(p => {
+  const countTxt  = String(PENDING_DIVIDENDS.length);
+  const dvCount   = document.getElementById('dvCount');
+  const mDvCount  = document.getElementById('m-dvCount');
+  if (dvCount)  dvCount.textContent  = countTxt;
+  if (mDvCount) mDvCount.textContent = countTxt;
+
+  const rowsHtml = PENDING_DIVIDENDS.map(p => {
     const sym  = p.ccy === 'USD' ? '$' : 'C$';
     const conf = (p.confidence || 'MEDIUM').toLowerCase();
     const wh   = p.withholding > 0
@@ -8332,7 +8351,8 @@ function renderPendingDividends() {
         </div>
       </div>`;
   }).join('');
-  wrap.style.display = '';
+  if (list)  list.innerHTML  = rowsHtml;
+  if (mList) mList.innerHTML = rowsHtml;
 }
 
 async function resolveDividend(id, action) {
@@ -9157,7 +9177,7 @@ function createMobileCharts(){
       labels:srcMv.data.labels.slice(),
       datasets:[
         {label:'Value',data:mvDs0.data?mvDs0.data.slice():[],
-         borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.08)',
+         borderColor:'#00d4ff',backgroundColor:'rgba(59,130,246,0.10)',
          borderWidth:2,pointRadius:0,tension:0.35,fill:true},
         {label:'Contributed',data:mvDs1.data?mvDs1.data.slice():[],
          borderColor:'#64748b',backgroundColor:'transparent',
@@ -9172,8 +9192,8 @@ function createMobileCharts(){
       labels:srcRoi.data.labels.slice(),
       datasets:[
         {label:'Portfolio',data:roi0.data?roi0.data.slice():[],
-         borderColor:'#00d4ff',backgroundColor:'transparent',
-         borderWidth:2,pointRadius:0,tension:0.35,fill:false},
+         borderColor:'#00d4ff',backgroundColor:'rgba(59,130,246,0.10)',
+         borderWidth:2,pointRadius:0,tension:0.35,fill:true},
         {label:'S&P 500',data:roiSp.data?roiSp.data.slice():[],
          borderColor:'#fbbf24',backgroundColor:'transparent',
          borderWidth:1.2,borderDash:[4,2],pointRadius:0,tension:0.35,fill:false}
@@ -9239,13 +9259,17 @@ function applyMobileTimeRange(){
   var rdSp=srcRoi.data.datasets.find(function(d){return d.label&&/s.p/i.test(d.label);})||{};
   var roiLabelsRaw=allRoiL.slice(rOff);
   var roiData0Raw=rd0?rd0.data.slice(rOff):[];
-  // Trim trailing labels where ALL datasets have null (avoids blank space on x-axis)
+  // Trim leading labels where the line has no data yet — allRoiL is the union of
+  // every account's history (e.g. TFSA predates the portfolio total), so "All"
+  // otherwise starts the axis years before this line's first real point — and
+  // trim trailing labels the same way, so neither end shows blank axis space.
+  var firstNonNull=0;
+  while(firstNonNull<roiData0Raw.length&&roiData0Raw[firstNonNull]==null)firstNonNull++;
   var lastNonNull=roiLabelsRaw.length-1;
   while(lastNonNull>0&&roiData0Raw[lastNonNull]==null)lastNonNull--;
-  var trimLen=lastNonNull+1;
-  mRoiChart.data.labels=roiLabelsRaw.slice(0,trimLen);
-  mRoiChart.data.datasets[0].data=roiData0Raw.slice(0,trimLen);
-  mRoiChart.data.datasets[1].data=(rdSp.data?rdSp.data.slice(rOff):[]).slice(0,trimLen);
+  mRoiChart.data.labels=roiLabelsRaw.slice(firstNonNull,lastNonNull+1);
+  mRoiChart.data.datasets[0].data=roiData0Raw.slice(firstNonNull,lastNonNull+1);
+  mRoiChart.data.datasets[1].data=(rdSp.data?rdSp.data.slice(rOff):[]).slice(firstNonNull,lastNonNull+1);
   mRoiChart.update('none');
 
   // ROI chart footer: start% → end% with change
@@ -11408,13 +11432,6 @@ document.addEventListener('DOMContentLoaded',function(){
       </div>
       <div class="m-hero-sub" id="m-hero-sub" style="display:none">—</div>
     </div>
-    <div class="m-acct-tabs" id="m-port-tabs">
-      <div class="m-atab on" data-key="all">All · <span>$—</span></div>
-      <div class="m-atab" data-key="tfsa">TFSA · <span>—</span></div>
-      <div class="m-atab" data-key="fhsa">FHSA · <span>—</span></div>
-      <div class="m-atab" data-key="rrsp">RRSP · <span>—</span></div>
-      <div class="m-atab" data-key="inv">Non-Reg · <span>—</span></div>
-    </div>
     <div class="m-scroll">
 
       <!-- Charts: always visible, data filters to selected account -->
@@ -11438,6 +11455,14 @@ document.addEventListener('DOMContentLoaded',function(){
         </div>
         <div style="position:relative;height:150px"><canvas id="m-mv-canvas"></canvas></div>
         <div id="m-mv-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:4px"></div>
+      </div>
+
+      <div class="m-acct-tabs" id="m-port-tabs">
+        <div class="m-atab on" data-key="all">All · <span>$—</span></div>
+        <div class="m-atab" data-key="tfsa">TFSA · <span>—</span></div>
+        <div class="m-atab" data-key="fhsa">FHSA · <span>—</span></div>
+        <div class="m-atab" data-key="rrsp">RRSP · <span>—</span></div>
+        <div class="m-atab" data-key="inv">Non-Reg · <span>—</span></div>
       </div>
 
       <!-- Six figures, under the value chart. Same _heroScopedStats() call the
@@ -11479,6 +11504,18 @@ document.addEventListener('DOMContentLoaded',function(){
     <div style="padding:10px 14px 4px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
       <span style="font-size:13px;font-weight:700">Holdings</span>
       <span id="m-hold-count" style="font-size:10px;color:var(--t3)">—</span>
+    </div>
+    <!-- Dividend Autopilot — same confirm queue as desktop (#divAutopilot).
+         renderPendingDividends() fills both; resolveDividend() is shared, so
+         Confirm/Adjust/Dismiss book through the exact same code path either way. -->
+    <div id="m-divAutopilot" style="display:none;flex-shrink:0">
+      <div class="dv-banner">
+        <div class="dv-banner-hdr">
+          <span class="dv-banner-title">◆ Autopilot — dividends to confirm</span>
+          <span class="dv-banner-count" id="m-dvCount">0</span>
+        </div>
+        <div id="m-dvList"></div>
+      </div>
     </div>
     <!-- Today at a Glance -->
     <div class="m-hold-glance" id="m-hold-glance">

@@ -828,7 +828,9 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
   background:var(--bg);border-bottom:none;
 }
-.m-logo{font-size:12px;font-weight:800;letter-spacing:.07em;color:var(--cyan);}
+.m-logo{font-size:12px;font-weight:800;letter-spacing:.07em;color:var(--cyan);
+        display:flex;align-items:center;gap:5px;}
+.m-bolt{width:12px;height:12px;fill:currentColor;flex:none;}
 .m-live-row{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t2);}
 .m-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);
             box-shadow:0 0 5px var(--green);animation:blink 2s infinite;flex-shrink:0;}
@@ -865,15 +867,25 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .m-pane.on{display:flex;}
 
 /* Hero */
-.m-hero{padding:14px 18px 10px;text-align:center;flex-shrink:0;}
-.m-total{font-size:38px;font-weight:800;letter-spacing:-.5px;color:var(--cyan);}
-.m-day-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px;}
-.m-day-chip{font-size:13px;font-weight:700;padding:4px 16px;border-radius:20px;display:flex;flex-direction:row;align-items:center;gap:4px;}
-.m-day-chip .m-day-dollar{font-size:13px;font-weight:800;}
-.m-day-chip .m-day-pct{font-size:13px;font-weight:700;opacity:.9;}
-.m-day-chip.up{background:rgba(0,230,118,.08);color:var(--green);border:1px solid rgba(0,230,118,.25);}
-.m-day-chip.dn{background:rgba(255,82,82,.08);color:var(--red);border:1px solid rgba(255,82,82,.25);}
-.m-day-chip.neu{background:var(--surf2);color:var(--t2);border:1px solid var(--bd);}
+/* Hero: value left with today's $ over % beside it, all-time $ over % right.
+   Each stack line is half the value's size, so the pair stands exactly as tall
+   as the value and the whole header costs one row instead of three. */
+.m-hero{padding:12px 16px 8px;flex-shrink:0;}
+.m-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.m-hero-left{min-width:0;}
+.m-hero-right{text-align:right;flex:none;}
+.m-hero-lbl{font-family:var(--mono);font-size:8px;letter-spacing:.09em;text-transform:uppercase;
+            color:var(--t3);margin-bottom:4px;white-space:nowrap;}
+.m-hero-figs{display:flex;align-items:center;gap:10px;}
+.m-total{font-size:28px;font-weight:800;letter-spacing:-.5px;color:var(--cyan);line-height:1;
+         font-variant-numeric:tabular-nums;}
+.m-stack{display:flex;flex-direction:column;justify-content:center;gap:2px;line-height:1.15;}
+.m-stack-d,.m-stack-p{font-family:var(--mono);font-size:14px;font-weight:700;
+                      font-variant-numeric:tabular-nums;white-space:nowrap;}
+.m-stack-p{opacity:.82;}
+.m-stack.up .m-stack-d,.m-stack.up .m-stack-p{color:var(--green);}
+.m-stack.dn .m-stack-d,.m-stack.dn .m-stack-p{color:var(--red);}
+.m-stack.neu .m-stack-d,.m-stack.neu .m-stack-p{color:var(--t2);}
 .m-hero-sub{font-size:11px;color:var(--t2);margin-top:5px;}
 
 /* Account tabs */
@@ -948,11 +960,18 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .m-acct-more{font-family:var(--mono);font-size:10px;color:var(--t3);padding:7px 0 2px;}
 
 /* Value / All-Time Change toggle on the mobile chart */
-.m-mode-row{display:flex;gap:4px;margin-bottom:8px;}
-.m-mode-btn{flex:1;text-align:center;font-size:8px;font-weight:700;letter-spacing:.05em;
-            padding:5px 6px;border-radius:7px;background:var(--surf2);color:var(--t3);
+/* Mode toggle left, period chips right, on one row. The chips scroll on their
+   own if the seven of them outrun the width. */
+.m-chart-ctl{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.m-mode-row{display:flex;gap:3px;flex:none;}
+.m-mode-btn{text-align:center;font-size:8px;font-weight:700;letter-spacing:.04em;
+            padding:3px 7px;border-radius:6px;background:var(--surf2);color:var(--t3);
             cursor:pointer;transition:all .15s;white-space:nowrap;}
 .m-mode-btn.on{background:rgba(0,212,255,.16);color:var(--cyan);}
+.m-chart-ctl .m-chart-filter{flex:1;justify-content:flex-end;overflow-x:auto;
+                             -webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.m-chart-ctl .m-chart-filter::-webkit-scrollbar{display:none;}
+.m-chart-ctl .m-cf{flex:none;}
 .m-chart-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .m-chart-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);font-weight:700;}
 .m-chart-filter{display:flex;gap:4px;}
@@ -8975,7 +8994,19 @@ function fmtCur(v){
 function fmtPct(v){return v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';}
 
 /* ════ CHARTS ═══════════════════════════════════════════════ */
-var mMvChart=null, mRoiChart=null, mTimeRange=0;
+var mMvChart=null, mRoiChart=null, mTimeRange=0;   // 0 = all · N = trailing months · 'mtd' · 'ytd'
+
+/* Earliest label to keep for the current range, as "YYYY-MM". Null means show
+   everything. MTD starts at the 1st of this month, YTD at January 1st. */
+function mRangeCutoff(){
+  var now=new Date();
+  if(mTimeRange==='mtd')return now.toISOString().slice(0,7);
+  if(mTimeRange==='ytd')return now.getFullYear()+'-01';
+  var n=parseInt(mTimeRange,10);
+  if(!n||n<=0)return null;
+  var c=new Date(); c.setMonth(c.getMonth()-n);
+  return c.toISOString().slice(0,7);
+}
 
 var CHART_OPTS_BASE={
   responsive:true,
@@ -9177,13 +9208,14 @@ function applyMobileTimeRange(){
   var allMvL=srcMv.data.labels, allRoiL=srcRoi.data.labels;
   var mOff=0, rOff=0;
 
-  if(mTimeRange>0){
-    var cutoff=new Date();
-    cutoff.setMonth(cutoff.getMonth()-mTimeRange);
-    var cs=cutoff.toISOString().slice(0,7);
+  var cs=mRangeCutoff();
+  if(cs){
     mOff=allMvL.findIndex(function(l){return l>=cs;});
     rOff=allRoiL.findIndex(function(l){return l>=cs;});
-    if(mOff<0)mOff=0; if(rOff<0)rOff=0;
+    /* A cutoff past every label means the window holds only today's point —
+       fall back to the last couple of points so the chart still draws a line. */
+    if(mOff<0)mOff=Math.max(0,allMvL.length-2);
+    if(rOff<0)rOff=Math.max(0,allRoiL.length-2);
   }
 
   if(mChartMode==='change'&&typeof window.ppChangeSeries==='function'){
@@ -9203,11 +9235,10 @@ function applyMobileTimeRange(){
       dat.push(+(hs.mktVal-hs.contrib).toFixed(2));
     }
     var off=0;
-    if(mTimeRange>0){
-      var co=new Date(); co.setMonth(co.getMonth()-mTimeRange);
-      var cstr=co.toISOString().slice(0,7);
+    var cstr=mRangeCutoff();
+    if(cstr){
       off=lbl.findIndex(function(l){return l>=cstr;});
-      if(off<0)off=0;
+      if(off<0)off=Math.max(0,lbl.length-2);
     }
     mMvChart.data.labels=lbl.slice(off);
     mMvChart.data.datasets[0].data=dat.slice(off);
@@ -9266,7 +9297,8 @@ function applyMobileTimeRange(){
   }
   // Period label
   var pEl=document.getElementById('m-roi-period');
-  if(pEl)pEl.textContent=({1:'1 month',3:'3 months',6:'6 months',12:'1 year',0:'All time'})[mTimeRange]||'';
+  if(pEl)pEl.textContent=({mtd:'Month to date',ytd:'Year to date',1:'1 month',3:'3 months',
+                          6:'6 months',12:'1 year',0:'All time'})[mTimeRange]||'';
 }
 
 function syncBenchmark(){
@@ -10031,15 +10063,23 @@ function mUpdateHeroStats(){
      hero describes one scope rather than mixing account stats with a portfolio total. */
   var totEl=document.getElementById('m-total');
   if(totEl)totEl.textContent=mMoney(s.mktVal);
-  var chip=document.getElementById('m-day-chip');
-  var dEl=document.getElementById('m-day-dollar');
-  var pEl2=document.getElementById('m-day-pct');
-  if(chip&&dEl){
-    dEl.textContent=(s.dc>=0?'+':'-')+mMoney(Math.abs(s.dc)).replace('-','')
-                    +' ('+(s.dcp>=0?'+':'')+s.dcp.toFixed(2)+'%)';
-    if(pEl2)pEl2.textContent='';
-    chip.className='m-day-chip '+(s.dc>0?'up':s.dc<0?'dn':'neu');
-  }
+
+  var signed=function(v){return (v>=0?'+':'−')+mMoney(Math.abs(v)).replace('-','');};
+  var tone=function(v){return v>0?'up':v<0?'dn':'neu';};
+
+  /* Today: $ over % */
+  var dD=document.getElementById('m-day-dollar'), dP=document.getElementById('m-day-pct');
+  if(dD)dD.textContent=signed(s.dc);
+  if(dP)dP.textContent=(s.dcp>=0?'+':'')+s.dcp.toFixed(2)+'%';
+  var dayStack=document.getElementById('m-day-chip');
+  if(dayStack)dayStack.className='m-stack '+tone(s.dc);
+
+  /* All-time: $ over % */
+  var aD=document.getElementById('m-at-dollar'), aP=document.getElementById('m-at-pct');
+  if(aD)aD.textContent=signed(s.pnl);
+  if(aP)aP.textContent=(s.pnlPct>=0?'+':'')+s.pnlPct.toFixed(2)+'%';
+  var atStack=document.getElementById('m-alltime');
+  if(atStack)atStack.className='m-stack '+tone(s.pnl);
   var set=function(id,val,tone){
     var el=document.getElementById(id); if(!el)return;
     el.textContent=mMoney(val);
@@ -10051,14 +10091,8 @@ function mUpdateHeroStats(){
   set('m-hs-div',    s.dividends, null);
   set('m-hs-cash',   s.cash,      null);
   set('m-hs-fx',     s.fx,        s.fx);
-  /* All-time in dollars beside the percentage; "contributed" now lives in the
-     grid above, so it is dropped from this line rather than repeated. */
-  var sub=document.getElementById('m-hero-sub');
-  if(sub){
-    var pct=s.contrib>0?((s.mktVal-s.contrib)/s.contrib*100):0;
-    sub.textContent=(s.pnl>=0?'+':'−')+mMoney(Math.abs(s.pnl)).replace('-','')
-                    +' · '+(pct>=0?'+':'')+pct.toFixed(2)+'% all-time';
-  }
+  /* The old sub line carried all-time; that now lives in its own stack on the
+     right of the hero row, so the element stays hidden in the markup. */
 }
 
 /* ════ SINGLE SYNC FUNCTION ══════════════════════════════════
@@ -10628,7 +10662,8 @@ document.addEventListener('click',function(e){
   if(trBtn){
     document.querySelectorAll('.m-tr-cf').forEach(function(b){b.classList.remove('on');});
     trBtn.classList.add('on');
-    mTimeRange=parseInt(trBtn.dataset.months)||0;
+    var _r=trBtn.dataset.months;
+    mTimeRange=(_r==='mtd'||_r==='ytd')?_r:(parseInt(_r,10)||0);
     applyMobileTimeRange();
     return;
   }
@@ -11350,7 +11385,9 @@ document.addEventListener('DOMContentLoaded',function(){
 
   <!-- App header -->
   <div class="m-hdr">
-    <div class="m-logo">⚡ PULSE</div>
+    <!-- Inline bolt rather than the ⚡ emoji, which always renders in its own
+         yellow and cannot be recoloured to sit with the cyan wordmark. -->
+    <div class="m-logo"><svg class="m-bolt" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12L13 2z"/></svg>PULSE</div>
     <div id="m-live-row" class="m-live-row"><div class="m-live-dot"></div> LIVE</div>
     <div class="m-hdr-actions">
       <div class="m-icon-btn" onclick="openNotifPanel()" title="Notifications">🔔</div>
@@ -11366,11 +11403,29 @@ document.addEventListener('DOMContentLoaded',function(){
   <!-- ── PORTFOLIO TAB ─────────────────────────────── -->
   <div class="m-pane on" id="m-pane-portfolio">
     <div class="m-hero">
-      <div class="m-total" id="m-total">$—</div>
-      <div class="m-day-row">
-        <div class="m-day-chip neu" id="m-day-chip"><span class="m-day-dollar" id="m-day-dollar">—</span><span class="m-day-pct" id="m-day-pct"></span></div>
+      <!-- One row: value on the left with today's $ over % beside it, all-time
+           $ over % on the right. Each stack is half the value's size so the two
+           lines together stand exactly as tall as the value. -->
+      <div class="m-hero-row">
+        <div class="m-hero-left">
+          <div class="m-hero-lbl">Portfolio Value</div>
+          <div class="m-hero-figs">
+            <div class="m-total" id="m-total">$—</div>
+            <div class="m-stack" id="m-day-chip">
+              <div class="m-stack-d" id="m-day-dollar">—</div>
+              <div class="m-stack-p" id="m-day-pct">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="m-hero-right">
+          <div class="m-hero-lbl">All-Time</div>
+          <div class="m-stack" id="m-alltime">
+            <div class="m-stack-d" id="m-at-dollar">—</div>
+            <div class="m-stack-p" id="m-at-pct">—</div>
+          </div>
+        </div>
       </div>
-      <div class="m-hero-sub" id="m-hero-sub">—</div>
+      <div class="m-hero-sub" id="m-hero-sub" style="display:none">—</div>
       <!-- Same six figures as the desktop hero, from the same _heroScopedStats()
            call, so the two surfaces cannot disagree. Follows the account tabs. -->
       <div class="m-hero-stats" id="m-hero-stats">
@@ -11390,63 +11445,29 @@ document.addEventListener('DOMContentLoaded',function(){
       <div class="m-atab" data-key="inv">Non-Reg · <span>—</span></div>
     </div>
     <div class="m-scroll">
-      <!-- Account detail card (shown when specific account selected) -->
-      <div id="m-acct-detail-card" style="display:none"></div>
-      <!-- All accounts: 2×2 cards (hidden when specific account selected) -->
-      <div id="m-acct-all">
-        <div class="m-acct-grid">
-          <div class="m-card" style="padding:12px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-              <span class="b abt" style="font-size:8px">TFSA</span>
-              <span id="m-tfsa-chg" class="up" style="font-size:11px;font-weight:700">—</span>
-            </div>
-            <div id="m-tfsa-val" style="font-size:18px;font-weight:800;font-family:var(--mono)">—</div>
-            <div id="m-tfsa-sub" style="font-size:10px;font-weight:600" class="up">—</div>
-          </div>
-          <div class="m-card" style="padding:12px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-              <span class="b abf" style="font-size:8px">FHSA</span>
-              <span id="m-fhsa-chg" class="up" style="font-size:11px;font-weight:700">—</span>
-            </div>
-            <div id="m-fhsa-val" style="font-size:18px;font-weight:800;font-family:var(--mono)">—</div>
-            <div id="m-fhsa-sub" style="font-size:10px;font-weight:600" class="up">—</div>
-          </div>
-          <div class="m-card" style="padding:12px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-              <span class="b abr" style="font-size:8px">RRSP</span>
-              <span id="m-rrsp-chg" class="up" style="font-size:11px;font-weight:700">—</span>
-            </div>
-            <div id="m-rrsp-val" style="font-size:18px;font-weight:800;font-family:var(--mono)">—</div>
-            <div id="m-rrsp-sub" style="font-size:10px;font-weight:600" class="up">—</div>
-          </div>
-          <div class="m-card" style="padding:12px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-              <span class="b abn" style="font-size:8px">NON-REG</span>
-              <span id="m-inv-chg" class="up" style="font-size:11px;font-weight:700">—</span>
-            </div>
-            <div id="m-inv-val" style="font-size:18px;font-weight:800;font-family:var(--mono)">—</div>
-            <div id="m-inv-sub" style="font-size:10px;font-weight:600" class="up">—</div>
-          </div>
-        </div>
-      </div><!-- /m-acct-all -->
 
       <!-- Charts: always visible, data filters to selected account -->
       <!-- Portfolio value chart -->
       <div class="m-chart-wrap">
         <div class="m-chart-top">
           <span class="m-chart-lbl" id="m-mv-chart-title">Portfolio Value</span>
+        </div>
+        <!-- Mode on the left (what am I looking at), periods on the right (over
+             what span). MTD runs from the 1st of this month, YTD from Jan 1. -->
+        <div class="m-chart-ctl">
+          <div class="m-mode-row">
+            <div class="m-mode-btn on" data-mmode="value"  onclick="mSetChartMode('value')">VAL</div>
+            <div class="m-mode-btn"    data-mmode="change" onclick="mSetChartMode('change')">CHG</div>
+          </div>
           <div class="m-chart-filter">
+            <div class="m-tr-cf m-cf" data-months="mtd">MTD</div>
             <div class="m-tr-cf m-cf" data-months="1">1M</div>
             <div class="m-tr-cf m-cf" data-months="3">3M</div>
             <div class="m-tr-cf m-cf" data-months="6">6M</div>
+            <div class="m-tr-cf m-cf" data-months="ytd">YTD</div>
             <div class="m-tr-cf m-cf" data-months="12">1Y</div>
             <div class="m-tr-cf m-cf on" data-months="0">All</div>
           </div>
-        </div>
-        <!-- Value ⇄ All-Time Change, same two modes as the desktop hero -->
-        <div class="m-mode-row">
-          <div class="m-mode-btn on" data-mmode="value"  onclick="mSetChartMode('value')">VALUE</div>
-          <div class="m-mode-btn"    data-mmode="change" onclick="mSetChartMode('change')">ALL-TIME CHANGE</div>
         </div>
         <div style="position:relative;height:150px"><canvas id="m-mv-canvas"></canvas></div>
         <div id="m-mv-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:4px"></div>
@@ -11461,6 +11482,11 @@ document.addEventListener('DOMContentLoaded',function(){
         <div style="position:relative;height:140px"><canvas id="m-roi-canvas"></canvas></div>
         <div id="m-roi-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:3px"></div>
       </div>
+
+      <!-- Account breakdown — sits under the ROI chart. Shown only when a
+           specific account is selected; the All view has no card here since the
+           account tabs already carry each account's value. -->
+      <div id="m-acct-detail-card" style="display:none"></div>
 
       <!-- Contribution-Weighted Benchmark -->
       <div class="m-chart-wrap" id="m-benchmark-wrap" style="padding-bottom:12px">

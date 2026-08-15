@@ -9193,8 +9193,6 @@ window.mSetChartMode=function(mode){
   Array.prototype.forEach.call(btns,function(b){
     b.classList.toggle('on',b.dataset.mmode===mChartMode);
   });
-  var t=document.getElementById('m-mv-chart-title');
-  if(t)t.textContent=(mChartMode==='change')?'All-Time Change':'Portfolio Value';
   applyMobileTimeRange();
 };
 
@@ -10643,7 +10641,7 @@ var _sortCols={mv:8,cost:7,dayd:9,dayp:10,div:11,pld:12,plp:13};
 document.addEventListener('click',function(e){
   var t=e.target;
 
-  /* Period filter: 1M / 3M / 6M / 1Y / All */
+  /* Period filter: MTD / 3M / 6M / 1Y / All */
   var trBtn=t.closest('.m-tr-cf');
   if(trBtn){
     document.querySelectorAll('.m-tr-cf').forEach(function(b){b.classList.remove('on');});
@@ -10739,11 +10737,8 @@ window.filterTable=function(){if(origFilter)origFilter.apply(this,arguments);bui
 var origSCF=window.setChartFilter;
 window.setChartFilter=function(key,btn){
   if(origSCF)origSCF.apply(this,arguments);
-  var t1=document.getElementById('m-mv-chart-title');
   var t2=document.getElementById('m-roi-chart-title');
-  var ml={all:'Portfolio Value',tfsa:'TFSA Value',fhsa:'FHSA Value',rrsp:'RRSP Value',inv:'Non-Reg Value'};
   var rl={all:'ROI %',tfsa:'TFSA ROI',fhsa:'FHSA ROI',rrsp:'RRSP ROI',inv:'Non-Reg ROI'};
-  if(t1)t1.textContent=ml[key]||'Portfolio Value';
   if(t2)t2.textContent=rl[key]||'ROI %';
   setTimeout(function(){applyMobileTimeRange();syncBenchmark();},200);
 };
@@ -11425,9 +11420,6 @@ document.addEventListener('DOMContentLoaded',function(){
       <!-- Charts: always visible, data filters to selected account -->
       <!-- Portfolio value chart -->
       <div class="m-chart-wrap">
-        <div class="m-chart-top">
-          <span class="m-chart-lbl" id="m-mv-chart-title">Portfolio Value</span>
-        </div>
         <!-- Mode on the left (what am I looking at), periods on the right (over
              what span). YTD runs from Jan 1 of the current year. -->
         <div class="m-chart-ctl">
@@ -11436,7 +11428,7 @@ document.addEventListener('DOMContentLoaded',function(){
             <div class="m-mode-btn"    data-mmode="change" onclick="mSetChartMode('change')">CHG</div>
           </div>
           <div class="m-chart-filter">
-            <div class="m-tr-cf m-cf" data-months="1">1M</div>
+            <div class="m-tr-cf m-cf" data-months="1">MTD</div>
             <div class="m-tr-cf m-cf" data-months="3">3M</div>
             <div class="m-tr-cf m-cf" data-months="6">6M</div>
             <div class="m-tr-cf m-cf" data-months="ytd">YTD</div>

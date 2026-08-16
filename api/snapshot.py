@@ -551,14 +551,58 @@ class handler(BaseHTTPRequestHandler):
             for d in dates[-30:]
             if snaps[d].get("total_value") is not None
         ]
+
+        # The newest entry is often today_snapshot — a partial record the
+        # dashboard writes before the cron takes a full one, carrying value and
+        # roi_pct but no total_pnl. Reconstruct P&L rather than falling back to
+        # yesterday's figure, which would disagree with the value beside it.
+        #
+        # Preferred: cost basis carried forward from the last complete snapshot
+        # (cost = value - pnl), then pnl = today's value - cost. That is exact.
+        # Deriving from roi_pct instead loses a couple of dollars, because
+        # roi_pct is stored rounded to two decimals — and a widget that says
+        # $132,908 next to an app that says $132,910 reads as a bug.
+        #
+        # Fallback: the roi_pct derivation, used when no complete snapshot is
+        # available or when the carried-forward cost disagrees with today's
+        # roi_pct — which is what happens if contributions changed today, making
+        # the old cost basis wrong.
+        pnl = latest.get("total_pnl")
+        roi = latest.get("roi_pct")
+        val = latest.get("total_value")
+
+        if pnl is None and val is not None:
+            roi_based = (
+                val * roi / (100 + roi)
+                if roi is not None and (100 + roi) != 0
+                else None
+            )
+            cost = next(
+                (
+                    snaps[d]["total_value"] - snaps[d]["total_pnl"]
+                    for d in reversed(dates)
+                    if snaps[d].get("total_value") is not None
+                    and snaps[d].get("total_pnl") is not None
+                ),
+                None,
+            )
+            cost_based = val - cost if cost is not None else None
+
+            if cost_based is not None and (
+                roi_based is None or abs(cost_based - roi_based) <= max(50, abs(roi_based) * 0.005)
+            ):
+                pnl = round(cost_based)
+            elif roi_based is not None:
+                pnl = round(roi_based)
+
         return {
             "ok":       True,
             "date":     dates[-1],
-            "value":    latest.get("total_value"),
+            "value":    val,
             "day":      latest.get("daily_change"),
             "day_pct":  latest.get("daily_change_pct"),
-            "pnl":      latest.get("total_pnl"),
-            "roi_pct":  latest.get("roi_pct"),
+            "pnl":      pnl,
+            "roi_pct":  roi,
             "accounts": latest.get("accounts", {}),
             "spark":    spark,
         }

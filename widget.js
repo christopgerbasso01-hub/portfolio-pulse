@@ -177,7 +177,9 @@ function build({ data, stale }) {
   today.lineLimit = 1;
   today.minimumScaleFactor = 0.7;
 
-  if (!small) {
+  // All-time is omitted rather than shown as +$0 if the server couldn't
+  // supply it — a wrong number is worse than a missing one.
+  if (!small && data.pnl != null) {
     row.addSpacer();
     const at = row.addText(
       signedMoney(data.pnl) + "  " + signedPct(data.roi_pct)

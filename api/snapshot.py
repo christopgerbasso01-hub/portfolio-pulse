@@ -222,19 +222,20 @@ def _compute_portfolio_kv(equity: list, cash: list, prices: dict, usdcad: float,
 
 # ── Snapshot logic ─────────────────────────────────────────────────────────────
 
-def take_snapshot() -> dict:
+def _build_portfolio() -> tuple:
     """
-    Build a portfolio snapshot using:
-      1. computed_holdings + cash_positions from KV (always current — set by dashboard)
-      2. Live prices from /api/market (+ supplemental YF fetch for any new tickers)
+    Compute current portfolio metrics from live prices + KV holdings.
 
-    Fully dynamic: adding or selling a position in the dashboard is automatically
-    reflected at the next snapshot without any code changes.
+    Returns (portfolio, prices, usdcad, source, tranches).
 
-    Falls back to the market API's pre-computed portfolio only if KV has no holdings yet.
+    Extracted from take_snapshot() so the persisted daily snapshot and the live
+    widget read share exactly one implementation. Duplicating this math for the
+    widget would let the two drift apart — the widget quoting one total while
+    the dashboard hero quotes another — which is the single worst outcome for a
+    number the user checks at a glance.
+
+    This function performs no writes; persistence is the caller's job.
     """
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
     # ── 1. Live prices from market API ────────────────────────────────────────
     r = requests.get(MARKET_API, timeout=20)
     r.raise_for_status()
@@ -294,6 +295,21 @@ def take_snapshot() -> dict:
             contributions, realized_gains, usd_book_rate,
         )
 
+    return portfolio, prices, usdcad, source, tranches
+
+
+def take_snapshot() -> dict:
+    """
+    Take the daily snapshot and persist it to KV.
+
+    Fully dynamic: adding or selling a position in the dashboard is automatically
+    reflected at the next snapshot without any code changes.
+
+    Falls back to the market API's pre-computed portfolio only if KV has no holdings yet.
+    """
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    portfolio, prices, usdcad, source, tranches = _build_portfolio()
+
     # ── 6. Build snapshot ──────────────────────────────────────────────────────
     snapshot = {
         "date":             today,
@@ -341,6 +357,28 @@ def take_snapshot() -> dict:
         f"source={source}"
     )
     return snapshot
+
+
+def compute_live() -> dict:
+    """
+    Current portfolio metrics priced right now, without persisting anything.
+
+    Backs GET /api/snapshot?widget=1&live=1 so the home-screen widget can show
+    intraday movement instead of the last stored snapshot. Deliberately writes
+    nothing: a widget refresh must not consume KV write quota, and must never
+    overwrite today_snapshot, which the dashboard owns.
+    """
+    portfolio, _prices, usdcad, source, _tranches = _build_portfolio()
+    return {
+        "total_value":      portfolio.get("total_value"),
+        "total_pnl":        portfolio.get("total_pnl"),
+        "roi_pct":          portfolio.get("roi_pct"),
+        "daily_change":     portfolio.get("daily_change"),
+        "daily_change_pct": portfolio.get("daily_change_pct"),
+        "accounts":         portfolio.get("accounts", {}),
+        "usdcad":           usdcad,
+        "source":           source,
+    }
 
 
 def get_recent_snapshots(days: int = 8) -> dict:
@@ -514,7 +552,34 @@ class handler(BaseHTTPRequestHandler):
             # returns only the headline figures plus a short sparkline series.
             # Same data, same source — just trimmed.
             if "widget=1" in (self.path or ""):
-                self._respond(200, self._widget_payload(snaps))
+                payload = self._widget_payload(snaps)
+                # &live=1 re-prices the portfolio now rather than reporting the
+                # last stored snapshot. The sparkline stays snapshot-derived —
+                # it is daily history — so only the headline figures change.
+                # A live failure (Yahoo throttling, timeout) falls back to the
+                # snapshot figures rather than erroring: slightly stale beats a
+                # blank widget.
+                if "live=1" in (self.path or "") and payload.get("ok"):
+                    try:
+                        live = compute_live()
+                        if live.get("total_value") is not None:
+                            payload.update({
+                                "value":    live["total_value"],
+                                "day":      live.get("daily_change"),
+                                "day_pct":  live.get("daily_change_pct"),
+                                "pnl":      live.get("total_pnl"),
+                                "roi_pct":  live.get("roi_pct"),
+                                "accounts": live.get("accounts") or payload.get("accounts", {}),
+                                "live":     True,
+                            })
+                            # Keep the sparkline ending at the live value so the
+                            # chart's last point agrees with the number above it.
+                            if payload.get("spark"):
+                                payload["spark"][-1] = live["total_value"]
+                    except Exception as exc:
+                        print(f"  [snapshot] live compute failed, using snapshot: {exc}")
+                payload.setdefault("live", False)
+                self._respond(200, payload)
                 return
 
             summary = compute_weekly_summary(snaps)

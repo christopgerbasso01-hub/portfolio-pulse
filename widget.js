@@ -4,9 +4,12 @@
  * Paste this into a new script in the Scriptable app (free, App Store), then
  * add a Scriptable widget to your home screen and set its script to this one.
  *
- * Reads GET /api/snapshot?widget=1 — the same figures the dashboard hero shows,
- * from the same server-side snapshot, so the widget can never disagree with the
- * app. The response is ~200 bytes.
+ * Reads GET /api/snapshot?widget=1[&live=1] — the same figures the dashboard
+ * hero shows, computed by the same server-side function, so the widget cannot
+ * disagree with the app. The response is a few hundred bytes.
+ *
+ * With live=1 the portfolio is re-priced on request; without it, the last
+ * stored daily snapshot is returned. See SETTINGS.live below.
  *
  * Sizes: small  → value + today
  *        medium → value + today + all-time + sparkline + account row
@@ -16,15 +19,35 @@
  * installed home-screen web app, so it cannot open the PWA itself.
  */
 
-const API = "https://portfolio-pulse-dun.vercel.app/api/snapshot?widget=1";
-const SITE = "https://portfolio-pulse-dun.vercel.app";
+// ═══ CUSTOMISE HERE ══════════════════════════════════════════════════════════
+// Everything you're likely to want to change lives in this block. Edit, then
+// long-press the widget on the home screen and tap Reload to see it.
+const SETTINGS = {
+  live: true,           // true = priced now; false = last daily snapshot (faster)
+  showSparkline: true,  // the 30-day mini chart
+  showAccounts: true,   // the TFSA / FHSA / RRSP / Non-Reg row
+  showAllTime: true,    // all-time $ and % beside today's change
+  showAsOf: true,       // "9:41 AM" timestamp in the header
+  accentColor: "#00d4ff",       // header + sparkline colour
+  headerText: "PORTFOLIO",      // change to anything, or "" to hide
+  // Which accounts to show, in order. Names must match the app's.
+  // e.g. ["TFSA", "FHSA"] to show only those two.
+  accounts: ["TFSA", "FHSA", "RRSP", "Investment"],
+  accountLabels: { Investment: "NON-REG" },  // rename for display
+  refreshMinutes: 15,   // hint only — iOS decides the real cadence
+};
+// ═════════════════════════════════════════════════════════════════════════════
+
+const BASE = "https://portfolio-pulse-dun.vercel.app";
+const API = BASE + "/api/snapshot?widget=1" + (SETTINGS.live ? "&live=1" : "");
+const SITE = BASE;
 const CACHE_FILE = "pulse-widget-cache.json";
 
 // Palette lifted from the app's own CSS variables
 const C = {
   bgTop: new Color("#0c1524"),
   bgBot: new Color("#060b14"),
-  cyan: new Color("#00d4ff"),
+  cyan: new Color(SETTINGS.accentColor),
   text: new Color("#e6edf5"),
   muted: new Color("#7d8da5"),
   green: new Color("#10b981"),
@@ -131,7 +154,7 @@ function build({ data, stale }) {
   w.url = SITE;
   w.setPadding(14, 14, 14, 14);
   // A hint only — iOS decides the actual refresh cadence.
-  w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
+  w.refreshAfterDate = new Date(Date.now() + SETTINGS.refreshMinutes * 60 * 1000);
 
   if (!data) {
     const t = w.addText("Portfolio Pulse");
@@ -149,11 +172,20 @@ function build({ data, stale }) {
   // Header
   const head = w.addStack();
   head.centerAlignContent();
-  const hl = head.addText("PORTFOLIO");
-  hl.font = Font.semiboldSystemFont(8);
-  hl.textColor = C.cyan;
+  if (SETTINGS.headerText) {
+    const hl = head.addText(SETTINGS.headerText);
+    hl.font = Font.semiboldSystemFont(8);
+    hl.textColor = C.cyan;
+  }
   head.addSpacer();
+  // "offline" wins over the timestamp — if the data is cached, when it was
+  // fetched matters more than what time it is now.
   if (stale) label(head, "offline", 8);
+  else if (SETTINGS.showAsOf) {
+    const df = new DateFormatter();
+    df.dateFormat = "h:mm a";
+    label(head, df.string(new Date()), 8);
+  }
 
   w.addSpacer(small ? 4 : 6);
 
@@ -179,7 +211,7 @@ function build({ data, stale }) {
 
   // All-time is omitted rather than shown as +$0 if the server couldn't
   // supply it — a wrong number is worse than a missing one.
-  if (!small && data.pnl != null) {
+  if (!small && SETTINGS.showAllTime && data.pnl != null) {
     row.addSpacer();
     const at = row.addText(
       signedMoney(data.pnl) + "  " + signedPct(data.roi_pct)
@@ -190,37 +222,47 @@ function build({ data, stale }) {
   }
 
   if (small) {
-    w.addSpacer(4);
-    w.addImage(sparkline(data.spark, 130, 30, C.cyan)).applyFittingContentMode();
+    if (SETTINGS.showSparkline) {
+      w.addSpacer(4);
+      w.addImage(sparkline(data.spark, 130, 30, C.cyan)).applyFittingContentMode();
+    }
     return w;
   }
 
   // Sparkline
-  w.addSpacer(8);
-  const img = w.addImage(sparkline(data.spark, 300, family === "large" ? 70 : 46, C.cyan));
-  img.applyFillingContentMode();
-
-  // Accounts
-  const accts = Object.entries(data.accounts || {}).sort((a, b) => b[1] - a[1]);
-  if (accts.length) {
+  if (SETTINGS.showSparkline) {
     w.addSpacer(8);
-    const shown = family === "large" ? accts : accts.slice(0, 4);
-    const arow = w.addStack();
-    arow.spacing = 10;
-    const nameMap = { Investment: "NON-REG" };
-    shown.forEach(([name, v]) => {
-      const cell = arow.addStack();
-      cell.layoutVertically();
-      const n = cell.addText((nameMap[name] || name).toUpperCase());
-      n.font = Font.semiboldSystemFont(7.5);
-      n.textColor = C.muted;
-      const a = cell.addText(compact(v));
-      a.font = Font.boldMonospacedSystemFont(11);
-      a.textColor = C.text;
-      a.lineLimit = 1;
-      a.minimumScaleFactor = 0.6;
-      arow.addSpacer();
-    });
+    const img = w.addImage(
+      sparkline(data.spark, 300, family === "large" ? 70 : 46, C.cyan)
+    );
+    img.applyFillingContentMode();
+  }
+
+  // Accounts — follows the order listed in SETTINGS.accounts, skipping any the
+  // server didn't return, so a renamed or closed account degrades quietly.
+  if (SETTINGS.showAccounts) {
+    const have = data.accounts || {};
+    const shown = SETTINGS.accounts.filter((n) => have[n] != null);
+    if (shown.length) {
+      w.addSpacer(8);
+      const arow = w.addStack();
+      arow.spacing = 10;
+      shown.forEach((name) => {
+        const cell = arow.addStack();
+        cell.layoutVertically();
+        const n = cell.addText(
+          String(SETTINGS.accountLabels[name] || name).toUpperCase()
+        );
+        n.font = Font.semiboldSystemFont(7.5);
+        n.textColor = C.muted;
+        const a = cell.addText(compact(have[name]));
+        a.font = Font.boldMonospacedSystemFont(11);
+        a.textColor = C.text;
+        a.lineLimit = 1;
+        a.minimumScaleFactor = 0.6;
+        arow.addSpacer();
+      });
+    }
   }
 
   return w;

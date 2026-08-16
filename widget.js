@@ -24,10 +24,12 @@
 // long-press the widget on the home screen and tap Reload to see it.
 const SETTINGS = {
   live: true,           // true = priced now; false = last daily snapshot (faster)
-  showSparkline: true,  // the 30-day mini chart
+  showSparkline: true,  // mini chart: last 30 daily snapshots (weekdays only,
+                        // so ~6 calendar weeks) of total portfolio value
   showAccounts: true,   // the TFSA / FHSA / RRSP / Non-Reg row
   showAllTime: true,    // all-time $ and % beside today's change
-  showAsOf: true,       // "9:41 AM" timestamp in the header
+  showLastRefresh: true, // "Last Refresh: 2 min ago" in the header
+  topPadding: 18,       // raise/lower everything away from the top corner
   accentColor: "#00d4ff",       // header + sparkline colour
   headerText: "PORTFOLIO",      // change to anything, or "" to hide
   // Which accounts to show, in order. Names must match the app's.
@@ -68,6 +70,10 @@ async function getData() {
     req.timeoutInterval = 15;
     const d = await req.loadJSON();
     if (d && d.ok) {
+      // Stamp when the data actually arrived. The header's "last refresh" age
+      // must count from the fetch, not from when the widget happened to be
+      // re-rendered — otherwise cached data would claim to be fresh.
+      d._fetchedAt = Date.now();
       FileManager.local().writeString(cachePath(), JSON.stringify(d));
       return { data: d, stale: false };
     }
@@ -152,7 +158,7 @@ function build({ data, stale }) {
   g.locations = [0, 1];
   w.backgroundGradient = g;
   w.url = SITE;
-  w.setPadding(14, 14, 14, 14);
+  w.setPadding(SETTINGS.topPadding, 14, 14, 14);
   // A hint only — iOS decides the actual refresh cadence.
   w.refreshAfterDate = new Date(Date.now() + SETTINGS.refreshMinutes * 60 * 1000);
 
@@ -178,13 +184,20 @@ function build({ data, stale }) {
     hl.textColor = C.cyan;
   }
   head.addSpacer();
-  // "offline" wins over the timestamp — if the data is cached, when it was
-  // fetched matters more than what time it is now.
-  if (stale) label(head, "offline", 8);
-  else if (SETTINGS.showAsOf) {
-    const df = new DateFormatter();
-    df.dateFormat = "h:mm a";
-    label(head, df.string(new Date()), 8);
+  if (SETTINGS.showLastRefresh && data._fetchedAt) {
+    // addDate + applyRelativeStyle rather than a formatted string: iOS keeps a
+    // WidgetDate ticking on the home screen between refreshes. A string would
+    // be frozen at render time, so a widget last refreshed 20 minutes ago would
+    // still be claiming "0 sec".
+    if (stale) label(head, "offline · ", 8);
+    else if (!small) label(head, "Last Refresh: ", 8);
+    const d = head.addDate(new Date(data._fetchedAt));
+    d.applyRelativeStyle();
+    d.font = Font.mediumSystemFont(8);
+    d.textColor = C.muted;
+    d.lineLimit = 1;
+  } else if (stale) {
+    label(head, "offline", 8);
   }
 
   w.addSpacer(small ? 4 : 6);
@@ -246,8 +259,12 @@ function build({ data, stale }) {
     if (shown.length) {
       w.addSpacer(8);
       const arow = w.addStack();
-      arow.spacing = 10;
-      shown.forEach((name) => {
+      // Flexible spacers on both ends and between every cell, so the group is
+      // centred and evenly spread rather than bunched against the left edge.
+      // Each cell also centres its own label over its value, since the two
+      // differ in width ("NON-REG" vs "$119K").
+      arow.addSpacer();
+      shown.forEach((name, i) => {
         const cell = arow.addStack();
         cell.layoutVertically();
         const n = cell.addText(
@@ -255,11 +272,13 @@ function build({ data, stale }) {
         );
         n.font = Font.semiboldSystemFont(7.5);
         n.textColor = C.muted;
+        n.centerAlignText();
         const a = cell.addText(compact(have[name]));
         a.font = Font.boldMonospacedSystemFont(11);
         a.textColor = C.text;
         a.lineLimit = 1;
         a.minimumScaleFactor = 0.6;
+        a.centerAlignText();
         arow.addSpacer();
       });
     }

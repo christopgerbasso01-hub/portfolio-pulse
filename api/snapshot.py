@@ -508,6 +508,15 @@ class handler(BaseHTTPRequestHandler):
                 except Exception:
                     pass   # don't let a KV read failure break the whole GET
 
+            # ?widget=1 — compact payload for the iOS home-screen widget.
+            # The full response is ~150 KB; a widget refreshing every 15 min on
+            # cellular has no use for 90 days of per-account history, so this
+            # returns only the headline figures plus a short sparkline series.
+            # Same data, same source — just trimmed.
+            if "widget=1" in (self.path or ""):
+                self._respond(200, self._widget_payload(snaps))
+                return
+
             summary = compute_weekly_summary(snaps)
             chart_points = [
                 {
@@ -529,6 +538,30 @@ class handler(BaseHTTPRequestHandler):
         except Exception as exc:
             print(f"  [snapshot] GET error: {exc}")
             self._respond(500, {"error": str(exc)})
+
+    @staticmethod
+    def _widget_payload(snaps: dict) -> dict:
+        """Headline figures + a 30-point sparkline, for the Scriptable widget."""
+        dates = sorted(snaps.keys())
+        if not dates:
+            return {"ok": False, "error": "no snapshots"}
+        latest = snaps[dates[-1]]
+        spark = [
+            snaps[d].get("total_value")
+            for d in dates[-30:]
+            if snaps[d].get("total_value") is not None
+        ]
+        return {
+            "ok":       True,
+            "date":     dates[-1],
+            "value":    latest.get("total_value"),
+            "day":      latest.get("daily_change"),
+            "day_pct":  latest.get("daily_change_pct"),
+            "pnl":      latest.get("total_pnl"),
+            "roi_pct":  latest.get("roi_pct"),
+            "accounts": latest.get("accounts", {}),
+            "spark":    spark,
+        }
 
     def _auth(self) -> bool:
         """Verify CRON_SECRET Bearer token."""

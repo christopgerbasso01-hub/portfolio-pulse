@@ -11,9 +11,16 @@
  * With live=1 the portfolio is re-priced on request; without it, the last
  * stored daily snapshot is returned. See SETTINGS.live below.
  *
- * Sizes: small  → value + today
- *        medium → value + today + all-time + sparkline + account row
- *        large  → same as medium with every account listed
+ * Home screen: small  → value + today
+ *              medium → value + today + all-time + sparkline + account row
+ *              large  → same as medium with every account listed
+ *
+ * Lock screen: inline      → "▲ +$1,247 +0.41%" beside the date
+ *              rectangular → label + day $ over day % and total
+ *              circular    → arrow over day % over abbreviated day $
+ *
+ * One script serves all six — iOS passes the family in, so add whichever slot
+ * you want and pick this script for each.
  *
  * Note: tapping opens the site in Safari. iOS has no way to deep-link into an
  * installed home-screen web app, so it cannot open the PWA itself.
@@ -37,8 +44,30 @@ const SETTINGS = {
   accounts: ["TFSA", "FHSA", "RRSP", "Investment"],
   accountLabels: { Investment: "NON-REG" },  // rename for display
   refreshMinutes: 15,   // hint only — iOS decides the real cadence
+  // Which size to draw when you tap Run inside Scriptable (on the home screen
+  // and lock screen iOS supplies the real one). Set this to preview a lock
+  // screen size before adding the widget:
+  //   medium | small | large | accessoryRectangular | accessoryCircular | accessoryInline
+  previewSize: "medium",
+
+  // Lock screen widgets (inline / circular / rectangular). iOS renders these
+  // monochrome — it tints whatever colours you set — so direction is carried by
+  // the arrow and sign, never by green/red. accentColor above does not apply.
+  lock: {
+    label: "PULSE TODAY",  // rectangular's top line; "" to hide
+    showTotal: true,       // rectangular: append "· $302,542" for context
+    upArrow: "▲",
+    downArrow: "▼",
+    flatMark: "",  // shown when the day is exactly flat; "" omits the marker
+                   // entirely rather than leaving a stray glyph before "+$0"
+  },
 };
 // ═════════════════════════════════════════════════════════════════════════════
+
+// Resolved once: iOS supplies widgetFamily on a real widget, and it is null
+// when the script is run inside Scriptable, where previewSize stands in.
+const FAMILY = config.widgetFamily || SETTINGS.previewSize;
+const IS_ACCESSORY = String(FAMILY).startsWith("accessory");
 
 const BASE = "https://portfolio-pulse-dun.vercel.app";
 const API = BASE + "/api/snapshot?widget=1" + (SETTINGS.live ? "&live=1" : "");
@@ -104,6 +133,13 @@ const compact = (v) => {
   return money(v);
 };
 
+// One decimal, unsigned — for the circular lock screen slot, where "$1.2K" fits
+// but "$1,247" does not, and the arrow already carries the direction.
+const compactTight = (v) => {
+  const a = Math.abs(v);
+  return a >= 1000 ? "$" + (a / 1000).toFixed(1) + "K" : "$" + Math.round(a);
+};
+
 const toneColor = (v) => (v >= 0 ? C.green : v < 0 ? C.red : C.muted);
 
 // ── Sparkline ────────────────────────────────────────────────────────────────
@@ -151,7 +187,91 @@ function label(stack, text, size = 9) {
   return t;
 }
 
+// ── Lock screen (accessory) widgets ──────────────────────────────────────────
+// iOS renders these monochrome: it applies its own vibrancy tint and discards
+// the colours set here, so there is no green/red. Direction reads from the
+// arrow and the sign instead. addAccessoryWidgetBackground supplies the
+// standard translucent capsule; inline gets no background of its own.
+function buildAccessory(family, data, stale) {
+  const w = new ListWidget();
+  w.url = SITE;
+  w.refreshAfterDate = new Date(Date.now() + SETTINGS.refreshMinutes * 60 * 1000);
+
+  if (!data) {
+    const t = w.addText(family === "accessoryInline" ? "Pulse —" : "—");
+    t.textColor = Color.white();
+    return w;
+  }
+
+  const L = SETTINGS.lock;
+  const day = data.day || 0;
+  const arrow = day > 0 ? L.upArrow : day < 0 ? L.downArrow : L.flatMark;
+  const pre = arrow ? arrow + " " : "";
+
+  // Inline is a single line beside the date — one text element, no layout.
+  if (family === "accessoryInline") {
+    const t = w.addText(
+      pre + signedMoney(day) + " " + signedPct(data.day_pct)
+    );
+    t.textColor = Color.white();
+    return w;
+  }
+
+  w.addAccessoryWidgetBackground = true;
+
+  if (family === "accessoryCircular") {
+    w.setPadding(0, 0, 0, 0);
+    const col = w.addStack();
+    col.layoutVertically();
+    col.centerAlignContent();
+    const rows = [
+      [Math.abs(Number(data.day_pct) || 0).toFixed(2) + "%", Font.boldMonospacedSystemFont(11)],
+      [compactTight(day), Font.mediumMonospacedSystemFont(9)],
+    ];
+    // Only give the arrow its own line when there is one — a flat day would
+    // otherwise burn a third of the circle on an empty row.
+    if (arrow) rows.unshift([arrow, Font.systemFont(9)]);
+    rows.forEach(([text, font]) => {
+      const r = col.addStack();
+      r.addSpacer();
+      const t = r.addText(text);
+      t.font = font;
+      t.textColor = Color.white();
+      t.lineLimit = 1;
+      t.minimumScaleFactor = 0.6;
+      r.addSpacer();
+    });
+    return w;
+  }
+
+  // accessoryRectangular — the only slot with room for both figures full-size
+  w.setPadding(2, 4, 2, 2);
+  if (L.label) {
+    const lb = w.addText(stale ? L.label + " · OFFLINE" : L.label);
+    lb.font = Font.semiboldSystemFont(10);
+    lb.textColor = Color.white();
+    lb.lineLimit = 1;
+  }
+  const big = w.addText(pre + signedMoney(day));
+  big.font = Font.boldMonospacedSystemFont(17);
+  big.textColor = Color.white();
+  big.lineLimit = 1;
+  big.minimumScaleFactor = 0.7;
+
+  const sub = w.addText(
+    signedPct(data.day_pct) +
+      (L.showTotal && data.value != null ? " · " + money(data.value) : "")
+  );
+  sub.font = Font.mediumMonospacedSystemFont(10);
+  sub.textColor = Color.white();
+  sub.lineLimit = 1;
+  sub.minimumScaleFactor = 0.7;
+  return w;
+}
+
 function build({ data, stale }) {
+  if (IS_ACCESSORY) return buildAccessory(FAMILY, data, stale);
+
   const w = new ListWidget();
   const g = new LinearGradient();
   g.colors = [C.bgTop, C.bgBot];
@@ -172,7 +292,7 @@ function build({ data, stale }) {
     return w;
   }
 
-  const family = config.widgetFamily || "medium";
+  const family = FAMILY;
   const small = family === "small";
 
   // Header
@@ -294,8 +414,11 @@ const widget = build(result);
 if (config.runsInWidget) {
   Script.setWidget(widget);
 } else {
-  const f = config.widgetFamily || "medium";
-  if (f === "small") widget.presentSmall();
+  const f = FAMILY;
+  if (f === "accessoryCircular") widget.presentAccessoryCircular();
+  else if (f === "accessoryRectangular") widget.presentAccessoryRectangular();
+  else if (f === "accessoryInline") widget.presentAccessoryInline();
+  else if (f === "small") widget.presentSmall();
   else if (f === "large") widget.presentLarge();
   else widget.presentMedium();
 }

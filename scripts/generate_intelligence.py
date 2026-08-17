@@ -605,7 +605,7 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 # groq/compound caps output at exactly 8192; requesting the
                 # ceiling itself was rejected, so sit just under it. The JSON a
                 # run emits is ~5.5-6.3K tokens, so this still leaves headroom.
-                "max_tokens":  8000,
+                "max_tokens":  3000,
             }
             try:
                 resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=120)

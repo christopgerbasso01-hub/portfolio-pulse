@@ -134,6 +134,70 @@ def _best_worst(holdings_prices: dict):
     )
 
 
+def _observed_max(default=None):
+    """
+    Highest total_value across the daily snapshots still held in KV.
+
+    Returns None when the history cannot be read at all. That is deliberately
+    distinct from a low value: the caller must not "correct" a stored peak
+    downward on the basis of evidence it failed to load.
+    """
+    try:
+        from snapshot import get_recent_snapshots
+        vals = [
+            s.get("total_value") for s in get_recent_snapshots(days=95).values()
+            if s.get("total_value")
+        ]
+        return max(vals) if vals else default
+    except Exception as exc:
+        print(f"  [notify] observed-max lookup failed: {exc}")
+        return default
+
+
+# A stored peak is allowed to sit this far above anything ever actually
+# recorded before it is treated as corrupt. Snapshots can lag the true intraday
+# high slightly, so a small margin is legitimate; tens of percent is not.
+PEAK_TRUST_MARGIN = 1.02
+
+# A single day cannot plausibly add this much, even with 3x leveraged holdings.
+# Rejecting such jumps stops one bad reading from poisoning the peak forever.
+PEAK_MAX_DAILY_JUMP = 1.20
+
+
+def _validated_peak(peak: dict, total: float, today_str: str) -> float:
+    """
+    Return a trustworthy all-time high.
+
+    KEY_PEAK is a permanent high-water mark with no TTL, written whenever a
+    total exceeds it. That makes it a one-way ratchet: a single corrupt reading
+    — a bad price, a double-applied FX rate — raises it forever, and nothing
+    can bring it back down. The drawdown alert then measures against a level
+    the portfolio never reached and fires against a phantom loss.
+
+    So the stored value is cross-checked against what the snapshot history
+    actually recorded. If it claims a high no snapshot corroborates, it is
+    corrected to the highest real observation and rewritten.
+    """
+    stored = (peak or {}).get("value") or 0
+    if stored <= 0:
+        return total
+
+    history = _observed_max()
+    if not history:
+        # History unreadable. Today's value alone is not evidence the stored
+        # peak is wrong — every day sits below a real peak — so leave it be.
+        return stored
+
+    observed = max(history, total)
+    if stored > observed * PEAK_TRUST_MARGIN:
+        print(f"  [notify] stored peak ${stored:,.0f} exceeds the highest value ever "
+              f"recorded (${observed:,.0f}) — treating as corrupt and correcting")
+        kv_set(KEY_PEAK, {"value": observed, "date": today_str, "corrected_from": stored})
+        return observed
+
+    return stored
+
+
 def build_notifications(snap: dict, today: datetime, week_snap, prev_month_snap) -> list:
     """
     Check all end-of-day conditions and return a list of notification payloads.
@@ -165,7 +229,7 @@ def build_notifications(snap: dict, today: datetime, week_snap, prev_month_snap)
         milestones["roi"]    = [m for m in ROI_MILESTONES    if m <= roi_pct]
         kv_set(KEY_MILESTONES, milestones)
 
-    peak_val   = (peak or {}).get("value", total)
+    peak_val   = _validated_peak(peak, total, today_str)
     record_gain = (record or {}).get("gain", 0)
 
     notifs = []
@@ -205,13 +269,19 @@ def build_notifications(snap: dict, today: datetime, week_snap, prev_month_snap)
 
     # ── #5 New all-time high ──────────────────────────────────────────────────
     if total > peak_val:
-        notifs.append({
-            "title": "🎉 New All-Time High!",
-            "body":  f"Portfolio hit ${total:,.0f}",
-            "tag":   "portfolio-ath",
-        })
-        kv_set(KEY_PEAK, {"value": total, "date": today_str})
-        peak_val = total     # Use updated peak for drawdown check below
+        # Guard the write. Without this a single corrupt total is recorded as
+        # the all-time high permanently, since the peak only ever ratchets up.
+        if peak_val > 0 and total > peak_val * PEAK_MAX_DAILY_JUMP:
+            print(f"  [notify] ignoring implausible ATH ${total:,.0f} — "
+                  f"{total / peak_val - 1:+.0%} above the prior peak ${peak_val:,.0f}")
+        else:
+            notifs.append({
+                "title": "🎉 New All-Time High!",
+                "body":  f"Portfolio hit ${total:,.0f}",
+                "tag":   "portfolio-ath",
+            })
+            kv_set(KEY_PEAK, {"value": total, "date": today_str})
+            peak_val = total     # Use updated peak for drawdown check below
 
     # ── #6 Dollar milestones ─────────────────────────────────────────────────
     fired_d    = milestones.get("dollar", [])

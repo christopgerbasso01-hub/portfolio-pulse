@@ -16,9 +16,14 @@ import requests
 
 # Groq — free tier, OpenAI-compatible API
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-# Groq shut down llama-3.3-70b-versatile and llama-3.1-8b-instant on
-# 2026-08-16. These are Groq's own recommended replacements.
-GROQ_MODEL = "openai/gpt-oss-120b"
+# Groq shut down llama-3.3-70b-versatile and llama-3.1-8b-instant on 2026-08-16.
+#
+# The obvious replacement, openai/gpt-oss-120b, does not fit this job on the
+# free tier: its limit is 8K tokens/minute, while one run needs ~3.6K for the
+# prompt plus ~5.5K for the JSON it has to emit — about 9.1K, which Groq
+# rejects with a 413 before generating anything. qwen/qwen3.6-27b is also 8K.
+# groq/compound allows 70K TPM, so the payload fits with room to spare.
+GROQ_MODEL = "groq/compound"
 
 
 # ============================================================
@@ -589,7 +594,7 @@ def call_llm(api_key: str, prompt: str) -> dict:
     both runs on 2026-08-10.
     """
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    models  = [GROQ_MODEL, "openai/gpt-oss-20b"]     # 120B → 20B fallback
+    models  = [GROQ_MODEL, "openai/gpt-oss-120b"]    # compound → gpt-oss fallback
 
     for model in models:
         for attempt in range(4):
@@ -627,8 +632,11 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 break
 
             if resp.status_code == 413:
-                print(f"  ⚠ 413 Payload Too Large on {model} — prompt is {len(prompt):,} chars. "
-                      f"Skipping to next model.")
+                # Groq's body names the exact limit and what was requested,
+                # which is the difference between "shrink the prompt" and
+                # "this model's TPM cannot fit this job at all".
+                print(f"  ⚠ 413 Payload Too Large on {model} — prompt is {len(prompt):,} chars, "
+                      f"max_tokens={payload['max_tokens']}. Groq said: {resp.text[:300]}")
                 break   # try smaller model
 
             if resp.status_code >= 500:

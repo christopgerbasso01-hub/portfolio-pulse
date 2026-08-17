@@ -21,17 +21,19 @@ gi = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gi)
 
 M70 = gi.GROQ_MODEL          # primary
-M8 = "openai/gpt-oss-20b"    # fallback — must match call_llm's models list
+M8 = "openai/gpt-oss-120b"   # fallback — must match call_llm's models list
 PAYLOAD = {"macro": [], "risks": [], "news": []}
 
 fails = []
 
 
 class FakeResp:
-    def __init__(self, status, body=None, headers=None):
+    def __init__(self, status, body=None, headers=None, text=""):
         self.status_code = status
         self._body = body or {}
         self.headers = headers or {}
+        # Real requests.Response always exposes .text; the error branches log it.
+        self.text = text or f'{{"error":{{"code":{status}}}}}'
 
     def json(self):
         return self._body

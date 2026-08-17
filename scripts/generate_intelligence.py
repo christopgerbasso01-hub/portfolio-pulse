@@ -627,6 +627,13 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 "model":       model,
                 "messages":    [{"role": "user", "content": prompt}],
                 "temperature": 0.35,
+                # gpt-oss are reasoning models: their chain of thought is
+                # generated before the answer and spends the same token budget.
+                # Left at the default, pass 1 truncated after ~6,100 characters
+                # of JSON despite max_tokens=4000 — the reasoning had consumed
+                # most of it. This job wants structured JSON, not deliberation.
+                "reasoning_effort":  "low",
+                "include_reasoning": False,
                 # Largest value that fits under the 8K TPM ceiling alongside
                 # a ~3,700-token prompt. Not enough for a full-size response —
                 # see the KNOWN LIMITATION note at GROQ_MODEL.

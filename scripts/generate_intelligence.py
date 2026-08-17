@@ -17,13 +17,20 @@ import requests
 # Groq — free tier, OpenAI-compatible API
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 # Groq shut down llama-3.3-70b-versatile and llama-3.1-8b-instant on 2026-08-16.
+# openai/gpt-oss-120b is Groq's named replacement and is what works here.
 #
-# The obvious replacement, openai/gpt-oss-120b, does not fit this job on the
-# free tier: its limit is 8K tokens/minute, while one run needs ~3.6K for the
-# prompt plus ~5.5K for the JSON it has to emit — about 9.1K, which Groq
-# rejects with a 413 before generating anything. qwen/qwen3.6-27b is also 8K.
-# groq/compound allows 70K TPM, so the payload fits with room to spare.
-GROQ_MODEL = "groq/compound"
+# KNOWN LIMITATION — this job does not currently fit the free tier.
+# The free tier allows 8K tokens/minute and max_tokens counts toward it, so the
+# budget is: 8000 - prompt(~3,700) = ~4,300 tokens of output. A full run needs
+# ~5.5-6.3K, so the JSON truncates mid-string and json.loads fails.
+# Measured, not guessed: at max_tokens=3000 the request is accepted and the
+# model generates, then dies on "Unterminated string".
+# qwen/qwen3.6-27b has the same 8K ceiling. groq/compound has 70K TPM but
+# rejects this request shape outright with a bare request_too_large at every
+# max_tokens tried, so it is not a way out.
+# Resolving this needs one of: a shorter prompt, splitting the call in two, a
+# smaller output schema, or Groq's paid tier.
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 
 # ============================================================
@@ -594,7 +601,7 @@ def call_llm(api_key: str, prompt: str) -> dict:
     both runs on 2026-08-10.
     """
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    models  = [GROQ_MODEL, "openai/gpt-oss-120b"]    # compound → gpt-oss fallback
+    models  = [GROQ_MODEL, "openai/gpt-oss-20b"]     # 120B → 20B fallback
 
     for model in models:
         for attempt in range(4):
@@ -602,10 +609,10 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 "model":       model,
                 "messages":    [{"role": "user", "content": prompt}],
                 "temperature": 0.35,
-                # groq/compound caps output at exactly 8192; requesting the
-                # ceiling itself was rejected, so sit just under it. The JSON a
-                # run emits is ~5.5-6.3K tokens, so this still leaves headroom.
-                "max_tokens":  3000,
+                # Largest value that fits under the 8K TPM ceiling alongside
+                # a ~3,700-token prompt. Not enough for a full-size response —
+                # see the KNOWN LIMITATION note at GROQ_MODEL.
+                "max_tokens":  4200,
             }
             try:
                 resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=120)

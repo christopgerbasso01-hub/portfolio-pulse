@@ -602,7 +602,10 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 "model":       model,
                 "messages":    [{"role": "user", "content": prompt}],
                 "temperature": 0.35,
-                "max_tokens":  8192,
+                # groq/compound caps output at exactly 8192; requesting the
+                # ceiling itself was rejected, so sit just under it. The JSON a
+                # run emits is ~5.5-6.3K tokens, so this still leaves headroom.
+                "max_tokens":  8000,
             }
             try:
                 resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=120)

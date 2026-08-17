@@ -16,7 +16,9 @@ import requests
 
 # Groq — free tier, OpenAI-compatible API
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3.3-70b-versatile"
+# Groq shut down llama-3.3-70b-versatile and llama-3.1-8b-instant on
+# 2026-08-16. These are Groq's own recommended replacements.
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 
 # ============================================================
@@ -587,7 +589,7 @@ def call_llm(api_key: str, prompt: str) -> dict:
     both runs on 2026-08-10.
     """
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    models  = [GROQ_MODEL, "llama-3.1-8b-instant"]   # 70B → 8B fallback
+    models  = [GROQ_MODEL, "openai/gpt-oss-20b"]     # 120B → 20B fallback
 
     for model in models:
         for attempt in range(4):

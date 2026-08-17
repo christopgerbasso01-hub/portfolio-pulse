@@ -30,7 +30,9 @@ import requests
 
 # ── Config ───────────────────────────────────────────────────────────────────
 GROQ_URL      = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL    = "llama-3.3-70b-versatile"
+# Groq shut down llama-3.3-70b-versatile and llama-3.1-8b-instant on
+# 2026-08-16. These are Groq's own recommended replacements.
+GROQ_MODEL    = "openai/gpt-oss-120b"
 SNAPSHOT_API  = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
 SETTINGS_API  = "https://portfolio-pulse-dun.vercel.app/api/settings"
 CRON_SECRET   = os.environ.get("CRON_SECRET", "")
@@ -688,7 +690,7 @@ def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) ->
     """
     import time
     primary      = GROQ_MODEL
-    fallback     = "llama-3.1-8b-instant"
+    fallback     = "openai/gpt-oss-20b"
     max_attempts = 8
     last_err     = "unknown"
 

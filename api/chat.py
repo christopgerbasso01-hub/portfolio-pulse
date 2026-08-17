@@ -28,10 +28,12 @@ TAVILY_API_KEY  = os.environ.get("TAVILY_API_KEY", "")
 FMP_API_KEY     = os.environ.get("FMP_API_KEY", "")
 
 GROQ_URL        = "https://api.groq.com/openai/v1/chat/completions"
-# 8B model: 20K TPM free — used for tool-calling rounds (just needs to pick tools)
-GROQ_MODEL_FAST = "llama-3.1-8b-instant"
-# 70B model: 6K TPM free — used for final response only (best quality for the answer)
-GROQ_MODEL      = "llama-3.3-70b-versatile"
+# Groq shut down llama-3.3-70b-versatile and llama-3.1-8b-instant on 2026-08-16;
+# these are Groq's own recommended replacements for each.
+# Smaller model — used for tool-calling rounds (just needs to pick tools)
+GROQ_MODEL_FAST = "openai/gpt-oss-20b"
+# Larger model — used for final response only (best quality for the answer)
+GROQ_MODEL      = "openai/gpt-oss-120b"
 
 # Leveraged exchange-traded NOTES — structured products that rarely/never pay
 # reliable dividends. True leveraged ETFs (SPXL, UDOW) DO pay quarterly dividends

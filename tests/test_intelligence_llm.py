@@ -20,8 +20,8 @@ spec = importlib.util.spec_from_file_location("gi", SRC)
 gi = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gi)
 
-M70 = gi.GROQ_MODEL
-M8 = "llama-3.1-8b-instant"
+M70 = gi.GROQ_MODEL          # primary
+M8 = "openai/gpt-oss-20b"    # fallback — must match call_llm's models list
 PAYLOAD = {"macro": [], "risks": [], "news": []}
 
 fails = []

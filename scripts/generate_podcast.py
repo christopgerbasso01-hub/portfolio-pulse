@@ -700,7 +700,12 @@ def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) ->
                 GROQ_URL,
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={"model": primary, "messages": [{"role": "user", "content": prompt}],
-                      "max_tokens": max_tokens, "temperature": 0.85},
+                      "max_tokens": max_tokens, "temperature": 0.85,
+                      # gpt-oss are reasoning models and their chain of thought
+                      # spends the same max_tokens budget, which silently
+                      # truncates the script rather than raising. This wants
+                      # prose, not deliberation.
+                      "reasoning_effort": "low", "include_reasoning": False},
                 timeout=120,
             )
 
@@ -739,7 +744,8 @@ def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) ->
                         GROQ_URL,
                         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                         json={"model": fallback, "messages": [{"role": "user", "content": prompt}],
-                              "max_tokens": max_tokens, "temperature": 0.85},
+                              "max_tokens": max_tokens, "temperature": 0.85,
+                              "reasoning_effort": "low", "include_reasoning": False},
                         timeout=120,
                     )
                     r2.raise_for_status()

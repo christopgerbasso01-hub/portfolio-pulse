@@ -575,8 +575,16 @@ SECTION DISTINCTIVENESS — each section must cover UNIQUE ground, zero repetiti
 def call_llm(api_key: str, prompt: str) -> dict:
     """
     Call Groq's free-tier Llama API and return parsed JSON.
-    Retries up to 4 times on 429 rate-limit errors with exponential backoff.
-    Falls back to the 8B model if the 70B model keeps hitting limits.
+
+    Retries on 429 (rate limit) and 5xx (transient server error) with
+    exponential backoff, and falls through to the next model on 404 or 413.
+
+    The fallback list previously only covered 429 and 413: every other status
+    hit raise_for_status() and killed the run outright. A 404 from Groq —
+    which is what it returns when a model is unavailable, and exactly the case
+    the fallback exists for — therefore aborted the job with a working
+    fallback model sitting unused. That took out the 2026-08-17 11:31 run and
+    both runs on 2026-08-10.
     """
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     models  = [GROQ_MODEL, "llama-3.1-8b-instant"]   # 70B → 8B fallback
@@ -589,7 +597,15 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 "temperature": 0.35,
                 "max_tokens":  8192,
             }
-            resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=120)
+            try:
+                resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=120)
+            except requests.RequestException as exc:
+                # Connection reset / read timeout — worth another attempt.
+                wait = 2 ** (attempt + 1)
+                print(f"  ⏳ Network error on {model} attempt {attempt+1}/4 "
+                      f"({type(exc).__name__}) — waiting {wait}s")
+                time.sleep(wait)
+                continue
 
             if resp.status_code == 429:
                 # Read retry-after header; default to exponential backoff
@@ -601,11 +617,28 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 time.sleep(wait)
                 continue
 
+            if resp.status_code == 404:
+                # Model unavailable or retired. Retrying the same name cannot
+                # help, so go straight to the next model.
+                print(f"  ⚠ 404 Not Found for model {model} — unavailable or retired. "
+                      f"Skipping to next model.")
+                break
+
             if resp.status_code == 413:
                 print(f"  ⚠ 413 Payload Too Large on {model} — prompt is {len(prompt):,} chars. "
                       f"Skipping to next model.")
                 break   # try smaller model
 
+            if resp.status_code >= 500:
+                # Transient upstream fault — back off and retry the same model.
+                wait = 2 ** (attempt + 1)
+                print(f"  ⏳ Groq {resp.status_code} on {model} attempt {attempt+1}/4 "
+                      f"— waiting {wait}s")
+                time.sleep(wait)
+                continue
+
+            # 400/401/403 and friends: a bad key or malformed request. Retrying
+            # or downgrading the model will not fix it, so fail loudly.
             resp.raise_for_status()
             text = resp.json()["choices"][0]["message"]["content"].strip()
 
@@ -621,7 +654,11 @@ def call_llm(api_key: str, prompt: str) -> dict:
 
         print(f"  ⚠ All retries exhausted for {model}, trying next model...")
 
-    raise RuntimeError("All Groq models exhausted after retries — check rate limits")
+    raise RuntimeError(
+        f"All Groq models exhausted after retries: {', '.join(models)}. "
+        f"Check rate limits, and confirm these model names are still current — "
+        f"a 404 on every model means they have been retired."
+    )
 
 
 # ============================================================

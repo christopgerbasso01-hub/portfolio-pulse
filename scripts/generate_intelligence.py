@@ -17,19 +17,20 @@ import requests
 # Groq — free tier, OpenAI-compatible API
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 # Groq shut down llama-3.3-70b-versatile and llama-3.1-8b-instant on 2026-08-16.
-# openai/gpt-oss-120b is Groq's named replacement and is what works here.
+# openai/gpt-oss-120b is Groq's named replacement.
 #
-# KNOWN LIMITATION — this job does not currently fit the free tier.
+# WHY main() MAKES TWO CALLS INSTEAD OF ONE
 # The free tier allows 8K tokens/minute and max_tokens counts toward it, so the
-# budget is: 8000 - prompt(~3,700) = ~4,300 tokens of output. A full run needs
-# ~5.5-6.3K, so the JSON truncates mid-string and json.loads fails.
-# Measured, not guessed: at max_tokens=3000 the request is accepted and the
-# model generates, then dies on "Unterminated string".
-# qwen/qwen3.6-27b has the same 8K ceiling. groq/compound has 70K TPM but
-# rejects this request shape outright with a bare request_too_large at every
-# max_tokens tried, so it is not a way out.
-# Resolving this needs one of: a shorter prompt, splitting the call in two, a
-# smaller output schema, or Groq's paid tier.
+# ceiling per request is prompt + max_tokens <= 8000. The prompt is ~3.4K and a
+# whole-schema response needs ~5.5-6.3K, which Groq rejects outright
+# ("Limit 8000, Requested 11683"). Lowering max_tokens enough to be accepted
+# instead truncates the JSON — measured, not guessed: at max_tokens=3000 the
+# model generated and then died on "Unterminated string".
+# Neither alternative model helps: qwen/qwen3.6-27b has the same 8K ceiling,
+# and groq/compound, despite 70K TPM, rejects this request shape with a bare
+# request_too_large at every max_tokens tried (8192, 8000, 3000).
+# So the schema is requested in two halves, ~7.4K per request. Nothing is
+# dropped from the output; see the note in main().
 GROQ_MODEL = "openai/gpt-oss-120b"
 
 
@@ -465,7 +466,9 @@ def _build_theme_context(theme_history: list[dict], risk_history: list[str],
 def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
                  picks_history: list[dict] = None,
                  discovery_news: list[dict] = None,
-                 movers: dict = None) -> str:
+                 movers: dict = None,
+                 only_sections: list[str] = None,
+                 already_covered: str = "") -> str:
     general_block = (
         "\n".join(f"• {a['headline']}" for a in general_news[:15])
         or "(no general news fetched)"
@@ -522,6 +525,20 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
             print(f"  ✓ Filtered {n_removed} headlines matching banned categories: {banned_cats}")
 
     # Restrict schema category enum to non-banned categories so model can't pick them
+    # Restrict the response to a subset of top-level keys. The free tier allows
+    # 8K tokens/minute including max_tokens, and a whole-schema response needs
+    # more output than fits alongside the prompt, so main() asks for the schema
+    # in two halves. The schema and the distinctiveness rules above stay intact
+    # for both calls — only the set of keys returned changes.
+    _restrict = ""
+    if only_sections:
+        _restrict = (
+            "\nRESPONSE SCOPE — CRITICAL:\n"
+            f"Return ONLY these top-level keys: {', '.join(only_sections)}.\n"
+            "Omit every other key entirely. Do not include them as empty values.\n"
+            "The rules above still apply to the keys you do return.\n"
+        )
+
     _schema = OUTPUT_SCHEMA
     if banned_cats:
         allowed_cats = [c for c in THEME_CATEGORIES if c not in banned_cats]
@@ -579,6 +596,7 @@ SECTION DISTINCTIVENESS — each section must cover UNIQUE ground, zero repetiti
 - strategy_long:  Actions for 2–10+ years ONLY. Horizon-appropriate, not a repeat of short/mid.
 - tax:        CRA/account-mechanics notes ONLY. Not strategy already in strategy sections.
 
+{_restrict}{already_covered}
 {_schema}"""
 
 
@@ -612,7 +630,7 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 # Largest value that fits under the 8K TPM ceiling alongside
                 # a ~3,700-token prompt. Not enough for a full-size response —
                 # see the KNOWN LIMITATION note at GROQ_MODEL.
-                "max_tokens":  4200,
+                "max_tokens":  4000,
             }
             try:
                 resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=120)
@@ -732,10 +750,58 @@ def main() -> int:
     total_articles = sum(len(v) for v in company_news.values())
     print(f"     → {total_articles} articles across {len(COMPANY_NEWS_TICKERS)} tickers")
 
-    # 3. Generate with Groq (Llama 3.3 70B)
-    print(f"3/3  Generating intelligence with Groq ({GROQ_MODEL})...")
-    prompt = build_prompt(general_news, company_news, picks_history, discovery_news, movers)
-    intelligence = call_llm(groq_key, prompt)
+    # 3. Generate with Groq, in two halves.
+    #
+    # The whole schema in one response does not fit the free tier: 8K
+    # tokens/minute, max_tokens counts toward it, and prompt(~3.7K) + a
+    # full-size response(~5.5-6.3K) is ~9-10K. Groq rejects that outright, and
+    # trimming max_tokens enough to be accepted truncates the JSON mid-string.
+    #
+    # Splitting keeps every section and every rule — each call sees the same
+    # prompt and schema and simply returns fewer keys, so each request lands
+    # around 7.5K and fits. World-facing sections come first; the
+    # portfolio-facing half is then told what the first half already covered,
+    # which preserves the "no repetition across sections" rules that a single
+    # call enforced implicitly.
+    print(f"3/3  Generating intelligence with Groq ({GROQ_MODEL}), 2 passes...")
+
+    pass_a = ["macro", "news", "daily_outlook", "market_mood"]
+    pass_b = ["risks", "picks", "strengths", "concerns",
+              "strategy_short", "strategy_mid", "strategy_long", "tax"]
+
+    print(f"     pass 1/2 → {', '.join(pass_a)}")
+    intelligence = call_llm(groq_key, build_prompt(
+        general_news, company_news, picks_history, discovery_news, movers,
+        only_sections=pass_a,
+    ))
+
+    # Tell the second pass what the first already said, so it does not repeat it.
+    covered = []
+    for m in intelligence.get("macro", []):
+        if m.get("title"):
+            covered.append(f"  • [macro] {m['title']}")
+    for n in intelligence.get("news", []):
+        t = n.get("title") or n.get("headline")
+        if t:
+            covered.append(f"  • [news] {t}")
+    covered_block = (
+        "\nALREADY COVERED in this same briefing — do NOT restate or rehash these:\n"
+        + "\n".join(covered[:20]) + "\n"
+    ) if covered else ""
+
+    # Groq's 8K limit is per minute, so back-to-back calls would have the second
+    # rejected even though each fits on its own. call_llm retries on 429, but
+    # waiting out the window is deterministic and costs a minute in a job that
+    # runs twice a day.
+    print("     waiting 65s for the per-minute token window to reset...")
+    time.sleep(65)
+
+    print(f"     pass 2/2 → {', '.join(pass_b)}")
+    part_b = call_llm(groq_key, build_prompt(
+        general_news, company_news, picks_history, discovery_news, movers,
+        only_sections=pass_b, already_covered=covered_block,
+    ))
+    intelligence.update(part_b)
 
     # Add metadata
     intelligence["generated_at"] = now_utc.isoformat()

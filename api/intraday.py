@@ -65,6 +65,54 @@ ROI_MILESTONES = [90, 95, 100, 110, 125, 150, 175, 200, 250, 300]
 KEY_MILESTONES = "notify:milestones"
 KEY_PEAK       = "notify:peak"
 
+# ── All-time-high sanity checks ───────────────────────────────────────────────
+# Deliberately duplicated from notify.py rather than imported: Vercel builds
+# every api/*.py as its own function, so a sibling import is not resolvable at
+# runtime (that exact mistake is why the first version of this fix did nothing).
+# Both files read and write notify:peak, so both must apply the same rules.
+SNAPSHOT_API        = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
+PEAK_TRUST_MARGIN   = 1.02   # stored peak may sit this far above observed history
+PEAK_MAX_DAILY_JUMP = 1.20   # a jump beyond this is a bad quote, not a new high
+
+
+def _observed_max(default=None):
+    """Highest total_value ever recorded. None means "could not read", which
+    must never be treated as evidence that a stored peak is too high."""
+    try:
+        r = requests.get(SNAPSHOT_API, timeout=15)
+        if not r.ok:
+            return default
+        pts = r.json().get("chart_points") or []
+        vals = [p.get("total_value") for p in pts if p.get("total_value")]
+        return max(vals) if vals else default
+    except Exception as exc:
+        print(f"  [intraday] observed-max lookup failed: {exc}")
+        return default
+
+
+def _validated_peak(peak, total, today_str):
+    """Correct a stored peak that no recorded snapshot supports.
+
+    notify:peak only ever ratchets upward, so one corrupt reading raises it
+    permanently and every later drawdown alert measures against a level the
+    portfolio never reached.
+    """
+    stored = (peak or {}).get("value") or 0 if isinstance(peak, dict) else 0
+    if stored <= 0:
+        return total
+
+    history = _observed_max()
+    if not history:
+        return stored          # unverifiable — leave it alone
+
+    observed = max(history, total)
+    if stored > observed * PEAK_TRUST_MARGIN:
+        print(f"  [intraday] stored peak ${stored:,.0f} exceeds the highest value ever "
+              f"recorded (${observed:,.0f}) — treating as corrupt and correcting")
+        kv_set(KEY_PEAK, {"value": observed, "date": today_str, "corrected_from": stored})
+        return observed
+    return stored
+
 DEDUP_TTL = 3 * 86400   # 3 days
 
 
@@ -470,7 +518,7 @@ def check_portfolio_alerts(today_str: str, portfolio: dict, subs: list) -> list:
     # ── #11: Drawdown alert ───────────────────────────────────────────────────
     if "drawdown" not in fired_today:
         peak_data  = kv_get(KEY_PEAK)
-        peak_val   = peak_data.get("value", 0) if isinstance(peak_data, dict) else 0
+        peak_val   = _validated_peak(peak_data, total, today_str)
         if peak_val > 0:
             drawdown = (total - peak_val) / peak_val * 100
             if drawdown <= -DRAWDOWN_PCT:
@@ -484,9 +532,15 @@ def check_portfolio_alerts(today_str: str, portfolio: dict, subs: list) -> list:
                 newly_fired.append("drawdown")
                 fired_payloads.append(payload)
                 print(f"  [intraday] drawdown {drawdown:.1f}% → sent {sent}")
-        # Update peak if new ATH
+        # Update peak if new ATH. Guarded: this runs every ~8 minutes on live
+        # intraday prices, so it is the most likely writer of a bad high — one
+        # glitched quote here raises the permanent peak forever.
         if total > peak_val:
-            kv_set(KEY_PEAK, {"value": total, "date": today_str})
+            if peak_val > 0 and total > peak_val * PEAK_MAX_DAILY_JUMP:
+                print(f"  [intraday] ignoring implausible ATH ${total:,.0f} — "
+                      f"{total / peak_val - 1:+.0%} above the prior peak ${peak_val:,.0f}")
+            else:
+                kv_set(KEY_PEAK, {"value": total, "date": today_str})
 
     # Persist + cleanup
     if all_stale:

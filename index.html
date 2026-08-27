@@ -4548,6 +4548,33 @@ const mvByAcct = {
 // most recent month-end currently disagrees by ~10.7k, so summing guarantees
 // that flipping between accounts always adds up.
 // ============================================================
+// Account key as used in the KV snapshots, per mvByAcct key.
+const _PP_KV_ACCT = { tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' };
+
+// Months present in KV but not in the static arrays, as {month: change}.
+//
+// The static arrays stop at the last hard-coded month, and _applyKvToCharts()
+// tops the value and ROI charts up from _KV_MONTH_END. This series never got
+// the same treatment, so it simply ended earlier than the value chart — July
+// 2026 showed on Value and was missing on All-Time Change.
+//
+// Contributions mirror what _applyKvToCharts uses for the value chart:
+// the snapshot's own account_cost when present, else the live CONTRIB_STATE.
+function _ppChangeKvMap(key) {
+  const acct = _PP_KV_ACCT[key];
+  if (!acct || !_KV_MONTH_END) return {};
+  const out = {};
+  Object.keys(_KV_MONTH_END).forEach(mk => {
+    const pt  = _KV_MONTH_END[mk];
+    const val = (pt.accounts || {})[acct];
+    if (val == null) return;
+    const cost = (pt.account_cost || {})[acct] || (CONTRIB_STATE || {})[acct];
+    if (!cost) return;                            // no basis → cannot form a change
+    out[mk] = +(val - cost).toFixed(2);
+  });
+  return out;
+}
+
 function _ppChangeMap(key) {
   const s = mvByAcct[key];
   if (!s) return {};
@@ -4558,6 +4585,9 @@ function _ppChangeMap(key) {
     if (p.x in cMap) last = cMap[p.x];
     if (last != null) out[p.x] = p.y - last;      // value − contributions at that date
   });
+  // Extend with any later month-ends KV knows about. Read-only as before:
+  // this reads _KV_MONTH_END and mutates nothing.
+  Object.assign(out, _ppChangeKvMap(key));
   return out;
 }
 

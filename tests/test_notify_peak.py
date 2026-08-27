@@ -32,6 +32,9 @@ written = {}
 notify.kv_set = lambda k, v, *a, **kw: written.__setitem__(k, v)
 
 
+_REAL_OBSERVED_MAX = notify._observed_max
+
+
 def with_history(observed_max):
     # None models "history could not be read", which must not trigger a
     # downward correction — distinct from a genuinely low observed max.
@@ -71,6 +74,48 @@ ck("history unreadable -> stored peak retained",
 
 ck("no stored peak -> seed with today",
    notify._validated_peak(None, 302_542, TODAY), 302_542)
+
+print("\n── _observed_max (the half that silently failed) ──")
+# _validated_peak's tests above swapped this out for a stub; put the real
+# implementation back before exercising it.
+notify._observed_max = _REAL_OBSERVED_MAX
+# The first version called `from snapshot import get_recent_snapshots`, which is
+# not importable from inside notify.py's own Vercel bundle. The exception was
+# swallowed, so the peak was never corrected — in production this looked like
+# the fix simply doing nothing. It reads the public endpoint over HTTP now.
+_real_get = notify.requests.get
+
+
+class _Resp:
+    def __init__(self, ok, payload=None, status=200):
+        self.ok, self._p, self.status_code = ok, payload or {}, status
+
+    def json(self):
+        return self._p
+
+
+notify.requests.get = lambda *a, **k: _Resp(True, {"chart_points": [
+    {"date": "2026-08-12", "total_value": 301_875},
+    {"date": "2026-08-13", "total_value": REAL_MAX},
+    {"date": "2026-08-14", "total_value": 302_502},
+    {"date": "2026-08-15"},                      # missing value must not crash
+]})
+ck("max across chart_points", notify._observed_max(), REAL_MAX)
+
+notify.requests.get = lambda *a, **k: _Resp(False, status=500)
+ck("HTTP failure -> None, never a number", notify._observed_max(), None)
+
+notify.requests.get = lambda *a, **k: _Resp(True, {"chart_points": []})
+ck("empty history -> None", notify._observed_max(), None)
+
+
+def _boom(*a, **k):
+    raise RuntimeError("network down")
+
+
+notify.requests.get = _boom
+ck("exception -> None, not a crash", notify._observed_max(), None)
+notify.requests.get = _real_get
 
 print("\n── drawdown consequence ──")
 dd_bogus = (302_542 - BOGUS) / BOGUS * 100

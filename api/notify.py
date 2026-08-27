@@ -134,20 +134,31 @@ def _best_worst(holdings_prices: dict):
     )
 
 
+SNAPSHOT_API = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
+
+
 def _observed_max(default=None):
     """
-    Highest total_value across the daily snapshots still held in KV.
+    Highest total_value ever recorded, read from the public snapshot history.
 
     Returns None when the history cannot be read at all. That is deliberately
     distinct from a low value: the caller must not "correct" a stored peak
     downward on the basis of evidence it failed to load.
+
+    This goes over HTTP rather than `from snapshot import get_recent_snapshots`.
+    Vercel builds every api/*.py as its own function, so snapshot.py is not on
+    notify.py's import path at runtime — notify.py has its own kv_get and never
+    imports a sibling anywhere else. That import raised on every invocation, was
+    swallowed here, and left _validated_peak taking the "history unreadable"
+    branch forever, which is why the corrupt peak was never actually corrected.
     """
     try:
-        from snapshot import get_recent_snapshots
-        vals = [
-            s.get("total_value") for s in get_recent_snapshots(days=95).values()
-            if s.get("total_value")
-        ]
+        r = requests.get(SNAPSHOT_API, timeout=20)
+        if not r.ok:
+            print(f"  [notify] snapshot history HTTP {r.status_code}")
+            return default
+        pts = r.json().get("chart_points") or []
+        vals = [p.get("total_value") for p in pts if p.get("total_value")]
         return max(vals) if vals else default
     except Exception as exc:
         print(f"  [notify] observed-max lookup failed: {exc}")

@@ -2,7 +2,7 @@
 """
 Portfolio Pulse — Daily Intelligence Generator
 Runs via GitHub Actions at 6 AM EST weekdays.
-Pipeline: Finnhub news → Groq (Llama 3.3 70B) → intelligence.json
+Pipeline: Finnhub news → Groq (openai/gpt-oss-120b, 2 passes) → intelligence.json
 Output is consumed by index.html to populate sections 05-10.
 """
 
@@ -604,6 +604,30 @@ SECTION DISTINCTIVENESS — each section must cover UNIQUE ground, zero repetiti
 # GEMINI CALL
 # ============================================================
 
+TPM_LIMIT       = 8000   # free-tier tokens/minute; max_tokens counts toward it
+TPM_SAFETY      = 350    # cushion for tokenizer estimate error and overhead
+MAX_TOKENS_WANT = 4000   # enough for either half of the schema
+MAX_TOKENS_MIN  = 2600   # below this the JSON truncates; better to fail loudly
+
+
+def _fit_max_tokens(prompt: str) -> int:
+    """
+    Largest output budget that still fits under the per-minute ceiling.
+
+    Groq counts max_tokens toward the 8K/minute limit, so prompt + max_tokens
+    must stay under it. Hard-coding 4000 worked when this was written and then
+    broke in ordinary use: the second pass carries the titles the first pass
+    produced, and on a busy news day that pushed the request to 8,075 — 75
+    tokens over. It failed on most days and squeaked through on quiet ones.
+
+    Sizing from the actual prompt removes the guesswork, so daily variation in
+    news volume changes the output budget instead of breaking the run.
+    """
+    est_prompt = len(prompt) // 4 + 200          # ~4 chars/token + envelope
+    budget     = TPM_LIMIT - est_prompt - TPM_SAFETY
+    return max(MAX_TOKENS_MIN, min(MAX_TOKENS_WANT, budget))
+
+
 def call_llm(api_key: str, prompt: str) -> dict:
     """
     Call Groq's free-tier Llama API and return parsed JSON.
@@ -637,7 +661,7 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 # Largest value that fits under the 8K TPM ceiling alongside
                 # a ~3,700-token prompt. Not enough for a full-size response —
                 # see the KNOWN LIMITATION note at GROQ_MODEL.
-                "max_tokens":  4000,
+                "max_tokens":  _fit_max_tokens(prompt),
             }
             try:
                 resp = requests.post(GROQ_URL, headers=headers, json=payload, timeout=120)
@@ -782,18 +806,21 @@ def main() -> int:
         only_sections=pass_a,
     ))
 
-    # Tell the second pass what the first already said, so it does not repeat it.
+    # Tell the second pass what the first already said, so it does not repeat
+    # it. Titles are truncated and the list capped: the model only needs enough
+    # to recognise a topic it must avoid, and this block is what pushed the
+    # second request past the per-minute ceiling when it carried 20 full titles.
     covered = []
     for m in intelligence.get("macro", []):
         if m.get("title"):
-            covered.append(f"  • [macro] {m['title']}")
+            covered.append(f"  • [macro] {m['title'][:70]}")
     for n in intelligence.get("news", []):
         t = n.get("title") or n.get("headline")
         if t:
-            covered.append(f"  • [news] {t}")
+            covered.append(f"  • [news] {t[:70]}")
     covered_block = (
         "\nALREADY COVERED in this same briefing — do NOT restate or rehash these:\n"
-        + "\n".join(covered[:20]) + "\n"
+        + "\n".join(covered[:12]) + "\n"
     ) if covered else ""
 
     # Groq's 8K limit is per minute, so back-to-back calls would have the second

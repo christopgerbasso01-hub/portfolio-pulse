@@ -886,16 +886,102 @@ Return ONLY valid JSON:
 # ============================================================
 # AUDIO GENERATION — Kokoro TTS
 # ============================================================
+# ── Speech normalisation ──────────────────────────────────────────────────────
+# The script goes to edge-tts verbatim, and the model writes money as
+# "**$17,427 CAD**". The engine reads the symbol and the comma literally, giving
+# "dollar sign four, two hundred twenty" instead of the amount. Percentages are
+# written "6.2 %" with a space, and markdown asterisks are spoken too.
+# Spelling the values out removes the ambiguity entirely.
+
+_ONES = ("zero one two three four five six seven eight nine ten eleven twelve "
+         "thirteen fourteen fifteen sixteen seventeen eighteen nineteen").split()
+_TENS = ("", "", "twenty", "thirty", "forty", "fifty",
+         "sixty", "seventy", "eighty", "ninety")
+_SCALES = ((1_000_000_000, "billion"), (1_000_000, "million"), (1_000, "thousand"))
+_MAGNITUDE = {"K": "thousand", "M": "million", "B": "billion"}
+_CURRENCY = {"CAD": "Canadian dollars", "USD": "US dollars"}
+
+
+def _int_words(n: int) -> str:
+    if n < 0:
+        return "minus " + _int_words(-n)
+    if n < 20:
+        return _ONES[n]
+    if n < 100:
+        tens, rem = divmod(n, 10)
+        return _TENS[tens] + ("-" + _ONES[rem] if rem else "")
+    if n < 1000:
+        hund, rem = divmod(n, 100)
+        return _ONES[hund] + " hundred" + (" " + _int_words(rem) if rem else "")
+    for value, name in _SCALES:
+        if n >= value:
+            qty, rem = divmod(n, value)
+            return _int_words(qty) + " " + name + (" " + _int_words(rem) if rem else "")
+    return str(n)
+
+
+def _num_words(raw: str) -> str:
+    """'4,678' -> 'four thousand six hundred seventy-eight'; '6.2' -> 'six point two'."""
+    raw = raw.replace(",", "").strip()
+    if "." in raw:
+        whole, _, frac = raw.partition(".")
+        head = _int_words(int(whole)) if whole else "zero"
+        digits = " ".join(_ONES[int(d)] for d in frac if d.isdigit())
+        return f"{head} point {digits}" if digits else head
+    return _int_words(int(raw)) if raw.isdigit() else raw
+
+
+def _money_words(match) -> str:
+    amount, magnitude, currency = match.group(1), match.group(2), match.group(3)
+    words = _num_words(amount)
+    if magnitude:
+        words += " " + _MAGNITUDE[magnitude.upper()]
+    unit = _CURRENCY.get((currency or "").upper(), "dollars")
+    # "one dollar", not "one dollars" — only when it is exactly one unit
+    if not magnitude and amount.replace(",", "") in ("1", "1.0"):
+        unit = unit.replace("dollars", "dollar")
+    return f"{words} {unit}"
+
+
+def normalize_for_speech(text: str) -> str:
+    """Rewrite symbols and figures the TTS engine mishandles into plain words."""
+    # Markdown emphasis is spoken aloud by the engine
+    text = re.sub(r"\*{1,3}([^*]+)\*{1,3}", r"\1", text)
+    text = re.sub(r"(?<!\w)_([^_]+)_(?!\w)", r"\1", text)
+
+    # $17,427 CAD · $1.2M · $500  (currency word wins over a bare "dollars")
+    # The magnitude suffix must be attached to the digits; consuming whitespace
+    # before it would swallow the separator and glue words together.
+    text = re.sub(
+        r"\$\s?(\d[\d,]*(?:\.\d+)?)([KMB])?(?:\s*(CAD|USD)\b)?",
+        _money_words, text)
+
+    # "6.2 %" and "23%"
+    text = re.sub(r"(\d[\d,]*(?:\.\d+)?)\s*%",
+                  lambda m: _num_words(m.group(1)) + " percent", text)
+
+    # "3x leveraged"
+    text = re.sub(r"\b(\d+)\s*[xX]\b",
+                  lambda m: _num_words(m.group(1)) + " times", text)
+
+    # Remaining comma-grouped figures ("12,000 shares"). Bare 4-digit numbers are
+    # left alone so years still read naturally as "twenty twenty-seven".
+    text = re.sub(r"\b(\d{1,3}(?:,\d{3})+)\b",
+                  lambda m: _num_words(m.group(1)), text)
+
+    return re.sub(r"\s{2,}", " ", text).strip()
+
+
 def parse_script(script: str) -> list[tuple[str, str]]:
     turns = []
     for line in script.strip().split("\n"):
         line = line.strip()
         if line.startswith("ALEX:"):
             text = line[5:].strip()
-            if text: turns.append(("ALEX", text))
+            if text: turns.append(("ALEX", normalize_for_speech(text)))
         elif line.startswith("SAM:"):
             text = line[4:].strip()
-            if text: turns.append(("SAM", text))
+            if text: turns.append(("SAM", normalize_for_speech(text)))
     return turns
 
 

@@ -44,4 +44,61 @@ jobs:
           git restore -- . 2>/dev/null || true
           git pull --rebase origin main
           git push
-      # Vercel auto-deploys from the GitHub push above — no manual deploy needed
+
+      # Read-only: records what this run produced so the steps below can check
+      # that exact episode reached production.
+      - name: Identify generated episode
+        id: episode
+        run: |
+          EP=$(python -c "import json; d=json.load(open('data/podcast_meta.json')); print(d['episode'])")
+          FILE=$(python -c "import json; d=json.load(open('data/podcast_meta.json')); print(d['file'])")
+          echo "number=$EP"   >> "$GITHUB_OUTPUT"
+          echo "file=$FILE"   >> "$GITHUB_OUTPUT"
+          echo "Generated episode $EP ($FILE)"
+
+      # The Vercel project has NO Git integration — Deploy Hooks reports "not
+      # connected to a Git repository" — so pushing to GitHub deploys nothing.
+      # This workflow previously assumed the push was enough and published no
+      # deployment of its own, so a Monday-morning episode only went live when
+      # the evening daily-intelligence run happened to deploy, ~14 hours later.
+      # Mirrors the deploy step in daily-intelligence.yml, including its
+      # behaviour when the token is absent.
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN:      ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID:     team_cBG29NHHnnkVTbkmZOjZ7RCy
+          VERCEL_PROJECT_ID: prj_dpklrWAGa5FSVf6yOltJM3aJgtn9
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "VERCEL_TOKEN not set — skipping Vercel deployment"
+            exit 0
+          fi
+          npm install -g vercel@latest --quiet
+          vercel --prod --yes --token "$VERCEL_TOKEN"
+          echo "✓ Deployed to Vercel"
+
+      # A green run that publishes nothing is the failure mode that hid this for
+      # weeks. Confirm the episode is actually being served, and fail loudly if
+      # it is not, rather than reporting success.
+      - name: Verify the episode is live
+        env:
+          EP:   ${{ steps.episode.outputs.number }}
+          FILE: ${{ steps.episode.outputs.file }}
+        run: |
+          BASE="https://portfolio-pulse-dun.vercel.app"
+          for attempt in $(seq 1 10); do
+            LIVE=$(curl -fsS --max-time 20 "$BASE/data/podcast_meta.json?cb=$(date +%s)" \
+                   | python -c "import json,sys; print(json.load(sys.stdin).get('episode',''))" 2>/dev/null || echo "")
+            CODE=$(curl -o /dev/null -s -w '%{http_code}' --max-time 30 "$BASE/data/$FILE")
+
+            if [ "$LIVE" = "$EP" ] && [ "$CODE" = "200" ]; then
+              echo "✓ Episode $EP is live and $FILE is being served"
+              exit 0
+            fi
+            echo "  attempt $attempt/10 — live episode='$LIVE' (want '$EP'), $FILE returned $CODE"
+            sleep 20
+          done
+
+          echo "::error::Episode $EP was generated and pushed but is not being served at $BASE."
+          echo "The audio file is $FILE. Check the Vercel deployment for this run."
+          exit 1

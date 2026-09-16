@@ -40,10 +40,14 @@ NS = {
     "_PORTFOLIO_CONTEXT_FALLBACK": "(fallback)",
 }
 _WANT_FN = ("_week_baseline_date", "_build_portfolio_context",
-            "_claim_value", "_close", "verify_script_figures", "_stitch_parts")
+            "_claim_value", "_close", "verify_script_figures", "_stitch_parts",
+            "_choose_education_topic", "_fix_weekday_claims", "_clean_transcript",
+            "_speaker_run_warnings")
 _WANT_CONST = ("WEEK_BASELINE_DAYS", "_CLAIM_MONEY", "_CLAIM_PCT",
                "_PORTFOLIO_CLAIM", "_POSITION_SCOPED", "_HYPOTHETICAL",
                "_MONEY_RANGE", "_SIZE_PHRASE", "_PART1_SIGNOFF", "_PART2_REOPEN",
+               "_SECTORS", "EDUCATION_TOPICS", "_MONTHS", "_WEEKDAY_CLAIM",
+               "SCRIPT_PROMPT_PART1", "SCRIPT_PROMPT_PART2",
                "MONEY_TOLERANCE_PCT", "MONEY_TOLERANCE_ABS", "PCT_TOLERANCE")
 
 for _node in _tree.body:
@@ -62,6 +66,10 @@ if missing:
 week_baseline = NS["_week_baseline_date"]
 build_ctx = NS["_build_portfolio_context"]
 verify = NS["verify_script_figures"]
+week_fix = NS["_fix_weekday_claims"]
+clean_txt = NS["_clean_transcript"]
+choose_topic = NS["_choose_education_topic"]
+speaker_runs = NS["_speaker_run_warnings"]
 
 fails = []
 
@@ -268,6 +276,74 @@ for label, h, s in [("no holdings", [], {"2026-09-14": {}}),
     if isinstance(out, tuple) and len(out) == 2:
         ck(f"{label}: guard no-ops rather than validating against nothing",
            verify("ALEX: The portfolio jumped $23,927 this week.", out[1]), [])
+
+# ── the prompt templates must accept exactly what generate_script passes ─────
+# A placeholder the call does not supply, or a kwarg the template dropped, is a
+# KeyError at generation time — an entire week with no episode, discovered only
+# on the Monday. Nothing else in the suite would catch it.
+print("\n── prompt format contract ──")
+_K1 = dict(today="T", week_range="W", mood="M", registry_context="R",
+           ticker_rotation="TR", education_topic="ET", live_portfolio="LP",
+           outlook="O", macro="MA", news="N", portfolio="P")
+_K2 = dict(today="T", dive1_summary="D", ticker_rotation="TR", education_topic="ET",
+           education_topics_used="EU", picks="PK", strengths="S", concerns="C",
+           strategy="ST", news="N", portfolio="P")
+for _label, _tpl, _kw in (("Part 1", NS["SCRIPT_PROMPT_PART1"], _K1),
+                          ("Part 2", NS["SCRIPT_PROMPT_PART2"], _K2)):
+    _ph = set(re.findall(r"\{(\w+)\}", _tpl))
+    ck(f"{_label}: every placeholder is supplied", sorted(_ph - set(_kw)), [])
+    ck(f"{_label}: every argument is used", sorted(set(_kw) - _ph), [])
+    try:
+        _tpl.format(**_kw)
+        _res = "ok"
+    except Exception as exc:
+        _res = f"{type(exc).__name__}: {exc}"
+    ck(f"{_label}: formats without error", _res, "ok")
+ck("both halves are told the same learning topic",
+   "{education_topic}" in NS["SCRIPT_PROMPT_PART1"]
+   and "{education_topic}" in NS["SCRIPT_PROMPT_PART2"], True)
+
+# ── weekday claims are arithmetic, so they are corrected ─────────────────────
+print("\n── weekday repair ──")
+_ref = dt.datetime(2026, 9, 14)          # a Monday; the 18th is a Friday
+_s, _f = week_fix("ALEX: the EIA report due Wednesday, September 18 matters.", _ref)
+ck("a wrong weekday is corrected", "Friday, September 18" in _s, True)
+ck("the correction is reported", len(_f), 1)
+ck("a correct weekday is left alone",
+   week_fix("ALEX: the report on Friday, September 18.", _ref)[1], [])
+ck("prose with no date is untouched",
+   week_fix("ALEX: nothing dated here.", _ref)[1], [])
+ck("an impossible date is not mangled",
+   week_fix("ALEX: due Monday, February 30.", _ref)[1], [])
+
+# ── the saved transcript carries only what was spoken ───────────────────────
+print("\n── transcript cleaning ──")
+_raw = ("**PORTFOLIO RECAP**\n\n---\nALEX: Real line.\n"
+        "**Metaphor** - a seesaw.\n[EDUCATION_TOPIC: Short Interest Signals]\n"
+        "SAM: Another line.\n")
+_clean = clean_txt(_raw)
+ck("section headers are dropped", "PORTFOLIO RECAP" in _clean, False)
+ck("horizontal rules are dropped", "---" in _clean, False)
+ck("the stray metaphor label is dropped", "Metaphor" in _clean, False)
+ck("the education marker survives", "[EDUCATION_TOPIC:" in _clean, True)
+ck("spoken turns survive",
+   "ALEX: Real line." in _clean and "SAM: Another line." in _clean, True)
+
+# ── the learning topic is fixed before either half is written ───────────────
+print("\n── education topic selection ──")
+ck("a fresh run takes the first topic", choose_topic([]), NS["EDUCATION_TOPICS"][0])
+ck("a used topic is skipped",
+   choose_topic([NS["EDUCATION_TOPICS"][0]]) != NS["EDUCATION_TOPICS"][0], True)
+ck("matching is case-insensitive",
+   choose_topic([NS["EDUCATION_TOPICS"][0].upper()]) != NS["EDUCATION_TOPICS"][0], True)
+ck("an exhausted list still returns a topic",
+   choose_topic(NS["EDUCATION_TOPICS"]) in NS["EDUCATION_TOPICS"], True)
+
+# ── speaker runs are reported, never rewritten ──────────────────────────────
+print("\n── speaker runs ──")
+ck("three turns in a row is flagged",
+   len(speaker_runs("ALEX: a\nALEX: b\nALEX: c\nSAM: d")), 1)
+ck("alternating dialogue is silent", speaker_runs("ALEX: a\nSAM: b\nALEX: c"), [])
 
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

@@ -71,6 +71,16 @@ SENSITIVITIES: 3x leverage amplifies both ways. ~68% USD exposure.
 # ── Tickers that carry 3× leverage (for math anchor calculation) ─────────────
 _LEVERAGE_3X = {"FNGU", "SPXL", "UDOW", "TQQQ", "SOXL"}
 
+# Used to compute sector weights for the prompt rather than let the script
+# characterise the book from memory.
+_SECTORS = {
+    "Leveraged 3x": {"FNGU", "SPXL", "UDOW", "TQQQ", "SOXL"},
+    "Tech":         {"NVDA", "AVGO", "TSM", "MSFT", "AAPL", "QCOM", "TXF.TO",
+                     "NFLX", "MSTR", "BYDDF"},
+    "Financials":   {"CM.TO", "RY.TO", "BMO.TO", "IBKR", "V"},
+    "Energy":       {"ENB.TO", "ET", "SHEL", "CNQ.TO", "KGS"},
+}
+
 
 def _fetch_computed_holdings() -> list[dict]:
     """Fetch current computed holdings from KV.
@@ -279,6 +289,24 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str
     lev_pct      = leverage_cad / total_val * 100 if total_val else 0
     usd_pct      = usd_exp_cad  / total_val * 100 if total_val else 0
 
+    # Computed so the script never has to characterise the book from memory.
+    # Episode 16 called this "a portfolio that's half-energy, half-tech" when
+    # energy was about 3.5% of it.
+    sector_cad = {}
+    for tkr, p in positions.items():
+        for sector, members in _SECTORS.items():
+            if tkr in members:
+                sector_cad[sector] = sector_cad.get(sector, 0.0) + p["cad"]
+                break
+        else:
+            sector_cad["Other"] = sector_cad.get("Other", 0.0) + p["cad"]
+    _tot_for_pct = total_val_hint = sum(p["cad"] for p in positions.values()) or 1.0
+    sector_line = "  " + " | ".join(
+        f"{s} {v / _tot_for_pct * 100:.1f}%" for s, v in
+        sorted(sector_cad.items(), key=lambda kv: -kv[1]))
+    held_line = "  " + ", ".join(sorted(positions.keys()))
+    n_positions = len(positions)
+
     movers_str = "\n".join(
         f"  {m['name']:<26} ({m['acct']})  "
         f"{m['wk_pct']:>+6.1f}%  →  {m['wk_cad']:>+9,.0f} CAD"
@@ -313,6 +341,24 @@ Per 1% index move    → ±${per_1pct_sp:>7,.0f} CAD on leveraged positions alon
 USD notional:          ${usd_notional:>9,.0f} USD  ← an FX move acts on THIS, not the CAD value
 Per 1¢ USD/CAD move  → ±${per_1cent_fx:>7,.0f} CAD on USD holdings
 RULE: FX impact = USD notional × the cent move. Never multiply the CAD figure.
+FX DIRECTION — do not invert this:
+  USD/CAD RISING  = CAD weaker = our USD holdings are worth MORE in CAD.
+  USD/CAD FALLING = CAD stronger = our USD holdings are worth LESS in CAD.
+  So "1.3904 → 1.3950" is a WEAKER CAD, and "1.3904 → 1.3650" is a STRONGER CAD.
+  Canadian-listed holdings (.TO) are priced in CAD and do not move on FX at all.
+
+━━━ WHAT WE ACTUALLY HOLD ({n_positions} positions) ━━━━━━━━━━━━━━━━━━━━━━━━━
+{held_line}
+Anything not on that list is NOT owned. Never say "we hold", "our position in",
+or "our exposure to" about a ticker absent from it.
+
+SECTOR WEIGHTS (computed, not estimated):
+{sector_line}
+Describe the portfolio using these figures. Do not characterise it from memory.
+
+SOURCING: every market statistic you cite — index levels, VIX, oil inventories,
+central-bank dates — must come from the intelligence provided in this prompt. If
+it is not there, discuss the mechanism without inventing a number or a date.
 Portfolio implied β  ≈ 1.8× market (leverage concentration)
 RULE: Bear case estimates must be at least as large as bull case estimates in absolute terms.
 RULE: Never invent a dollar figure — use the anchors above and show your reasoning.
@@ -433,7 +479,12 @@ OPENING STRUCTURE:
 [WELCOME BACK — 60 seconds]
 Alex welcomes listeners back warmly.
 "Hey everyone, welcome back to Portfolio Pulse Weekly. I'm Alex, joined as always by Sam..."
-Give a SHORT agenda teaser: "This week we're covering [Topic 1], [Topic 2], and in our learning segment, [topic]."
+Give a SHORT agenda teaser: "This week we're covering [Topic 1], [Topic 2], and in our
+learning segment, [LEARNING SEGMENT TOPIC]."
+THE LEARNING SEGMENT TOPIC FOR THIS EPISODE IS FIXED: {education_topic}
+Name that exact topic in the teaser. Do not substitute your own — the second half
+of the episode is already committed to writing it, and announcing anything else
+promises the listener a segment that never arrives.
 ONE sentence hook — a genuine "wait, what?" about the most counterintuitive thing this week.
 
 [PORTFOLIO RECAP — 2.5 minutes]
@@ -545,34 +596,19 @@ Structure:
 [LEARNING SEGMENT — 2 to 3 minutes]
 This segment steps back from this week's news to teach something genuinely useful.
 
-EDUCATION TOPICS ALREADY COVERED IN PAST EPISODES (NEVER repeat these):
-{education_topics_used}
+THE TOPIC IS ALREADY CHOSEN FOR THIS EPISODE: {education_topic}
 
-Choose ONE topic that:
-- Is NOT on the list above — if all examples below are used, invent a new one
-- Has never been covered in any previous episode
-- Is timeless investing knowledge, NOT tied to this week's specific news
-- Is directly relevant to a 24-year-old growth investor with 3x leverage exposure
-- Examples of eligible topics (pick one not in the used list above):
-    How 3x ETF daily reset causes return decay in sideways or choppy markets
-    How the yield curve predicts recessions (and when it lies)
-    What VIX actually measures and why it spikes — mechanics not just "fear index"
-    How earnings revisions move stock prices before the report even drops
-    How P/E ratios work in practice — when high is fine and when it's a warning
-    Sector rotation — which sectors lead vs lag in different economic phases
-    How short interest works and what unusually high short interest signals
-    What insider buying/selling data actually tells you (vs what it doesn't)
-    How options pricing works — why implied volatility matters even if you don't trade options
-    What the Fed's balance sheet is and how QE/QT flows through to equity markets
-    How currency carry trade works and why it can suddenly unwind
-    Reading 13F filings — what institutional ownership changes signal
-    What book value means and when it matters (and when market cap is what counts)
-    How dividend investing works mathematically — yield, growth, compounding
-    Understanding leverage ratio vs leverage risk — they're not the same
+Write THAT topic. Do not pick a different one and do not broaden it. The first
+half of this episode has already told the listener, by name, that this is what
+the learning segment covers, so substituting anything else breaks the promise
+the episode opened with.
+
+(For reference, these were covered in past episodes and are not repeated:
+{education_topics_used})
 
 CRITICAL: Place the following marker on its own line immediately BEFORE Alex starts this segment
 (no ALEX: or SAM: prefix — just the raw marker line, it won't be read aloud):
-[EDUCATION_TOPIC: <3 to 5 word name of the topic you chose>]
+[EDUCATION_TOPIC: {education_topic}]
 
 Then write the segment:
 - ALEX or SAM introduces: "Before we get to our scenarios, let's step back and learn something..."
@@ -585,6 +621,13 @@ Then write the segment:
 Three scenarios for the NEXT 2–4 WEEKS with specific probability.
 Every scenario MUST state the portfolio impact in dollar terms derived from the math anchors.
 Scenarios must be balanced — bear downside must be at least as large as bull upside in absolute dollars.
+
+SHOW THE ARITHMETIC. For every dollar range, name the position and the percentage
+move you applied to it, and make sure the total actually follows from them.
+Episode 16 claimed a bear case of "$15,000 - $18,000" off drivers (Energy Transfer
+-8%, a 0.015 CAD move) that add up to about $2,500 — roughly six times too large,
+and nothing in the wording revealed the gap. If your drivers only justify a small
+number, state the small number.
 
 Format (use this exactly):
 "Base case — [X]% probability: [specific mechanism that plays out] → portfolio impact: [dollar range]"
@@ -822,6 +865,113 @@ def _extract_education_topic(script: str) -> str:
     return m.group(1).strip() if m else ""
 
 
+# The learning-segment topic used to be chosen by Part 2, which runs AFTER Part 1
+# has already announced the week's agenda. Episode 16 promised "forward-contract
+# roll yields" in its opening and delivered "Short Interest Signals" — not a
+# model error so much as a guaranteed consequence of the ordering. Choosing here,
+# before either half is written, and handing the same topic to both makes the
+# mismatch impossible rather than merely discouraged.
+EDUCATION_TOPICS = [
+    "3x ETF Daily Reset Decay",
+    "Yield Curve Recession Signals",
+    "What VIX Actually Measures",
+    "Earnings Revisions Move Prices",
+    "P/E Ratios In Practice",
+    "Sector Rotation Through Cycles",
+    "Short Interest Signals",
+    "Insider Buying And Selling Data",
+    "Implied Volatility Basics",
+    "The Fed Balance Sheet And QT",
+    "Currency Carry Trade Unwinds",
+    "Reading 13F Filings",
+    "Book Value Versus Market Cap",
+    "Dividend Compounding Mathematics",
+    "Leverage Ratio Versus Leverage Risk",
+]
+
+
+def _choose_education_topic(education_used: list) -> str:
+    """First topic not yet covered; rotates once the list is exhausted."""
+    used = {str(t).strip().lower() for t in (education_used or []) if t}
+    for topic in EDUCATION_TOPICS:
+        if topic.lower() not in used:
+            return topic
+    return EDUCATION_TOPICS[len(used) % len(EDUCATION_TOPICS)]
+
+
+_MONTHS = ["January", "February", "March", "April", "May", "June", "July",
+           "August", "September", "October", "November", "December"]
+
+_WEEKDAY_CLAIM = re.compile(
+    r"\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+"
+    r"(" + "|".join(_MONTHS) + r")\s+(\d{1,2})\b", re.I)
+
+
+def _fix_weekday_claims(script: str, ref: datetime) -> tuple:
+    """Correct weekday names that do not match their date.
+
+    Episode 16 pointed at "the EIA report due Wednesday, September 18" when the
+    18th was a Friday. The date is arithmetic, so this is repaired rather than
+    flagged — a listener acting on the wrong day is a real cost, and refusing to
+    publish over it would be disproportionate.
+    """
+    fixes = []
+
+    def repl(m):
+        stated, month, day = m.group(1), m.group(2), int(m.group(3))
+        try:
+            idx = [mo.lower() for mo in _MONTHS].index(month.lower()) + 1
+            dt_ = datetime(ref.year, idx, day)
+        except ValueError:
+            return m.group(0)
+        # A date far behind the run date is next year's (December -> January).
+        if (dt_.date() - ref.date()).days < -180:
+            try:
+                dt_ = datetime(ref.year + 1, idx, day)
+            except ValueError:
+                return m.group(0)
+        correct = dt_.strftime("%A")
+        if correct.lower() == stated.lower():
+            return m.group(0)
+        fixes.append(f"{stated} {month} {day} -> {correct}")
+        return m.group(0).replace(stated, correct, 1)
+
+    return _WEEKDAY_CLAIM.sub(repl, script), fixes
+
+
+def _clean_transcript(script: str) -> str:
+    """Keep only spoken turns and the education marker.
+
+    parse_script already drops anything that is not a speaker line, so section
+    headers never reached the audio — but the raw script is what gets written to
+    podcast_epNNN.txt, so "**PORTFOLIO RECAP**", stray "---" rules and a literal
+    "**Metaphor** -" label were visible to anyone reading the transcript, and
+    were fed back in as context when building the topic registry.
+    """
+    kept = []
+    for line in script.split("\n"):
+        s = line.strip()
+        if s.startswith(("ALEX:", "SAM:")) or s.upper().startswith("[EDUCATION_TOPIC:"):
+            kept.append(s)
+    return "\n".join(kept) + "\n"
+
+
+def _speaker_run_warnings(script: str, limit: int = 3) -> list:
+    """Report runs of consecutive turns by one host. Reported, never rewritten —
+    merging or reassigning dialogue would change meaning."""
+    speakers = [l.strip()[:4].rstrip(":") for l in script.split("\n")
+                if l.strip().startswith(("ALEX:", "SAM:"))]
+    warnings, run, prev = [], 1, None
+    for s in speakers:
+        if s == prev:
+            run += 1
+            if run == limit:
+                warnings.append(f"{s} speaks {limit}+ turns in a row")
+        else:
+            run, prev = 1, s
+    return warnings
+
+
 # ============================================================
 # GROQ SCRIPT GENERATION
 # ============================================================
@@ -919,13 +1069,21 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     now     = datetime.now(timezone.utc)
     today   = now.strftime("%A, %B %d, %Y")
     week    = _week_trading_range(now)
+    # Fixed before either half is written, so the agenda in Part 1 and the
+    # segment in Part 2 cannot disagree.
+    education_topic = _choose_education_topic(registry.get("education_topics_used", []))
+    print(f"     Learning segment fixed up front: {education_topic}")
     mood    = intel.get("market_mood", "neutral").upper()
     outlook = intel.get("daily_outlook", "")[:300]
     macro   = "\n".join(f"• {m['title']} [{m.get('impact','?')}]: {m.get('body','')[:300]}"
                         for m in intel.get("macro", [])[:3])
     news    = "\n".join(f"• {n['headline']}: {n.get('body','')[:250]} | Exposure: {n.get('exposure','')[:100]}"
                         for n in intel.get("news", [])[:4])
-    picks   = "\n".join(f"• {p['ticker']} ({COMPANY_NAMES.get(p['ticker'], p['ticker'])}): {p.get('thesis','')[:200]}"
+    # Labelled explicitly as NOT owned. Episode 16 had Sam say "we've got a lot of
+    # exposure to other energy names — Enbridge, Canadian Natural", but Canadian
+    # Natural was a suggestion in this list, never a holding.
+    picks   = "\n".join(f"• {p['ticker']} ({COMPANY_NAMES.get(p['ticker'], p['ticker'])}) "
+                        f"— CANDIDATE, NOT OWNED: {p.get('thesis','')[:200]}"
                         for p in intel.get("picks", [])[:3])
     strengths = "\n".join(f"• {s['text'][:200]}" for s in intel.get("strengths", [])[:3])
     concerns  = "\n".join(f"• {c['text'][:200]}" for c in intel.get("concerns", [])[:3])
@@ -972,6 +1130,7 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
         today=today, week_range=week, mood=mood,
         registry_context=registry_context,
         ticker_rotation=ticker_rotation,
+        education_topic=education_topic,
         live_portfolio=live_port, outlook=outlook, macro=macro, news=news,
         portfolio=portfolio_ctx,
     ), "Part 1", max_tokens=4096)
@@ -1001,6 +1160,7 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     part2 = _groq_call(api_key, SCRIPT_PROMPT_PART2.format(
         today=today, dive1_summary=dive1_last,
         ticker_rotation=ticker_rotation,
+        education_topic=education_topic,
         education_topics_used=education_topics_str,
         picks=picks, strengths=strengths, concerns=concerns, strategy=strategy,
         news=news, portfolio=portfolio_ctx,
@@ -1547,6 +1707,15 @@ def main() -> int:
     else:
         print("  ✓ Portfolio figures verified against context")
 
+    # Weekdays are arithmetic — correct them rather than let the listener act on
+    # the wrong day. Episode 16 sent them to an EIA report on "Wednesday,
+    # September 18" when the 18th was a Friday.
+    script, weekday_fixes = _fix_weekday_claims(script, datetime.now(timezone.utc))
+    for fix in weekday_fixes:
+        print(f"  ✓ Corrected weekday: {fix}")
+    for warning in _speaker_run_warnings(script):
+        print(f"  ⚠ {warning}")
+
     turns = parse_script(script)
     if len(turns) < 20:
         print(f"ERROR: Only {len(turns)} speaker turns parsed — script too short")
@@ -1583,9 +1752,12 @@ def main() -> int:
     duration_str, duration_secs = audio_duration(mp3_path)
     print(f"  ✓ Duration: {duration_str} ({mp3_path.stat().st_size / 1_048_576:.1f} MB)")
 
-    # Save full script text (used by future episodes for deep topic registry)
+    # Save the cleaned script (used by future episodes for the deep topic
+    # registry, and read directly by the user). Section headers and stray rules
+    # never reached the audio — parse_script drops them — but they were visible
+    # in the transcript and fed back in as registry context.
     try:
-        txt_path.write_text(script, encoding="utf-8")
+        txt_path.write_text(_clean_transcript(script), encoding="utf-8")
         print(f"  ✓ Script saved: {txt_name} ({len(script.split()):,} words)")
     except Exception as exc:
         print(f"  ⚠ Script save failed (non-fatal): {exc}")

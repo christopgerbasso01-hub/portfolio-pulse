@@ -93,18 +93,49 @@ def _fetch_computed_holdings() -> list[dict]:
         return []
 
 
-def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> str:
+WEEK_BASELINE_DAYS = 7
+
+
+def _week_baseline_date(sorted_dates: list[str]) -> str:
+    """The date a week's change should be measured from.
+
+    This used to be sorted_dates[0] — the OLDEST snapshot still retained, which
+    is up to 90 days back. Every "weekly" figure was therefore a quarter's move
+    wearing a weekly label: the 2026-09-14 episode compared against 2026-06-19,
+    an 87-day span, and reported +8,565 CAD when the real week was -7,366.
+
+    Picks the snapshot nearest seven days before the latest one. Ties break
+    toward the older date so a week is never understated, and the latest
+    snapshot is never chosen as its own baseline unless it is all there is.
+    """
+    if len(sorted_dates) < 2:
+        return sorted_dates[-1]
+    latest = datetime.fromisoformat(sorted_dates[-1]).date()
+    target = latest - timedelta(days=WEEK_BASELINE_DAYS)
+    return min(
+        sorted_dates[:-1],
+        key=lambda d: (abs((datetime.fromisoformat(d).date() - target).days), d),
+    )
+
+
+def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str, dict]:
     """Build a fully dynamic portfolio context string.
     Combines live share counts (from KV) with live prices (from snapshots)
     to produce exact values, weekly movers, and math anchors.
     Falls back to static context if either source is missing.
     """
     if not holdings or not snapshots:
-        return _PORTFOLIO_CONTEXT_FALLBACK
+        # Two values, like every other path — the caller unpacks this. Empty
+        # facts switch figure verification off, which is correct here: there is
+        # nothing to verify against, and validating a script against numbers we
+        # do not have would either pass everything or block the episode.
+        return _PORTFOLIO_CONTEXT_FALLBACK, {}
 
-    sorted_dates = sorted(snapshots.keys())
-    latest       = snapshots[sorted_dates[-1]]
-    prev         = snapshots[sorted_dates[0]] if len(sorted_dates) > 1 else latest
+    sorted_dates  = sorted(snapshots.keys())
+    latest_date   = sorted_dates[-1]
+    latest        = snapshots[latest_date]
+    baseline_date = _week_baseline_date(sorted_dates)
+    prev          = snapshots[baseline_date]
 
     prices      = latest.get("holdings_prices", {})
     prev_prices = prev.get("holdings_prices",   {})
@@ -191,19 +222,23 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> str:
         for m in top_movers
     ) or "  (snapshot prices unavailable for this week)"
 
-    period = (f"{sorted_dates[0]} → {sorted_dates[-1]}"
-              if len(sorted_dates) > 1 else sorted_dates[0])
+    # State the real span. The old label said "Weekly change" regardless of how
+    # far back the baseline actually was, which is how an 87-day move reached
+    # the script as a weekly one.
+    span_days = (datetime.fromisoformat(latest_date).date()
+                 - datetime.fromisoformat(baseline_date).date()).days
+    period    = f"{baseline_date} → {latest_date} ({span_days} days)"
 
-    return f"""INVESTOR: Christopher, 24M, Toronto. $90K salary. HIGH risk tolerance.
+    text = f"""INVESTOR: Christopher, 24M, Toronto. $90K salary. HIGH risk tolerance.
 GTA home purchase: FHSA + RRSP HBP = ~$90K down payment. Returns Canada March 2027.
 TFSA/FHSA: no new contributions in 2026. RRSP: eligible for new buys only.
 
 ━━━ LIVE PORTFOLIO [{sorted_dates[-1]}] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Total value:   ${total_val:>10,.0f} CAD
-Weekly change: {wk_gain:>+10,.0f} CAD ({wk_pct:>+5.1f}%)   [{period}]
+Change {period}: {wk_gain:>+10,.0f} CAD ({wk_pct:>+5.1f}%)
 All-time ROI:  {roi_pct:>10.1f}%
 
-ACCOUNTS (week-over-week):
+ACCOUNTS (change over {period}):
 {chr(10).join(acct_lines)}
 
 USD/CAD: {usdcad:.4f}
@@ -217,7 +252,7 @@ Portfolio implied β  ≈ 1.8× market (leverage concentration)
 RULE: Bear case estimates must be at least as large as bull case estimates in absolute terms.
 RULE: Never invent a dollar figure — use the anchors above and show your reasoning.
 
-━━━ THIS WEEK'S TOP MOVERS (your exact shares × price change) ━━━━━━━━━━━━━━━━
+━━━ TOP MOVERS, {period} (your exact shares × price change) ━━━
 {movers_str}
 
 ━━━ KEY HOLDINGS (use NAMES not tickers — 90% of the time) ━━━━━━━━━━━━━━━━━━
@@ -231,6 +266,34 @@ RRSP Cash: ~$7,685 USD idle → deploy to BMO S&P500 ETF
 
 CRITICAL: Every % change you mention must match the weekly mover data above.
 Do not cite performance figures not present in this context."""
+
+    # Machine-checkable record of every portfolio-level figure the model was
+    # given. verify_script_figures() validates the finished script against this,
+    # because the prompt's "do not cite figures not present in this context"
+    # instruction was not honoured: ep016 asserted +23,927 CAD (+8.6%) when
+    # neither number appeared anywhere in the text above.
+    facts = {
+        "latest_date":   latest_date,
+        "baseline_date": baseline_date,
+        "span_days":     span_days,
+        "total_value":   round(total_val),
+        "wk_gain":       round(wk_gain),
+        "wk_pct":        round(wk_pct, 2),
+        "roi_pct":       round(roi_pct, 2),
+        "usdcad":        round(usdcad, 4),
+        "leverage_cad":  round(leverage_cad),
+        "usd_exposure":  round(usd_exp_cad),
+        "accounts": {a: round(float(accounts.get(a) or 0))
+                     for a in ("TFSA", "Investment", "FHSA", "RRSP")},
+        "account_change": {
+            a: round(float(accounts.get(a) or 0)
+                     - float(prev_accts.get(a) or accounts.get(a) or 0))
+            for a in ("TFSA", "Investment", "FHSA", "RRSP")
+        },
+        "movers": [{"ticker": m["ticker"], "pct": round(m["wk_pct"], 2),
+                    "cad": round(m["wk_cad"])} for m in top_movers],
+    }
+    return text, facts
 
 # Company name lookup for the script (tickers → names, for reference)
 COMPANY_NAMES = {
@@ -766,7 +829,7 @@ def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) ->
 
 
 def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
-                    computed_holdings: list, registry: dict) -> str:
+                    computed_holdings: list, registry: dict) -> tuple[str, dict]:
     now     = datetime.now(timezone.utc)
     today   = now.strftime("%A, %B %d, %Y")
     week    = _week_trading_range(now)
@@ -810,7 +873,7 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
 
     # Build fully dynamic portfolio context — live holdings + snapshot prices
     snaps         = snapshot.get("snapshots", {})
-    portfolio_ctx = _build_portfolio_context(computed_holdings, snaps)
+    portfolio_ctx, portfolio_facts = _build_portfolio_context(computed_holdings, snaps)
     live_port     = "(see LIVE PORTFOLIO section in portfolio context below)"
 
     # Brief cooldown to separate from the registry-extraction call that ran just
@@ -850,7 +913,7 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
 
     full = part1.rstrip() + "\n\n" + part2.lstrip()
     print(f"  ✓ Full script: {len(full.split()):,} words across both parts")
-    return full
+    return full, portfolio_facts
 
 
 # ============================================================
@@ -970,6 +1033,131 @@ def normalize_for_speech(text: str) -> str:
                   lambda m: _num_words(m.group(1)), text)
 
     return re.sub(r"\s{2,}", " ", text).strip()
+
+
+# ── Figure verification ───────────────────────────────────────────────────────
+# Episodes asserted portfolio-level numbers that appeared nowhere in their
+# context and contradicted reality — ep016 opened with "+$23,927, an 8.6% weekly
+# gain" when the week was actually -$7,366. The prompt already forbade this; the
+# model ignored it, and nothing downstream checked. This does.
+#
+# Deliberately narrow. It only judges claims about the PORTFOLIO's total value
+# and its change over the period. Per-holding maths ("a 1% S&P move is ±$4,480")
+# is legitimate derivation and is left alone — policing every digit would fail
+# constantly and the guard would be switched off.
+
+_CLAIM_MONEY = re.compile(r"[-+]?\$\s?([\d,]+(?:\.\d+)?)\s*([KMB])?", re.I)
+_CLAIM_PCT   = re.compile(r"([-+]?\d+(?:\.\d+)?)\s*%")
+# A sentence counts only when it predicates a result OF the book. Merely
+# mentioning the portfolio is not enough: "our Enbridge position, which sits at
+# roughly $12,000 CAD" names one holding, and policing every figure in sentences
+# like that flagged sound episodes. A guard that blocks good scripts is a guard
+# that gets switched off, so this stays deliberately narrow.
+_PORTFOLIO_CLAIM = re.compile(
+    r"\b(?:portfolio|the book|net worth|total value)\b[^.!?]{0,60}?"
+    r"\b(?:gain(?:ed)?|lost|loss|jump(?:ed)?|rose|fell|climb(?:ed)?|drop(?:ped)?|"
+    r"add(?:ed)?|shed|clos(?:ed)?|finish(?:ed)?|end(?:ed)?|return(?:ed)?|up|down)\b",
+    re.I)
+
+# Figures scoped to a single holding rather than to the whole book. ("worth" is
+# deliberately absent — it would swallow "net worth".)
+_POSITION_SCOPED = re.compile(
+    r"\b(position|stake|holding|shares?|sits at|allocation|sleeve|exposure to)\b",
+    re.I)
+
+# Forecasts and sensitivities are not claims about what the period actually did.
+_HYPOTHETICAL = re.compile(
+    r"\b(if|would|could|should|might|expect\w*|forecast\w*|scenario|assum\w*|"
+    r"project\w*|target\w*|next week|for every|per|imagine|"
+    r"in that (?:environment|case|world))\b", re.I)
+
+# "$7,000 – $9,000" is a projected band, never a statement of the period result.
+_MONEY_RANGE = re.compile(
+    r"\$\s?[\d,]+(?:\.\d+)?\s*(?:[-–—]|to)\s*\$?\s?[\d,]+", re.I)
+
+MONEY_TOLERANCE_PCT = 0.06   # rounding/paraphrase ("roughly $24K")
+MONEY_TOLERANCE_ABS = 750
+PCT_TOLERANCE       = 0.6
+
+
+def _claim_value(raw, suffix) -> float:
+    v = float(raw.replace(",", ""))
+    return v * {"k": 1_000, "m": 1_000_000, "b": 1_000_000_000}[suffix.lower()] if suffix else v
+
+
+def _close(a: float, b: float) -> bool:
+    return abs(a - b) <= max(MONEY_TOLERANCE_ABS, abs(b) * MONEY_TOLERANCE_PCT)
+
+
+def verify_script_figures(script: str, facts: dict) -> list[str]:
+    """Return a list of portfolio-level claims the context does not support."""
+    if not facts:
+        return []
+
+    total    = float(facts.get("total_value") or 0)
+    gain     = float(facts.get("wk_gain") or 0)
+    gain_pct = float(facts.get("wk_pct") or 0)
+
+    # Amounts the script may legitimately cite at portfolio level.
+    allowed_money = {abs(total), abs(gain), float(facts.get("leverage_cad") or 0),
+                     float(facts.get("usd_exposure") or 0)}
+    allowed_money |= {abs(float(v)) for v in (facts.get("accounts") or {}).values()}
+    allowed_money |= {abs(float(v)) for v in (facts.get("account_change") or {}).values()}
+    allowed_money |= {abs(float(m.get("cad") or 0)) for m in (facts.get("movers") or [])}
+
+    allowed_pct = {abs(gain_pct), abs(float(facts.get("roi_pct") or 0))}
+    allowed_pct |= {abs(float(m.get("pct") or 0)) for m in (facts.get("movers") or [])}
+
+    problems  = []
+    sentences = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", script))
+    for sentence in sentences:
+        if not _PORTFOLIO_CLAIM.search(sentence):
+            continue
+        # Scoped to one holding, hypothetical, or a projected band — all of these
+        # are legitimate things for the script to say and none is a period claim.
+        if (_POSITION_SCOPED.search(sentence) or _HYPOTHETICAL.search(sentence)
+                or _MONEY_RANGE.search(sentence)):
+            continue
+
+        for raw, suffix in _CLAIM_MONEY.findall(sentence):
+            amount = _claim_value(raw, suffix or None)
+            if amount < 1_000:          # small change is almost always derived
+                continue
+            if not any(_close(amount, ok) for ok in allowed_money if ok):
+                problems.append(
+                    f"${amount:,.0f} is not supported by the context "
+                    f"(period change ${gain:,.0f}, total ${total:,.0f}) — \"{sentence[:110]}\"")
+
+        for raw in _CLAIM_PCT.findall(sentence):
+            pct = abs(float(raw))
+            if pct == 0:
+                continue
+            if not any(abs(pct - ok) <= PCT_TOLERANCE for ok in allowed_pct if ok):
+                problems.append(
+                    f"{pct}% is not supported by the context "
+                    f"(period change {gain_pct:+.1f}%) — \"{sentence[:110]}\"")
+
+    # Direction errors matter more than magnitude: calling a losing week a gain
+    # is the failure the user actually noticed. Judged per sentence so a forecast
+    # ("if oil rallies the portfolio could climb") is not mistaken for a claim
+    # about the period that just ended.
+    if gain < 0:
+        for sentence in sentences:
+            if _HYPOTHETICAL.search(sentence):
+                continue
+            if re.search(r"\bportfolio\b[^.!?]{0,80}\b"
+                         r"(gain(?:ed)?|jumped|rose|climbed|up)\b", sentence, re.I):
+                problems.append(
+                    f"script describes the portfolio as up, but the period change was "
+                    f"${gain:,.0f} ({gain_pct:+.1f}%) over {facts.get('span_days')} days")
+                break
+
+    seen, unique = set(), []
+    for p in problems:
+        if p not in seen:
+            seen.add(p)
+            unique.append(p)
+    return unique
 
 
 def parse_script(script: str) -> list[tuple[str, str]]:
@@ -1110,10 +1298,36 @@ def main() -> int:
     # 2. Generate script (registry preprocessing + two generation Groq calls)
     print("2/4  Generating script...")
     try:
-        script = generate_script(intel, snapshot, old_meta, groq_key, computed_holdings, registry)
+        script, facts = generate_script(intel, snapshot, old_meta, groq_key, computed_holdings, registry)
     except Exception as exc:
         print(f"ERROR: Script generation failed: {exc}")
         return 1
+
+    # Refuse to publish portfolio figures the context does not support. One
+    # regeneration, then fail the run — a wrong number spoken with confidence is
+    # worse than a missing episode, and this is the failure that shipped four
+    # times before anyone noticed.
+    problems = verify_script_figures(script, facts)
+    if problems:
+        print(f"  ⚠ {len(problems)} unsupported figure(s) — regenerating once:")
+        for p in problems[:5]:
+            print(f"      • {p}")
+        try:
+            script, facts = generate_script(intel, snapshot, old_meta, groq_key,
+                                            computed_holdings, registry)
+        except Exception as exc:
+            print(f"ERROR: Regeneration failed: {exc}")
+            return 1
+        problems = verify_script_figures(script, facts)
+        if problems:
+            print("ERROR: Script still cites unsupported portfolio figures after "
+                  "regeneration — refusing to publish.")
+            for p in problems:
+                print(f"      • {p}")
+            return 1
+        print("  ✓ Regenerated script passes figure verification")
+    else:
+        print("  ✓ Portfolio figures verified against context")
 
     turns = parse_script(script)
     if len(turns) < 20:

@@ -35,27 +35,125 @@ GROQ_MODEL = "openai/gpt-oss-120b"
 
 
 # ============================================================
-# PORTFOLIO CONTEXT  (update when positions change)
+# PORTFOLIO CONTEXT — qualitative only.
+#
+# Every dollar figure that used to live here has been removed. This block was
+# hand-maintained behind a comment asking a human to update it when positions
+# changed, and it drifted badly: it claimed ~$280K and +83% ROI against an
+# actual $298K and 68%, and Investment $97K against $118K. Because it was also
+# the ONLY portfolio data the model ever saw, the schema's requests for
+# "approximate CAD value affected" had nothing real to draw on, so the model
+# invented them — Microsoft was published at ~$18,000 against a true $1,405,
+# Qualcomm at ~$10,000 against $1,252. Those strings render verbatim on the
+# dashboard and are read aloud in the weekly podcast.
+#
+# Numbers now come from _live_portfolio_block() below, computed from holdings
+# and snapshot prices at run time.
 # ============================================================
 PORTFOLIO_CONTEXT = """
 INVESTOR: Christopher, 24M, Toronto. $90K salary + Oct bonus. HIGH risk tolerance.
-GTA home purchase planned: FHSA ~$55K + RRSP HBP $35K = ~$90K down payment.
+GTA home purchase planned: FHSA + RRSP HBP fund the down payment.
 Non-resident 2026 (abroad) → returns Canada March 2027.
 ACCOUNT RULE: All new BUY picks → RRSP or Investment ONLY. NEVER TFSA/FHSA (room suspended 2026).
 
-ACCOUNTS (~$280K total, +83% ROI):
-  TFSA $100K +121% | Investment $97K +45% | FHSA $55K +123% | RRSP $28K +72%
+HOLDINGS SHAPE (names only — exact sizes are in the LIVE POSITIONS table below):
+  Leveraged 3x ETFs (FNGU/SPXL/UDOW/SOXL), Tech (NVDA — NEVER SELL, TXF.TO, AVGO,
+  TSM, MSFT, AAPL, QCOM, MSTR), CDN Financials (CM.TO, RY.TO, BMO.TO),
+  Other (ENB.TO, ET, SHEL, TSLA, IBKR, V, LYV, GBTC, BYDDF).
 
-HOLDINGS: Leveraged ETFs 49% (FNGU/SPXL/UDOW), Tech 20% (NVDA+1776% NEVER SELL, TXF.TO, AVGO, TSM, MSFT, AAPL, QCOM, MSTR), CDN Fin 10% (CM.TO, RY.TO, BMO.TO), Other (ENB.TO, TSLA, IBKR, V, ET, LYV, GBTC, BYDDF).
-
-SENSITIVITIES: 3x leverage amplifies S&P/NASDAQ/Dow both ways. 68% USD → $1,800/1¢ USD/CAD. FX book 1.3925. VIX>22 = decay risk.
+SENSITIVITIES: 3x leverage amplifies S&P/NASDAQ/Dow both ways. VIX>22 = decay risk.
 
 PICKS RULE: Include stocks NOT currently held. RRSP or Investment account only. Use news to find fresh ideas from any global market.
 """
 
 
 SETTINGS_API = "https://portfolio-pulse-dun.vercel.app/api/settings"
+SNAPSHOT_API = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
 PICKS_HISTORY_WEEKS = 3   # avoid picks suggested in last 3 weeks
+
+_LEVERAGE_3X = {"FNGU", "SPXL", "UDOW", "TQQQ", "SOXL"}
+
+# When the real figures cannot be fetched, the model must be told it does not
+# know them. Silence invites invention: that is exactly how $18,000 of Microsoft
+# reached the dashboard.
+_NO_FIGURES_BLOCK = """
+LIVE POSITIONS: unavailable for this run.
+You therefore do NOT know any holding's dollar value or weight. Do not state,
+estimate or illustrate one. Write "position size unavailable" instead of a
+figure, and keep the analysis qualitative.
+"""
+
+
+def _live_portfolio_block() -> str:
+    """Build the numeric portfolio context from live holdings and prices.
+
+    Returns a table the prompt can quote verbatim, so no section ever has to
+    guess a position size.
+    """
+    try:
+        holdings = requests.get(SETTINGS_API, timeout=10).json().get("computed_holdings", [])
+        snaps    = requests.get(SNAPSHOT_API, timeout=15).json().get("snapshots", {}) or {}
+    except Exception as exc:
+        print(f"  ⚠ live portfolio fetch failed ({exc}) — figures withheld from prompt")
+        return _NO_FIGURES_BLOCK
+
+    # Skip intraday snapshots that carry account totals but no prices.
+    priced = [d for d in sorted(snaps) if (snaps[d] or {}).get("holdings_prices")]
+    if not holdings or not priced:
+        print("  ⚠ no priced snapshot or holdings — figures withheld from prompt")
+        return _NO_FIGURES_BLOCK
+
+    latest   = snaps[priced[-1]]
+    px       = latest.get("holdings_prices", {}) or {}
+    usdcad   = float(latest.get("usdcad") or 0) or 1.38
+    accounts = latest.get("accounts", {}) or {}
+
+    agg, usd_cad_val, lev_cad = {}, 0.0, 0.0
+    for h in holdings:
+        t = h.get("ticker", "")
+        if not t or t.startswith("CASH"):
+            continue
+        shares = float(h.get("shares") or 0)
+        price  = float((px.get(t) or {}).get("price") or 0)
+        if shares <= 0 or price <= 0:
+            continue
+        is_usd = h.get("ccy", "USD") == "USD"
+        mv     = price * shares * (usdcad if is_usd else 1.0)
+        entry  = agg.setdefault(t, {"name": h.get("name", t), "cad": 0.0, "accts": []})
+        entry["cad"] += mv
+        acct = h.get("account", "")
+        if acct and acct not in entry["accts"]:
+            entry["accts"].append(acct)
+        if is_usd:
+            usd_cad_val += mv
+        if t in _LEVERAGE_3X:
+            lev_cad += mv
+
+    if not agg:
+        return _NO_FIGURES_BLOCK
+
+    total = float(latest.get("total_value") or 0) or sum(v["cad"] for v in agg.values())
+    pct   = lambda v: (v / total * 100) if total else 0.0
+    rows  = "\n".join(
+        f"  {t:<8} {v['name'][:22]:<22} ${v['cad']:>9,.0f} CAD  {pct(v['cad']):>4.1f}%  "
+        f"[{', '.join(v['accts'])}]"
+        for t, v in sorted(agg.items(), key=lambda kv: -kv[1]["cad"])
+    )
+    usd_notional = usd_cad_val / usdcad if usdcad else 0.0
+
+    return f"""
+LIVE POSITIONS as of {priced[-1]} — the ONLY portfolio figures that exist.
+Every CAD amount you write about a holding MUST be taken from this table.
+{rows}
+
+TOTALS: portfolio ${total:,.0f} CAD | all-time ROI {float(latest.get('roi_pct') or 0):.1f}%
+ACCOUNTS: {' | '.join(f"{k} ${float(v or 0):,.0f}" for k, v in accounts.items())}
+3x leveraged: ${lev_cad:,.0f} CAD ({pct(lev_cad):.0f}% of portfolio)
+USD exposure: ${usd_cad_val:,.0f} CAD = ${usd_notional:,.0f} USD notional ({pct(usd_cad_val):.0f}%)
+USD/CAD: {usdcad:.4f}
+FX RULE: a 1-cent USD/CAD move changes the book by USD notional x 0.01 =
+  ${usd_notional * 0.01:,.0f} CAD. Never multiply the CAD value by the cent move.
+"""
 
 
 def _load_picks_history() -> list[dict]:
@@ -239,13 +337,13 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
       "confidence": <integer 0–100, your conviction this theme plays out>,
       "body": "2–4 sentences analysing this macro theme for this specific portfolio",
       "bull": "1–2 sentence bull case for portfolio",
-      "bull_estimate": "Quantified CAD portfolio impact e.g. '+$35,000–$50,000 via FNGU/SPXL 3x leverage'",
+      "bull_estimate": "CAD portfolio impact DERIVED from the LIVE POSITIONS table — state the position size you applied the move to",
       "bull_probability": <integer 0–100>,
       "base": "1–2 sentence base case for portfolio",
-      "base_estimate": "Quantified CAD portfolio impact e.g. '±$5,000 — markets grind higher'",
+      "base_estimate": "CAD portfolio impact DERIVED from the LIVE POSITIONS table — state the position size you applied the move to",
       "base_probability": <integer 0–100>,
       "bear": "1–2 sentence bear case for portfolio",
-      "bear_estimate": "Quantified CAD portfolio impact e.g. '-$45,000–$65,000 via 3x ETF amplification'",
+      "bear_estimate": "CAD portfolio impact DERIVED from the LIVE POSITIONS table — state the position size you applied the move to",
       "bear_probability": <integer 0–100, all 3 probabilities must sum to 100>
     }
   ],
@@ -253,7 +351,7 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
     {
       "title": "Specific risk name — vary this daily. Draw from: leverage amplification, FX exposure, earnings concentration, cash drag, liquidity risk, single-stock risk, tax timing risk, sector overlap, account rule constraints, correlation risk, volatility decay, or any other portfolio-specific risk relevant TODAY.",
       "level": "HIGH|MED|LOW",
-      "context": "Brief metric e.g. '49% of portfolio ~ $135K CAD'",
+      "context": "Brief metric computed from the LIVE POSITIONS table, using its real numbers — not the shape of this example",
       "body": "2–3 sentences explaining the risk specific to this portfolio"
     }
   ],
@@ -264,25 +362,25 @@ Return ONE valid JSON object only. No markdown fences, no explanatory text befor
       "confidence": <integer 0–100, how confident you are in this assessment>,
       "category": "Sector & Stock|Canadian Markets",
       "body": "2–3 sentences: what happened and EXACTLY which holdings are affected and why",
-      "exposure": "Name the specific tickers and approximate CAD value affected e.g. 'FNGU ~$87K CAD (3x leverage), SPXL ~$22K CAD'",
+      "exposure": "Name the affected tickers and their CAD value copied EXACTLY from the LIVE POSITIONS table. Never estimate, round up, or infer a position size. If a ticker is not in that table, name it without a figure.",
       "outcomes": [
         {
           "label": "Bull",
           "probability": <integer, must sum to 100 across all 3>,
           "scenario": "1–2 sentences: what happens to THIS portfolio if bull plays out",
-          "estimate": "Quantified CAD impact e.g. '+$12,000–$18,000 on leveraged positions'"
+          "estimate": "CAD impact DERIVED from the LIVE POSITIONS table — name the position and the percentage move applied"
         },
         {
           "label": "Base",
           "probability": <integer>,
           "scenario": "1–2 sentences: most likely path for this portfolio",
-          "estimate": "Quantified CAD impact e.g. '±$3,000 — minimal net change'"
+          "estimate": "CAD impact DERIVED from the LIVE POSITIONS table — name the position and the percentage move applied"
         },
         {
           "label": "Bear",
           "probability": <integer>,
           "scenario": "1–2 sentences: downside path for this portfolio",
-          "estimate": "Quantified CAD impact e.g. '-$20,000–$30,000 via 3x leverage amplification'"
+          "estimate": "CAD impact DERIVED from the LIVE POSITIONS table — name the position and the percentage move applied"
         }
       ]
     }
@@ -468,7 +566,8 @@ def build_prompt(general_news: list[dict], company_news: dict[str, list[dict]],
                  discovery_news: list[dict] = None,
                  movers: dict = None,
                  only_sections: list[str] = None,
-                 already_covered: str = "") -> str:
+                 already_covered: str = "",
+                 portfolio_block: str = "") -> str:
     general_block = (
         "\n".join(f"• {a['headline']}" for a in general_news[:15])
         or "(no general news fetched)"
@@ -554,6 +653,7 @@ TODAY'S DATE: {today}
 {prev_section}
 PORTFOLIO CONTEXT:
 {PORTFOLIO_CONTEXT}
+{portfolio_block or _NO_FIGURES_BLOCK}
 
 {avoid_block}
 
@@ -570,6 +670,11 @@ INSTRUCTIONS:
 2. Do NOT give financial advice or predict specific prices
 3. Do NOT recommend selling core positions (especially NVDA, FNGU, SPXL)
 4. If you don't have data about something, say so — don't fabricate
+4b. EVERY dollar figure about a holding must come from the LIVE POSITIONS table,
+    copied or arithmetically derived from it, and you must name the position you
+    derived it from. If the table is unavailable, give no figure at all. A
+    plausible-looking invented number is the single worst output here: these
+    strings are shown on a dashboard and read aloud in a podcast as fact.
 5. Be concrete and useful: explain WHY news matters to THIS portfolio
 6. Canadian context: reference TFSA/FHSA/RRSP rules, CAD amounts, and CRA where relevant
 7. For PICKS: suggest additions that complement existing holdings or use idle RRSP cash
@@ -801,9 +906,11 @@ def main() -> int:
               "strategy_short", "strategy_mid", "strategy_long", "tax"]
 
     print(f"     pass 1/2 → {', '.join(pass_a)}")
+    portfolio_block = _live_portfolio_block()
+
     intelligence = call_llm(groq_key, build_prompt(
         general_news, company_news, picks_history, discovery_news, movers,
-        only_sections=pass_a,
+        only_sections=pass_a, portfolio_block=portfolio_block,
     ))
 
     # Tell the second pass what the first already said, so it does not repeat
@@ -834,6 +941,7 @@ def main() -> int:
     part_b = call_llm(groq_key, build_prompt(
         general_news, company_news, picks_history, discovery_news, movers,
         only_sections=pass_b, already_covered=covered_block,
+        portfolio_block=portfolio_block,
     ))
     intelligence.update(part_b)
 

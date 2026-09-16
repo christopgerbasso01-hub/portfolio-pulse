@@ -237,6 +237,27 @@ ck("trimming is bounded — it cannot eat a whole half",
 # This branch only runs when KV holdings or snapshots are unavailable, so
 # nothing exercised it: returning a bare string here crashed the whole run on
 # exactly the week the data was already degraded.
+print("\n── price-less (intraday) snapshots ──")
+# The snapshot written before the close job carries account totals but no
+# prices. Used as `latest` it zeroes leverage, USD exposure, movers and
+# positions while total_value still reads correctly — episode 16 told the
+# listener three times that the book held no leveraged exposure at all.
+_thin_hist = {
+    "2026-09-11": {"total_value": 5000, "roi_pct": 70.0, "usdcad": 1.39,
+                   "accounts": {"TFSA": 5000},
+                   "holdings_prices": {"FNGU": {"price": 32.0}}},
+    "2026-09-16": {"total_value": 5200, "accounts": {"TFSA": 5200}},  # no prices
+}
+_h = [{"ticker": "FNGU", "shares": 100, "ccy": "USD",
+       "account": "TFSA", "name": "FANG+ 3x ETF"}]
+_txt, _f = build_ctx(_h, _thin_hist)
+ck("a price-less snapshot is not chosen as the latest",
+   _f.get("latest_date"), "2026-09-11")
+ck("leverage is not zeroed by the price-less snapshot",
+   _f.get("leverage_cad", 0) > 0, True)
+ck("all-thin history degrades to the fallback contract",
+   isinstance(build_ctx(_h, {"2026-09-16": _thin_hist["2026-09-16"]}), tuple), True)
+
 print("\n── missing-data fallback ──")
 for label, h, s in [("no holdings", [], {"2026-09-14": {}}),
                     ("no snapshots", [{"ticker": "FNGU"}], {}),

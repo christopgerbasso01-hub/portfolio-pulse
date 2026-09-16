@@ -131,7 +131,19 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str
         # do not have would either pass everything or block the episode.
         return _PORTFOLIO_CONTEXT_FALLBACK, {}
 
-    sorted_dates  = sorted(snapshots.keys())
+    # A snapshot without holdings_prices carries only account totals — one is
+    # written intraday, before the close job fills the prices in. Taking it as
+    # `latest` silently zeroes every per-holding figure: leverage, USD exposure,
+    # movers and positions all vanish, while total_value still reads correctly
+    # and usdcad quietly falls back to a constant. A context in that state told
+    # episode 16's listeners, three times, that the portfolio holds no leveraged
+    # exposure at all — beside a $149K leveraged book. Only consider snapshots
+    # that can actually price the holdings.
+    sorted_dates = [d for d in sorted(snapshots)
+                    if (snapshots[d] or {}).get("holdings_prices")]
+    if not sorted_dates:
+        return _PORTFOLIO_CONTEXT_FALLBACK, {}
+
     latest_date   = sorted_dates[-1]
     latest        = snapshots[latest_date]
     baseline_date = _week_baseline_date(sorted_dates)
@@ -227,6 +239,17 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str
     wk_start  = float(prev.get("total_value")   or total_val)
     wk_gain   = total_val - wk_start
     wk_pct    = (wk_gain / wk_start * 100) if wk_start > 0 else 0.0
+
+    # Prices can be present and still partial — SOXL had no price for fifteen
+    # straight days in August, quietly dropping a whole sleeve from the anchors.
+    # Account-level cash explains roughly 3.5% of the total; far below that and
+    # the context is understating exposure with nothing on the surface to show
+    # it, so fall back rather than publish confident, incomplete anchors.
+    priced_cad = sum(p["cad"] for p in positions.values())
+    if total_val > 0 and priced_cad < total_val * 0.80:
+        print(f"  ⚠ only ${priced_cad:,.0f} of ${total_val:,.0f} could be priced — "
+              f"portfolio context would understate exposure; using fallback")
+        return _PORTFOLIO_CONTEXT_FALLBACK, {}
 
     # Per-account with week-over-week and all-time ROI
     acct_lines = []

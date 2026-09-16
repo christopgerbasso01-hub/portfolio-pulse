@@ -147,6 +147,7 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str
     leverage_cad = 0.0
     usd_exp_cad  = 0.0
     movers       = []
+    positions    = {}   # ticker -> aggregated size across accounts
 
     for h in holdings:
         ticker = h.get("ticker", "")
@@ -170,6 +171,17 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str
         if ticker in _LEVERAGE_3X:
             leverage_cad += mv_cad
 
+        # Per-holding size, summed across accounts. Scripts asserted position
+        # sizes that were out by up to 7.8x ("about $14,000 CAD of Energy
+        # Transfer" against a real $1,791) and named the wrong account for them,
+        # with nothing in the context to check against.
+        pos = positions.setdefault(ticker, {"name": h.get("name", ticker),
+                                            "cad": 0.0, "accounts": []})
+        pos["cad"] += mv_cad
+        acct_name = h.get("account", "")
+        if acct_name and acct_name not in pos["accounts"]:
+            pos["accounts"].append(acct_name)
+
         # Weekly price move → dollar impact on this exact position
         ppx    = prev_prices.get(ticker, {})
         pprice = float(ppx.get("price") or price)
@@ -184,8 +196,29 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str
             "wk_cad": wk_cad,
         })
 
-    movers.sort(key=lambda x: abs(x["wk_cad"]), reverse=True)
-    top_movers = movers[:6]
+    # One ticker is held in several accounts, so the per-holding list put the
+    # same ETF in the top six three times over (ep014's movers were FNGU, FNGU,
+    # Nvidia, FNGU, Tesla, Broadcom). That crowded out genuinely distinct movers
+    # and invited the script to count one ETF's move repeatedly. Merge first: the
+    # percentage move is a property of the price, so it is shared, and only the
+    # dollar impact adds up.
+    by_ticker = {}
+    for m in movers:
+        agg = by_ticker.get(m["ticker"])
+        if agg is None:
+            by_ticker[m["ticker"]] = {"name": m["name"], "ticker": m["ticker"],
+                                      "accts": [m["acct"]] if m["acct"] else [],
+                                      "wk_pct": m["wk_pct"], "wk_cad": m["wk_cad"]}
+        else:
+            agg["wk_cad"] += m["wk_cad"]
+            if m["acct"] and m["acct"] not in agg["accts"]:
+                agg["accts"].append(m["acct"])
+
+    merged = list(by_ticker.values())
+    for m in merged:
+        m["acct"] = ", ".join(m["accts"])
+    merged.sort(key=lambda x: abs(x["wk_cad"]), reverse=True)
+    top_movers = merged[:6]
 
     # Portfolio-level totals come from the snapshot (calculated by the same
     # market API the dashboard uses — guaranteed to match what the user sees)
@@ -212,7 +245,14 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str
 
     # Math anchors — grounded in actual position sizes
     per_1pct_sp  = leverage_cad * 0.03   # 3× leverage = 3× the market move
-    per_1cent_fx = usd_exp_cad  * 0.01   # per 1¢ USD/CAD shift
+    # usd_exp_cad is ALREADY in CAD. A 1¢ move in USD/CAD acts on the USD
+    # NOTIONAL, so the swing is notional × 0.01 — not the CAD value × 0.01.
+    # Omitting this division overstated the anchor by the whole exchange rate
+    # (~1.38×) in every episode, and the scripts repeated the wrong number
+    # faithfully. The notional is published alongside it below so the model
+    # cannot re-derive it the wrong way round.
+    usd_notional = (usd_exp_cad / usdcad) if usdcad else 0.0
+    per_1cent_fx = usd_notional * 0.01   # per 1¢ USD/CAD shift
     lev_pct      = leverage_cad / total_val * 100 if total_val else 0
     usd_pct      = usd_exp_cad  / total_val * 100 if total_val else 0
 
@@ -246,8 +286,10 @@ USD/CAD: {usdcad:.4f}
 ━━━ MATH ANCHORS — every dollar estimate in this episode MUST derive from these ━━━
 3× Leveraged exposure: ${leverage_cad:>9,.0f} CAD ({lev_pct:.0f}% of portfolio)
 USD exposure:          ${usd_exp_cad:>9,.0f} CAD ({usd_pct:.0f}% of portfolio)
-Per 1% S&P 500 move  → ±${per_1pct_sp:>7,.0f} CAD on leveraged positions alone
+Per 1% index move    → ±${per_1pct_sp:>7,.0f} CAD on leveraged positions alone
+USD notional:          ${usd_notional:>9,.0f} USD  ← an FX move acts on THIS, not the CAD value
 Per 1¢ USD/CAD move  → ±${per_1cent_fx:>7,.0f} CAD on USD holdings
+RULE: FX impact = USD notional × the cent move. Never multiply the CAD figure.
 Portfolio implied β  ≈ 1.8× market (leverage concentration)
 RULE: Bear case estimates must be at least as large as bull case estimates in absolute terms.
 RULE: Never invent a dollar figure — use the anchors above and show your reasoning.
@@ -292,6 +334,10 @@ Do not cite performance figures not present in this context."""
         },
         "movers": [{"ticker": m["ticker"], "pct": round(m["wk_pct"], 2),
                     "cad": round(m["wk_cad"])} for m in top_movers],
+        "usd_notional": round(usd_notional),
+        "positions": {t: {"name": p["name"], "cad": round(p["cad"]),
+                          "accounts": list(p["accounts"])}
+                      for t, p in positions.items()},
     }
     return text, facts
 
@@ -405,6 +451,13 @@ If running short, go DEEPER on the forward-looking component of Deep Dive 1 — 
 more specific dates/events, more portfolio implications. Do not pad with filler.
 FORMAT: Every line starts with "ALEX:" or "SAM:" — no exceptions, no stage directions, no headers.
 
+THIS IS THE FIRST HALF ONLY — DO NOT CLOSE THE EPISODE.
+Part 2 is written separately and is joined directly onto your final line, in the
+same episode. It contains Deep Dive 2, the learning segment, the scenarios and
+the closing. So do NOT write a sign-off, a wrap-up, a "that's the play", a "stay
+tuned", or a "we'll be back next Monday". Stop mid-conversation on a Deep Dive 1
+line so the second half continues straight out of it.
+
 Write PART 1 now (Welcome Back + Portfolio Recap + Deep Dive 1):"""
 
 
@@ -413,8 +466,18 @@ Write PART 1 now (Welcome Back + Portfolio Recap + Deep Dive 1):"""
 # ============================================================
 SCRIPT_PROMPT_PART2 = """You are writing the SECOND HALF of "Portfolio Pulse Weekly" for {today}.
 
-RECAP OF PART 1 ALREADY WRITTEN (continue naturally from here):
-Deep Dive 1 covered: {dive1_summary}
+PART 1 IS ALREADY WRITTEN AND IS JOINED DIRECTLY ONTO YOUR FIRST LINE.
+The listener has just heard it. Here is what it contained:
+{dive1_summary}
+
+YOU ARE CONTINUING ONE EPISODE, NOT STARTING ANYTHING.
+- Do NOT greet the listener or say "welcome back".
+- Do NOT open with "let's pick up where we left off" or recap what Part 1 covered.
+- Do NOT say the hosts "just walked through" or "just discussed" a topic unless it
+  appears above as something actually discussed. A topic that was merely named in
+  a passing list of upcoming events was NOT walked through, and claiming otherwise
+  tells the listener they missed a segment that never happened.
+Begin directly with Deep Dive 2's hook.
 
 ━━━ TICKER ROTATION (read before picking Deep Dive 2 subject) ━━━━━━━━━━━━━━━
 {ticker_rotation}
@@ -890,9 +953,18 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
         portfolio=portfolio_ctx,
     ), "Part 1", max_tokens=4096)
 
-    # Extract a summary of Deep Dive 1 for Part 2 context
+    # Summarise Part 1 for Part 2. This used to be the last 6 speaker lines
+    # truncated to 400 characters. In ep016 that tail happened to be a list of
+    # upcoming catalysts, so Part 2 opened by telling the listener the hosts had
+    # "just walked through the Bank of Canada's upcoming rate call" — which was
+    # one bullet in that list and was never discussed. Give it the agenda (what
+    # the episode is actually about) as well as a longer tail.
     dive1_lines = [l for l in part1.split('\n') if l.strip().startswith(('ALEX:', 'SAM:'))]
-    dive1_last  = ' '.join(l[5:].strip() for l in dive1_lines[-6:])[:400]
+    agenda      = next((l[5:].strip() for l in dive1_lines[:4]
+                        if re.search(r"unpacking|covering|this week we", l, re.I)), "")
+    tail        = ' '.join(l[5:].strip() for l in dive1_lines[-8:])
+    dive1_last  = ((f"TOPICS PART 1 ACTUALLY COVERED: {agenda}\n" if agenda else "")
+                   + f"HOW PART 1 ENDED — continue straight out of this: {tail[-900:]}")
 
     # Space out the two large generation calls so we stay under Groq's free-tier
     # per-minute token budget (the back-to-back calls were the root cause of the
@@ -911,7 +983,7 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
         news=news, portfolio=portfolio_ctx,
     ), "Part 2", max_tokens=4096)
 
-    full = part1.rstrip() + "\n\n" + part2.lstrip()
+    full = _stitch_parts(part1, part2)
     print(f"  ✓ Full script: {len(full.split()):,} words across both parts")
     return full, portfolio_facts
 
@@ -1075,6 +1147,13 @@ _HYPOTHETICAL = re.compile(
 _MONEY_RANGE = re.compile(
     r"\$\s?[\d,]+(?:\.\d+)?\s*(?:[-–—]|to)\s*\$?\s?[\d,]+", re.I)
 
+# A sentence asserting how large a holding is, or where it sits. Distinct from
+# _POSITION_SCOPED, which only asks "is this figure about one holding?" — this
+# asks "is the script stating that holding's size?", which is checkable.
+_SIZE_PHRASE = re.compile(
+    r"\b(hold|holds|holding|own|owns|position|stake|sits? (?:at|in)|worth|"
+    r"represent\w*|makes? up|allocation)\b", re.I)
+
 MONEY_TOLERANCE_PCT = 0.06   # rounding/paraphrase ("roughly $24K")
 MONEY_TOLERANCE_ABS = 750
 PCT_TOLERANCE       = 0.6
@@ -1087,6 +1166,57 @@ def _claim_value(raw, suffix) -> float:
 
 def _close(a: float, b: float) -> bool:
     return abs(a - b) <= max(MONEY_TOLERANCE_ABS, abs(b) * MONEY_TOLERANCE_PCT)
+
+
+_PART1_SIGNOFF = re.compile(
+    r"\b(stay tuned|we'?ll be back|see you next|that'?s the play|reconvene|"
+    r"thanks for (?:tuning|listening)|until next (?:week|time)|keep an eye on those|"
+    r"that'?s (?:it|all) for (?:this|today)|catch you next)\b", re.I)
+
+_PART2_REOPEN = re.compile(
+    r"\b(welcome back|let'?s pick up|picking up where|we just walked through|"
+    r"we just discussed|as we just|where we left off|back with you)\b", re.I)
+
+
+def _stitch_parts(part1: str, part2: str) -> str:
+    """Join the two generation passes without the seam showing.
+
+    The halves come from separate model calls. Part 1 does not know anything
+    follows, so it signs off; Part 2 does not know what Part 1 said, so it
+    re-greets the listener and "recaps" something it never saw. Episode 16 closed
+    a segment, printed a separator, then opened with "let's pick up where we left
+    off — we just walked through the Bank of Canada's upcoming rate call", a topic
+    that had only been named in a passing list of upcoming dates.
+
+    The prompts now forbid both. This removes them as well, because a prompt rule
+    is a request and this is a guarantee. It repairs rather than rejects: a seam
+    is a blemish, never a reason to lose the week's episode.
+    """
+    p1, removed = part1.rstrip().split("\n"), 0
+    while p1 and removed < 2:
+        tail = p1[-1].strip()
+        if not tail or tail in {"---", "***", "___"}:
+            p1.pop()
+            continue
+        if tail.startswith(("ALEX:", "SAM:")) and _PART1_SIGNOFF.search(tail):
+            p1.pop()
+            removed += 1
+            continue
+        break
+
+    p2, dropped = part2.lstrip().split("\n"), 0
+    while p2 and dropped < 2:
+        head = p2[0].strip()
+        if not head or head in {"---", "***", "___"}:
+            p2.pop(0)
+            continue
+        if head.startswith(("ALEX:", "SAM:")) and _PART2_REOPEN.search(head):
+            p2.pop(0)
+            dropped += 1
+            continue
+        break
+
+    return "\n".join(p1).rstrip() + "\n\n" + "\n".join(p2).lstrip()
 
 
 def verify_script_figures(script: str, facts: dict) -> list[str]:
@@ -1136,6 +1266,71 @@ def verify_script_figures(script: str, facts: dict) -> list[str]:
                 problems.append(
                     f"{pct}% is not supported by the context "
                     f"(period change {gain_pct:+.1f}%) — \"{sentence[:110]}\"")
+
+    # Position sizes and the account a holding sits in. The portfolio-level pass
+    # above deliberately skips these, which is how "about $14,000 CAD of Energy
+    # Transfer in the Investment account" shipped — the stake is $1,791 and it is
+    # in the TFSA.
+    positions = facts.get("positions") or {}
+    if positions:
+        index = []
+        for tkr, p in positions.items():
+            nm      = str(p.get("name") or tkr)
+            aliases = {nm}
+            if len(tkr) >= 3:           # skip "V"/"ET" — too short to match safely
+                aliases.add(tkr)
+            first = nm.split()[0] if nm.split() else ""
+            if len(first) >= 5:         # "Shell" out of "Shell PLC"
+                aliases.add(first)
+            index.append((aliases, tkr, p))
+
+        for sentence in sentences:
+            if not _SIZE_PHRASE.search(sentence) or _HYPOTHETICAL.search(sentence):
+                continue
+            if _MONEY_RANGE.search(sentence):
+                continue
+
+            matched = [(tkr, p) for aliases, tkr, p in index
+                       if any(re.search(r"\b" + re.escape(a) + r"\b", sentence, re.I)
+                              for a in aliases if a)]
+            if not matched:
+                continue
+
+            # Attribute a figure only when exactly one holding is named:
+            # "Energy Transfer and Shell together represent $4,700" is a combined
+            # number and belongs to neither of them alone.
+            # To BE a size claim the figure has to follow the size phrase
+            # closely. "sits at roughly $12,000" is one; "Nvidia's position in AI
+            # is worth watching, and a 1% move is about $1,200" names a holding
+            # and two size words while claiming no size at all — and policing
+            # that would block an episode over a perfectly sound sentence.
+            claim_amt = None
+            for sm in _SIZE_PHRASE.finditer(sentence):
+                mm = _CLAIM_MONEY.search(sentence, sm.end())
+                if mm and mm.start() - sm.end() <= 30:
+                    amt = _claim_value(mm.group(1), mm.group(2) or None)
+                    if amt >= 1_000:
+                        claim_amt = amt
+                        break
+
+            if claim_amt is not None and len(matched) == 1:
+                tkr, p = matched[0]
+                actual = float(p.get("cad") or 0)
+                if actual > 0 and not _close(claim_amt, actual):
+                    problems.append(
+                        f"{p.get('name') or tkr} is stated as ${claim_amt:,.0f} but the "
+                        f"position is ${actual:,.0f} — \"{sentence[:110]}\"")
+
+            for tkr, p in matched:
+                held = {str(a).lower() for a in (p.get("accounts") or [])}
+                if not held:
+                    continue
+                for acct in ("TFSA", "Investment", "FHSA", "RRSP"):
+                    if (re.search(r"\b" + acct + r"\b", sentence, re.I)
+                            and acct.lower() not in held):
+                        problems.append(
+                            f"{p.get('name') or tkr} is placed in the {acct} but it is held "
+                            f"in {', '.join(p.get('accounts') or [])} — \"{sentence[:110]}\"")
 
     # Direction errors matter more than magnitude: calling a losing week a gain
     # is the failure the user actually noticed. Judged per sentence so a forecast

@@ -40,10 +40,10 @@ NS = {
     "_PORTFOLIO_CONTEXT_FALLBACK": "(fallback)",
 }
 _WANT_FN = ("_week_baseline_date", "_build_portfolio_context",
-            "_claim_value", "_close", "verify_script_figures")
+            "_claim_value", "_close", "verify_script_figures", "_stitch_parts")
 _WANT_CONST = ("WEEK_BASELINE_DAYS", "_CLAIM_MONEY", "_CLAIM_PCT",
                "_PORTFOLIO_CLAIM", "_POSITION_SCOPED", "_HYPOTHETICAL",
-               "_MONEY_RANGE",
+               "_MONEY_RANGE", "_SIZE_PHRASE", "_PART1_SIGNOFF", "_PART2_REOPEN",
                "MONEY_TOLERANCE_PCT", "MONEY_TOLERANCE_ABS", "PCT_TOLERANCE")
 
 for _node in _tree.body:
@@ -115,8 +115,14 @@ def facts_for(run_date):
 
 
 try:
-    CASES = [("013", "2026-08-24", True), ("014", "2026-08-31", False),
-             ("015", "2026-09-07", True), ("016", "2026-09-14", True)]
+    # As-of dates are the FRIDAY before each Monday episode. The workflow fires
+    # Monday 06:2x UTC, before that Monday's snapshot is written, so Friday is
+    # the latest data the context ever saw. Dating these to the Monday made
+    # ep014 look sound; against the context it really had, it claimed +$17,427
+    # on an actual +$8,591. All four episodes overstate — none is a clean
+    # control, so the sound-script cases below are synthetic by necessity.
+    CASES = [("013", "2026-08-21", True), ("014", "2026-08-28", True),
+             ("015", "2026-09-04", True), ("016", "2026-09-11", True)]
     for ep, run, should_flag in CASES:
         txt = transcript(ep)
         if not txt:
@@ -167,6 +173,65 @@ ck("a fabricated portfolio gain is caught",
    True)
 ck("calling a losing week a gain is caught",
    bool(verify("ALEX: The portfolio gained ground this week.", clean_facts)), True)
+
+# ── position sizes and the account a holding sits in ─────────────────────────
+print("\n── position-level claims ──")
+pos_facts = dict(clean_facts)
+pos_facts["positions"] = {
+    "ET":     {"name": "Energy Transfer", "cad": 1791,  "accounts": ["TFSA"]},
+    "NVDA":   {"name": "NVIDIA",          "cad": 11733, "accounts": ["TFSA"]},
+    "ENB.TO": {"name": "Enbridge",        "cad": 5496,  "accounts": ["FHSA"]},
+    "SHEL":   {"name": "Shell PLC",       "cad": 2951,  "accounts": ["TFSA"]},
+}
+ck("an overstated position is caught (the real ep016 claim)",
+   bool(verify("ALEX: Right now we hold about $14,000 CAD of Energy Transfer.", pos_facts)),
+   True)
+ck("Nvidia overstated at $30,000 is caught",
+   bool(verify("ALEX: Nvidia sits in the TFSA at about $30,000 CAD.", pos_facts)), True)
+ck("the wrong account is caught",
+   bool(verify("ALEX: We hold $1,800 CAD of Energy Transfer in the Investment account.",
+               pos_facts)), True)
+ck("a correct position size passes",
+   verify("ALEX: Nvidia sits in the TFSA at about $11,700 CAD.", pos_facts), [])
+ck("a combined figure is not attributed to one holding",
+   verify("ALEX: Energy Transfer and Shell together represent roughly $4,700 CAD.",
+          pos_facts), [])
+ck("a hypothetical position figure is not policed",
+   verify("ALEX: If we doubled it, Energy Transfer would be worth $3,600 CAD.", pos_facts), [])
+# A holding, a size word and a figure can co-occur without a size being claimed.
+# Flagging this would block a sound episode, which is how a guard gets disabled.
+ck("an incidental figure near a size word is not policed",
+   verify("ALEX: Nvidia's position in the AI market is worth watching, and a 1% move "
+          "is about $1,200 CAD.", pos_facts), [])
+ck("a size claim still caught when the figure follows the phrase closely",
+   bool(verify("ALEX: Enbridge sits at roughly $12,000 CAD today.", pos_facts)), True)
+
+# ── the Part 1 / Part 2 seam ─────────────────────────────────────────────────
+# Reproduces episode 16 lines 55-59 exactly: Part 1 signed off, a separator was
+# emitted, and Part 2 re-opened claiming the hosts had "just walked through" a
+# topic that was one bullet in a list of upcoming dates.
+print("\n── the Part 1 / Part 2 seam ──")
+stitch = NS["_stitch_parts"]
+_p1 = ("ALEX: Nvidia's move came from the AI capex guide.\n"
+       "SAM: That's the mechanism.\n"
+       "ALEX: That's the play for the next few weeks. Stay tuned, and we'll reconvene next Monday.")
+_p2 = ("---\n"
+       "ALEX: All right, let's pick up where we left off. We just walked through the "
+       "Bank of Canada's upcoming rate call.\n"
+       "SAM: So what's the next piece?\n"
+       "ALEX: Energy Transfer is the one to watch.")
+_out = stitch(_p1, _p2)
+ck("Part 1's sign-off is removed", "Stay tuned" in _out, False)
+ck("Part 2's false recap is removed", "walked through" in _out, False)
+ck("the stray separator is removed", "---" in _out, False)
+ck("real content on both sides survives",
+   ("AI capex guide" in _out and "Energy Transfer is the one to watch" in _out), True)
+ck("a clean join is left untouched",
+   stitch("ALEX: One.\nSAM: Two.", "ALEX: Three.\nSAM: Four."),
+   "ALEX: One.\nSAM: Two.\n\nALEX: Three.\nSAM: Four.")
+ck("trimming is bounded — it cannot eat a whole half",
+   len(stitch("ALEX: Stay tuned.\nSAM: Stay tuned.\nALEX: Stay tuned.\nSAM: Real point here.",
+              "ALEX: Opening line.").split("\n")) >= 3, True)
 
 # ── the degraded path must honour the (text, facts) contract ─────────────────
 # This branch only runs when KV holdings or snapshots are unavailable, so

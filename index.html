@@ -815,6 +815,43 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
      just inset it to match the tab's other cards instead of desktop's own
      container padding. */
   .dv-banner{margin:4px 14px 10px;}
+
+  /* The queue grew without limit. .m-pane is a flex column with overflow:hidden
+     and this banner is flex-shrink:0, so a few pending dividends pushed the
+     holdings list clean off the screen. Cap it, scroll it, and let the header
+     collapse it. Desktop is untouched: every rule below is scoped to
+     #m-divAutopilot and sits inside the mobile media query. */
+  #m-divAutopilot .dv-banner-hdr{
+    cursor:pointer;margin-bottom:8px;
+    -webkit-tap-highlight-color:transparent;user-select:none;
+  }
+  #m-divAutopilot .m-dv-chev{
+    margin-left:auto;color:var(--green);font-size:11px;line-height:1;
+    transition:transform .18s ease;
+  }
+  #m-divAutopilot.collapsed .m-dv-chev{transform:rotate(-90deg);}
+  #m-divAutopilot.collapsed .dv-banner-hdr{margin-bottom:0;}
+  #m-divAutopilot.collapsed #m-dvList{display:none;}
+  /* Roughly two and a half rows, so it reads as scrollable rather than clipped. */
+  #m-dvList{
+    max-height:42vh;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  }
+  /* Desktop breaks this row with .dv-main{min-width:200px} plus flex-wrap. At
+     375px that min-width is nearly the whole screen, but simply removing it
+     collapses the column to a few characters wide — one word per line, with the
+     amount overlapping the text. Lay the row out explicitly instead: details and
+     amount share the top line, the three buttons get their own. */
+  #m-dvList .dv-row{
+    display:grid;grid-template-columns:1fr auto;
+    grid-template-areas:"main amt" "actions actions";
+    gap:7px 10px;padding:10px 0;align-items:start;
+  }
+  #m-dvList .dv-main{grid-area:main;min-width:0;}
+  #m-dvList .dv-amt{grid-area:amt;font-size:14px;}
+  #m-dvList .dv-actions{grid-area:actions;gap:6px;}
+  #m-dvList .dv-btn{flex:1;padding:7px 4px;text-align:center;}
+  #m-dvList .dv-calc{overflow-wrap:anywhere;line-height:1.35;}
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -8349,6 +8386,9 @@ function renderPendingDividends() {
   if (wrap)  wrap.style.display  = has ? '' : 'none';
   if (mWrap) mWrap.style.display = has ? '' : 'none';
   if (!has) return;
+  // Re-applied on every render (the queue re-polls every 10 min) so a refresh
+  // never silently re-expands a section the user chose to collapse.
+  if (mWrap) _applyMobileAutopilotCollapse(mWrap);
 
   const countTxt  = String(PENDING_DIVIDENDS.length);
   const dvCount   = document.getElementById('dvCount');
@@ -8387,6 +8427,27 @@ function renderPendingDividends() {
   }).join('');
   if (list)  list.innerHTML  = rowsHtml;
   if (mList) mList.innerHTML = rowsHtml;
+}
+
+// Mobile only. The count badge stays visible while collapsed, so a new
+// dividend arriving is still noticeable without the queue reclaiming the screen.
+const _AUTOPILOT_COLLAPSE_KEY = 'pp_autopilot_collapsed';
+
+function _applyMobileAutopilotCollapse(wrap) {
+  let collapsed = false;
+  try { collapsed = localStorage.getItem(_AUTOPILOT_COLLAPSE_KEY) === '1'; } catch (e) {}
+  wrap.classList.toggle('collapsed', collapsed);
+  const hdr = document.getElementById('m-dvHdr');
+  if (hdr) hdr.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+}
+
+function toggleMobileAutopilot() {
+  const wrap = document.getElementById('m-divAutopilot');
+  if (!wrap) return;
+  const collapsed = wrap.classList.toggle('collapsed');
+  try { localStorage.setItem(_AUTOPILOT_COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (e) {}
+  const hdr = document.getElementById('m-dvHdr');
+  if (hdr) hdr.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
 }
 
 async function resolveDividend(id, action) {
@@ -11558,9 +11619,11 @@ document.addEventListener('DOMContentLoaded',function(){
          Confirm/Adjust/Dismiss book through the exact same code path either way. -->
     <div id="m-divAutopilot" style="display:none;flex-shrink:0">
       <div class="dv-banner">
-        <div class="dv-banner-hdr">
+        <div class="dv-banner-hdr" id="m-dvHdr" onclick="toggleMobileAutopilot()"
+             role="button" tabindex="0" aria-controls="m-dvList" aria-expanded="true">
           <span class="dv-banner-title">◆ Autopilot — dividends to confirm</span>
           <span class="dv-banner-count" id="m-dvCount">0</span>
+          <span class="m-dv-chev" id="m-dvChev" aria-hidden="true">▾</span>
         </div>
         <div id="m-dvList"></div>
       </div>

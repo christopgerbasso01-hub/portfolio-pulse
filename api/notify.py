@@ -880,9 +880,14 @@ class handler(BaseHTTPRequestHandler):
                 actual = (float(body["actual_amount"])
                           if action == "adjust" and body.get("actual_amount") is not None
                           else float(entry.get("net_amount") or 0))
+                # The dashboard can now correct the pay date as well as the
+                # amount. Record what was actually booked, or `seen` keeps the
+                # estimated date the user just corrected away.
+                actual_date = body.get("actual_date") or entry.get("pay_date")
                 rates = record_learned_rate(rates, entry, actual)
                 seen[entry_id] = {"resolved_at": now, "action": action,
-                                  "amount": actual, "ccy": entry.get("ccy")}
+                                  "amount": actual, "ccy": entry.get("ccy"),
+                                  "pay_date": actual_date}
 
             state["pending"] = [p for p in pending if p.get("id") != entry_id]
             state["seen"]    = seen

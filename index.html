@@ -8455,18 +8455,49 @@ async function resolveDividend(id, action) {
   if (!entry) return;
 
   let actualAmount = +entry.net_amount;
+  let actualDate   = entry.pay_date;
   if (action === 'adjust') {
     const sym = entry.ccy === 'USD' ? '$' : 'C$';
     const inp = prompt(
       `Actual ${entry.ticker} dividend received in ${entry.account} (${entry.ccy}):\n\n` +
       `Estimated ${sym}${actualAmount.toFixed(2)} from ${(+entry.shares).toLocaleString()} sh × ${sym}${(+entry.per_share).toFixed(4)}.\n` +
-      `Enter the amount your broker actually credited — this teaches the estimator.`,
+      `Enter the amount your broker actually credited — this teaches the estimator.\n\n` +
+      `(Step 1 of 2 — the date comes next.)`,
       actualAmount.toFixed(2)
     );
     if (inp === null) return;                       // cancelled
     const parsed = parseFloat(String(inp).replace(/[^0-9.\-]/g, ''));
     if (!isFinite(parsed) || parsed <= 0) { alert('Enter a positive number.'); return; }
     actualAmount = parsed;
+
+    // The pay date is estimated for some tickers (entry.estimated_pay), so the
+    // booked date can be wrong even when the amount is right. Without this the
+    // only remedy was deleting the transaction and re-entering it by hand.
+    const dInp = prompt(
+      `Date the ${entry.ticker} dividend was credited in ${entry.account}:\n\n` +
+      (entry.estimated_pay
+        ? `⚠ This pay date was ESTIMATED, so it is worth checking.\n`
+        : `Detected pay date ${entry.pay_date}.\n`) +
+      `Format YYYY-MM-DD.\n\n(Step 2 of 2.)`,
+      actualDate
+    );
+    if (dInp === null) return;                      // cancelled
+    const dStr = String(dInp).trim();
+    const dm   = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dStr);
+    // Built from parts and compared back, so "2026-02-30" is rejected rather
+    // than silently rolling over to March, and no timezone shift can occur.
+    const dObj = dm ? new Date(+dm[1], +dm[2] - 1, +dm[3]) : null;
+    const dOk  = !!dObj && dObj.getFullYear() === +dm[1]
+                        && dObj.getMonth()    === +dm[2] - 1
+                        && dObj.getDate()     === +dm[3];
+    if (!dOk) { alert(`Enter the date as YYYY-MM-DD, for example ${entry.pay_date}.`); return; }
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const ahead = Math.round((dObj - today) / 86400000);
+    if (ahead > 30 &&
+        !confirm(`${dStr} is ${ahead} days in the future — a mistyped year?\n\nBook it anyway?`)) {
+      return;
+    }
+    actualDate = dStr;
   }
 
   if (action === 'dismiss' &&
@@ -8478,7 +8509,7 @@ async function resolveDividend(id, action) {
   if (action !== 'dismiss') {
     saveTransaction({
       type:    'DIVIDEND',
-      date:    entry.pay_date,
+      date:    actualDate,
       account: entry.account,
       ticker:  entry.ticker,
       amount:  actualAmount,
@@ -8496,7 +8527,9 @@ async function resolveDividend(id, action) {
     await fetch(`${CONFIG.API_BASE}/api/dividends`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action, actual_amount: actualAmount }),
+      body: JSON.stringify({ id, action,
+                             actual_amount: actualAmount,
+                             actual_date:   actualDate }),
     });
   } catch (e) {
     console.warn('[autopilot] resolve failed:', e.message);

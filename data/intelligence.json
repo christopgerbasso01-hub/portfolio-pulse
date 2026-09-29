@@ -1,286 +1,283 @@
 {
   "macro": [
     {
-      "title": "BoC Rate Decision Looms, CAD/USD Volatility Peaks",
-      "category": "fx",
+      "title": "US Sanctions Target Iranian Weapons Procurement",
+      "category": "regulatory",
       "impact": "HIGH",
       "confidence": 78,
-      "body": "The Bank of Canada is set to announce its policy rate tomorrow, with markets expecting a hold at 4.75% amid sticky inflation. A surprise move would trigger sharp CAD swings, directly affecting the portfolio’s $167,863 USD notional exposure (≈ $237,979 CAD).",
-      "bull": "If the BoC signals a dovish stance, the CAD could weaken, boosting the USD‑denominated holdings.",
-      "bull_estimate": "USD exposure $167,863 * 0.01 CAD per cent = +$1,679 CAD per 0.01 CAD move",
-      "bull_probability": 40,
-      "base": "A hold decision keeps the CAD steady, leaving the USD exposure unchanged.",
-      "base_estimate": "No net change to USD exposure",
-      "base_probability": 35,
-      "bear": "A hawkish surprise would strengthen the CAD, eroding the USD‑heavy portfolio.",
-      "bear_estimate": "USD exposure $167,863 * 0.01 CAD per cent = -$1,679 CAD per 0.01 CAD move",
-      "bear_probability": 25
-    },
-    {
-      "title": "Corporate Credit Spreads Tighten as Treasury Yields Rise",
-      "category": "credit",
-      "impact": "MED",
-      "confidence": 65,
-      "body": "U.S. Treasury yields have jumped this week, prompting a pull‑back in corporate bond spreads. While the portfolio holds no direct bonds, its leveraged equity ETFs (FNGU, SPXL, UDOW) are sensitive to higher discount rates, which can depress equity valuations.",
-      "bull": "If spreads stabilize, equity multiples may hold, supporting leveraged ETF performance.",
-      "bull_estimate": "FNGU $66,493 * 0.5% uplift ≈ +$332 CAD",
-      "bull_probability": 45,
-      "base": "Continued spread widening modestly pressures equity multiples.",
-      "base_estimate": "SPXL $60,927 * -0.3% ≈ -$183 CAD",
-      "base_probability": 35,
-      "bear": "Further spread widening could trigger a sell‑off in high‑beta tech and leveraged ETFs.",
-      "bear_estimate": "UDOW $19,001 * -1.0% ≈ -$190 CAD",
+      "body": "The Treasury's new sanctions on ten entities linked to Iranian arms purchases tighten geopolitical risk for energy exporters. Canadian oil majors with exposure to Middle‑East markets may see price pressure and heightened volatility.",
+      "bull": "Energy stocks could rally on a short‑term supply squeeze.",
+      "bull_estimate": "ENB.TO $5,460 CAD (+3% price move)",
+      "bull_probability": 30,
+      "base": "Markets price in modest risk premium without major price swings.",
+      "base_estimate": "ENB.TO $5,460 CAD (0% change)",
+      "base_probability": 50,
+      "bear": "Escalating tensions depress oil prices and hurt Canadian energy earnings.",
+      "bear_estimate": "SHEL $3,009 CAD (‑4% price move)",
       "bear_probability": 20
     },
     {
-      "title": "Eurozone Growth Slows, ECB Holds Rates",
+      "title": "U.S. Strategic Petroleum Reserve Releases 40 M Barrels",
+      "category": "commodities",
+      "impact": "MED",
+      "confidence": 65,
+      "body": "The U.S. Energy Department's decision to loan 40 million barrels from the SPR adds temporary supply, likely capping crude price gains. Lower Brent can weigh on North American energy equities.",
+      "bull": "If the loan is limited, oil prices stay firm supporting ENB and SHEL.",
+      "bull_estimate": "ENB.TO $5,460 CAD (+2% price move)",
+      "bull_probability": 35,
+      "base": "Supply boost is modest; prices stabilize.",
+      "base_estimate": "SHEL $3,009 CAD (0% change)",
+      "base_probability": 45,
+      "bear": "A larger-than‑expected release drags crude lower, hurting energy exposure.",
+      "bear_estimate": "SHEL $3,009 CAD (‑5% price move)",
+      "bear_probability": 20
+    },
+    {
+      "title": "September U.S. Jobs Surprise Beats Consensus",
       "category": "macro-economic",
-      "impact": "LOW",
+      "impact": "MED",
       "confidence": 70,
-      "body": "Eurozone GDP data released today showed a slowdown, prompting the ECB to keep rates steady. The weaker euro may benefit Canadian exporters and the energy sector, offering modest upside to ENB.TO and SHEL.",
-      "bull": "A softer euro supports commodity prices, aiding Canadian energy stocks.",
-      "bull_estimate": "ENB.TO $5,460 * 0.4% ≈ +$22 CAD",
-      "bull_probability": 30,
-      "base": "Stable eurozone conditions keep current valuations unchanged.",
-      "base_estimate": "No net impact",
-      "base_probability": 50,
-      "bear": "If eurozone weakness deepens, demand for energy could falter.",
-      "bear_estimate": "SHEL $3,009 * -0.5% ≈ -$15 CAD",
+      "body": "Prediction‑market data suggests September payrolls topped expectations, bolstering the case for a stronger USD. A firmer Canadian dollar reduces the CAD value of the portfolio’s USD‑denominated holdings.",
+      "bull": "Higher US employment supports equity rally, offsetting modest FX drag.",
+      "bull_estimate": "USD/CAD 1.4177 → 1.4277 (+0.01) = $1,679 CAD impact on USD notional",
+      "bull_probability": 40,
+      "base": "Jobs data leads to limited USD appreciation.",
+      "base_estimate": "USD/CAD 1.4177 → 1.4227 (+0.005) = $839 CAD impact",
+      "base_probability": 40,
+      "bear": "Stronger USD erodes CAD value of $167,863 USD notional.",
+      "bear_estimate": "USD/CAD 1.4177 → 1.4477 (+0.03) = $5,037 CAD impact",
       "bear_probability": 20
     }
   ],
   "news": [
     {
-      "headline": "Coinbase Ventures and CMCC Global close strategic funding round",
-      "impact": "MED",
-      "confidence": 70,
+      "headline": "US sanctions 10 firms over alleged Iran weapons procurement",
+      "impact": "HIGH",
+      "confidence": 80,
       "category": "Sector & Stock",
-      "body": "The funding round signals continued institutional interest in crypto infrastructure, which could lift sentiment for Bitcoin‑related assets. GBTC, the portfolio’s sole crypto exposure, may see price support.",
-      "exposure": "GBTC $2,284 CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 40,
-          "scenario": "Positive crypto market flow lifts GBTC price.",
-          "estimate": "GBTC $2,284 * 5% ≈ +$114 CAD"
-        },
-        {
-          "label": "Base",
-          "probability": 45,
-          "scenario": "Crypto remains range‑bound, GBTC stable.",
-          "estimate": "GBTC $2,284 * 0% = $0 CAD"
-        },
-        {
-          "label": "Bear",
-          "probability": 15,
-          "scenario": "Regulatory headwinds depress Bitcoin, pulling GBTC down.",
-          "estimate": "GBTC $2,284 * -8% ≈ -$183 CAD"
-        }
-      ]
-    },
-    {
-      "headline": "Cramer weighs in on Goldman amid CEO succession talks — plus, Boeing bounces back",
-      "impact": "MED",
-      "confidence": 65,
-      "category": "Sector & Stock",
-      "body": "Cramer’s bullish take on Goldman Sachs could lift financial sector sentiment. Canadian banks in the portfolio (CM.TO, RY.TO, BMO.TO) may benefit from spill‑over optimism.",
-      "exposure": "CM.TO $15,113 CAD, RY.TO $5,416 CAD, BMO.TO $3,640 CAD",
+      "body": "The sanctions raise geopolitical risk for oil exporters and could tighten global supply. Canadian energy holdings ENB.TO and SHEL are directly exposed to any price movement.",
+      "exposure": "ENB.TO $5,460 CAD, SHEL $3,009 CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 35,
-          "scenario": "Financials rally on positive coverage.",
-          "estimate": "CM.TO $15,113 * 3% ≈ +$453 CAD"
+          "scenario": "Sanctions cause a short‑term oil rally, boosting energy stocks.",
+          "estimate": "ENB.TO $5,460 CAD (+3% price move)"
+        },
+        {
+          "label": "Base",
+          "probability": 45,
+          "scenario": "Markets price in risk without major price swings.",
+          "estimate": "ENB.TO $5,460 CAD (0% change)"
+        },
+        {
+          "label": "Bear",
+          "probability": 20,
+          "scenario": "Escalation drags oil lower, hurting energy exposure.",
+          "estimate": "SHEL $3,009 CAD (‑4% price move)"
+        }
+      ]
+    },
+    {
+      "headline": "U.S. to loan up to 40 M barrels of oil from the SPR",
+      "impact": "MED",
+      "confidence": 70,
+      "category": "Sector & Stock",
+      "body": "The emergency loan adds supply, likely capping crude price gains. Canadian energy equities ENB.TO and SHEL may feel downward pressure.",
+      "exposure": "ENB.TO $5,460 CAD, SHEL $3,009 CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 30,
+          "scenario": "Limited release keeps prices firm, supporting energy stocks.",
+          "estimate": "ENB.TO $5,460 CAD (+2% price move)"
         },
         {
           "label": "Base",
           "probability": 50,
-          "scenario": "No material change to Canadian banks.",
-          "estimate": "RY.TO $5,416 * 0% = $0 CAD"
+          "scenario": "Supply boost modest; prices stabilize.",
+          "estimate": "SHEL $3,009 CAD (0% change)"
         },
         {
           "label": "Bear",
-          "probability": 15,
-          "scenario": "Market doubts over US bank earnings spill over.",
-          "estimate": "BMO.TO $3,640 * -4% ≈ -$146 CAD"
+          "probability": 20,
+          "scenario": "Large release depresses crude, hurting energy holdings.",
+          "estimate": "SHEL $3,009 CAD (‑5% price move)"
         }
       ]
     },
     {
-      "headline": "Iranian costs of war push oil prices higher",
-      "impact": "HIGH",
-      "confidence": 80,
+      "headline": "Prediction markets see stronger September US job numbers",
+      "impact": "MED",
+      "confidence": 75,
       "category": "Sector & Stock",
-      "body": "Escalating war costs in Iran are driving crude prices up, benefitting energy producers. ENB.TO, SHEL, and ET have direct exposure to oil and gas price movements.",
-      "exposure": "ENB.TO $5,460 CAD, SHEL $3,009 CAD, ET $1,710 CAD",
+      "body": "Better‑than‑expected payrolls suggest a firmer USD, which translates into translation drag on the portfolio’s $167,863 USD notional exposure.",
+      "exposure": "USD exposure $167,863 USD notional (CAD $237,979)",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 45,
-          "scenario": "Oil spikes boost earnings for energy stocks.",
-          "estimate": "ENB.TO $5,460 * 4% ≈ +$218 CAD"
+          "probability": 40,
+          "scenario": "USD strengthens modestly, but equity gains offset FX loss.",
+          "estimate": "USD/CAD +0.01 = $1,679 CAD impact"
         },
         {
           "label": "Base",
           "probability": 40,
-          "scenario": "Oil stabilises, modest impact.",
-          "estimate": "SHEL $3,009 * 1% ≈ +$30 CAD"
+          "scenario": "Limited USD move, small translation effect.",
+          "estimate": "USD/CAD +0.005 = $839 CAD impact"
         },
         {
           "label": "Bear",
-          "probability": 15,
-          "scenario": "Geopolitical de‑escalation pulls oil lower.",
-          "estimate": "ET $1,710 * -5% ≈ -$86 CAD"
+          "probability": 20,
+          "scenario": "Significant USD appreciation erodes CAD value of USD assets.",
+          "estimate": "USD/CAD +0.03 = $5,037 CAD impact"
         }
       ]
     }
   ],
-  "daily_outlook": "Today's mix of heightened geopolitical risk and mixed financial‑sector sentiment suggests a volatile but potentially rewarding day for the portfolio, with energy and crypto exposures poised for upside while leveraged ETFs remain sensitive to rate moves.",
+  "daily_outlook": "Today's mix of geopolitical sanctions, U.S. oil reserve releases, and stronger‑than‑expected job data creates a nuanced environment: energy exposure faces both upside from supply risk and downside from added crude supply, while a firmer USD adds translation drag to the portfolio's large USD notional.",
   "market_mood": "mixed",
   "risks": [
     {
-      "title": "Leverage Decay Risk – 3x ETFs in Elevated Volatility",
+      "title": "Leverage Decay Risk – 3x ETFs",
       "level": "HIGH",
-      "context": "Leveraged ETFs (FNGU $66,493, SPXL $60,927, UDOW $19,001, SOXL $12,711) total $159,132 CAD, representing 51% of portfolio value.",
-      "body": "With VIX above 22, daily compounding can erode returns of 3x ETFs, especially in a choppy market. Any sustained sideways movement will disproportionately hurt these positions versus long‑only equity."
+      "context": "Combined CAD value of leveraged ETFs (FNGU $66,493 + SPXL $60,927 + UDOW $19,001 + SOXL $12,711) = $159,132 (51% of portfolio). VIX >22 increases daily decay.",
+      "body": "The portfolio’s over‑half exposure to 3‑times leveraged ETFs makes it vulnerable to volatility spikes, which erode value even if the underlying indices recover. With VIX hovering above 22, daily decay can materially reduce the CAD balance."
     },
     {
-      "title": "USD/CAD Translation Drag on USD‑Heavy Holdings",
+      "title": "FX Exposure Drag – USD/CAD Translation",
       "level": "MED",
-      "context": "USD exposure $167,863 USD (≈ $237,979 CAD) at a rate of 1.4177. A 0.01 CAD move changes portfolio value by $1,679 CAD.",
-      "body": "A modest appreciation of the CAD would reduce the CAD value of all USD‑denominated assets, notably the leveraged ETFs and tech stocks priced in USD, creating a hidden drag on returns."
+      "context": "USD notional $167,863 (76% of total USD exposure). A 0.01 CAD move changes the book by $1,679 CAD.",
+      "body": "Because the majority of holdings are USD‑denominated, any adverse shift in the CAD/USD rate directly reduces portfolio value. The current 1.4177 rate leaves limited buffer for further CAD depreciation."
     },
     {
-      "title": "Tech Mega‑Cap Concentration – Single‑Stock Tail Risk",
+      "title": "Tech Earnings Concentration",
       "level": "MED",
-      "context": "Top five tech holdings (NVDA $12,978, AVGO $14,868, TSM $9,630, MSFT $1,444, AAPL $1,919) sum $41,839 CAD, ~13% of portfolio.",
-      "body": "Heavy reliance on a few semiconductor and cloud leaders makes the portfolio vulnerable to sector‑specific shocks, regulatory changes, or earnings disappointments."
+      "context": "Top tech holdings total CAD $24,424 (NVDA $12,978 + AAPL $1,919 + MSFT $1,444 + TSLA $7,095 + QCOM $1,329 + AVGO $14,868).",
+      "body": "A significant portion of the portfolio is tied to a handful of high‑growth tech stocks. Missed earnings or sector pull‑back could disproportionately affect overall performance."
     }
   ],
   "picks": [
     {
-      "ticker": "AMD",
+      "ticker": "NET",
       "action": "NEW",
       "account": "RRSP",
-      "thesis": "AMD benefits from the ongoing 2nm ramp at TSMC and rising demand for high‑performance compute, offering a lower‑priced alternative to NVDA while diversifying the semiconductor exposure.",
-      "entry": "Target entry around $95‑$105 CAD per share; monitor Q4 earnings for upside catalyst."
+      "thesis": "Cloudflare (NET) benefits from rising demand for edge‑computing and security services, a sector less correlated with pure AI hardware exposure. Adding NET diversifies the tech tilt while staying within a growth theme.",
+      "entry": "Target entry $115‑$125 CAD per share; monitor quarterly earnings for margin expansion."
     },
     {
-      "ticker": "NPI.TO",
+      "ticker": "BNS.TO",
       "action": "NEW",
       "account": "RRSP",
-      "thesis": "Northland Power’s growing renewable pipeline and stable dividend provide a Canadian‑currency hedge and reduce overall USD exposure.",
-      "entry": "Consider buying on pull‑backs near $30 CAD; watch for quarterly dividend announcement."
-    },
-    {
-      "ticker": "MRNA",
-      "action": "NEW",
-      "account": "RRSP",
-      "thesis": "Moderna’s mRNA platform is expanding into oncology and rare diseases, delivering growth potential outside the saturated COVID‑19 vaccine market.",
-      "entry": "Enter between $120‑$130 CAD; catalyst is the upcoming Phase 3 data for its oncology pipeline."
+      "thesis": "Bank of Nova Scotia (BNS) offers solid dividend yield and exposure to Canadian financials, offsetting the portfolio’s heavy US‑tech bias and providing a natural hedge against CAD depreciation.",
+      "entry": "Consider buying near $85‑$90 CAD; watch Bank of Canada policy decision for rate‑sensitivity impact."
     }
   ],
   "strengths": [
     {
       "ticker": "FNGU",
-      "text": "Large notional exposure to the high‑growth FAANG sector via a 3x leveraged ETF, amplifying upside when tech earnings stay strong."
+      "text": "Large CAD allocation to a high‑growth leveraged ETF captures upside from continued tech rally while remaining in a tax‑sheltered Investment account."
+    },
+    {
+      "ticker": "NVDA",
+      "text": "Nvidia’s $235 B share‑buyback program supports price support and reflects strong balance sheet, enhancing the position’s long‑term upside."
     },
     {
       "ticker": "RRSP",
-      "text": "All USD‑denominated holdings sit inside a tax‑deferred RRSP, allowing deferral of foreign tax credits and reducing immediate tax drag."
+      "text": "RRSP shelter defers tax on US‑denominated gains and allows foreign tax credits, preserving after‑tax returns for the non‑resident year."
     },
     {
-      "ticker": "ENB.TO",
-      "text": "Energy infrastructure position provides dividend yield and a hedge against rising oil prices from Middle‑East supply tightness."
+      "ticker": "FHSA",
+      "text": "Existing FHSA exposure to Canadian equities (ENB, BMO, RY) provides a low‑cost basis for future home‑purchase financing."
     },
     {
-      "ticker": "V",
-      "text": "Visa offers exposure to global payments growth with a low‑beta, defensive characteristic that balances high‑volatility tech."
-    },
-    {
-      "ticker": "TSM",
-      "text": "Direct stake in the world’s leading semiconductor foundry, positioned to benefit from the 2nm production ramp."
+      "ticker": null,
+      "text": "Diversified sector mix includes energy (ENB, SHEL), fintech (IBKR), and consumer staples (COST), offering some resilience against sector‑specific shocks."
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "Over 50% of portfolio is in leveraged ETFs, creating outsized volatility and decay risk in a rising‑rate environment."
+      "text": "Uninvested cash in the RRSP (approx. $30‑$40 K) is subject to cash‑drag, especially in a rising rate environment."
+    },
+    {
+      "ticker": "UDOW",
+      "text": "Overlap between Dow‑focused UDOW and S&P‑focused SPXL creates redundant exposure, amplifying correlation risk."
+    },
+    {
+      "ticker": "BYDDF",
+      "text": "Tiny position ($42 CAD) in BYD offers negligible diversification but adds liquidity risk if a sale is needed."
     },
     {
       "ticker": null,
-      "text": "Uninvested cash in the RRSP (~$10‑$15K CAD) is subject to cash‑drag, especially given the investor’s high risk tolerance and growth goal."
+      "text": "High concentration in US‑tech mega‑caps reduces geographic diversification and increases sensitivity to US regulatory changes."
     },
     {
       "ticker": null,
-      "text": "High correlation between US tech holdings (NVDA, AVGO, MSFT, AAPL) reduces diversification benefits."
-    },
-    {
-      "ticker": null,
-      "text": "FX exposure: 76% of portfolio value is denominated in USD, making the portfolio sensitive to CAD appreciation."
-    },
-    {
-      "ticker": null,
-      "text": "Account rule constraint: No new contributions can be made to FHSA or TFSA in 2026, limiting tax‑sheltered capacity for new positions."
+      "text": "Account‑rule constraint (no new TFSA/FHSA contributions in 2026) limits tax‑efficient capacity for fresh capital."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Trim leveraged exposure by reallocating up to $30,000 CAD from FNGU/SPXL into the newly added Northland Power (NPI.TO) to lower volatility and hedge CAD."
+      "text": "Trim leveraged ETF exposure by reallocating up to $30 K from FNGU/SPXL to the newly added defensive picks (NET, BNS) to reduce decay risk."
     },
     {
       "num": "02",
-      "text": "Implement a modest USD/CAD forward hedge covering $50,000 CAD of USD exposure to mitigate near‑term translation risk."
+      "text": "Implement a modest USD/CAD hedge using a 3‑month forward contract covering $50 K USD notional to limit translation drag."
     },
     {
       "num": "03",
-      "text": "Monitor Q4 earnings of NVDA, AVGO, and AMD; consider adding to AMD if earnings beat expectations, while keeping NVDA core position untouched."
+      "text": "Deploy idle RRSP cash into a short‑term Canadian bond ETF (e.g., XBB) to earn yield while awaiting the next rate decision."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Gradually increase Canadian dividend‑paying stocks (e.g., BMO.TO, RY.TO) within the RRSP to build a stable cash‑flow base as the investor approaches the home‑purchase horizon."
+      "text": "Gradually increase Canadian equity exposure (financials, utilities) to balance the US‑tech tilt and capture potential CAD appreciation over the next 12‑18 months."
     },
     {
       "num": "02",
-      "text": "Rebalance sector weightings by adding a small allocation (~$15,000 CAD) to healthcare (e.g., Pfizer, PFE) to diversify away from tech concentration."
+      "text": "Begin a systematic rebalancing plan that caps any single‑stock weight at 5% of total portfolio to mitigate single‑stock tail risk."
     },
     {
       "num": "03",
-      "text": "Plan a partial conversion of the FHSA balance into a low‑cost Canadian equity ETF (e.g., VCN) once FHSA room reopens in 2027, preserving tax shelter for the home‑down‑payment."
+      "text": "Explore adding a diversified global REIT fund within the RRSP to provide income and inflation protection ahead of the home‑purchase timeline."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Shift a portion of the high‑beta leveraged exposure into a diversified global equity fund (e.g., Vanguard FTSE All‑World Index) to reduce long‑term volatility while maintaining growth."
+      "text": "Structure the FHSA and RRSP contributions to maximize the Home Buyers’ Plan (HBP) drawdown in 2027, ensuring sufficient CAD liquidity for the down‑payment."
     },
     {
       "num": "02",
-      "text": "Establish a permanent USD‑hedged bond allocation within the RRSP (e.g., iShares Core Canadian Universe Bond Index) to provide income and offset future CAD appreciation."
+      "text": "Shift a portion of the high‑growth tech allocation into sustainable infrastructure equities (e.g., renewable energy leaders) to align with a 10‑year ESG‑focused growth horizon."
     },
     {
       "num": "03",
-      "text": "Set up a systematic contribution plan for the RRSP post‑2027 to capitalize on the anticipated lower‑rate environment and to rebuild the retirement nest‑egg before repatriation."
+      "text": "Plan for a gradual transition from leveraged ETFs to low‑volatility dividend aristocrats as the investor approaches retirement age, preserving capital while maintaining income."
     }
   ],
   "tax": [
     {
       "ticker": null,
-      "text": "All US‑based holdings remain inside the RRSP, allowing the investor to claim foreign tax credits against Canadian tax liability when the RRSP is eventually withdrawn."
+      "text": "All US‑based holdings generate US dividend income; ensure foreign tax credits are claimed on the Canadian return to offset the 15% US withholding."
     },
     {
       "ticker": null,
-      "text": "Since FHSA and TFSA contribution rooms are frozen for 2026, any new purchases must be directed to the RRSP to retain tax‑deferral benefits."
+      "text": "RRSP contributions remain deductible; keep records of any future HBP withdrawals to avoid penalties and to track repayment schedule."
     },
     {
       "ticker": null,
-      "text": "When the investor returns to Canada in March 2027, consider a strategic RRSP withdrawal schedule to minimize marginal tax rates and to fund the FHSA home‑purchase withdrawal."
+      "text": "Capital gains on Canadian securities (e.g., ENB, RY) are sheltered within FHSA/RRSP, preserving tax‑free growth for the home‑purchase goal."
+    },
+    {
+      "ticker": null,
+      "text": "Monitor the $1,679 CAD impact per 0.01 CAD move in USD/CAD; large FX swings could affect the timing of taxable events when converting USD proceeds back to CAD."
     }
   ],
-  "generated_at": "2026-09-29T16:50:49.256518+00:00",
+  "generated_at": "2026-09-29T20:01:14.017000+00:00",
   "generated_date": "September 29, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": [],
@@ -289,16 +286,16 @@
       "date": "2026-09-29",
       "themes": [
         {
-          "category": "fx",
-          "title": "BoC Rate Decision Looms, CAD/USD Volatility Peaks"
+          "category": "regulatory",
+          "title": "US Sanctions Target Iranian Weapons Procurement"
         },
         {
-          "category": "credit",
-          "title": "Corporate Credit Spreads Tighten as Treasury Yields Rise"
+          "category": "commodities",
+          "title": "U.S. Strategic Petroleum Reserve Releases 40 M Barrels"
         },
         {
           "category": "macro-economic",
-          "title": "Eurozone Growth Slows, ECB Holds Rates"
+          "title": "September U.S. Jobs Surprise Beats Consensus"
         }
       ]
     },
@@ -408,6 +405,33 @@
   "macro_history": [
     {
       "date": "2026-09-29",
+      "category": "regulatory",
+      "title": "US Sanctions Target Iranian Weapons Procurement",
+      "body": "The Treasury's new sanctions on ten entities linked to Iranian arms purchases tighten geopolitical risk for energy exporters. Canadian oil majors with exposure to Middle‑East markets may see price pressure and heightened volatility.",
+      "bull": "Energy stocks could rally on a short‑term supply squeeze.",
+      "base": "Markets price in modest risk premium without major price swings.",
+      "bear": "Escalating tensions depress oil prices and hurt Canadian energy earnings."
+    },
+    {
+      "date": "2026-09-29",
+      "category": "commodities",
+      "title": "U.S. Strategic Petroleum Reserve Releases 40 M Barrels",
+      "body": "The U.S. Energy Department's decision to loan 40 million barrels from the SPR adds temporary supply, likely capping crude price gains. Lower Brent can weigh on North American energy equities.",
+      "bull": "If the loan is limited, oil prices stay firm supporting ENB and SHEL.",
+      "base": "Supply boost is modest; prices stabilize.",
+      "bear": "A larger-than‑expected release drags crude lower, hurting energy exposure."
+    },
+    {
+      "date": "2026-09-29",
+      "category": "macro-economic",
+      "title": "September U.S. Jobs Surprise Beats Consensus",
+      "body": "Prediction‑market data suggests September payrolls topped expectations, bolstering the case for a stronger USD. A firmer Canadian dollar reduces the CAD value of the portfolio’s USD‑denominated holdings.",
+      "bull": "Higher US employment supports equity rally, offsetting modest FX drag.",
+      "base": "Jobs data leads to limited USD appreciation.",
+      "bear": "Stronger USD erodes CAD value of $167,863 USD notional."
+    },
+    {
+      "date": "2026-09-29",
       "category": "fx",
       "title": "BoC Rate Decision Looms, CAD/USD Volatility Peaks",
       "body": "The Bank of Canada is set to announce its policy rate tomorrow, with markets expecting a hold at 4.75% amid sticky inflation. A surprise move would trigger sharp CAD swings, directly affecting the portfolio’s $167,863 USD notional exposure (≈ $237,979 CAD).",
@@ -513,40 +537,15 @@
       "bull": "A deeper slowdown could depress oil prices, benefitting ENB’s hedged pipeline business.",
       "base": "Modest impact on commodity exposure; no immediate portfolio shift.",
       "bear": "If the slowdown triggers broader risk‑off sentiment, demand for oil and semis could fall, hitting ENB, SHEL, and TSM."
-    },
-    {
-      "date": "2026-09-25",
-      "category": "macro-economic",
-      "title": "Canadian Housing Market Cooling Slows Mortgage Growth",
-      "body": "Recent Bank of Canada data show a deceleration in new mortgage originations as home price appreciation eases in the GTA. For a high‑risk investor planning a FHSA‑funded down‑payment, slower price gains reduce the urgency for rapid equity growth but keep cash needs modest.",
-      "bull": "If the slowdown persists, the investor can allocate more RRSP cash to growth assets without fearing a near‑term housing‑price surge.",
-      "base": "Housing market remains stable; no major shift in portfolio allocation needed.",
-      "bear": "A sudden rebound in housing prices could pressure the investor to divert funds from the portfolio to meet a larger down‑payment."
-    },
-    {
-      "date": "2026-09-25",
-      "category": "credit",
-      "title": "US Corporate Credit Spreads Tighten Amid Lower Energy Prices",
-      "body": "Energy price moderation has improved cash flows for US industrial firms, narrowing BBB‑BBB+ spreads. Canadian financials with US exposure, such as Royal Bank (RY.TO) and CIBC (CM.TO), could see modest earnings uplift from lower funding costs.",
-      "bull": "Tighter spreads boost net interest margins for RY.TO ($5,360) and CM.TO ($14,959).",
-      "base": "Spread compression remains incremental; earnings stay near current levels.",
-      "bear": "If spreads widen again, funding costs rise and margins compress."
-    },
-    {
-      "date": "2026-09-25",
-      "category": "regulatory",
-      "title": "Canadian Securities Regulators Tighten Disclosure on Crypto‑Related Assets",
-      "body": "The CSA is proposing stricter reporting for holdings like Grayscale Bitcoin Trust (GBTC). While the portfolio’s GBTC position is modest ($2,306 CAD), any regulatory friction could affect liquidity and valuation.",
-      "bull": "Clearer rules may attract institutional investors, modestly supporting GBTC price.",
-      "base": "Regulation proceeds without major market disruption.",
-      "bear": "Delays or punitive measures could depress GBTC sentiment."
     }
   ],
   "risk_history": [
+    "Leverage Decay Risk – 3x ETFs",
+    "FX Exposure Drag – USD/CAD Translation",
+    "Tech Earnings Concentration",
     "Leverage Decay Risk – 3x ETFs in Elevated Volatility",
     "USD/CAD Translation Drag on USD‑Heavy Holdings",
     "Tech Mega‑Cap Concentration – Single‑Stock Tail Risk",
-    "Leverage Decay Risk – 3x ETFs",
     "USD/CAD Translation Drag",
     "Single‑Stock Tail Risk – NVIDIA (NVDA)",
     "Leverage Volatility Decay Risk",
@@ -555,8 +554,6 @@
     "Earnings Concentration – Tech Mega‑Cap Cluster",
     "Tech Concentration – Single‑Stock Tail Risk",
     "FX Exposure Drag – USD/CAD Translation Sensitivity",
-    "Tech Mega‑Cap Earnings Concentration",
-    "Leverage Amplification Risk",
-    "Single‑Stock Tail Risk – NVIDIA"
+    "Tech Mega‑Cap Earnings Concentration"
   ]
 }

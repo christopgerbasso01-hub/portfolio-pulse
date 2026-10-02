@@ -10605,18 +10605,28 @@ function updateHoldingsGlance(acctKey){
       isPos=!dayDolTxt.startsWith('-')&&!dayDolTxt.startsWith('−');
     }
   } else {
-    var prefixMap={TFSA:'m-tfsa',FHSA:'m-fhsa',RRSP:'m-rrsp',Investment:'m-inv'};
-    var prefix=prefixMap[acctKey];
     acctLbl=acctKey==='Investment'?'Non-Reg':acctKey;
-    if(prefix){
-      var chgEl=document.getElementById(prefix+'-chg');
-      if(chgEl){dayDolTxt=chgEl.textContent.trim();isPos=chgEl.classList.contains('up');}
-      var abKey='ab'+(acctKey==='Investment'?'Inv':acctKey)+'Chg';
-      var srcChg=document.getElementById(abKey);
-      if(srcChg&&srcChg.dataset.rawPct!==undefined){
-        var rpn=parseFloat(srcChg.dataset.rawPct);
-        dayPctTxt=(rpn>=0?'+':'')+rpn.toFixed(2)+'%';
+    /* Read the account's daily change from the Account Balance Strip, which is
+       what actually computes it and stores dataset.rawChg / rawPct.
+
+       This used to read #m-tfsa-chg / #m-fhsa-chg / #m-rrsp-chg / #m-inv-chg.
+       Those elements were removed in the mobile redesign, so getElementById
+       returned null on every account and the dollar figure never left its '—'
+       default — only the percent, which already came from ab*Chg, survived.
+
+       rawChg is the signed number, so this also avoids the strip's own text,
+       which builds its label with Math.abs() and so drops the minus on a down
+       day, leaving colour as the only cue. */
+    var abKey='ab'+(acctKey==='Investment'?'Inv':acctKey)+'Chg';
+    var srcChg=document.getElementById(abKey);
+    if(srcChg){
+      var rawChg=srcChg.dataset.rawChg!==undefined?parseFloat(srcChg.dataset.rawChg):NaN;
+      if(!isNaN(rawChg)){
+        isPos=rawChg>=0;
+        dayDolTxt=(isPos?'+':'-')+'$'+Math.round(Math.abs(rawChg)).toLocaleString();
       }
+      var rpn=srcChg.dataset.rawPct!==undefined?parseFloat(srcChg.dataset.rawPct):NaN;
+      if(!isNaN(rpn))dayPctTxt=(rpn>=0?'+':'')+rpn.toFixed(2)+'%';
     }
   }
   if(portLblEl)portLblEl.textContent=acctLbl;

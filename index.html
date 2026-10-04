@@ -1124,6 +1124,23 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .m-pod-brief-l{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);font-weight:700;margin-bottom:6px;}
 .m-pod-brief-item{font-size:10px;color:var(--t2);padding:4px 0;border-bottom:1px solid var(--bd);display:flex;gap:6px;line-height:1.4;}
 .m-pod-brief-item:last-child{border-bottom:none;}
+.m-pod-tr-btn{width:100%;margin-top:10px;padding:9px;border-radius:9px;border:1px solid var(--bd);
+  background:var(--surf2);color:var(--t2);font-size:11px;font-weight:700;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.m-pod-tr-btn.on{border-color:var(--cyan);color:var(--cyan);}
+#m-pod-tr-panel{margin-top:8px;}
+.m-pod-tr-eps{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;}
+.m-pod-tr-eps::-webkit-scrollbar{display:none;}
+.m-pod-tr-ep{flex-shrink:0;padding:5px 11px;border-radius:14px;border:1px solid var(--bd);
+  font-size:10px;font-weight:700;color:var(--t2);cursor:pointer;white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;}
+.m-pod-tr-ep.on{background:var(--cyan);color:#040e1e;border-color:var(--cyan);}
+.m-pod-tr-body{background:var(--surf2);border:1px solid var(--bd);border-radius:10px;padding:12px;
+  max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  font-size:11px;line-height:1.6;color:var(--t2);}
+.m-pod-tr-line{margin-bottom:9px;}
+.m-pod-tr-spk{font-weight:800;color:var(--cyan);margin-right:5px;}
+.m-pod-tr-spk.sam{color:var(--green);}
 .m-ep-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer;}
 .m-ep-row:last-child{border-bottom:none;}
 .m-ep-num{width:24px;height:24px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
@@ -2498,6 +2515,27 @@ const CONFIG = {
 // kept only as a last-resort fallback for any future new positions.
 const USD_BOOK_RATE = 1.3925;
 
+/* True FX translation gain: every USD position revalued from the rate it was
+   bought at to today's rate.
+
+   This replaces a figure labelled "FX" that was actually a residual — total P&L
+   minus unrealized minus realized. That is not FX at all. The genuine
+   translation gain already sits inside `unrealized`, because market value is
+   struck at today's rate while the cost basis uses book_rate; what the residual
+   really captured was fees and contribution-tracking drift. With USD/CAD at a
+   five-year high the tile showed a loss while the real gain was over +$8,000. */
+function _fxTranslationGain(holdings, hPrices, usdcad) {
+  let g = 0;
+  (holdings || []).forEach(h => {
+    if (h.ccy !== 'USD') return;
+    const br = h.book_rate || USD_BOOK_RATE;
+    const px = ((hPrices || {})[h.ticker] || {}).price || 0;
+    if (!px || !br) return;
+    g += px * h.shares * (usdcad - br);
+  });
+  return g;
+}
+
 const _HOLDINGS_BASE = [
   {ticker:"SPXL",name:"S&P500 3x ETF",account:"Investment",sector:"Leveraged ETF",shares:75,cost_total:9785.05,unrealized:13993.28,realized:169.19,total_pnl:14162.47,pct_return:104.71,weight:10.51,book_rate:1.37585,dividends:169.19,ccy:"USD"},
   {ticker:"FNGU",name:"FANG+ 3x ETF",account:"Investment",sector:"Leveraged ETF",shares:665,cost_total:13266.68,unrealized:8142.17,realized:0.0,total_pnl:8142.17,pct_return:44.89,weight:10.10,book_rate:1.37735,dividends:0.0,ccy:"USD"},
@@ -2805,12 +2843,17 @@ function updateHeaderKPIs(data) {
   // FX Impact = Total P&L residual after stripping unrealized and realized
   // i.e. the portion of P&L attributable to currency translation
   const totalPnlClient = sumMktVal - CONTRIB_TOTAL();
-  sumFX = Math.round(totalPnlClient - sumUnrealized - sumRealized);
+  const _fxGain   = _fxTranslationGain(HOLDINGS_STATIC, hPrices, usdcad);
+  const _residual = totalPnlClient - sumUnrealized - sumRealized;
+  sumFX = Math.round(_fxGain);
+  /* Unrealized is shown ex-FX so the two are not double counted, and it absorbs
+     the leftover residual so the three cards still sum to total P&L. */
+  const _unrealDisp = sumUnrealized - _fxGain + _residual;
 
   // ── Update the four live cards ────────────────────────────────────────────
   const unrealEl = document.getElementById('cardUnrealized');
-  unrealEl.textContent = fmt$(Math.round(sumUnrealized));
-  unrealEl.className = `hkpi-value ${colorClass(sumUnrealized)}`;
+  unrealEl.textContent = fmt$(Math.round(_unrealDisp));
+  unrealEl.className = `hkpi-value ${colorClass(_unrealDisp)}`;
 
   const realEl = document.getElementById('cardRealized');
   realEl.textContent = fmt$(Math.round(sumRealized));
@@ -3789,7 +3832,12 @@ function _heroScopedStats(data, acctKey) {
   // FX impact = P&L residual after stripping unrealized and realized.
   // Uses the single-counted sumRealized, exactly as updateHeaderKPIs does.
   const totalPnlClient = sumMktVal - contrib;
-  const fx = Math.round(totalPnlClient - sumUnrealized - sumRealized);
+  const fxGain   = _fxTranslationGain(holdings, hPrices, usdcad);
+  const residual = totalPnlClient - sumUnrealized - sumRealized;
+  const fx = Math.round(fxGain);
+  /* Reported ex-FX, absorbing the residual, so unrealized + realized + fx still
+     reconciles exactly to total P&L. */
+  const unrealizedExFx = sumUnrealized - fxGain + residual;
 
   // Closed positions are already in sumRealized, FX-converted at book_rate.
   // The duplicate raw-CAD pass that used to sit here was removed alongside the
@@ -3812,7 +3860,7 @@ function _heroScopedStats(data, acctKey) {
   const pnlPct   = costBase > 0 ? ((mktVal - costBase) / costBase * 100) : 0;
 
   return { mktVal, dc, dcp, pnl, pnlPct, contrib, fx, dividends,
-           cash: sumCash, unrealized: sumUnrealized, realized: sumRealized };
+           cash: sumCash, unrealized: unrealizedExFx, realized: sumRealized };
 }
 
 const _HERO_ACCT_MAP   = { all: null, tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' };
@@ -4022,7 +4070,7 @@ function updateAccountFooters(data) {
     const m = metrics(acctKey);
     // % = daily gain / previous-close market value (same as header KPI)
     const dayPct = prevMV > 0 ? (acctDayChg / prevMV * 100) : 0;
-    const sign   = acctDayChg >= 0 ? '+' : '';
+    const sign   = acctDayChg >= 0 ? '+' : '\u2212';   // was '', so a down day lost its sign
     const valEl  = document.getElementById(valId);
     const chgEl  = document.getElementById(chgId);
     if (valEl) { valEl.textContent = fmt$k(m.acctVal); valEl.className = 'mw-value'; }
@@ -5265,6 +5313,20 @@ function generateAnalysis(data) {
   const port  = data.portfolio  || {};
   const usdcad = data.usdcad   || 1.38;
 
+  /* Live USD exposure. The percentage and the per-cent impact below were
+     hardcoded constants in several places. Both had gone stale, and the dollar
+     figure repeated the error fixed in the podcast: multiplying the CAD value
+     by the cent move rather than the USD notional. */
+  let _usdMV = 0;
+  (typeof HOLDINGS_STATIC !== 'undefined' ? HOLDINGS_STATIC : []).forEach(h => {
+    if (h.ccy !== 'USD') return;
+    const px = (hldgs[h.ticker] || {}).price || 0;
+    if (px) _usdMV += px * h.shares * usdcad;
+  });
+  const _totVal     = port.total_value || 0;
+  const _usdPctS    = (_totVal > 0 ? (_usdMV / _totVal * 100) : 0).toFixed(1) + '%';
+  const _fxPerCentS = '~$' + Math.round(_usdMV / usdcad * 0.01).toLocaleString();
+
   // Market metrics
   const spChg   = bench.sp500?.change_pct          || 0;
   const ndxChg  = bench.nasdaq?.change_pct         || 0;
@@ -5411,7 +5473,7 @@ function generateAnalysis(data) {
     macro.push({
       title: `USD/CAD at ${usdcad.toFixed(4)} — ${cadStrong ? 'Strong CAD Headwind' : 'Weak CAD Tailwind'} for USD Holdings`,
       impact: 'MED', confidence: 58,
-      body: `USD/CAD at ${usdcad.toFixed(4)} means your 68.7% USD-denominated holdings ${cadStrong ? 'face an FX headwind — each cent of CAD appreciation = ~$1,800 drag on the portfolio.' : 'benefit from an FX tailwind — each cent of CAD weakness adds ~$1,800 to portfolio value in CAD terms.'}${cadStrong ? ' A move from here to 1.30 would add ~$15,000 in additional FX drag on top of the existing -$2,521.' : ' This partially offsets any market weakness today.'}`,
+      body: `USD/CAD at ${usdcad.toFixed(4)} means your ${_usdPctS} USD-denominated holdings ${cadStrong ? 'face an FX headwind — each cent of CAD appreciation = ${_fxPerCentS} drag on the portfolio.' : 'benefit from an FX tailwind — each cent of CAD weakness adds ${_fxPerCentS} to portfolio value in CAD terms.'}${cadStrong ? ' A move from here to 1.30 would add ~$15,000 in additional FX drag on top of the existing -$2,521.' : ' This partially offsets any market weakness today.'}`,
       bull: `${cadStrong ? 'CAD weakens back to 1.42 → $8,000+ FX tailwind on USD book.' : 'CAD continues weakening to 1.45+ → add $5,000 FX benefit.'}`,
       base: `${cadStrong ? 'USD/CAD stabilizes near current levels — FX headwind contained.' : 'USD/CAD holds near current levels — FX benefit maintained.'}`,
       bear: `${cadStrong ? 'CAD strengthens further to 1.30 → FX drag expands to $18,000+.' : 'CAD reverses on trade optimism → FX tailwind evaporates.'}`,
@@ -5438,8 +5500,8 @@ function generateAnalysis(data) {
     {
       title: `USD/CAD Currency Translation (${usdcad.toFixed(4)})`,
       level: 'MED',
-      context: `68.7% USD exposure | FX at ${usdcad.toFixed(4)}`,
-      body: `With 68.7% of holdings USD-denominated, every 1-cent CAD move = ~$1,800 portfolio impact. ${cadStrong ? 'CAD is currently strong — headwind for USD positions.' : cadWeak ? 'CAD is currently weak — tailwind for USD positions.' : 'USD/CAD near neutral range.'} USMCA trade developments remain the primary CAD catalyst. Existing drag: -$2,521 cumulative.`,
+      context: `${_usdPctS} USD exposure | FX at ${usdcad.toFixed(4)}`,
+      body: `With ${_usdPctS} of holdings USD-denominated, every 1-cent CAD move = ${_fxPerCentS} portfolio impact. ${cadStrong ? 'CAD is currently strong — headwind for USD positions.' : cadWeak ? 'CAD is currently weak — tailwind for USD positions.' : 'USD/CAD near neutral range.'} USMCA trade developments remain the primary CAD catalyst. Existing drag: -$2,521 cumulative.`,
     },
     {
       title: rrspHasIdleCash ? `RRSP Idle Cash — ${fmt$(rrspCashCAD)} Opportunity Cost` : 'RRSP — Fully Deployed',
@@ -5476,8 +5538,8 @@ function generateAnalysis(data) {
   news.push({
     headline: `USD/CAD ${usdcad.toFixed(4)} — ${cadStrong ? 'CAD Strength Compressing Portfolio Value' : cadWeak ? 'CAD Weakness Boosting USD Holdings' : 'FX Neutral Backdrop · Cumulative Drag -$2,521'}`,
     impact: cadStrong ? 'MED' : 'LOW', category: 'Macro & Rates',
-    body: `USD/CAD at ${usdcad.toFixed(4)}. Your 68.7% USD exposure means ${cadStrong ? 'a strong CAD is reducing the CAD-value of SPXL, FNGU, NVDA etc. Each cent of further appreciation = ~$1,800 additional drag.' : cadWeak ? 'a weak CAD is inflating the CAD-value of US positions. Portfolio effectively getting a free boost vs. CAD benchmarks.' : 'FX is near neutral. The portfolio has already absorbed $2,521 in cumulative translation drag since inception.'}`,
-    exposure: `68.7% USD holdings. Every 1-cent USD/CAD move = ~$1,800 portfolio impact at current size (~$${Math.round(totalVal/1000)}K).`,
+    body: `USD/CAD at ${usdcad.toFixed(4)}. Your ${_usdPctS} USD exposure means ${cadStrong ? 'a strong CAD is reducing the CAD-value of SPXL, FNGU, NVDA etc. Each cent of further appreciation = ${_fxPerCentS} additional drag.' : cadWeak ? 'a weak CAD is inflating the CAD-value of US positions. Portfolio effectively getting a free boost vs. CAD benchmarks.' : 'FX is near neutral. The portfolio has already absorbed $2,521 in cumulative translation drag since inception.'}`,
+    exposure: `${_usdPctS} USD holdings. Every 1-cent USD/CAD move = ${_fxPerCentS} portfolio impact at current size (~$${Math.round(totalVal/1000)}K).`,
     scenarios: `🟢 Bull: CAD weakens to 1.45 → ~$10,000 FX tailwind. 🔴 Bear: CAD hits 1.30 → FX drag expands to ~$18,000.`,
   });
 
@@ -6465,6 +6527,7 @@ async function refreshAll() {
 
   function renderPodcast(m) {
     const hasEp = m.episode > 0 && m.duration_seconds > 0;
+    window.PP_POD_META = m;   // episode + archive, for the mobile transcript
 
     // Store per-episode data for on-demand card switching
     if (m.episode > 0) {
@@ -10876,6 +10939,65 @@ function updateHoldingsGlance(acctKey){
 }
 window._holdGlanceAcct='_summary';
 
+/* ════ PODCAST TRANSCRIPT ═══════════════════════════════════
+   Each episode's .txt sits beside its MP3 and had no way in. */
+var _trEp=null, _trOpen=false;
+
+function _trEsc(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');   // scripts carry markdown bold
+}
+
+function _mTrChips(m){
+  var dst=document.getElementById('m-pod-tr-eps');
+  if(!dst)return;
+  var eps=[];
+  if(m&&m.episode)eps.push(m.episode);
+  if(m&&m.archive)m.archive.forEach(function(a){ if(a.episode)eps.push(a.episode); });
+  dst.innerHTML=eps.map(function(n){
+    return'<div class="m-pod-tr-ep'+(n===_trEp?' on':'')+'" data-trep="'+n+'">EP '+n+'</div>';
+  }).join('');
+}
+
+window.mLoadTranscript=function(ep){
+  var body=document.getElementById('m-pod-tr-body');
+  if(!body)return;
+  _trEp=ep;
+  _mTrChips(window.PP_POD_META||{});
+  body.textContent='Loading episode '+ep+'…';
+  fetch('data/podcast_ep'+String(ep).padStart(3,'0')+'.txt?v='+Date.now())
+    .then(function(r){ if(!r.ok)throw new Error('missing'); return r.text(); })
+    .then(function(txt){
+      var html=txt.split('\n').map(function(l){return l.trim();}).filter(Boolean)
+        .map(function(l){
+          if(/^\[EDUCATION_TOPIC:/i.test(l))return'';      // marker, never spoken
+          var sp=/^(ALEX|SAM):\s*(.*)$/i.exec(l);
+          if(sp){
+            var cls='m-pod-tr-spk'+(sp[1].toUpperCase()==='SAM'?' sam':'');
+            return'<div class="m-pod-tr-line"><span class="'+cls+'">'+sp[1].toUpperCase()+'</span>'
+                   +_trEsc(sp[2])+'</div>';
+          }
+          return'<div class="m-pod-tr-line">'+_trEsc(l)+'</div>';
+        }).join('');
+      body.innerHTML=html||'<div class="m-pod-tr-line">Transcript is empty.</div>';
+    })
+    .catch(function(){ body.textContent='No transcript available for episode '+ep+'.'; });
+};
+
+window.mToggleTranscript=function(){
+  var panel=document.getElementById('m-pod-tr-panel');
+  var btn=document.getElementById('m-pod-tr-btn');
+  if(!panel)return;
+  _trOpen=!_trOpen;
+  panel.style.display=_trOpen?'block':'none';
+  if(btn)btn.classList.toggle('on',_trOpen);
+  if(!_trOpen)return;
+  var m=window.PP_POD_META||{};
+  if(_trEp==null)_trEp=m.episode||null;
+  _mTrChips(m);
+  if(_trEp!=null)window.mLoadTranscript(_trEp);
+};
+
 /* ════ HOLDINGS CARD BUILDER ════════════════════════════════ */
 function buildCards(){
   var dst=document.getElementById('m-hold-cards');
@@ -11048,6 +11170,10 @@ document.addEventListener('click',function(e){
     window.mSelectAcct(key,portTab);
     return;
   }
+
+  /* Podcast transcript — episode chips */
+  var trChip=t.closest('#m-pod-tr-eps [data-trep]');
+  if(trChip){ window.mLoadTranscript(parseInt(trChip.dataset.trep,10)); return; }
 
   /* Account detail table — sort headers */
   var adTh=t.closest('#m-acct-detail-card th[data-asort]');
@@ -12044,6 +12170,15 @@ document.addEventListener('DOMContentLoaded',function(){
           </button>
         </div>
       </div>
+      <!-- Transcript. The .txt sits beside every MP3 and used to be reachable
+           only by fetching it by hand. Speaker-only text since the episode-17
+           cleanup, so it renders directly. -->
+      <button class="m-pod-tr-btn" id="m-pod-tr-btn" onclick="mToggleTranscript()">Transcript</button>
+      <div id="m-pod-tr-panel" style="display:none">
+        <div class="m-pod-tr-eps" id="m-pod-tr-eps"></div>
+        <div class="m-pod-tr-body" id="m-pod-tr-body">Loading…</div>
+      </div>
+
       <div id="m-pod-brief" style="display:none"></div>
       <div id="m-pod-eps-label" style="display:none;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Previous Episodes</div>
       <div id="m-pod-eps"></div>

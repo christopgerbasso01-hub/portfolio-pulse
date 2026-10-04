@@ -2515,26 +2515,19 @@ const CONFIG = {
 // kept only as a last-resort fallback for any future new positions.
 const USD_BOOK_RATE = 1.3925;
 
-/* True FX translation gain: every USD position revalued from the rate it was
-   bought at to today's rate.
+/* ── Agreed definitions for the P&L figures ────────────────────────────────
+   Market Value  = CAD market value of all open holdings + cash.
+   Unrealized    = current CAD market value of open holdings
+                   − cost base at the booked CAD rate.
+   Realized      = CAD market value at the sell date
+                   − cost basis at the historic CAD rate.
+   FX            = the remainder, i.e. Market Value − contributions
+                   − Unrealized − Realized.
 
-   This replaces a figure labelled "FX" that was actually a residual — total P&L
-   minus unrealized minus realized. That is not FX at all. The genuine
-   translation gain already sits inside `unrealized`, because market value is
-   struck at today's rate while the cost basis uses book_rate; what the residual
-   really captured was fees and contribution-tracking drift. With USD/CAD at a
-   five-year high the tile showed a loss while the real gain was over +$8,000. */
-function _fxTranslationGain(holdings, hPrices, usdcad) {
-  let g = 0;
-  (holdings || []).forEach(h => {
-    if (h.ccy !== 'USD') return;
-    const br = h.book_rate || USD_BOOK_RATE;
-    const px = ((hPrices || {})[h.ticker] || {}).price || 0;
-    if (!px || !br) return;
-    g += px * h.shares * (usdcad - br);
-  });
-  return g;
-}
+   Because Unrealized marks holdings at today's rate while costing them at the
+   booked rate, currency translation is deliberately carried INSIDE Unrealized.
+   The FX line is therefore the leftover, not a translation gain. This was once
+   changed to report translation separately and reverted — leave it as is. */
 
 const _HOLDINGS_BASE = [
   {ticker:"SPXL",name:"S&P500 3x ETF",account:"Investment",sector:"Leveraged ETF",shares:75,cost_total:9785.05,unrealized:13993.28,realized:169.19,total_pnl:14162.47,pct_return:104.71,weight:10.51,book_rate:1.37585,dividends:169.19,ccy:"USD"},
@@ -2843,17 +2836,12 @@ function updateHeaderKPIs(data) {
   // FX Impact = Total P&L residual after stripping unrealized and realized
   // i.e. the portion of P&L attributable to currency translation
   const totalPnlClient = sumMktVal - CONTRIB_TOTAL();
-  const _fxGain   = _fxTranslationGain(HOLDINGS_STATIC, hPrices, usdcad);
-  const _residual = totalPnlClient - sumUnrealized - sumRealized;
-  sumFX = Math.round(_fxGain);
-  /* Unrealized is shown ex-FX so the two are not double counted, and it absorbs
-     the leftover residual so the three cards still sum to total P&L. */
-  const _unrealDisp = sumUnrealized - _fxGain + _residual;
+  sumFX = Math.round(totalPnlClient - sumUnrealized - sumRealized);
 
   // ── Update the four live cards ────────────────────────────────────────────
   const unrealEl = document.getElementById('cardUnrealized');
-  unrealEl.textContent = fmt$(Math.round(_unrealDisp));
-  unrealEl.className = `hkpi-value ${colorClass(_unrealDisp)}`;
+  unrealEl.textContent = fmt$(Math.round(sumUnrealized));
+  unrealEl.className = `hkpi-value ${colorClass(sumUnrealized)}`;
 
   const realEl = document.getElementById('cardRealized');
   realEl.textContent = fmt$(Math.round(sumRealized));
@@ -3832,12 +3820,7 @@ function _heroScopedStats(data, acctKey) {
   // FX impact = P&L residual after stripping unrealized and realized.
   // Uses the single-counted sumRealized, exactly as updateHeaderKPIs does.
   const totalPnlClient = sumMktVal - contrib;
-  const fxGain   = _fxTranslationGain(holdings, hPrices, usdcad);
-  const residual = totalPnlClient - sumUnrealized - sumRealized;
-  const fx = Math.round(fxGain);
-  /* Reported ex-FX, absorbing the residual, so unrealized + realized + fx still
-     reconciles exactly to total P&L. */
-  const unrealizedExFx = sumUnrealized - fxGain + residual;
+  const fx = Math.round(totalPnlClient - sumUnrealized - sumRealized);
 
   // Closed positions are already in sumRealized, FX-converted at book_rate.
   // The duplicate raw-CAD pass that used to sit here was removed alongside the
@@ -3860,7 +3843,7 @@ function _heroScopedStats(data, acctKey) {
   const pnlPct   = costBase > 0 ? ((mktVal - costBase) / costBase * 100) : 0;
 
   return { mktVal, dc, dcp, pnl, pnlPct, contrib, fx, dividends,
-           cash: sumCash, unrealized: unrealizedExFx, realized: sumRealized };
+           cash: sumCash, unrealized: sumUnrealized, realized: sumRealized };
 }
 
 const _HERO_ACCT_MAP   = { all: null, tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' };

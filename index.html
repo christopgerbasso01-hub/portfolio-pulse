@@ -942,12 +942,18 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
    keeps the shared class's own padding untouched. */
 /* Account summary strip (replaces #m-port-tabs). Three columns: identity and
    value, today, all-time — the same split the row labels promise. */
-.m-acct-strip{padding:0 14px 10px;flex-shrink:0;}
+/* 2px to match .m-chart-wrap and .m-hero-stats, so the rows line up with the
+   chart above and the stats below rather than sitting 12px narrower. */
+.m-acct-strip{padding:0 2px 10px;flex-shrink:0;}
 .m-as-hdr{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;padding:0 10px 4px;
   font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);}
 .m-as-hdr span+span{text-align:right;}
+/* 17px vertical, not 8px: taller rows push the six stat figures below the fold
+   so the strip is the last thing on first paint, with the RRSP row landing on
+   the bottom edge. Tuned against a 430x932 screen with the status bar and home
+   indicator accounted for. */
 .m-as-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;align-items:center;
-  padding:8px 10px;margin-bottom:5px;background:var(--surf);
+  padding:17px 10px;margin-bottom:5px;background:var(--surf);
   border:1px solid var(--bd);border-radius:10px;
   cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .m-as-row.on{border-color:var(--cyan);background:rgba(34,211,238,.09);}
@@ -10843,12 +10849,12 @@ function buildCards(){
     return'<div class="m-card m-card-tight"'+tapAttr+'>'
       +'<div class="m-c-r1">'
         +'<div class="m-c-sym">'+ticker+' '+bHtml+'</div>'
-        +'<div class="m-c-at '+pCls+'">'+pnl+' · '+ret+'</div>'
+        +'<div class="m-c-day '+dCls+'">'+dayStr+'</div>'
         +'<div class="m-c-mv">'+mv+'</div>'
       +'</div>'
       +'<div class="m-c-r2">'
         +'<div class="m-c-name"><span class="m-c-nm">'+name+'</span>'+divTxt+'</div>'
-        +'<div class="m-c-day '+dCls+'">'+dayStr+'</div>'
+        +'<div class="m-c-at '+pCls+'">'+pnl+' · '+ret+'</div>'
         +'<div class="m-c-cost">'+cost+'</div>'
       +'</div></div>';
   }).join('');

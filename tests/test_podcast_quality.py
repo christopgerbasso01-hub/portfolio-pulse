@@ -242,7 +242,7 @@ ck("all leveraged funds we own are named (the old list left one out)",
    "FANG+ 3x, Semiconductor 3x" in text, True)
 ck("the long official fund name is not what the model reads out",
    "Direxion" in text, False)
-ck("lookup tables present", "HOW MUCH THINGS MOVE" in text and "never multiply it by 3 again" in text, True)
+ck("lookup tables present", "HOW MUCH THINGS MOVE" in text and "never apply a multiplier" in text, True)
 ck("the currency box is present",
    "NEVER say we hold them in Canadian dollars" in text and "GOOD for us" in text, True)
 ck("figures are pre-rounded for speech", gp._say_money(14386) == "$14,000" and gp._say_money(1722) == "$1,700", True)
@@ -286,7 +286,11 @@ t1, b1, t2_, b2 = gp._deep_dive_briefs(gp._choose_deep_dive_1(intel, ident), gp.
 ck("the brief states how much we own and where", "about $5,400" in b2 and "FHSA" in b2, True)
 ck("...and confines the model to the news", "ONLY facts about this company" in b2, True)
 ck("the title carries the headline the agenda will announce", t2_.startswith("Enbridge — Oil slides"), True)
-ck("the briefing's own wording on currency is pointed away from", "CURRENCY box" in b1, True)
+ck("a dollar story is pointed at the CURRENCY box rather than the briefing's wording",
+   "CURRENCY box" in gp._deep_dive_briefs({"title": "CPI Surprise", "body": "The dollar may firm."}, None)[1], True)
+ck("a China story is not", "CURRENCY box" in gp._deep_dive_briefs({"title": "China PMI", "body": "Factories slowed."}, None)[1], False)
+ck("the briefing's speculative bull and bear lines are left out",
+   "BULLTEXT" in gp._deep_dive_briefs({"title": "t", "body": "b", "bull": "BULLTEXT", "bear": "BEARTEXT"}, None)[1], False)
 
 print("\n── a dry run of generate_script (fake model) ──")
 seen = []
@@ -326,6 +330,101 @@ ck("the numbers the model was shown are recorded, so invented ones can be spotte
    1.4 in out_facts["allowed_numbers"] and 60000.0 in out_facts["allowed_numbers"], True)
 ck("both prompts leave room under Groq's 8,000 tokens/minute with 4,096 output",
    max(len(p1), len(p2)) // 4 + 4096 < 8000, True)
+
+print("\n── what the listener asked not to hear ──")
+def kinds(script, history=None):
+    return sorted({x["kind"] for x in gp._scan_unwanted(script, history)})
+for label, line in [
+    ("ep18: 'built to move three times as much'",
+     "ALEX: A 3x fund is built to move about three times as much as the index it follows."),
+    ("the daily reset", "ALEX: The daily reset causes slow decay in leveraged funds over time."),
+    ("ep18's real wording of the 1.5% -> 4.5% explainer",
+     "ALEX: It turned a modest 1.5% move in the underlying index into a 4.5% boost on the leveraged position."),
+    ("'decay' by itself", "ALEX: The risk here is volatility decay, which grinds returns down."),
+]:
+    ck(f"explaining leverage is caught — {label}", "leverage" in kinds(line), True)
+for label, line in [
+    ("a fund's result", "ALEX: The FANG+ fund was up about 8.3% as big tech had a strong stretch."),
+    ("a mention without explanation", "ALEX: Our leveraged funds gained again as the market rallied this week."),
+    ("a market move's worth", "ALEX: When the stock market moves 1%, we are up or down about $4,900."),
+]:
+    ck(f"describing a result is fine — {label}", "leverage" in kinds(line), False)
+ck("no education topic about leverage remains",
+   [t for t in gp.EDUCATION_TOPICS if "3x" in t or "everage" in t], [])
+ck("the context no longer teaches 3x", "3x as much" in text or "multiply it by 3" in text, False)
+ck("both prompts forbid explaining it",
+   "ALREADY understands leveraged" in gp.SCRIPT_PROMPT_PART1 and "ALREADY understands leveraged" in gp.SCRIPT_PROMPT_PART2, True)
+
+print("\n── nothing said twice ──")
+# Four lead-in turns first: the opening turns preview the episode and are exempt from
+# the repeat comparison on purpose.
+dup = ("ALEX: Hello and welcome.\nSAM: Hi there.\nALEX: Here is the plan for today.\nSAM: Sounds good.\n"
+       "ALEX: Each one-cent move in the dollar is worth about a thousand seven hundred to us.\n"
+       "SAM: Right.\n"
+       "ALEX: Each one-cent move in the dollar is worth about seventeen hundred to us.\n")
+ck("a sentence repeated inside an episode is caught", "repeat" in kinds(dup), True)
+three = ("ALEX: That is worth about $1,700 right now.\nSAM: And a different point entirely about our energy holdings today.\n"
+         "ALEX: Which is again about $1,700 as we said earlier on the show.\n"
+         "SAM: Another fresh point about the pipeline business and its fee income.\n"
+         "ALEX: So remember it is $1,700 for every single cent of movement.\n")
+ck("a figure stated three times is caught on the third", len([x for x in gp._scan_unwanted(three) if "times" in x["reason"]]), 1)
+ck("...but twice is fine", [x for x in gp._scan_unwanted(three.rsplit("ALEX:", 1)[0]) if "times" in x["reason"]], [])
+hist = ["ALEX: We have a lot of the portfolio humming along under the surface this week.\nSAM: Okay.\n"]
+ck("an agenda preview and the later introduction of the same topic are not a repeat",
+   "repeat" in kinds("ALEX: Welcome to Portfolio Pulse Weekly, joined as always by Sam.\nSAM: Good.\n"
+                     "ALEX: Second, Tesla, and its first Semi truck deliveries this week.\nSAM: Okay.\n"
+                     "ALEX: Our second topic is Tesla, which announced the first Semi truck deliveries.\n"), False)
+ck("a sentence carried over from a recent episode is caught",
+   "repeat" in kinds("ALEX: We have a lot of the portfolio humming along under the surface this week.\n", hist), True)
+ck("...but the weekly welcome is not",
+   kinds("ALEX: Hey everyone, welcome back to Portfolio Pulse Weekly, I'm Alex joined as always by Sam.\n",
+         ["ALEX: Hey everyone, welcome back to Portfolio Pulse Weekly, I'm Alex joined as always by Sam.\n"]), [])
+ck("...and a short reaction is not", kinds("SAM: Right, that makes sense.\n", ["SAM: Right, that makes sense.\n"]), [])
+cut, gone = gp.strip_unwanted_sentences(
+    "ALEX: The FANG+ fund led the week. A 3x fund is built to move about three times as much as its index.\nSAM: Okay.\n")
+ck("only the leverage explanation is cut from a mixed turn", ("FANG+ fund led" in cut, "built to move" in cut), (True, False))
+ck("...and what was cut is reported", len(gone), 1)
+
+print("\n── four numbers in a turn, at most ──")
+heavy = "ALEX: It rose $1,200 or 3.4% today. Last week it was $900 or 2.1%. The week before was 1.8% and $700 on top."
+ck("the cap is four", gp.FIGURES_PER_TURN_MAX, 4)
+ck("a turn of six figures asks for a redraft",
+   [(p["kind"], p["retry"]) for p in gp.collect_script_problems(heavy, {}) if "carry more than" in p["msg"]], [("density", True)])
+four = "ALEX: It rose $1,200 or 3.4% today, and last week it was $900 or 2.1%."
+ck("four figures is allowed", [p for p in gp.collect_script_problems(four, {}) if "carry more than" in p["msg"]], [])
+trimmed, dropped = gp.trim_heavy_turns(heavy)
+ck("trimming brings the turn within the cap", gp.figure_stats(trimmed)["max_turn"] <= 4, True)
+ck("...by dropping the heaviest sentence", len(dropped), 1)
+ck("a turn within the cap is untouched", gp.trim_heavy_turns(four), (four, []))
+logs2 = []
+r = gp.produce_checked_script(lambda fb: (GOOD + heavy + "\n", {}), log=logs2.append)
+ck("the loop guarantees the cap even if every draft breaks it",
+   r is not None and gp.figure_stats(r[0])["max_turn"] <= 4, True)
+r = gp.produce_checked_script(lambda fb: (GOOD + "ALEX: We have a lot of the portfolio humming along under the surface this week.\n", {}),
+                              log=logs2.append, history=hist)
+ck("the loop drops a sentence repeated from a recent episode",
+   r is not None and "humming along" not in r[0], True)
+
+print("\n── topics are not repeated week to week ──")
+ck("themes are read from headlines",
+   gp._themes_of("US CPI Surprise Could Shift Dollar Strength") == frozenset({"rates & inflation", "currency"}), True)
+ck("China's PMI is its own theme", gp._themes_of("China’s Manufacturing PMI Declines, Raising Growth Doubts"), frozenset({"china & growth"}))
+intel3 = {"macro": [{"title": "US CPI Surprise Could Shift Dollar Strength", "body": "x", "bull": "", "bear": ""},
+                    {"title": "ECB Holds Rates Amid Eurozone Growth Concerns", "body": "y", "bull": "", "bear": ""},
+                    {"title": "China’s Manufacturing PMI Declines, Raising Growth Doubts", "body": "z", "bull": "", "bear": ""}],
+          "news": [{"headline": "Oil slides as US-Iran truce hopes outweigh Houthi attacks", "body": "o", "exposure": "ENB.TO $5,493 CAD"},
+                   {"headline": "Tesla Starts Semi Deliveries", "body": "t", "exposure": "TSLA $7,480 CAD"}]}
+recent = frozenset({"currency", "oil & energy", "rates & inflation"})   # ep15, ep16, ep17
+ck("with nothing recent, the lead story is chosen", gp._choose_deep_dive_1(intel3, ident)["title"].startswith("US CPI"), True)
+ck("after three weeks of dollar and rates, Deep Dive 1 moves on to China",
+   gp._choose_deep_dive_1(intel3, ident, recent)["title"].startswith("China"), True)
+ck("when everything is stale it still picks something",
+   bool(gp._choose_deep_dive_1(intel3, ident, frozenset(gp._THEMES))["title"]), True)
+pos3 = {"ENB.TO": {"name": "Enbridge", "cad": 5400, "accounts": ["FHSA"]}, "TSLA": {"name": "Tesla", "cad": 7500, "accounts": ["TFSA"]}}
+pf3 = {"positions": pos3, "total_value": 300000}
+ck("Deep Dive 2 skips an oil story after an oil week and takes the Tesla one",
+   gp._choose_deep_dive_2(intel3, pf3, [], ident, recent)["ticker"], "TSLA")
+ck("...and with no recent themes keeps the first", gp._choose_deep_dive_2(intel3, pf3, [], ident)["ticker"], "ENB.TO")
 
 print("\n── education topic matching ──")
 ck("a differently worded repeat is still recognised as used",

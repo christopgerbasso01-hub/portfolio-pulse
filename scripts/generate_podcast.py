@@ -419,9 +419,10 @@ Biggest movers this week (mention at most two):
 {movers_str}
 
 ━━━ HOW MUCH THINGS MOVE — read the answer off this table, NEVER calculate ━━━
-If the stock market moves by this much, our leveraged funds move 3x as much, and the effect on the portfolio is:
+If the stock market moves by this much, the effect on the portfolio is the figure below. The leverage is already built in:
+never apply a multiplier to it, and never explain leverage to the listener.
   {idx_line}
-  (This ALREADY includes the 3x leverage — never multiply it by 3 again. Same amount up or down.)
+  (Same amount up or down.)
 If USD/CAD moves by this many cents (it is about {usdcad:.2f} now), the effect on our US-dollar holdings is:
   {fx_line}
   (Same amount up or down.)
@@ -441,7 +442,7 @@ Weights: {sector_line}
 Anything not on that list is NOT owned. Ideas called "picks" (for example Novo Nordisk or Toronto-Dominion) are only ideas.
 
 ━━━ NUMBER BUDGET — strict ━━━
-- At most 3 numbers in any one turn; about 12 per half; never more than 18.
+- At most 4 numbers in any one turn; about 12 per half; never more than 18. State each figure ONCE.
 - Use only numbers from this page and from the news items. Round as shown: say "about fourteen thousand dollars", never "$14,386".
 - No arithmetic on air: no "4 times 1,722", no "net effect", no adding or subtracting two dollar impacts.
 - Prefer words to numbers: "a big week", "roughly half the portfolio", "a small slice".
@@ -536,12 +537,14 @@ Use ONE everyday analogy for the whole episode — not two.
 
 ━━━ THE FACT RULES (these matter more than anything else) ━━━
 1. State only facts that appear above: the portfolio page, the lookup tables, and the news items. Never invent a statistic, price, yield, VIX level, earnings result, company announcement or cause. If you have no reason for a move, say "it moved with the market" — do not make one up.
-2. Never do arithmetic on air. No multiplying, adding, subtracting or "netting" dollar figures. Read any dollar impact straight off the lookup table. The market table ALREADY includes the 3x leverage — never apply it again.
+2. Never do arithmetic on air. No multiplying, adding, subtracting or "netting" dollar figures. Read any dollar impact straight off the lookup table; it already has the leverage built in, so never apply a multiplier to it.
 3. Round: "about fourteen thousand dollars", never "$14,386".
 4. Call something a holding only if it is under "WHAT WE OWN". "Picks" are ideas, not owned.
 5. Currency: follow the CURRENCY box exactly. We hold US assets in US dollars, never in Canadian dollars. A stronger US dollar RAISES the Canadian-dollar value of our US holdings.
 6. No lists. Never write bullet points, numbered lists, or a sentence ending in a colon that introduces a list — say "first… second… third…" in full sentences. Every line starts with "ALEX:" or "SAM:".
 7. No dates unless they appear in the news above. Otherwise say "at the next Fed meeting" or "when the next inflation report comes out".
+8. The listener ALREADY understands leveraged and 3x funds — how they amplify a move, the daily reset, decay, volatility drag. NEVER explain any of it: no "a 3x fund moves three times as much", no "daily reset", no "decay", no "turns a 1% move into 3%". Just say what a fund did, or what a market move is worth to us.
+9. Say every fact ONCE. Never repeat a figure, restate a point in different words, or reuse a sentence from earlier in this episode. Do not reuse sentences, phrasing or analogies from the recent episodes listed above — find a fresh way in.
 
 ━━━ STRUCTURE ━━━
 [WELCOME — 45 seconds] ALEX welcomes listeners to Portfolio Pulse Weekly, introduces himself and Sam, then gives the agenda naming the three subjects above. End with ONE sentence hook — the most surprising idea in this week's story.
@@ -596,13 +599,15 @@ Learning segment: {education_topic}
 
 ━━━ THE FACT RULES (these matter more than anything else) ━━━
 1. State only facts that appear above. Never invent a statistic, price, yield, VIX level, earnings result, company announcement, buyback, date or cause. For Deep Dive 2 the ONLY facts you may state about the company are in the brief; beyond that, explain how that kind of business works, in general terms.
-2. Never do arithmetic on air. Read any dollar impact straight off the lookup table; the market table ALREADY includes the 3x leverage.
+2. Never do arithmetic on air. Read any dollar impact straight off the lookup table; it has the leverage built in, so never apply a multiplier to it.
 3. Round: "about fourteen thousand dollars".
 4. Call something a holding only if it is under "WHAT WE OWN". Picks are ideas, not owned. If a company IS owned, never say it isn't.
 5. Currency: follow the CURRENCY box exactly. We hold US assets in US dollars. A stronger US dollar RAISES the Canadian-dollar value of our US holdings.
 6. No lists, no bullets, no sentence ending in a colon introducing a list. Every line starts with "ALEX:" or "SAM:" — except the [EDUCATION_TOPIC] marker line.
 7. No dates unless they appear in the news above.
-NUMBER BUDGET: at most 3 numbers in any one turn and about 12 in this half.
+8. The listener ALREADY understands leveraged and 3x funds — how they amplify a move, the daily reset, decay, volatility drag. NEVER explain any of it. Just say what a fund did, or what a market move is worth to us.
+9. Say every fact ONCE. Never repeat a figure, restate a point in different words, or reuse a sentence from earlier in this episode or from Part 1. Find a fresh way in.
+NUMBER BUDGET: at most 4 numbers in any one turn and about 12 in this half; state each figure once.
 
 Use plain, calm, conversational language — a smart friend over coffee. Do not introduce a second analogy (one was used in Part 1). Company names, not tickers. No two turns start with the same word. Avoid: "it's worth noting", "going forward", "as mentioned", "at the end of the day", "in today's market", "landscape", "navigate", "tailwinds", "headwinds".
 
@@ -847,6 +852,8 @@ Return this exact JSON structure:
         "registry_text":               "\n".join(lines),
         "recently_spotlighted_tickers": recently_spotlighted,
         "education_topics_used":        education_topics_used,
+        "recent_themes":                [str(t) for ep_data in registry_episodes[:3]
+                                         for t in (ep_data["registry"].get("topics_deep_dived") or [])],
     }
 
 
@@ -863,7 +870,6 @@ def _extract_education_topic(script: str) -> str:
 # before either half is written, and handing the same topic to both makes the
 # mismatch impossible rather than merely discouraged.
 EDUCATION_TOPICS = [
-    "3x ETF Daily Reset Decay",
     "Yield Curve Recession Signals",
     "What VIX Actually Measures",
     "Earnings Revisions Move Prices",
@@ -877,8 +883,14 @@ EDUCATION_TOPICS = [
     "Reading 13F Filings",
     "Book Value Versus Market Cap",
     "Dividend Compounding Mathematics",
-    "Leverage Ratio Versus Leverage Risk",
+    "Dollar-Cost Averaging Versus Lump Sums",
+    "What An Earnings Report Contains",
+    "How Portfolio Rebalancing Works",
+    "Real Versus Nominal Returns",
+    "Tax-Loss Harvesting Basics",
 ]
+# Deliberately absent: leveraged-ETF reset/decay and leverage-ratio topics. The listener
+# already knows them and asked not to hear them again.
 
 
 def _choose_education_topic(education_used: list) -> str:
@@ -1098,21 +1110,29 @@ def _money_values_in(*texts) -> list:
 # delivered Broadcom — a company we already own, which it described as "not
 # currently in the portfolio". Both subjects are fixed here, before either half is
 # written, exactly as the learning topic is.
-def _choose_deep_dive_1(intel: dict, clean) -> dict:
+def _choose_deep_dive_1(intel: dict, clean, recent_themes=frozenset()) -> dict:
+    """The most important macro story that is NOT a theme covered in the last few
+    episodes. Taking macro[0] blindly put the dollar and the CAD in ep15, ep17 and
+    ep18 in a row."""
+    cands = []
     for m in intel.get("macro", []) or []:
         if m.get("title"):
-            return {"title": str(m["title"]).strip(),
-                    "body": clean(m.get("body", ""), 420),
-                    "bull": clean(m.get("bull", ""), 160),
-                    "bear": clean(m.get("bear", ""), 160)}
+            cands.append((_themes_of(m["title"]),
+                          {"title": str(m["title"]).strip(),
+                           "body": clean(m.get("body", ""), 420),
+                           "bull": clean(m.get("bull", ""), 160),
+                           "bear": clean(m.get("bear", ""), 160)}))
     for n in intel.get("news", []) or []:
         if n.get("headline"):
-            return {"title": str(n["headline"]).strip(), "body": clean(n.get("body", ""), 420),
-                    "bull": "", "bear": ""}
-    return {"title": "the biggest market story of the week", "body": "", "bull": "", "bear": ""}
+            cands.append((_themes_of(n["headline"]),
+                          {"title": str(n["headline"]).strip(),
+                           "body": clean(n.get("body", ""), 420), "bull": "", "bear": ""}))
+    pick = _pick_fresh(cands, frozenset(recent_themes))
+    return pick or {"title": "the biggest market story of the week", "body": "", "bull": "", "bear": ""}
 
 
-def _choose_deep_dive_2(intel: dict, facts: dict, recently_spotlighted: list, clean):
+def _choose_deep_dive_2(intel: dict, facts: dict, recently_spotlighted: list, clean,
+                        avoid_themes=frozenset()):
     """A holding we actually own that this week's news actually touches.
 
     The news items name what we hold in them ("ENB.TO $5,493 CAD"), so the first
@@ -1137,10 +1157,15 @@ def _choose_deep_dive_2(intel: dict, facts: dict, recently_spotlighted: list, cl
                 "headline": str((news or {}).get("headline") or ""),
                 "body": clean((news or {}).get("body", ""), 320) if news else ""}
 
+    cands = []
     for n in intel.get("news", []) or []:
         for tkr in re.findall(r"\b[A-Z]{1,5}(?:\.TO)?\b", str(n.get("exposure") or "")):
             if tkr in positions and tkr not in _LEVERAGE_3X and tkr.upper() not in spot:
-                return pick(tkr, n)
+                cands.append((_themes_of(n.get("headline", "")), (tkr, n)))
+                break
+    chosen = _pick_fresh(cands, frozenset(avoid_themes))
+    if chosen:
+        return pick(chosen[0], chosen[1])
     cands = sorted(((p["cad"], t) for t, p in positions.items()
                     if t not in _LEVERAGE_3X and t.upper() not in spot), reverse=True)
     return pick(cands[0][1]) if cands else None
@@ -1149,14 +1174,14 @@ def _choose_deep_dive_2(intel: dict, facts: dict, recently_spotlighted: list, cl
 def _deep_dive_briefs(dd1: dict, dd2) -> tuple:
     """(dd1_title, dd1_brief, dd2_title, dd2_brief) as the prompts print them."""
     b1 = f"What the briefing says: {dd1['body']}" if dd1["body"] else ""
-    # Sentences about the currency were removed from the briefing because they were
-    # wrong, so say where the right version is.
-    b1 += ("\nFor how the dollar affects us, use the CURRENCY box above — not the briefing's "
-           "wording about it.")
-    if dd1.get("bull"):
-        b1 += f"\nIf it goes well: {dd1['bull']}"
-    if dd1.get("bear"):
-        b1 += f"\nIf it goes badly: {dd1['bear']}"
+    # Only when the story touches the dollar: sentences about the currency were removed
+    # from the briefing because they were wrong, so say where the right version is.
+    if "currency" in _themes_of(dd1["title"] + " " + dd1["body"]):
+        b1 += ("\nFor how the dollar affects us, use the CURRENCY box above — not the briefing's "
+               "wording about it.")
+    # The briefing's own "if it goes well / badly" lines are deliberately left out: they are
+    # speculation, and one called a deeper slowdown "going well" because of "ENB's hedged
+    # pipeline business". Fewer claims, fewer invented causal chains.
 
     if not dd2:
         return (dd1["title"], b1.strip(),
@@ -1198,6 +1223,9 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     def clean(text, limit=300):
         c, gone = scrub_fx_sentences(str(text or ""), strict_wording=True)
         removed_fx.extend(gone)
+        # ...and anything explaining how leveraged funds work or decay: the listener
+        # knows, and a briefing sentence about it is a prompt to say it again.
+        c = " ".join(x for x in _split_sentences(c) if not _LEVERAGE_TALK.search(x))
         return c[:limit]
 
     mood    = intel.get("market_mood", "neutral").upper()
@@ -1228,8 +1256,14 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     snaps = snapshot.get("snapshots", {})
     portfolio_ctx, portfolio_facts = _build_portfolio_context(
         computed_holdings, snaps, cash_positions)
-    dd1 = _choose_deep_dive_1(intel, clean)
-    dd2 = _choose_deep_dive_2(intel, portfolio_facts, recently_spotlighted, clean)
+    # Themes of the last few episodes, so neither deep dive repeats them.
+    recent_titles = [old_meta.get("title", "")] + [a.get("title", "")
+                                                   for a in (old_meta.get("archive") or [])[:2]]
+    recent_themes = frozenset().union(*[_themes_of(t) for t in recent_titles
+                                        + list(registry.get("recent_themes", [])) if t])
+    dd1 = _choose_deep_dive_1(intel, clean, recent_themes)
+    dd2 = _choose_deep_dive_2(intel, portfolio_facts, recently_spotlighted, clean,
+                              recent_themes | _themes_of(dd1["title"]))
     dd1_title, dd1_brief, dd2_title, dd2_brief = _deep_dive_briefs(dd1, dd2)
     if portfolio_facts:
         # Dollar amounts the briefing itself supplied are figures the script may cite.
@@ -1907,7 +1941,7 @@ _FIGURE = re.compile(
     r"|\d+(?:\.\d+)?[\s-]*(?:cents?|¢|basis[\s-]points?|bps?)\b"
     r"|(?<![\d.])\d+\.\d+(?!\d|%|\.\d)", re.I)
 
-FIGURES_PER_TURN_MAX  = 4      # a turn above this is hard to follow by ear
+FIGURES_PER_TURN_MAX  = 4      # the listener's limit: no turn may carry more
 DENSITY_TARGET_PER100 = 1.6    # aim: about one figure every 60 words
 DENSITY_RETRY_PER100  = 2.6    # above this the draft is regenerated once more
 
@@ -1940,7 +1974,201 @@ def density_problems(script: str) -> list:
     return []
 
 
-def collect_script_problems(script: str, facts: dict) -> list:
+# ── Things the listener has asked not to hear ────────────────────────────────
+# The listener already understands leveraged ETFs, the daily reset and decay, so
+# explaining them is noise. Every phrase below appeared in a published episode:
+#   "A 3x fund is built to move about three times as much as the index it follows"
+#   "turned a modest 1.5% move into a 4.5% boost on the leveraged position"
+_LEVERAGE_TALK = re.compile(
+    r"\b(?:built|designed|engineered|structured)\s+to\s+(?:move|deliver|track|amplif\w*|return|multipl\w*)"
+    r"|\b(?:daily\s+(?:reset|rebalanc\w*)|resets?\s+daily|rebalances?\s+daily)\b"
+    r"|\b(?:volatility\s+(?:decay|drag)|beta\s+decay|decay\w*|compounding\s+(?:effect|drag))\b"
+    r"|\b(?:three|3)[\s-]?(?:x|times)\b[^.?!]{0,50}\b(?:as\s+much|more\s+than|amplif\w*|multipl\w*|magnif\w*|swing\w*)"
+    r"|\b(?:leverage|leveraged\s+(?:fund|etf)s?)\s+(?:amplif\w*|magnif\w*|multipl\w*|works?|means?)\b"
+    r"|\bhow\s+(?:a\s+)?(?:3x|three[\s-]times|leveraged)\s+(?:fund|etf)s?\s+work"
+    r"|\bturn(?:s|ed)?\s+(?:a|an)\s+(?:\w+\s+){0,2}[\d.]+\s?%\s+(?:move|gain|drop|rally|dip)\b[^.?!]{0,50}\binto\b", re.I)
+
+# Lines that legitimately recur every week, so repeating them is not a defect.
+_BOILERPLATE = re.compile(
+    r"welcome back to portfolio pulse|joined as always|as always i'?m joined|joined by sam|i'?m alex|"
+    r"thanks for (?:listening|tuning)|catch you next|"
+    r"take care, everyone|stay sharp|before we get to our scenarios|that's our learning segment|"
+    r"on to scenarios|^(?:base|bull|bear) case", re.I)
+
+_STOP = frozenset(
+    "the a an and or but of to in on for with at by from as is are was were be been being it its this "
+    "that these those we our us you your i they them their he she his her not no so if then than too "
+    "very just about into out up down over more most some any all each can could would should will may "
+    "might do does did have has had there here what which who whom how why when where also only even "
+    "still".split())
+
+# 0.6 from real episodes: it catches the same genuine carry-overs as 0.7 (including the stale
+# "$7,685 idle cash" sentence) and the rephrased repeats 0.7 misses, while 0.5 starts matching
+# unrelated sentences ("key watchlist" against "the playbook").
+REPEAT_SIMILARITY    = 0.6
+REPEAT_FIGURE_LIMIT  = 2      # a figure may be stated this many times, not more
+REPEAT_MIN_WORDS     = 7
+AGENDA_TURNS         = 4      # the opening turns that preview the episode
+
+
+def _content_tokens(sentence: str) -> frozenset:
+    return frozenset(w for w in re.findall(r"[a-z0-9]+", sentence.lower())
+                     if len(w) > 2 and w not in _STOP)
+
+
+def _similar(a: frozenset, b: frozenset) -> bool:
+    return bool(a and b) and len(a & b) / len(a | b) >= REPEAT_SIMILARITY
+
+
+def _is_boilerplate(sentence: str) -> bool:
+    return bool(_BOILERPLATE.search(sentence.replace("’", "'")))
+
+
+def _history_sentences(history) -> list:
+    """Token sets for every substantive sentence in the recent episodes."""
+    out = []
+    for text in (history or []):
+        for kind, _, t in _iter_script(text):
+            if kind != "turn":
+                continue
+            for s in _split_sentences(t):
+                if len(s.split()) >= REPEAT_MIN_WORDS + 1 and not _is_boilerplate(s):
+                    out.append(_content_tokens(s))
+    return out
+
+
+def _scan_unwanted(script: str, history=None) -> list:
+    """Sentences that should not air, with why. One pass, in order, so that the
+    checker and the repair (strip_unwanted_sentences) can never disagree.
+
+      leverage - explaining how 3x funds work, the reset, or decay
+      repeat   - a sentence already said earlier in this episode or in a recent one,
+                 or a figure stated more than twice. Ep18 made its "$1,722 per cent"
+                 point six times in different words, and carried "We have $7,685 USD
+                 idle cash in the RRSP" over from an earlier week.
+    """
+    past = _history_sentences(history)
+    seen, figs, out, ti = [], {}, [], -1
+    for kind, _, text in _iter_script(script):
+        if kind != "turn":
+            continue
+        ti += 1
+        for si, sent in enumerate(_split_sentences(text)):
+            if _LEVERAGE_TALK.search(sent):
+                out.append({"turn": ti, "sent": si, "kind": "leverage", "sentence": sent,
+                            "reason": "explains how leveraged funds work, their reset or their decay — "
+                                      "the listener already knows; just say what the fund did"})
+            toks = _content_tokens(sent)
+            if len(sent.split()) >= REPEAT_MIN_WORDS and not _is_boilerplate(sent):
+                if any(_similar(toks, t) for t in seen):
+                    out.append({"turn": ti, "sent": si, "kind": "repeat", "sentence": sent,
+                                "reason": "repeats a sentence already said earlier in this episode"})
+                elif any(_similar(toks, t) for t in past):
+                    out.append({"turn": ti, "sent": si, "kind": "repeat", "sentence": sent,
+                                "reason": "repeats a sentence from a recent episode"})
+            for m in _FIGURE.finditer(sent.replace("‑", "-")):
+                key = re.sub(r"[\s,]", "", m.group(0)).lower()
+                figs[key] = figs.get(key, 0) + 1
+                if figs[key] > REPEAT_FIGURE_LIMIT and not any(
+                        o["turn"] == ti and o["sent"] == si for o in out):
+                    out.append({"turn": ti, "sent": si, "kind": "repeat", "sentence": sent,
+                                "reason": f"states {m.group(0).strip()} again — it has now been said "
+                                          f"{figs[key]} times; say each fact once"})
+            # The opening turns announce what the episode covers, and the topic is then
+            # introduced properly later; that overlap is the point of an agenda, not a
+            # repeat, and must not get the real introduction deleted.
+            if ti >= AGENDA_TURNS:
+                seen.append(toks)
+    return out
+
+
+def strip_unwanted_sentences(script: str, history=None) -> tuple:
+    """Last resort: drop every sentence _scan_unwanted flags. Returns (script, removed)."""
+    flagged = {(u["turn"], u["sent"]) for u in _scan_unwanted(script, history)}
+    if not flagged:
+        return script, []
+    out, removed, ti = [], [], -1
+    for raw in script.split("\n"):
+        m = re.match(r"^(ALEX|SAM):\s*(.*\S)\s*$", raw.strip())
+        if not m:
+            out.append(raw)
+            continue
+        ti += 1
+        sents = _split_sentences(m.group(2))
+        kept = [s for i, s in enumerate(sents) if (ti, i) not in flagged]
+        if len(kept) == len(sents):
+            out.append(raw)
+            continue
+        removed.extend(s for i, s in enumerate(sents) if (ti, i) in flagged)
+        if kept:
+            out.append(f"{m.group(1)}: " + " ".join(kept))
+    return "\n".join(out), removed
+
+
+def trim_heavy_turns(script: str, max_figs: int = None) -> tuple:
+    """Guarantee the per-turn cap: while a turn carries more figures than allowed,
+    drop its most number-heavy sentence. Returns (script, removed)."""
+    cap = FIGURES_PER_TURN_MAX if max_figs is None else max_figs
+    count = lambda s: len(_FIGURE.findall(s.replace("‑", "-")))
+    out, removed = [], []
+    for raw in script.split("\n"):
+        m = re.match(r"^(ALEX|SAM):\s*(.*\S)\s*$", raw.strip())
+        if not m:
+            out.append(raw)
+            continue
+        sents = _split_sentences(m.group(2))
+        if sum(count(s) for s in sents) <= cap:
+            out.append(raw)
+            continue
+        while sents and sum(count(s) for s in sents) > cap:
+            worst = max(range(len(sents)), key=lambda i: (count(sents[i]), i))
+            removed.append(sents.pop(worst))
+        if sents:
+            out.append(f"{m.group(1)}: " + " ".join(sents))
+    return "\n".join(out), removed
+
+
+# ── Topic freshness ──────────────────────────────────────────────────────────
+# The deep-dive subjects are chosen deterministically now, so nothing stopped them
+# repeating week after week: ep15, ep17 and ep18 were all essentially "the dollar
+# and the CAD". Coarse themes, matched on headlines and past episode titles only
+# (a body mentioning "energy" in passing must not make a China story an oil story).
+_THEMES = {
+    "currency":            r"\b(?:fx|currency|dollar|greenback|loonie|usd|cad|exchange rate|carry trade)\b",
+    "rates & inflation":   r"\b(?:fed|fomc|ecb|bank of canada|boc|central bank|interest rates?|rate (?:hike|cut|decision)|"
+                           r"rates|inflation|cpi|pce|yield curve|treasur\w+|yields?)\b",
+    "oil & energy":        r"\b(?:oil|crude|brent|wti|opec|energy|pipelines?|natural gas|lng|refin\w+)\b",
+    "china & growth":      r"\b(?:china|chinese|pmi|gdp|recession|growth)\b",
+    "ai & semiconductors": r"\b(?:ai|artificial intelligence|semiconductors?|chips?|nvidia|data cent\w+|foundr\w+)\b",
+    "autos & ev":          r"\b(?:tesla|ev|evs|electric vehicles?|semi truck|autos?)\b",
+    "banks & financials":  r"\b(?:banks?|financials?|credit|lending|mortgages?|visa)\b",
+    "regulation & trade":  r"\b(?:regulat\w+|antitrust|tariffs?|trade war|sanctions?|ftc|sec)\b",
+    "geopolitics":         r"\b(?:iran|israel|ukraine|russia|houthi|hormuz|war|conflict|truce|missile)\b",
+    "healthcare":          r"\b(?:pharma\w*|drugs?|biotech|healthcare|wegovy|novo)\b",
+    "crypto":              r"\b(?:bitcoin|crypto\w*)\b",
+}
+_THEME_RX = {name: re.compile(rx, re.I) for name, rx in _THEMES.items()}
+
+
+def _themes_of(text) -> frozenset:
+    t = str(text or "")
+    return frozenset(n for n, rx in _THEME_RX.items() if rx.search(t))
+
+
+def _pick_fresh(cands: list, avoid: frozenset):
+    """cands: [(themes, item)] in order of importance. The first with no overlap with
+    `avoid`; failing that, the one overlapping least (earliest wins a tie)."""
+    best = None
+    for i, (themes, item) in enumerate(cands):
+        score = len(themes & avoid)
+        if best is None or score < best[0]:
+            best = (score, i, item)
+        if score == 0:
+            break
+    return best[2] if best else None
+
+
+def collect_script_problems(script: str, facts: dict, history=None) -> list:
     """Everything wrong with a draft, classed by what to do about it.
 
     fatal   - could air a falsehood. Regenerate; if still present, strip the
@@ -1956,11 +2184,15 @@ def collect_script_problems(script: str, facts: dict) -> list:
         out.append({"kind": "structure", "fatal": False, "retry": True, "msg": msg})
     for msg in density_problems(script):
         out.append({"kind": "density", "fatal": False, "retry": True, "msg": msg})
+    for u in _scan_unwanted(script, history):
+        out.append({"kind": u["kind"], "fatal": False, "retry": True,
+                    "msg": f"{u['reason']} — \"{u['sentence'][:110]}\""})
     st = figure_stats(script)
-    if st["heavy_turns"] and not density_problems(script):
-        out.append({"kind": "density", "fatal": False, "retry": False,
-                    "msg": f"{len(st['heavy_turns'])} turn(s) carry more than "
-                           f"{FIGURES_PER_TURN_MAX} figures (worst {st['max_turn']})"})
+    if st["heavy_turns"]:
+        out.append({"kind": "density", "fatal": False, "retry": True,
+                    "msg": f"{len(st['heavy_turns'])} turn(s) carry more than {FIGURES_PER_TURN_MAX} "
+                           f"figures (worst {st['max_turn']}) — at most {FIGURES_PER_TURN_MAX} numbers "
+                           f"in any one turn"})
     return out
 
 
@@ -2051,7 +2283,7 @@ def _normalize_script(script: str) -> str:
     return "\n".join(out)
 
 
-def produce_checked_script(generate, max_attempts: int = 3, log=print):
+def produce_checked_script(generate, max_attempts: int = 3, log=print, history=None):
     """Draft, check, and if need be redraft the script. Returns (script, facts) or None.
 
     generate(feedback) -> (script, facts). Each rejected draft is regenerated WITH
@@ -2074,7 +2306,7 @@ def produce_checked_script(generate, max_attempts: int = 3, log=print):
             log(f"ERROR: Script generation failed (attempt {attempt}): {exc}")
             return None
         script   = _normalize_script(script)
-        problems = collect_script_problems(script, facts)
+        problems = collect_script_problems(script, facts, history)
         st       = figure_stats(script)
         retry    = [p for p in problems if p["retry"]]
         log(f"  attempt {attempt}/{max_attempts}: "
@@ -2092,7 +2324,7 @@ def produce_checked_script(generate, max_attempts: int = 3, log=print):
     removed = []
     if any(p["fatal"] for p in problems):
         script, removed = strip_unsafe_sentences(script, facts)
-        problems = collect_script_problems(script, facts)
+        problems = collect_script_problems(script, facts, history)
         if any(p["fatal"] for p in problems):
             log(f"ERROR: Script still contains unsupported claims after {max_attempts} "
                 f"attempts and sentence removal — refusing to publish.")
@@ -2103,10 +2335,20 @@ def produce_checked_script(generate, max_attempts: int = 3, log=print):
         log(f"  ⚠ Published with {len(removed)} unsafe sentence(s) removed:")
         for sent in removed[:8]:
             log(f"      - {sent[:140]}")
+    # What the listener has asked not to hear — repeats, explanations of how leveraged
+    # funds work, and more than four numbers in a turn — is cut rather than aired once
+    # the attempts are spent.
+    script, cut_a = strip_unwanted_sentences(script, history)
+    script, cut_b = trim_heavy_turns(script)
+    if cut_a or cut_b:
+        log(f"  ⚠ Cut {len(cut_a) + len(cut_b)} sentence(s) the listener asked not to hear:")
+        for sent in (cut_a + cut_b)[:8]:
+            log(f"      - {sent[:140]}")
+    problems = collect_script_problems(script, facts, history)
     leftovers = [p for p in problems if p["retry"] and not p["fatal"]]
     for p in leftovers:
         log(f"  ⚠ {p['msg']}")
-    if not removed and not leftovers:
+    if not removed and not cut_a and not cut_b and not leftovers:
         log("  ✓ Script passes every check")
     return script, facts
 
@@ -2251,7 +2493,8 @@ def main() -> int:
     print("2/4  Generating script...")
     result = produce_checked_script(
         lambda fb: generate_script(intel, snapshot, old_meta, groq_key, computed_holdings,
-                                   registry, cash_positions=cash_positions, feedback=fb))
+                                   registry, cash_positions=cash_positions, feedback=fb),
+        history=list(past_scripts.values()))
     if result is None:
         return 1
     script, facts = result

@@ -14,6 +14,11 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
+# The scripts directory must be importable whether this is run as a script, from
+# another directory, or loaded by a test.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fx_guard import scrub_fx_sentences   # noqa: E402
+
 # Groq — free tier, OpenAI-compatible API
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 # Groq shut down llama-3.3-70b-versatile and llama-3.1-8b-instant on 2026-08-16.
@@ -76,6 +81,23 @@ _LEVERAGE_3X = {"FNGU", "SPXL", "UDOW", "TQQQ", "SOXL"}
 # When the real figures cannot be fetched, the model must be told it does not
 # know them. Silence invites invention: that is exactly how $18,000 of Microsoft
 # reached the dashboard.
+# The briefing kept getting the exchange rate backwards — 28 distinct sentences
+# across two months had a STRONGER US dollar "eroding" CAD value, e.g. "Stronger
+# USD erodes CAD value of $167,863 USD notional" and "USD weakens 0.02 CAD,
+# translation gain". The podcast reads this briefing, so it repeated them.
+# This investor's base currency is CAD and the US assets are held in USD.
+_FX_CONVENTION = """
+CURRENCY — get this right, it has been wrong before:
+- The investor's base currency is CAD. US-listed holdings (FNGU, SPXL, NVDA, ...) are HELD AND
+  PRICED IN USD; the CAD figures are only a translation for display. Never say they are held in CAD.
+- USD/CAD RISING (e.g. 1.40 -> 1.45) = stronger US dollar = weaker Canadian dollar = the USD holdings
+  are worth MORE in CAD. That is a GAIN for this investor, never a drag.
+- USD/CAD FALLING = weaker US dollar = stronger Canadian dollar = the USD holdings are worth LESS in CAD.
+  THIS is the currency risk to flag.
+- Do not write "translation drag" for a stronger USD. Do not say a weaker USD raises CAD value.
+- Canadian-listed holdings (.TO) are priced in CAD and do not move on the exchange rate.
+"""
+
 _NO_FIGURES_BLOCK = """
 LIVE POSITIONS: unavailable for this run.
 You therefore do NOT know any holding's dollar value or weight. Do not state,
@@ -91,7 +113,9 @@ def _live_portfolio_block() -> str:
     guess a position size.
     """
     try:
-        holdings = requests.get(SETTINGS_API, timeout=10).json().get("computed_holdings", [])
+        settings = requests.get(SETTINGS_API, timeout=10).json()
+        holdings = settings.get("computed_holdings", [])
+        cash_rows = settings.get("cash_positions", []) or []
         snaps    = requests.get(SNAPSHOT_API, timeout=15).json().get("snapshots", {}) or {}
     except Exception as exc:
         print(f"  ⚠ live portfolio fetch failed ({exc}) — figures withheld from prompt")
@@ -133,6 +157,21 @@ def _live_portfolio_block() -> str:
         return _NO_FIGURES_BLOCK
 
     total = float(latest.get("total_value") or 0) or sum(v["cad"] for v in agg.values())
+
+    # Real cash balances. The briefing was never given any, so it invented them:
+    # "Deploy $5,000 CAD of RRSP cash into NVO" when the RRSP holds about $2.9K,
+    # and "RRSP cash ~$20,000". The podcast then read those out as plans.
+    cash_by = {}
+    for c in cash_rows:
+        cad = float(c.get("amount") or 0) * (usdcad if c.get("ccy") == "USD" else 1.0)
+        cash_by[c.get("account") or "?"] = cash_by.get(c.get("account") or "?", 0.0) + cad
+    cash_total = sum(cash_by.values())
+    if cash_rows:
+        cash_line = (f"CASH (uninvested): ${cash_total:,.0f} CAD in total — "
+                     + " | ".join(f"{k} ${v:,.0f}" for k, v in sorted(cash_by.items()))
+                     + "\nNEVER suggest deploying more cash than this, in total or in any one account.")
+    else:
+        cash_line = "CASH: balances unavailable — do not state or assume any cash amount."
     pct   = lambda v: (v / total * 100) if total else 0.0
     rows  = "\n".join(
         f"  {t:<8} {v['name'][:22]:<22} ${v['cad']:>9,.0f} CAD  {pct(v['cad']):>4.1f}%  "
@@ -148,6 +187,7 @@ Every CAD amount you write about a holding MUST be taken from this table.
 
 TOTALS: portfolio ${total:,.0f} CAD | all-time ROI {float(latest.get('roi_pct') or 0):.1f}%
 ACCOUNTS: {' | '.join(f"{k} ${float(v or 0):,.0f}" for k, v in accounts.items())}
+{cash_line}
 3x leveraged: ${lev_cad:,.0f} CAD ({pct(lev_cad):.0f}% of portfolio)
 USD exposure: ${usd_cad_val:,.0f} CAD = ${usd_notional:,.0f} USD notional ({pct(usd_cad_val):.0f}%)
 USD/CAD: {usdcad:.4f}
@@ -654,6 +694,7 @@ TODAY'S DATE: {today}
 PORTFOLIO CONTEXT:
 {PORTFOLIO_CONTEXT}
 {portfolio_block or _NO_FIGURES_BLOCK}
+{_FX_CONVENTION}
 
 {avoid_block}
 
@@ -850,6 +891,22 @@ def save(data: dict, path: str = "data/intelligence.json") -> None:
 # MAIN
 # ============================================================
 
+def _scrub_fx_in(obj, removed: list):
+    """Walk the briefing and drop any sentence that gets the currency direction
+    wrong. The prompt now states the convention, but a prompt is a request; this
+    is the guarantee. Removing a sentence loses a little colour and cannot add an
+    error, and the keys are all left in place so nothing downstream breaks."""
+    if isinstance(obj, dict):
+        return {k: _scrub_fx_in(v, removed) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_scrub_fx_in(v, removed) for v in obj]
+    if isinstance(obj, str):
+        clean, gone = scrub_fx_sentences(obj)
+        removed.extend(gone)
+        return clean
+    return obj
+
+
 def main() -> int:
     groq_key    = os.environ.get("GROQ_API_KEY", "")
     finnhub_key = os.environ.get("FINNHUB_API_KEY", "")
@@ -944,6 +1001,13 @@ def main() -> int:
         portfolio_block=portfolio_block,
     ))
     intelligence.update(part_b)
+
+    removed_fx: list = []
+    intelligence = _scrub_fx_in(intelligence, removed_fx)
+    if removed_fx:
+        print(f"  ✓ Removed {len(removed_fx)} sentence(s) with the currency direction wrong:")
+        for sent in removed_fx[:8]:
+            print(f"      - {sent[:140]}")
 
     # Add metadata
     intelligence["generated_at"] = now_utc.isoformat()

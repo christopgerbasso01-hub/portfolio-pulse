@@ -28,6 +28,14 @@ from pathlib import Path
 
 import requests
 
+# Shared with the daily briefing. Added to the path explicitly so it imports whether
+# this runs as a script, from another directory, or under a test.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from fx_guard import (classify as _fx_classify,            # noqa: E402
+                      held_in_cad_reason as _fx_held_in_cad,
+                      split_sentences as _split_sentences,
+                      scrub_fx_sentences)
+
 # ── Config ───────────────────────────────────────────────────────────────────
 GROQ_URL      = "https://api.groq.com/openai/v1/chat/completions"
 # Groq shut down llama-3.3-70b-versatile and llama-3.1-8b-instant on
@@ -56,15 +64,21 @@ MAX_EPISODES = 4
 # This static fallback is only used if the KV fetch fails.
 # ============================================================
 _PORTFOLIO_CONTEXT_FALLBACK = """
-INVESTOR: Christopher, 24M, Toronto. $90K salary. HIGH risk tolerance.
-GTA home purchase planned: FHSA + RRSP HBP = ~$90K down. Returns Canada March 2027.
-TFSA/FHSA: no contributions in 2026. RRSP: eligible for new buys only.
+INVESTOR: Christopher, 24, Toronto. HIGH risk tolerance. Base currency: CAD.
+GOAL: a GTA home purchase; the FHSA and RRSP are the down-payment money. Returns to Canada March 2027.
 
-NOTE: Live portfolio data unavailable — figures below may be outdated.
-KEY HOLDINGS: Leveraged ETFs 49% (FANG+ 3x, S&P500 3x, Dow 3x), Nvidia (TFSA, +1776% NEVER SELL),
-  Broadcom, Taiwan Semi, CI Tech Giants ETF, CIBC, Royal Bank, Bank of Montreal,
-  Enbridge, Energy Transfer, Shell, MicroStrategy, Grayscale Bitcoin, BYD.
-SENSITIVITIES: 3x leverage amplifies both ways. ~68% USD exposure.
+LIVE PORTFOLIO DATA IS UNAVAILABLE THIS WEEK. You therefore have NO dollar figures and NO weights.
+Do not state, estimate or illustrate any figure about the portfolio, any holding, or its size. Keep
+the episode qualitative: explain the ideas, and say plainly that the numbers are not available.
+
+WHAT WE BROADLY OWN: leveraged 3x funds (FANG+, S&P 500, Dow, semiconductors), big tech including
+Nvidia, Broadcom and Taiwan Semi, Canadian banks, and a little energy. Nothing else is owned; ideas
+called "picks" are only ideas.
+
+CURRENCY: the base currency is CAD. US-listed holdings are HELD IN US DOLLARS and only translated to
+CAD for display. USD/CAD going UP means a stronger US dollar and our US holdings are worth MORE in
+Canadian dollars; going DOWN means they are worth LESS. A stronger US dollar is never a "drag".
+No lists, no invented statistics, no invented dates.
 """
 
 
@@ -80,6 +94,58 @@ _SECTORS = {
     "Financials":   {"CM.TO", "RY.TO", "BMO.TO", "IBKR", "V"},
     "Energy":       {"ENB.TO", "ET", "SHEL", "CNQ.TO", "KGS"},
 }
+
+
+# Friendly names for the leveraged funds. The context used to hardcode a list of
+# three ("FANG+ 3x, S&P500 3x, Dow 3x") and so left out the semiconductor fund,
+# which is a fourth of the sleeve — ep18 then said those three "together make up
+# $164,363" when they were about $150K and the semiconductor fund was the rest.
+_LEVERAGE_NAMES = {
+    "FNGU": "FANG+ 3x", "SPXL": "S&P 500 3x", "UDOW": "Dow 3x",
+    "SOXL": "Semiconductor 3x", "TQQQ": "Nasdaq 3x",
+}
+
+# Lookup-table steps. The model used to be told to "derive every dollar estimate
+# from the anchors", so it did arithmetic on air — and in ep18 it applied the 3x
+# leverage twice, pricing a 0.5% market drop at $7,397 in one breath and, minutes
+# later, correctly at $2,466. It reads the answer off a table now.
+_INDEX_STEPS = (0.5, 1, 2, 3)      # market move, percent
+_FX_STEPS    = (1, 2, 3, 5)        # USD/CAD move, cents
+
+DOWN_PAYMENT_TARGET = 90_000       # the FHSA + RRSP HBP goal quoted in the context
+
+
+def _round_sig(v: float, sig: int = 2) -> float:
+    """Round to `sig` significant figures: 14,386 -> 14,000; 1,722 -> 1,700."""
+    if not v:
+        return 0.0
+    from math import floor, log10
+    return round(v, -int(floor(log10(abs(v)))) + (sig - 1))
+
+
+def _say_money(v: float) -> str:
+    """A figure as it should be SAID — rounded, no cents, no false precision."""
+    return f"${_round_sig(abs(v)):,.0f}"
+
+
+def _say_pct(p: float) -> str:
+    p = abs(p)
+    return f"{p:.1f}%" if p < 10 else f"{p:.0f}%"
+
+
+def _fetch_cash_positions() -> list[dict]:
+    """Cash balances from KV. The prompt used to hardcode 'RRSP Cash: ~$7,685 USD
+    idle', which was false (the RRSP holds about $2.9K CAD) and was read out as
+    fact in ep16 and ep18."""
+    try:
+        r = requests.get(SETTINGS_API, timeout=10)
+        r.raise_for_status()
+        cash = r.json().get("cash_positions", []) or []
+        print(f"  ✓ {len(cash)} cash positions from KV")
+        return cash
+    except Exception as exc:
+        print(f"  ⚠ cash_positions fetch failed: {exc}")
+        return []
 
 
 def _fetch_computed_holdings() -> list[dict]:
@@ -128,7 +194,8 @@ def _week_baseline_date(sorted_dates: list[str]) -> str:
     )
 
 
-def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str, dict]:
+def _build_portfolio_context(holdings: list[dict], snapshots: dict,
+                             cash: list = None) -> tuple[str, dict]:
     """Build a fully dynamic portfolio context string.
     Combines live share counts (from KV) with live prices (from snapshots)
     to produce exact values, weekly movers, and math anchors.
@@ -261,33 +328,24 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str
               f"portfolio context would understate exposure; using fallback")
         return _PORTFOLIO_CONTEXT_FALLBACK, {}
 
-    # Per-account with week-over-week and all-time ROI
-    acct_lines = []
-    for acct in ["TFSA", "Investment", "FHSA", "RRSP"]:
-        v_now  = float(accounts.get(acct)   or 0)
-        v_prev = float(prev_accts.get(acct) or v_now)
-        cost   = float(acct_cost.get(acct)  or 0)
-        chg    = v_now - v_prev
-        pct    = (chg  / v_prev * 100) if v_prev > 0 else 0.0
-        a_roi  = ((v_now - cost) / cost * 100) if cost > 0 else 0.0
-        acct_lines.append(
-            f"  {acct:12s} ${v_now:>9,.0f} CAD  "
-            f"WoW {chg:>+8,.0f} ({pct:>+5.1f}%)  "
-            f"All-time ROI {a_roi:>+5.0f}%"
-        )
+    # ── Cash ─────────────────────────────────────────────────────────────────
+    cash_total, cash_by_acct = 0.0, {}
+    for c in (cash or []):
+        cad = float(c.get("amount") or 0) * (usdcad if c.get("ccy") == "USD" else 1.0)
+        cash_total += cad
+        a = c.get("account") or "?"
+        cash_by_acct[a] = cash_by_acct.get(a, 0.0) + cad
 
-    # Math anchors — grounded in actual position sizes
-    per_1pct_sp  = leverage_cad * 0.03   # 3× leverage = 3× the market move
-    # usd_exp_cad is ALREADY in CAD. A 1¢ move in USD/CAD acts on the USD
-    # NOTIONAL, so the swing is notional × 0.01 — not the CAD value × 0.01.
-    # Omitting this division overstated the anchor by the whole exchange rate
-    # (~1.38×) in every episode, and the scripts repeated the wrong number
-    # faithfully. The notional is published alongside it below so the model
-    # cannot re-derive it the wrong way round.
+    # ── Lookup tables ────────────────────────────────────────────────────────
+    per_1pct_sp  = leverage_cad * 0.03   # 3x leverage: ALREADY includes the multiplier
+    # usd_exp_cad is already in CAD. A 1-cent move in USD/CAD acts on the USD
+    # NOTIONAL, so the swing is notional x 0.01 — not the CAD value x 0.01.
     usd_notional = (usd_exp_cad / usdcad) if usdcad else 0.0
-    per_1cent_fx = usd_notional * 0.01   # per 1¢ USD/CAD shift
+    per_1cent_fx = usd_notional * 0.01
     lev_pct      = leverage_cad / total_val * 100 if total_val else 0
     usd_pct      = usd_exp_cad  / total_val * 100 if total_val else 0
+    index_table  = {str(x): round(per_1pct_sp * x) for x in _INDEX_STEPS}
+    fx_table     = {str(c): round(per_1cent_fx * c) for c in _FX_STEPS}
 
     # Computed so the script never has to characterise the book from memory.
     # Episode 16 called this "a portfolio that's half-energy, half-tech" when
@@ -300,18 +358,15 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str
                 break
         else:
             sector_cad["Other"] = sector_cad.get("Other", 0.0) + p["cad"]
-    _tot_for_pct = total_val_hint = sum(p["cad"] for p in positions.values()) or 1.0
-    sector_line = "  " + " | ".join(
-        f"{s} {v / _tot_for_pct * 100:.1f}%" for s, v in
+    _tot_for_pct = sum(p["cad"] for p in positions.values()) or 1.0
+    sector_line = " | ".join(
+        f"{s} {v / _tot_for_pct * 100:.0f}%" for s, v in
         sorted(sector_cad.items(), key=lambda kv: -kv[1]))
-    held_line = "  " + ", ".join(sorted(positions.keys()))
+    held_line   = ", ".join(sorted(positions.keys()))
     n_positions = len(positions)
-
-    movers_str = "\n".join(
-        f"  {m['name']:<26} ({m['acct']})  "
-        f"{m['wk_pct']:>+6.1f}%  →  {m['wk_cad']:>+9,.0f} CAD"
-        for m in top_movers
-    ) or "  (snapshot prices unavailable for this week)"
+    lev_funds   = [_LEVERAGE_NAMES.get(t, positions[t]["name"])
+                   for t in sorted(positions) if t in _LEVERAGE_3X]
+    lev_names   = ", ".join(lev_funds) or "none"
 
     # State the real span. The old label said "Weekly change" regardless of how
     # far back the baseline actually was, which is how an 87-day move reached
@@ -320,63 +375,77 @@ def _build_portfolio_context(holdings: list[dict], snapshots: dict) -> tuple[str
                  - datetime.fromisoformat(baseline_date).date()).days
     period    = f"{baseline_date} → {latest_date} ({span_days} days)"
 
-    text = f"""INVESTOR: Christopher, 24M, Toronto. $90K salary. HIGH risk tolerance.
-GTA home purchase: FHSA + RRSP HBP = ~$90K down payment. Returns Canada March 2027.
-TFSA/FHSA: no new contributions in 2026. RRSP: eligible for new buys only.
+    wk_dir = "up" if wk_gain >= 0 else "down"
+    def _mline(m):
+        return (f"  {_LEVERAGE_NAMES.get(m['ticker']) or COMPANY_NAMES.get(m['ticker'], m['name'])}: "
+                f"{'up' if m['wk_pct'] >= 0 else 'down'} about {_say_pct(m['wk_pct'])} "
+                f"(about {_say_money(m['wk_cad'])} {'gained' if m['wk_cad'] >= 0 else 'lost'} for us)")
 
-━━━ LIVE PORTFOLIO [{sorted_dates[-1]}] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total value:   ${total_val:>10,.0f} CAD
-Change {period}: {wk_gain:>+10,.0f} CAD ({wk_pct:>+5.1f}%)
-All-time ROI:  {roi_pct:>10.1f}%
+    # The recap asks for the biggest mover AND one that fell, but the top movers by
+    # dollars are usually all risers, so the model had nothing to name and made a
+    # reason up. State the real biggest faller explicitly.
+    fallers = sorted((m for m in merged if m["wk_cad"] < 0), key=lambda m: m["wk_cad"])
+    faller  = fallers[0] if fallers else None
+    movers_str = "\n".join(_mline(m) for m in top_movers[:3]) or "  (price moves unavailable this week)"
+    if faller is not None and faller not in top_movers[:3]:
+        movers_str += "\nBiggest faller:\n" + _mline(faller)
+    elif faller is None:
+        movers_str += "\n  (Nothing of note fell this week.)"
+    cash_line = (f"Cash (not invested): about {_say_money(cash_total)} CAD in total — a small slice"
+                 if cash else "Cash balances: not provided — never state one.")
+    idx_line = " | ".join(f"{x}% move -> about {_say_money(v)}"
+                          for x, v in zip(_INDEX_STEPS, index_table.values()))
+    fx_line  = " | ".join(f"{c} cent{'s' if c > 1 else ''} -> about {_say_money(v)}"
+                          for c, v in zip(_FX_STEPS, fx_table.values()))
 
-ACCOUNTS (change over {period}):
-{chr(10).join(acct_lines)}
+    # The prompt used to carry hand-typed facts here: "RRSP Cash: ~$7,685 USD
+    # idle", "Nvidia +1,776%", a three-fund leveraged list, "implied beta 1.8x".
+    # Every one was stale or false, and ep16 and ep18 read them out as fact. This
+    # block is computed; nothing in it is typed by hand except the investor's
+    # circumstances.
+    text = f"""INVESTOR: Christopher, 24, Toronto. HIGH risk tolerance. Base currency: CAD.
+GOAL: a GTA home purchase. The FHSA and the RRSP are the down-payment money (a target of about $90K). Returns to Canada in March 2027.
+Nvidia is a permanent hold in the TFSA.
 
-USD/CAD: {usdcad:.4f}
-
-━━━ MATH ANCHORS — every dollar estimate in this episode MUST derive from these ━━━
-3× Leveraged exposure: ${leverage_cad:>9,.0f} CAD ({lev_pct:.0f}% of portfolio)
-USD exposure:          ${usd_exp_cad:>9,.0f} CAD ({usd_pct:.0f}% of portfolio)
-Per 1% index move    → ±${per_1pct_sp:>7,.0f} CAD on leveraged positions alone
-USD notional:          ${usd_notional:>9,.0f} USD  ← an FX move acts on THIS, not the CAD value
-Per 1¢ USD/CAD move  → ±${per_1cent_fx:>7,.0f} CAD on USD holdings
-RULE: FX impact = USD notional × the cent move. Never multiply the CAD figure.
-FX DIRECTION — do not invert this:
-  USD/CAD RISING  = CAD weaker = our USD holdings are worth MORE in CAD.
-  USD/CAD FALLING = CAD stronger = our USD holdings are worth LESS in CAD.
-  So "1.3904 → 1.3950" is a WEAKER CAD, and "1.3904 → 1.3650" is a STRONGER CAD.
-  Canadian-listed holdings (.TO) are priced in CAD and do not move on FX at all.
-
-━━━ WHAT WE ACTUALLY HOLD ({n_positions} positions) ━━━━━━━━━━━━━━━━━━━━━━━━━
-{held_line}
-Anything not on that list is NOT owned. Never say "we hold", "our position in",
-or "our exposure to" about a ticker absent from it.
-
-SECTOR WEIGHTS (computed, not estimated):
-{sector_line}
-Describe the portfolio using these figures. Do not characterise it from memory.
-
-SOURCING: every market statistic you cite — index levels, VIX, oil inventories,
-central-bank dates — must come from the intelligence provided in this prompt. If
-it is not there, discuss the mechanism without inventing a number or a date.
-Portfolio implied β  ≈ 1.8× market (leverage concentration)
-RULE: Bear case estimates must be at least as large as bull case estimates in absolute terms.
-RULE: Never invent a dollar figure — use the anchors above and show your reasoning.
-
-━━━ TOP MOVERS, {period} (your exact shares × price change) ━━━
+━━━ THIS WEEK — already rounded; the only portfolio numbers you may say ━━━
+Period:              {period}
+Portfolio value:     about {_say_money(total_val)} CAD
+This week:           {wk_dir} about {_say_money(wk_gain)} ({wk_dir} about {_say_pct(wk_pct)})
+Since the start:     up about {roi_pct:.0f}% in total
+Leveraged 3x funds:  {lev_names} — about {_say_money(leverage_cad)} together, about {lev_pct:.0f}% of the portfolio
+US-dollar holdings:  about {_say_money(usd_notional)} US dollars' worth
+{cash_line}
+Biggest movers this week (mention at most two):
 {movers_str}
 
-━━━ KEY HOLDINGS (use NAMES not tickers — 90% of the time) ━━━━━━━━━━━━━━━━━━
-Leveraged 3× ({lev_pct:.0f}%): FANG+ 3×, S&P500 3×, Dow 3×
-Tech: Nvidia (TFSA — NEVER SELL, permanently tax-free at +1,776%)
-      Broadcom, Taiwan Semi, CI Tech Giants ETF, Microsoft, Apple, Qualcomm
-CDN Financials: CIBC, Royal Bank, Bank of Montreal
-Energy: Enbridge, Energy Transfer, Shell
-Speculative: MicroStrategy, Grayscale Bitcoin, BYD
-RRSP Cash: ~$7,685 USD idle → deploy to BMO S&P500 ETF
+━━━ HOW MUCH THINGS MOVE — read the answer off this table, NEVER calculate ━━━
+If the stock market moves by this much, our leveraged funds move 3x as much, and the effect on the portfolio is:
+  {idx_line}
+  (This ALREADY includes the 3x leverage — never multiply it by 3 again. Same amount up or down.)
+If USD/CAD moves by this many cents (it is about {usdcad:.2f} now), the effect on our US-dollar holdings is:
+  {fx_line}
+  (Same amount up or down.)
+These are two SEPARATE effects. Never add them, subtract one from the other, or give a "net" figure. If you mention both, state each on its own.
 
-CRITICAL: Every % change you mention must match the weekly mover data above.
-Do not cite performance figures not present in this context."""
+━━━ CURRENCY — read carefully; this has been wrong before ━━━
+Our base currency is CAD. Every US-listed holding (the leveraged funds, Nvidia, Tesla, ...) is HELD AND PRICED IN US DOLLARS. The Canadian-dollar numbers in the app are only a translation for display. NEVER say we hold them in Canadian dollars.
+USD/CAD going UP (say 1.41 to 1.45) = the US dollar got STRONGER and the Canadian dollar WEAKER = our US holdings are worth MORE in Canadian dollars. That is GOOD for us.
+USD/CAD going DOWN = the Canadian dollar got stronger = our US holdings are worth LESS in Canadian dollars. That is the currency RISK for us.
+Say it like this: "When the US dollar gets stronger against the Canadian dollar, our US holdings are worth more in Canadian dollars, and the other way around."
+A stronger US dollar is NEVER a "drag" or "headwind" on the Canadian-dollar value of our US holdings. (Separately, a strong dollar can weigh on US stock PRICES — if you mention that, say it is about stock prices, not about our currency translation.)
+Canadian-listed holdings (.TO) are priced in CAD and ignore the exchange rate.
+
+━━━ WHAT WE OWN ({n_positions} positions) ━━━
+{held_line}
+Weights: {sector_line}
+Anything not on that list is NOT owned. Ideas called "picks" (for example Novo Nordisk or Toronto-Dominion) are only ideas.
+
+━━━ NUMBER BUDGET — strict ━━━
+- At most 3 numbers in any one turn; about 12 per half; never more than 18.
+- Use only numbers from this page and from the news items. Round as shown: say "about fourteen thousand dollars", never "$14,386".
+- No arithmetic on air: no "4 times 1,722", no "net effect", no adding or subtracting two dollar impacts.
+- Prefer words to numbers: "a big week", "roughly half the portfolio", "a small slice".
+- Never invent a statistic, price, yield, VIX level, earnings result, announcement, date or cause. If it is not on this page or in the news, explain the idea without it."""
 
     # Machine-checkable record of every portfolio-level figure the model was
     # given. verify_script_figures() validates the finished script against this,
@@ -402,8 +471,17 @@ Do not cite performance figures not present in this context."""
             for a in ("TFSA", "Investment", "FHSA", "RRSP")
         },
         "movers": [{"ticker": m["ticker"], "pct": round(m["wk_pct"], 2),
-                    "cad": round(m["wk_cad"])} for m in top_movers],
+                    "cad": round(m["wk_cad"])}
+                   for m in top_movers + ([faller] if faller is not None and faller not in top_movers else [])],
         "usd_notional": round(usd_notional),
+        "index_table": index_table,
+        "fx_table": fx_table,
+        "cash_total": round(cash_total),
+        "cash_by_account": {a: round(v) for a, v in cash_by_acct.items()},
+        "leverage_funds": lev_funds,
+        "down_payment_target": DOWN_PAYMENT_TARGET,
+        # Switches on the strict "a dollar figure nobody supplied" check.
+        "strict_figures": True,
         "positions": {t: {"name": p["name"], "cad": round(p["cad"]),
                           "accounts": list(p["accounts"])}
                       for t, p in positions.items()},
@@ -427,228 +505,141 @@ COMPANY_NAMES = {
 # ============================================================
 # SCRIPT PROMPT — PART 1: Welcome + Recap + Deep Dive 1
 # ============================================================
-SCRIPT_PROMPT_PART1 = """You are writing the FIRST HALF of a weekly financial podcast called "Portfolio Pulse Weekly."
-
-EPISODE DATE: {today}
-TRADING WEEK: {week_range}
-MARKET MOOD: {mood}
+SCRIPT_PROMPT_PART1 = """You are writing the FIRST HALF of a weekly podcast, "Portfolio Pulse Weekly", for one listener: a smart beginner who owns this portfolio. Two hosts: ALEX explains; SAM asks the questions a beginner would ask.
+{editor_notes}
+EPISODE DATE: {today}     TRADING WEEK: {week_range}     MARKET MOOD: {mood}
 
 {registry_context}
 
-━━━ TICKER ROTATION (CRITICAL — read before picking Deep Dive topics) ━━━━━━━━━
-{ticker_rotation}
+━━━ THE NEWS — your ONLY source of facts about the outside world ━━━
+{briefing_note}Outlook: {outlook}
 
-PORTFOLIO PERFORMANCE THIS WEEK:
-{live_portfolio}
-
-THIS WEEK'S MACRO INTELLIGENCE:
-Daily Outlook: {outlook}
-
-Macro Themes:
+Macro themes:
 {macro}
 
-Market News:
+Market news:
 {news}
 
-PORTFOLIO CONTEXT:
+━━━ THE PORTFOLIO — your ONLY source of facts about the portfolio ━━━
 {portfolio}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PODCAST STYLE — study this carefully:
+━━━ THIS EPISODE'S FIXED SUBJECTS ━━━
+Deep Dive 1: {dd1_title}
+{dd1_brief}
+Deep Dive 2 (the second half writes it): {dd2_title}
+Learning segment (the second half writes it): {education_topic}
+In the opening agenda name all three, exactly as written above. Never swap one for something else — the second half is already committed to them.
 
-TONE MODEL: Think NPR/Bloomberg deep-dive format. Not a data recital. A story.
-Every number gets a mechanism. Every mechanism gets an implication. Every implication connects back to the portfolio.
+━━━ HOW TO TALK ━━━
+Plain, calm and conversational — a smart friend explaining it over coffee. Short sentences, one idea at a time. Explain IDEAS and cause-and-effect, not figures. If a sentence works without a number, leave the number out.
+Use ONE everyday analogy for the whole episode — not two.
 
-CONTENT BALANCE (non-negotiable):
-- Backward-looking (what happened): MAX 35% of content
-- Forward-looking (what's coming, upcoming catalysts, what to watch): MIN 50% of content
-- Every backward-looking statement should pivot: "...and here's why that matters for the next few weeks."
-- Deep Dive 1 must be predominantly forward-looking — the market event is the context, not the story.
+━━━ THE FACT RULES (these matter more than anything else) ━━━
+1. State only facts that appear above: the portfolio page, the lookup tables, and the news items. Never invent a statistic, price, yield, VIX level, earnings result, company announcement or cause. If you have no reason for a move, say "it moved with the market" — do not make one up.
+2. Never do arithmetic on air. No multiplying, adding, subtracting or "netting" dollar figures. Read any dollar impact straight off the lookup table. The market table ALREADY includes the 3x leverage — never apply it again.
+3. Round: "about fourteen thousand dollars", never "$14,386".
+4. Call something a holding only if it is under "WHAT WE OWN". "Picks" are ideas, not owned.
+5. Currency: follow the CURRENCY box exactly. We hold US assets in US dollars, never in Canadian dollars. A stronger US dollar RAISES the Canadian-dollar value of our US holdings.
+6. No lists. Never write bullet points, numbered lists, or a sentence ending in a colon that introduces a list — say "first… second… third…" in full sentences. Every line starts with "ALEX:" or "SAM:".
+7. No dates unless they appear in the news above. Otherwise say "at the next Fed meeting" or "when the next inflation report comes out".
 
-FIGURE RULE (non-negotiable):
-Every number you state MUST be immediately followed by the mechanism that caused it or will cause it.
-BAD: "The portfolio dropped $4,200 this week."
-GOOD: "The portfolio dropped $4,200 — because when three of the five FANG+ basket names sold off together,
-       the 3x leverage turned what was a 1.5% index move into a 4.5% hit on that position specifically."
-Never state a figure without its mechanism. Not once. Not even in short recap lines.
+━━━ STRUCTURE ━━━
+[WELCOME — 45 seconds] ALEX welcomes listeners to Portfolio Pulse Weekly, introduces himself and Sam, then gives the agenda naming the three subjects above. End with ONE sentence hook — the most surprising idea in this week's story.
 
-METAPHOR RULE: You may use exactly ONE metaphor for the ENTIRE episode. One. Make it count.
-Do not use it more than once. Do not introduce a second one. One metaphor, total.
+[RECAP — 2 minutes] The week in plain words. Say once whether the portfolio was up or down and by about how much. Name the biggest mover and the biggest faller listed on the portfolio page. Give a reason for a move ONLY if the news above supplies it — otherwise say honestly that it moved with the market. At most 3 numbers in the whole recap. One short callback to last episode, only if natural.
 
-OPENING STRUCTURE:
-[WELCOME BACK — 60 seconds]
-Alex welcomes listeners back warmly.
-"Hey everyone, welcome back to Portfolio Pulse Weekly. I'm Alex, joined as always by Sam..."
-Give a SHORT agenda teaser: "This week we're covering [Topic 1], [Topic 2], and in our
-learning segment, [LEARNING SEGMENT TOPIC]."
-THE LEARNING SEGMENT TOPIC FOR THIS EPISODE IS FIXED: {education_topic}
-Name that exact topic in the teaser. Do not substitute your own — the second half
-of the episode is already committed to writing it, and announcing anything else
-promises the listener a segment that never arrives.
-ONE sentence hook — a genuine "wait, what?" about the most counterintuitive thing this week.
+[DEEP DIVE 1 — about 5 minutes] on {dd1_title}.
+- SAM opens with the puzzle.
+- ALEX explains the mechanism in plain English, step by step.
+- SAM pushes back twice, the way a beginner would ("hang on — why would that happen?").
+- ALEX re-explains more simply each time.
+- Connect it to a holding we actually own, by name.
+- Look ahead: what we would watch next — only events named in the news above, or the TYPE of event with no invented date.
 
-[PORTFOLIO RECAP — 2.5 minutes]
-Do NOT recite a scoreboard. Tell the STORY of what drove the portfolio's moves.
-Structure:
-- How did the overall portfolio do vs last week? (one honest sentence, mechanism first)
-  BAD: "FANG+ 3x ETF was up 6.2%"
-  GOOD: "The FANG+ 3x ETF ripped because Meta guided AI capital spending way higher — and when
-         three of the five basket names move together, the 3x leverage turns that into something
-         that really shows up in the numbers."
-- Acknowledge ONE thing that underperformed or surprised, with a concrete reason
-- ONE natural callback to the previous episode (one sentence — only if it adds value)
+DIALOGUE: company names, not tickers. A quarter of turns under 20 words. Natural reactions ("Right.", "Hmm.", "Okay but…"). No two turns start with the same word. Avoid: "it's worth noting", "going forward", "as mentioned", "at the end of the day", "in today's market", "landscape", "navigate", "tailwinds", "headwinds".
 
-[DEEP DIVE 1 — 5 to 6 minutes]
-Pick the single most important macro force impacting this portfolio THIS WEEK.
-The topic MUST be fresh — check the topic registry above and do not repeat anything already covered.
-Structure:
-- SAM opens with the paradox/tension hook for this segment
-- ALEX explains the mechanism (use the ONE metaphor here if anywhere)
-- SAM pushes back TWICE with real challenges ("But hang on..." / "I need to push back here...")
-- ALEX re-explains more clearly each time
-- Connect explicitly to portfolio holdings by NAME: "Which means for us, Nvidia and Broadcom in particular..."
-- The forward-looking pivot is MANDATORY: spend at least 3 of the 6 minutes on "and here's what this
-  sets up for the next 2-4 weeks" — specific upcoming catalysts, dates, triggers to watch
-- End with: "So going into next week specifically, here's what this means for the portfolio..."
-
-DIALOGUE RULES (non-negotiable):
-- 90% company NAMES, 10% tickers. "Nvidia" not "NVDA". "Broadcom" not "AVGO".
-- Every % explained as a mechanism + dollar impact on the portfolio
-- Short reaction turns mixed with longer explanations (min 25% of turns under 20 words)
-- Natural filler: "Right.", "Yeah.", "Exactly.", "Hmm.", "Okay but...", "Ah — I see."
-- NO banned phrases: "it's worth noting", "going forward", "as mentioned", "at the end of the day",
-  "in today's market", "landscape", "navigate", "tailwinds", "headwinds"
-- Every turn starts differently — never two consecutive turns with the same opening word
-
-WORD COUNT: MINIMUM 1,900 words, TARGET 2,200 words for this half.
-If running short, go DEEPER on the forward-looking component of Deep Dive 1 — more upcoming catalysts,
-more specific dates/events, more portfolio implications. Do not pad with filler.
-FORMAT: Every line starts with "ALEX:" or "SAM:" — no exceptions, no stage directions, no headers.
+LENGTH: aim for 1,300 to 1,800 words. If you run short, explain the mechanism more slowly with a simple everyday example. NEVER add dates, events, figures or details just to fill time.
 
 THIS IS THE FIRST HALF ONLY — DO NOT CLOSE THE EPISODE.
-Part 2 is written separately and is joined directly onto your final line, in the
-same episode. It contains Deep Dive 2, the learning segment, the scenarios and
-the closing. So do NOT write a sign-off, a wrap-up, a "that's the play", a "stay
-tuned", or a "we'll be back next Monday". Stop mid-conversation on a Deep Dive 1
-line so the second half continues straight out of it.
+Part 2 is written separately and is joined directly onto your final line, in the same episode. It contains Deep Dive 2, the learning segment, the scenarios and the closing. So do NOT write a sign-off, a wrap-up, "stay tuned", or "we'll be back next Monday". Stop mid-conversation on a Deep Dive 1 line so the second half continues straight out of it.
 
-Write PART 1 now (Welcome Back + Portfolio Recap + Deep Dive 1):"""
+Write PART 1 now:"""
 
 
-# ============================================================
-# SCRIPT PROMPT — PART 2: Deep Dive 2 + Learning Segment + Scenarios + Close
-# ============================================================
-SCRIPT_PROMPT_PART2 = """You are writing the SECOND HALF of "Portfolio Pulse Weekly" for {today}.
-
-PART 1 IS ALREADY WRITTEN AND IS JOINED DIRECTLY ONTO YOUR FIRST LINE.
-The listener has just heard it. Here is what it contained:
+SCRIPT_PROMPT_PART2 = """You are writing the SECOND HALF of "Portfolio Pulse Weekly" for {today}. ALEX explains; SAM asks the questions a beginner would ask.
+{editor_notes}
+PART 1 IS ALREADY WRITTEN AND IS JOINED DIRECTLY ONTO YOUR FIRST LINE. The listener has just heard it:
 {dive1_summary}
 
 YOU ARE CONTINUING ONE EPISODE, NOT STARTING ANYTHING.
 - Do NOT greet the listener or say "welcome back".
 - Do NOT open with "let's pick up where we left off" or recap what Part 1 covered.
-- Do NOT say the hosts "just walked through" or "just discussed" a topic unless it
-  appears above as something actually discussed. A topic that was merely named in
-  a passing list of upcoming events was NOT walked through, and claiming otherwise
-  tells the listener they missed a segment that never happened.
+- Do NOT say the hosts "just walked through" or "just discussed" a topic unless it appears above as something actually discussed.
 Begin directly with Deep Dive 2's hook.
 
-━━━ TICKER ROTATION (read before picking Deep Dive 2 subject) ━━━━━━━━━━━━━━━
-{ticker_rotation}
+━━━ THE NEWS — your ONLY source of facts about the outside world ━━━
+{briefing_note}{news}
 
-THIS WEEK'S PICKS & STRATEGY:
+SUGGESTIONS from the briefing. These are NOT decisions, rules or plans we have made, and none of the
+companies are owned. Never say "we have a rule", "we earmarked" or "our plan is" about them — at
+most, "one idea floating around is…". Ideas:
 {picks}
-{strengths}
-{concerns}
 {strategy}
 
-MARKET NEWS (for Deep Dive 2):
-{news}
-
-PORTFOLIO CONTEXT:
+━━━ THE PORTFOLIO — your ONLY source of facts about the portfolio ━━━
 {portfolio}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Continue the podcast naturally from where Part 1 ended.
+━━━ THIS HALF'S FIXED SUBJECTS ━━━
+Deep Dive 2: {dd2_title}
+{dd2_brief}
+Learning segment: {education_topic}
 
-CONTENT BALANCE (non-negotiable):
-- Backward-looking content (what happened): MAX 35% of all content in this half
-- Forward-looking content (what's coming, upcoming events, catalysts): MIN 50%
-- Every backward statement must pivot to its forward implication
+━━━ THE FACT RULES (these matter more than anything else) ━━━
+1. State only facts that appear above. Never invent a statistic, price, yield, VIX level, earnings result, company announcement, buyback, date or cause. For Deep Dive 2 the ONLY facts you may state about the company are in the brief; beyond that, explain how that kind of business works, in general terms.
+2. Never do arithmetic on air. Read any dollar impact straight off the lookup table; the market table ALREADY includes the 3x leverage.
+3. Round: "about fourteen thousand dollars".
+4. Call something a holding only if it is under "WHAT WE OWN". Picks are ideas, not owned. If a company IS owned, never say it isn't.
+5. Currency: follow the CURRENCY box exactly. We hold US assets in US dollars. A stronger US dollar RAISES the Canadian-dollar value of our US holdings.
+6. No lists, no bullets, no sentence ending in a colon introducing a list. Every line starts with "ALEX:" or "SAM:" — except the [EDUCATION_TOPIC] marker line.
+7. No dates unless they appear in the news above.
+NUMBER BUDGET: at most 3 numbers in any one turn and about 12 in this half.
 
-FIGURE RULE (non-negotiable): every number must be immediately followed by its mechanism.
-NO banned phrases: "it's worth noting", "going forward", "as mentioned", "at the end of the day",
-"in today's market", "landscape", "navigate", "tailwinds", "headwinds"
+Use plain, calm, conversational language — a smart friend over coffee. Do not introduce a second analogy (one was used in Part 1). Company names, not tickers. No two turns start with the same word. Avoid: "it's worth noting", "going forward", "as mentioned", "at the end of the day", "in today's market", "landscape", "navigate", "tailwinds", "headwinds".
 
-[DEEP DIVE 2 — 5 to 6 minutes]
-Pick a SPECIFIC holding or sector that is at a decision point or has a forward-looking catalyst.
-The subject must NOT be a ticker spotlighted in recent episodes (see ticker rotation above).
-Prioritize holdings that rarely get spotlight time — not the obvious FANG+ / Nvidia again.
+━━━ STRUCTURE ━━━
+[DEEP DIVE 2 — about 4 minutes] on {dd2_title}.
+- ALEX introduces it with a hook; SAM asks why it matters for us right now.
+- ALEX explains how this business works and what the news means for it, using only the brief. SAM pushes back at least once.
+- Say how big the holding is in plain terms, using the size in the brief ("a small slice, about 2% of the portfolio").
+- Close by saying what we would watch next — only an event named in the news, or the type of event.
 
-Structure:
-- ALEX introduces the specific story with a hook
-- SAM asks "but why does this matter for us specifically RIGHT NOW?"
-- ALEX explains the mechanism — NO new metaphor (the single episode metaphor was used in Part 1)
-- At least ONE genuine push-back from SAM
-- Explicit portfolio connection: "X dollars of our portfolio is directly exposed here..."
-- End with: "Here's the specific catalyst or date we're watching on this one..."
-
-[LEARNING SEGMENT — 2 to 3 minutes]
-This segment steps back from this week's news to teach something genuinely useful.
-
-THE TOPIC IS ALREADY CHOSEN FOR THIS EPISODE: {education_topic}
-
-Write THAT topic. Do not pick a different one and do not broaden it. The first
-half of this episode has already told the listener, by name, that this is what
-the learning segment covers, so substituting anything else breaks the promise
-the episode opened with.
-
-(For reference, these were covered in past episodes and are not repeated:
-{education_topics_used})
-
-CRITICAL: Place the following marker on its own line immediately BEFORE Alex starts this segment
-(no ALEX: or SAM: prefix — just the raw marker line, it won't be read aloud):
+[LEARNING SEGMENT — about 2 minutes]
+THE TOPIC IS ALREADY CHOSEN: {education_topic}. Write exactly that topic — the first half has already told the listener, by name, that this is what the segment covers.
+(Covered in past episodes, not to be repeated: {education_topics_used})
+Place this marker on its own line immediately BEFORE the segment starts (no speaker prefix; it is never read aloud):
 [EDUCATION_TOPIC: {education_topic}]
+Then:
+- ALEX or SAM introduces: "Before we get to our scenarios, let's step back and learn something…"
+- Teach the idea in plain language, with one simple everyday example using small round numbers (like $100), never this portfolio's figures.
+- Use NO current market data — no yields, no index levels, no VIX numbers, no "historically, X% of the time" statistics.
+- Connect it briefly to this investor where it fits. SAM asks one "but what does that actually mean in practice?" question.
+- Close with: "Alright, that's our learning segment for this week. On to scenarios…"
 
-Then write the segment:
-- ALEX or SAM introduces: "Before we get to our scenarios, let's step back and learn something..."
-- Present the concept clearly — assume the listener is smart but not a professional
-- Connect it briefly to this investor's portfolio where it naturally fits (don't force it)
-- SAM asks at least one "okay but what does that actually mean in practice?" question
-- Close with: "Alright, that's our learning segment for this week. On to scenarios..."
+[SCENARIOS — about 90 seconds]
+Give exactly THREE cases for the next few weeks, as three separate turns, in this form:
+  "Base case — 50 percent: [one plain sentence on what happens]. For us that is about [one figure from the lookup table, or the word 'small']."
+  "Bull case — 30 percent: …"
+  "Bear case — 20 percent: …"
+Probabilities add to 100; the base case is 45 to 55. Each case moves ONE lever only — the stock market OR the currency, never both — so there is nothing to net. The bear case's effect must be at least as large as the bull case's. Read each figure straight off the lookup table; do not calculate. Never skip a case.
 
-[SCENARIO FRAMEWORK — 2 minutes]
-Three scenarios for the NEXT 2–4 WEEKS with specific probability.
-Every scenario MUST state the portfolio impact in dollar terms derived from the math anchors.
-Scenarios must be balanced — bear downside must be at least as large as bull upside in absolute dollars.
+[CLOSING — about 60 seconds]
+- ONE open question that leaves the listener thinking about investing itself, not about data.
+- "One thing we're watching next week" — only an event named in the news above, or the type of event.
+- A warm sign-off and a brief tease for next week.
 
-SHOW THE ARITHMETIC. For every dollar range, name the position and the percentage
-move you applied to it, and make sure the total actually follows from them.
-Episode 16 claimed a bear case of "$15,000 - $18,000" off drivers (Energy Transfer
--8%, a 0.015 CAD move) that add up to about $2,500 — roughly six times too large,
-and nothing in the wording revealed the gap. If your drivers only justify a small
-number, state the small number.
+LENGTH: aim for 1,200 to 1,700 words. If you run short, explain the ideas more slowly with a simple everyday example. NEVER add dates, events, figures or details just to fill time.
 
-Format (use this exactly):
-"Base case — [X]% probability: [specific mechanism that plays out] → portfolio impact: [dollar range]"
-"Bull case — [X]% probability: [specific catalyst needed] → portfolio upside: [$X to $Y CAD]"
-"Bear case — [X]% probability: [specific trigger] → portfolio downside: [$X to $Y CAD]"
-
-Probabilities must sum to 100%. Base case should be 45-55%.
-
-[CLOSING — 60 to 90 seconds]
-- ONE open, unanswered question that leaves the listener thinking about something deeper
-  (Not a data question — a "what does this mean about investing" type question)
-- "One thing we're watching next week" — specific event, date if known, and why it matters
-- Warm sign-off, brief tease for next week
-
-WORD COUNT: MINIMUM 1,800 words, TARGET 2,100 words for this half.
-If running short, deepen the learning segment or add more scenario nuance.
-FORMAT: Every line starts with "ALEX:" or "SAM:" — EXCEPT the [EDUCATION_TOPIC: ...] marker line.
-No stage directions, no headers, no section labels.
-NAMES not tickers (90%). Short reactions mixed with explanations. Every turn opens differently.
-
-Write PART 2 now (Deep Dive 2 + Learning Segment + Scenarios + Closing):"""
+Write PART 2 now:"""
 
 
 # ============================================================
@@ -893,8 +884,16 @@ EDUCATION_TOPICS = [
 def _choose_education_topic(education_used: list) -> str:
     """First topic not yet covered; rotates once the list is exhausted."""
     used = {str(t).strip().lower() for t in (education_used or []) if t}
+
+    def seen(topic: str) -> bool:
+        # The registry records the topic as the model worded it ("Currency Carry
+        # Trade"), which need not equal our list's wording ("Currency Carry Trade
+        # Unwinds"), so match either way round rather than exactly.
+        t = topic.lower()
+        return any(t == u or (len(u) >= 6 and (u in t or t in u)) for u in used)
+
     for topic in EDUCATION_TOPICS:
-        if topic.lower() not in used:
+        if not seen(topic):
             return topic
     return EDUCATION_TOPICS[len(used) % len(EDUCATION_TOPICS)]
 
@@ -1064,8 +1063,124 @@ def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) ->
     raise RuntimeError(f"All Groq attempts failed for {label} (last: {last_err})")
 
 
+_POS_PAIR = re.compile(r"\b([A-Z]{1,5}(?:\.TO)?)\s*~?\$\s?([\d,]*\d(?:\.\d+)?)\s*(K|M|B)?(?![A-Za-z])")
+
+
+def _position_pairs_in(text: str) -> dict:
+    """{"ENB.TO": [5493.0]} from briefing text like "ENB.TO $5,493 CAD, SHEL $2,973 CAD"."""
+    out = {}
+    for tkr, raw, suf in _POS_PAIR.findall(str(text or "")):
+        try:
+            out.setdefault(tkr, []).append(_claim_value(raw, suf or None))
+        except (ValueError, KeyError):
+            pass
+    return out
+
+
+def _money_values_in(*texts) -> list:
+    """Every dollar amount (>= $1,000) that appears in the text the model was shown.
+    Anything the briefing itself supplied is a figure the script is allowed to cite."""
+    out = set()
+    for t in texts:
+        for raw, suffix in _CLAIM_MONEY.findall(str(t or "")):
+            try:
+                v = _claim_value(raw, suffix or None)
+            except (ValueError, KeyError):
+                continue
+            if v >= 1_000:
+                out.add(v)
+    return sorted(out)
+
+
+# ── Fixed subjects ───────────────────────────────────────────────────────────
+# Part 1 used to pick Deep Dive 1 and write the agenda; Part 2 picked Deep Dive 2
+# afterwards. Ep18's agenda promised "the Tesla Semi rollout" and Part 2 then
+# delivered Broadcom — a company we already own, which it described as "not
+# currently in the portfolio". Both subjects are fixed here, before either half is
+# written, exactly as the learning topic is.
+def _choose_deep_dive_1(intel: dict, clean) -> dict:
+    for m in intel.get("macro", []) or []:
+        if m.get("title"):
+            return {"title": str(m["title"]).strip(),
+                    "body": clean(m.get("body", ""), 420),
+                    "bull": clean(m.get("bull", ""), 160),
+                    "bear": clean(m.get("bear", ""), 160)}
+    for n in intel.get("news", []) or []:
+        if n.get("headline"):
+            return {"title": str(n["headline"]).strip(), "body": clean(n.get("body", ""), 420),
+                    "bull": "", "bear": ""}
+    return {"title": "the biggest market story of the week", "body": "", "bull": "", "bear": ""}
+
+
+def _choose_deep_dive_2(intel: dict, facts: dict, recently_spotlighted: list, clean):
+    """A holding we actually own that this week's news actually touches.
+
+    The news items name what we hold in them ("ENB.TO $5,493 CAD"), so the first
+    one that names an owned, non-leveraged, not-recently-spotlighted holding is
+    the subject, and its news item is the ONLY thing the model may say about it.
+    Falls back to our largest such holding with no news at all.
+    """
+    positions = (facts or {}).get("positions") or {}
+    if not positions:
+        return None
+    spot  = {str(t).upper() for t in (recently_spotlighted or [])}
+    total = float((facts or {}).get("total_value") or 0) or sum(
+        float(p["cad"]) for p in positions.values())
+
+    def pick(tkr, news=None):
+        p = positions[tkr]
+        return {"ticker": tkr,
+                "name": COMPANY_NAMES.get(tkr, p.get("name") or tkr),
+                "cad": float(p["cad"]),
+                "share": float(p["cad"]) / total * 100 if total else 0.0,
+                "accounts": list(p.get("accounts") or []),
+                "headline": str((news or {}).get("headline") or ""),
+                "body": clean((news or {}).get("body", ""), 320) if news else ""}
+
+    for n in intel.get("news", []) or []:
+        for tkr in re.findall(r"\b[A-Z]{1,5}(?:\.TO)?\b", str(n.get("exposure") or "")):
+            if tkr in positions and tkr not in _LEVERAGE_3X and tkr.upper() not in spot:
+                return pick(tkr, n)
+    cands = sorted(((p["cad"], t) for t, p in positions.items()
+                    if t not in _LEVERAGE_3X and t.upper() not in spot), reverse=True)
+    return pick(cands[0][1]) if cands else None
+
+
+def _deep_dive_briefs(dd1: dict, dd2) -> tuple:
+    """(dd1_title, dd1_brief, dd2_title, dd2_brief) as the prompts print them."""
+    b1 = f"What the briefing says: {dd1['body']}" if dd1["body"] else ""
+    # Sentences about the currency were removed from the briefing because they were
+    # wrong, so say where the right version is.
+    b1 += ("\nFor how the dollar affects us, use the CURRENCY box above — not the briefing's "
+           "wording about it.")
+    if dd1.get("bull"):
+        b1 += f"\nIf it goes well: {dd1['bull']}"
+    if dd1.get("bear"):
+        b1 += f"\nIf it goes badly: {dd1['bear']}"
+
+    if not dd2:
+        return (dd1["title"], b1.strip(),
+                "one of our holdings you have not heard about recently",
+                "Pick a holding from WHAT WE OWN. Explain what the business does and why it is "
+                "in the portfolio — nothing else. Invent no announcement, number, date or earnings.")
+    accts = " and ".join(dd2["accounts"]) or "the portfolio"
+    title = dd2["name"] + (f" — {dd2['headline']}" if dd2["headline"] else "")
+    size  = (f"We own about {_say_money(dd2['cad'])} of it ({_say_pct(dd2['share'])} of the "
+             f"portfolio), held in the {accts}.")
+    if dd2["body"]:
+        brief = (f"{size}\nThe news (your ONLY facts about this company): {dd2['body']}\n"
+                 f"Beyond that, explain how this kind of business works. Invent no "
+                 f"announcement, buyback, number, date or earnings.")
+    else:
+        brief = (f"{size}\nThere is no news item for it this week. Explain what the business "
+                 f"does and why it is in the portfolio, and nothing else — invent no "
+                 f"announcement, buyback, number, date or earnings.")
+    return dd1["title"], b1.strip(), title, brief
+
+
 def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
-                    computed_holdings: list, registry: dict) -> tuple[str, dict]:
+                    computed_holdings: list, registry: dict,
+                    cash_positions: list = None, feedback: str = "") -> tuple[str, dict]:
     now     = datetime.now(timezone.utc)
     today   = now.strftime("%A, %B %d, %Y")
     week    = _week_trading_range(now)
@@ -1073,52 +1188,83 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     # segment in Part 2 cannot disagree.
     education_topic = _choose_education_topic(registry.get("education_topics_used", []))
     print(f"     Learning segment fixed up front: {education_topic}")
+
+    # The briefing is the model's only window on the world, and it has contained
+    # wrong-direction currency statements ("a stronger USD ... pressuring the
+    # portfolio's USD-heavy exposure"), which the model then repeated. Drop those
+    # sentences before the model sees them.
+    removed_fx: list = []
+
+    def clean(text, limit=300):
+        c, gone = scrub_fx_sentences(str(text or ""), strict_wording=True)
+        removed_fx.extend(gone)
+        return c[:limit]
+
     mood    = intel.get("market_mood", "neutral").upper()
-    outlook = intel.get("daily_outlook", "")[:300]
-    macro   = "\n".join(f"• {m['title']} [{m.get('impact','?')}]: {m.get('body','')[:300]}"
+    outlook = clean(intel.get("daily_outlook", ""), 300)
+    macro   = "\n".join(f"• {m['title']} [{m.get('impact','?')}]: {clean(m.get('body',''), 300)}"
                         for m in intel.get("macro", [])[:3])
-    news    = "\n".join(f"• {n['headline']}: {n.get('body','')[:250]} | Exposure: {n.get('exposure','')[:100]}"
+    news    = "\n".join(f"• {n['headline']}: {clean(n.get('body',''), 250)} | "
+                        f"What we own in it: {n.get('exposure','')[:100]}"
                         for n in intel.get("news", [])[:4])
     # Labelled explicitly as NOT owned. Episode 16 had Sam say "we've got a lot of
     # exposure to other energy names — Enbridge, Canadian Natural", but Canadian
     # Natural was a suggestion in this list, never a holding.
     picks   = "\n".join(f"• {p['ticker']} ({COMPANY_NAMES.get(p['ticker'], p['ticker'])}) "
-                        f"— CANDIDATE, NOT OWNED: {p.get('thesis','')[:200]}"
+                        f"— an IDEA, NOT OWNED: {clean(p.get('thesis',''), 200)}"
                         for p in intel.get("picks", [])[:3])
-    strengths = "\n".join(f"• {s['text'][:200]}" for s in intel.get("strengths", [])[:3])
-    concerns  = "\n".join(f"• {c['text'][:200]}" for c in intel.get("concerns", [])[:3])
-    strategy  = "\n".join(f"• {s['text'][:200]}" for s in intel.get("strategy_short", [])[:3])
+    strategy = "\n".join(f"• {clean(s['text'], 200)}" for s in intel.get("strategy_short", [])[:3])
 
     # Registry-derived context
-    registry_context    = registry.get("registry_text", "No previous episodes — fresh start.")
+    registry_context     = registry.get("registry_text", "No previous episodes — fresh start.")
     recently_spotlighted = registry.get("recently_spotlighted_tickers", [])
-    education_used      = registry.get("education_topics_used", [])
-
-    if recently_spotlighted:
-        spotlighted_str = ", ".join(recently_spotlighted[:8])
-        ticker_rotation = (
-            f"These tickers were the Deep Dive focus in recent episodes — "
-            f"do NOT spotlight them again in Deep Dive 2:\n  {spotlighted_str}\n"
-            f"You may still reference them briefly in portfolio recap math or scenarios.\n"
-            f"Choose a DIFFERENT holding for Deep Dive 2 this week — explore something from the\n"
-            f"underexposed side of the portfolio: Broadcom, Taiwan Semi, CIBC, Royal Bank,\n"
-            f"Bank of Montreal, Enbridge, Energy Transfer, Visa, Live Nation, BYD, Qualcomm, etc."
-        )
-    else:
-        ticker_rotation = (
-            "No rotation constraints yet — all holdings are eligible for Deep Dive 2.\n"
-            "Consider a holding that rarely gets spotlight time beyond FANG+ and Nvidia."
-        )
-
+    education_used       = registry.get("education_topics_used", [])
     if education_used:
         education_topics_str = "\n".join(f"  • {t}" for t in education_used)
     else:
         education_topics_str = "  (none yet — first learning segment, all topics available)"
 
-    # Build fully dynamic portfolio context — live holdings + snapshot prices
-    snaps         = snapshot.get("snapshots", {})
-    portfolio_ctx, portfolio_facts = _build_portfolio_context(computed_holdings, snaps)
-    live_port     = "(see LIVE PORTFOLIO section in portfolio context below)"
+    # Build fully dynamic portfolio context — live holdings + snapshot prices + cash
+    snaps = snapshot.get("snapshots", {})
+    portfolio_ctx, portfolio_facts = _build_portfolio_context(
+        computed_holdings, snaps, cash_positions)
+    dd1 = _choose_deep_dive_1(intel, clean)
+    dd2 = _choose_deep_dive_2(intel, portfolio_facts, recently_spotlighted, clean)
+    dd1_title, dd1_brief, dd2_title, dd2_brief = _deep_dive_briefs(dd1, dd2)
+    if portfolio_facts:
+        # Dollar amounts the briefing itself supplied are figures the script may cite.
+        # Those tied to a holding ("TSLA $7,480 CAD") count only where that holding is
+        # named; the rest are free-standing.
+        pairs  = _position_pairs_in(news)
+        paired = {v for vs in pairs.values() for v in vs}
+        portfolio_facts["intel_money"] = [v for v in _money_values_in(outlook, macro, news, picks, strategy)
+                                          if v not in paired]
+        portfolio_facts["intel_positions"] = pairs
+        # Every number the model was shown, so a market statistic outside this set is
+        # known to be invented. Thousands separators are removed first so "5,493"
+        # is one number and not "5" and "493".
+        shown = " ".join([portfolio_ctx, outlook, macro, news, picks, strategy,
+                          dd1_brief, dd2_brief])
+        shown = re.sub(r"(?<=\d),(?=\d{3})", "", shown)
+        portfolio_facts["allowed_numbers"] = sorted({float(x) for x in re.findall(r"\d+(?:\.\d+)?", shown)})
+
+    print(f"     Deep Dive 1 fixed: {dd1_title[:80]}")
+    print(f"     Deep Dive 2 fixed: {dd2_title[:80]}")
+    if removed_fx:
+        print(f"  ✓ Removed {len(set(removed_fx))} briefing sentence(s) with the currency "
+              f"direction wrong before prompting")
+
+    editor_notes = feedback or ""
+    # Ep18 told listeners "the CPI release is today". The briefing it read was written
+    # on the Friday and the episode aired the following Monday, so "today" in the
+    # briefing meant a different day. Say so.
+    try:
+        bdate = datetime.fromisoformat(str(intel.get("generated_at")).replace("Z", "+00:00"))
+        briefing_note = (f"(This briefing was written on {bdate.strftime('%A, %B %d')}; this episode "
+                         f"airs on {now.strftime('%A, %B %d')}. \"Today\", \"tonight\" and \"later today\" "
+                         f"in it mean THAT day — never repeat them as if they were now.)\n")
+    except Exception:
+        briefing_note = ""
 
     # Brief cooldown to separate from the registry-extraction call that ran just
     # before this, keeping us clear of the free-tier per-minute token budget.
@@ -1127,12 +1273,12 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
 
     print("     Generating Part 1 (Welcome + Recap + Deep Dive 1)...")
     part1 = _groq_call(api_key, SCRIPT_PROMPT_PART1.format(
-        today=today, week_range=week, mood=mood,
-        registry_context=registry_context,
-        ticker_rotation=ticker_rotation,
-        education_topic=education_topic,
-        live_portfolio=live_port, outlook=outlook, macro=macro, news=news,
+        editor_notes=editor_notes, today=today, week_range=week, mood=mood,
+        briefing_note=briefing_note,
+        registry_context=registry_context, outlook=outlook, macro=macro, news=news,
         portfolio=portfolio_ctx,
+        dd1_title=dd1_title, dd1_brief=dd1_brief, dd2_title=dd2_title,
+        education_topic=education_topic,
     ), "Part 1", max_tokens=4096)
 
     # Summarise Part 1 for Part 2. This used to be the last 6 speaker lines
@@ -1152,18 +1298,16 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     # per-minute token budget (the back-to-back calls were the root cause of the
     # 429 storm that aborted Part 2). This does not affect output — same prompt,
     # same model — it just lets the rolling TPM window reset first.
-    import time
     print("     Cooling down 35s to reset Groq TPM window before Part 2...")
     time.sleep(35)
 
     print("     Generating Part 2 (Deep Dive 2 + Learning Segment + Scenarios + Close)...")
     part2 = _groq_call(api_key, SCRIPT_PROMPT_PART2.format(
-        today=today, dive1_summary=dive1_last,
-        ticker_rotation=ticker_rotation,
-        education_topic=education_topic,
-        education_topics_used=education_topics_str,
-        picks=picks, strengths=strengths, concerns=concerns, strategy=strategy,
-        news=news, portfolio=portfolio_ctx,
+        editor_notes=editor_notes, today=today, dive1_summary=dive1_last,
+        briefing_note=briefing_note,
+        news=news, picks=picks, strategy=strategy, portfolio=portfolio_ctx,
+        dd2_title=dd2_title, dd2_brief=dd2_brief,
+        education_topic=education_topic, education_topics_used=education_topics_str,
     ), "Part 2", max_tokens=4096)
 
     full = _stitch_parts(part1, part2)
@@ -1301,7 +1445,10 @@ def normalize_for_speech(text: str) -> str:
 # is legitimate derivation and is left alone — policing every digit would fail
 # constantly and the guard would be switched off.
 
-_CLAIM_MONEY = re.compile(r"[-+]?\$\s?([\d,]+(?:\.\d+)?)\s*([KMB])?", re.I)
+# The suffix must be a real unit. It used to be `\s*([KMB])?`, which read the "b" of
+# "$90, but" as billions — $90,000,000,000 — and the "b" of "boost" the same way.
+_CLAIM_MONEY = re.compile(
+    r"[-+]?\$\s?([\d,]*\d(?:\.\d+)?)\s*(K|M|B|thousand|million|billion)?(?![A-Za-z])", re.I)
 _CLAIM_PCT   = re.compile(r"([-+]?\d+(?:\.\d+)?)\s*%")
 # A sentence counts only when it predicates a result OF the book. Merely
 # mentioning the portfolio is not enough: "our Enbridge position, which sits at
@@ -1344,7 +1491,9 @@ PCT_TOLERANCE       = 0.6
 
 def _claim_value(raw, suffix) -> float:
     v = float(raw.replace(",", ""))
-    return v * {"k": 1_000, "m": 1_000_000, "b": 1_000_000_000}[suffix.lower()] if suffix else v
+    mult = {"k": 1_000, "thousand": 1_000, "m": 1_000_000, "million": 1_000_000,
+            "b": 1_000_000_000, "billion": 1_000_000_000}
+    return v * mult[suffix.lower()] if suffix else v
 
 
 def _close(a: float, b: float) -> bool:
@@ -1352,12 +1501,12 @@ def _close(a: float, b: float) -> bool:
 
 
 _PART1_SIGNOFF = re.compile(
-    r"\b(stay tuned|we'?ll be back|see you next|that'?s the play|reconvene|"
+    r"\b(stay tuned|we['’]?ll be back|see you next|that['’]?s the play|reconvene|"
     r"thanks for (?:tuning|listening)|until next (?:week|time)|keep an eye on those|"
-    r"that'?s (?:it|all) for (?:this|today)|catch you next)\b", re.I)
+    r"that['’]?s (?:it|all) for (?:this|today)|catch you next)\b", re.I)
 
 _PART2_REOPEN = re.compile(
-    r"\b(welcome back|let'?s pick up|picking up where|we just walked through|"
+    r"\b(welcome back|let['’]?s pick up|picking up where|we just walked through|"
     r"we just discussed|as we just|where we left off|back with you)\b", re.I)
 
 
@@ -1402,16 +1551,76 @@ def _stitch_parts(part1: str, part2: str) -> str:
     return "\n".join(p1).rstrip() + "\n\n" + "\n".join(p2).lstrip()
 
 
-def verify_script_figures(script: str, facts: dict) -> list[str]:
-    """Return a list of portfolio-level claims the context does not support."""
-    if not facts:
-        return []
+# ── Sentence-level machinery ─────────────────────────────────────────────────
+# Everything below judges ONE sentence at a time. That is deliberate: the same
+# function that flags a sentence is what removes it as a last resort, so the
+# checker and the repair can never disagree about what is wrong.
 
+# "Imagine you own a $10,000 position" is a teaching example, not a claim about
+# this portfolio, so invented-figure checks stand down inside the learning segment.
+_NOT_OWNED = re.compile(
+    r"\b(?:isn't|is not|aren't|are not|wasn't|not)\s+(?:currently\s+|yet\s+)?(?:in|part of)\s+(?:the|our)\s+portfolio\b"
+    r"|\b(?:don't|do not|doesn't|does not|didn't)\s+(?:currently\s+)?(?:own|hold|have)\b"
+    r"|\bno\s+(?:direct\s+)?(?:exposure|position|stake)\s+(?:in|to)\b", re.I)
+
+# Market statistics that are not dollar amounts: "VIX around 21.5", "the 2-year at
+# 4.78%, the 10-year at 4.85%", "a 10bp flattening correlates with a 0.3% drop".
+# Ep18 stated all three and none appeared anywhere in what the model was given.
+_MARKET_WORDS = re.compile(
+    # No bare "spread": "20% downside spread across the next few weeks" is not a bond spread.
+    r"\b(?:vix|ovx|yields?|yield[\s-]spreads?|basis[\s-]points?|bps|inventor(?:y|ies)|barrels?|brent|wti|"
+    r"crude|treasur(?:y|ies)|index level)\b|\b\d+[\s-]year\b", re.I)
+_SCENARIO_LINE = re.compile(r"\b(?:base|bull|bear)\s+case\b|\bprobabilit", re.I)
+_STAT_TOKEN = re.compile(r"\d+\.\d+|\d+(?:\.\d+)?\s*%")
+
+
+_NOT_OWNED_EXEMPT = re.compile(r"\b(?:if|imagine|suppose|what if|unless|wish)\b", re.I)
+
+DOWN_PAYMENT_ALLOWED = 90_000
+
+
+def _strict_close(a: float, b: float) -> bool:
+    """Tighter than _close: a figure read straight off a table, rounded to two
+    significant figures, is within 5%. The looser ±$750 band let invented figures
+    hide next to unrelated real ones."""
+    return abs(a - b) <= max(150, abs(b) * 0.05)
+
+
+def _iter_script(script: str):
+    """Yield ("turn", speaker, text) / ("marker", None, text) / ("other", None, text)."""
+    for raw in script.split("\n"):
+        s = raw.strip()
+        if not s:
+            continue
+        if s.upper().startswith("[EDUCATION_TOPIC:"):
+            yield ("marker", None, s)
+            continue
+        m = re.match(r"^(ALEX|SAM):\s*(.*\S)\s*$", s)
+        if m:
+            yield ("turn", m.group(1), m.group(2))
+        else:
+            yield ("other", None, s)
+
+
+def _in_learning_flags(script: str) -> list:
+    """For each item _iter_script yields, whether it sits inside the learning segment."""
+    flags, inside = [], False
+    for kind, _, text in _iter_script(script):
+        if kind == "marker":
+            inside = True
+        flags.append(inside)
+        low = text.lower()
+        if inside and ("on to scenarios" in low or "learning segment for this week" in low):
+            inside = False
+    return flags
+
+
+def _verify_ctx(facts: dict) -> dict:
     total    = float(facts.get("total_value") or 0)
     gain     = float(facts.get("wk_gain") or 0)
     gain_pct = float(facts.get("wk_pct") or 0)
 
-    # Amounts the script may legitimately cite at portfolio level.
+    # Amounts the script may cite at portfolio level.
     allowed_money = {abs(total), abs(gain), float(facts.get("leverage_cad") or 0),
                      float(facts.get("usd_exposure") or 0)}
     allowed_money |= {abs(float(v)) for v in (facts.get("accounts") or {}).values()}
@@ -1421,72 +1630,90 @@ def verify_script_figures(script: str, facts: dict) -> list[str]:
     allowed_pct = {abs(gain_pct), abs(float(facts.get("roi_pct") or 0))}
     allowed_pct |= {abs(float(m.get("pct") or 0)) for m in (facts.get("movers") or [])}
 
-    problems  = []
-    sentences = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", script))
-    for sentence in sentences:
-        if not _PORTFOLIO_CLAIM.search(sentence):
-            continue
-        # Scoped to one holding, hypothetical, or a projected band — all of these
-        # are legitimate things for the script to say and none is a period claim.
-        if (_POSITION_SCOPED.search(sentence) or _HYPOTHETICAL.search(sentence)
-                or _MONEY_RANGE.search(sentence)):
-            continue
+    # Everything the script was actually GIVEN — the strict "invented figure"
+    # check compares against this. Anything outside it was made up or computed
+    # on air, which is where ep18's $7,397 / $14,793 / $10,355 came from.
+    # Figures valid ANYWHERE in the script. Individual position sizes are
+    # deliberately not here: a size is only valid in a sentence that names that
+    # holding. Pooled together, ~27 position sizes plus the briefing's figures cover
+    # so much of the number line that ep18's invented "$7,397" sat $83 from Tesla's
+    # real $7,480 and passed as if it were a rounding of it.
+    given = set(allowed_money)
+    given |= {float(facts.get("usd_notional") or 0), float(facts.get("cash_total") or 0),
+              float(facts.get("down_payment_target") or DOWN_PAYMENT_ALLOWED)}
+    given |= {abs(float(v)) for v in (facts.get("cash_by_account") or {}).values()}
+    given |= {abs(float(v)) for v in (facts.get("index_table") or {}).values()}
+    given |= {abs(float(v)) for v in (facts.get("fx_table") or {}).values()}
+    given |= {abs(float(v)) for v in (facts.get("intel_money") or [])}
+    # Sizes tied to ONE holding, valid only where that holding is named.
+    pos_extra = {t: {abs(float(p.get("cad") or 0))}
+                 for t, p in (facts.get("positions") or {}).items()}
+    for t, vals in (facts.get("intel_positions") or {}).items():
+        pos_extra.setdefault(t, set()).update(abs(float(v)) for v in vals)
 
+    index = []
+    for tkr, p in (facts.get("positions") or {}).items():
+        nm      = str(p.get("name") or tkr)
+        aliases = {nm}
+        if len(tkr) >= 3:           # skip "V"/"ET" — too short to match safely
+            aliases.add(tkr)
+        first = nm.split()[0] if nm.split() else ""
+        if len(first) >= 5:         # "Shell" out of "Shell PLC"
+            aliases.add(first)
+        index.append((aliases, tkr, p))
+
+    return {"total": total, "gain": gain, "gain_pct": gain_pct,
+            "allowed_money": allowed_money, "allowed_pct": allowed_pct,
+            "given": given, "pos_extra": pos_extra, "index": index,
+            "strict": bool(facts.get("strict_figures")),
+            "allowed_numbers": ([float(x) for x in facts["allowed_numbers"]]
+                                if facts.get("allowed_numbers") else None),
+            "span_days": facts.get("span_days")}
+
+
+def _sentence_problems(sentence: str, ctx, in_learning: bool = False) -> list:
+    """Every reason this one sentence cannot be aired. ctx may be None (no facts)."""
+    probs = []
+
+    # Currency direction — needs no facts, so it always runs.
+    why = _fx_classify(sentence) or _fx_held_in_cad(sentence)
+    if why:
+        probs.append(f"{why} — \"{sentence[:110]}\"")
+    if not ctx:
+        return probs
+
+    total, gain, gain_pct = ctx["total"], ctx["gain"], ctx["gain_pct"]
+    flagged_amounts = set()
+
+    # Portfolio-level claims: judged against the context.
+    if (_PORTFOLIO_CLAIM.search(sentence)
+            and not (_POSITION_SCOPED.search(sentence) or _HYPOTHETICAL.search(sentence)
+                     or _MONEY_RANGE.search(sentence))):
         for raw, suffix in _CLAIM_MONEY.findall(sentence):
             amount = _claim_value(raw, suffix or None)
             if amount < 1_000:          # small change is almost always derived
                 continue
-            if not any(_close(amount, ok) for ok in allowed_money if ok):
-                problems.append(
+            if not any(_close(amount, ok) for ok in ctx["allowed_money"] if ok):
+                flagged_amounts.add(amount)
+                probs.append(
                     f"${amount:,.0f} is not supported by the context "
                     f"(period change ${gain:,.0f}, total ${total:,.0f}) — \"{sentence[:110]}\"")
-
         for raw in _CLAIM_PCT.findall(sentence):
             pct = abs(float(raw))
             if pct == 0:
                 continue
-            if not any(abs(pct - ok) <= PCT_TOLERANCE for ok in allowed_pct if ok):
-                problems.append(
+            if not any(abs(pct - ok) <= PCT_TOLERANCE for ok in ctx["allowed_pct"] if ok):
+                probs.append(
                     f"{pct}% is not supported by the context "
                     f"(period change {gain_pct:+.1f}%) — \"{sentence[:110]}\"")
 
-    # Position sizes and the account a holding sits in. The portfolio-level pass
-    # above deliberately skips these, which is how "about $14,000 CAD of Energy
-    # Transfer in the Investment account" shipped — the stake is $1,791 and it is
-    # in the TFSA.
-    positions = facts.get("positions") or {}
-    if positions:
-        index = []
-        for tkr, p in positions.items():
-            nm      = str(p.get("name") or tkr)
-            aliases = {nm}
-            if len(tkr) >= 3:           # skip "V"/"ET" — too short to match safely
-                aliases.add(tkr)
-            first = nm.split()[0] if nm.split() else ""
-            if len(first) >= 5:         # "Shell" out of "Shell PLC"
-                aliases.add(first)
-            index.append((aliases, tkr, p))
-
-        for sentence in sentences:
-            if not _SIZE_PHRASE.search(sentence) or _HYPOTHETICAL.search(sentence):
-                continue
-            if _MONEY_RANGE.search(sentence):
-                continue
-
-            matched = [(tkr, p) for aliases, tkr, p in index
-                       if any(re.search(r"\b" + re.escape(a) + r"\b", sentence, re.I)
-                              for a in aliases if a)]
-            if not matched:
-                continue
-
-            # Attribute a figure only when exactly one holding is named:
-            # "Energy Transfer and Shell together represent $4,700" is a combined
-            # number and belongs to neither of them alone.
-            # To BE a size claim the figure has to follow the size phrase
-            # closely. "sits at roughly $12,000" is one; "Nvidia's position in AI
-            # is worth watching, and a 1% move is about $1,200" names a holding
-            # and two size words while claiming no size at all — and policing
-            # that would block an episode over a perfectly sound sentence.
+    # A single holding's size, the account it sits in, and "we don't own it".
+    matched = [(tkr, p) for aliases, tkr, p in ctx["index"]
+               if any(re.search(r"\b" + re.escape(a) + r"\b", sentence, re.I)
+                      for a in aliases if a)]
+    if matched and not _HYPOTHETICAL.search(sentence) and not _MONEY_RANGE.search(sentence):
+        if _SIZE_PHRASE.search(sentence):
+            # To BE a size claim the figure has to follow the size phrase closely.
             claim_amt = None
             for sm in _SIZE_PHRASE.finditer(sentence):
                 mm = _CLAIM_MONEY.search(sentence, sm.end())
@@ -1495,15 +1722,14 @@ def verify_script_figures(script: str, facts: dict) -> list[str]:
                     if amt >= 1_000:
                         claim_amt = amt
                         break
-
             if claim_amt is not None and len(matched) == 1:
                 tkr, p = matched[0]
                 actual = float(p.get("cad") or 0)
                 if actual > 0 and not _close(claim_amt, actual):
-                    problems.append(
+                    flagged_amounts.add(claim_amt)
+                    probs.append(
                         f"{p.get('name') or tkr} is stated as ${claim_amt:,.0f} but the "
                         f"position is ${actual:,.0f} — \"{sentence[:110]}\"")
-
             for tkr, p in matched:
                 held = {str(a).lower() for a in (p.get("accounts") or [])}
                 if not held:
@@ -1511,24 +1737,79 @@ def verify_script_figures(script: str, facts: dict) -> list[str]:
                 for acct in ("TFSA", "Investment", "FHSA", "RRSP"):
                     if (re.search(r"\b" + acct + r"\b", sentence, re.I)
                             and acct.lower() not in held):
-                        problems.append(
+                        probs.append(
                             f"{p.get('name') or tkr} is placed in the {acct} but it is held "
                             f"in {', '.join(p.get('accounts') or [])} — \"{sentence[:110]}\"")
 
-    # Direction errors matter more than magnitude: calling a losing week a gain
-    # is the failure the user actually noticed. Judged per sentence so a forecast
-    # ("if oil rallies the portfolio could climb") is not mistaken for a claim
-    # about the period that just ended.
-    if gain < 0:
-        for sentence in sentences:
-            if _HYPOTHETICAL.search(sentence):
+    # Ep18 deep-dived Broadcom as "not currently in the portfolio" while holding about
+    # $15,000 of it — in a sentence that also said "...could be redirected here". So
+    # this must NOT stand down for hypothetical words ("could", "would"); only a real
+    # supposition ("if we didn't own it") exempts it.
+    if (len(matched) == 1 and _NOT_OWNED.search(sentence.replace("\u2019", "'"))
+            and not _NOT_OWNED_EXEMPT.search(sentence)):
+        tkr, p = matched[0]
+        probs.append(
+            f"says {p.get('name') or tkr} is not owned, but we hold about "
+            f"${float(p.get('cad') or 0):,.0f} of it — \"{sentence[:110]}\"")
+
+    # Calling a losing week a gain is the failure the user actually noticed.
+    # Per sentence so a forecast is not mistaken for a claim about the period.
+    if gain < 0 and not _HYPOTHETICAL.search(sentence):
+        if re.search(r"\bportfolio\b[^.!?]{0,80}\b(gain(?:ed)?|jumped|rose|climbed|up)\b",
+                     sentence, re.I):
+            probs.append(
+                f"script describes the portfolio as up, but the period change was "
+                f"${gain:,.0f} ({gain_pct:+.1f}%) over {ctx.get('span_days')} days")
+
+    # Strict: a dollar figure the script was never given. Computed-on-air arithmetic
+    # and invented positions both land here.
+    if ctx["strict"] and not in_learning:
+        allowed = set(ctx["given"])
+        for tkr, _p in matched:                    # sizes of holdings THIS sentence names
+            allowed |= ctx["pos_extra"].get(tkr, set())
+        for raw, suffix in _CLAIM_MONEY.findall(sentence):
+            amount = _claim_value(raw, suffix or None)
+            if amount < 1_000 or amount in flagged_amounts:
                 continue
-            if re.search(r"\bportfolio\b[^.!?]{0,80}\b"
-                         r"(gain(?:ed)?|jumped|rose|climbed|up)\b", sentence, re.I):
-                problems.append(
-                    f"script describes the portfolio as up, but the period change was "
-                    f"${gain:,.0f} ({gain_pct:+.1f}%) over {facts.get('span_days')} days")
+            if not any(_strict_close(amount, ok) for ok in allowed if ok):
+                probs.append(
+                    f"${amount:,.0f} is not a figure the script was given — it was invented or "
+                    f"calculated on air; use only the supplied numbers — \"{sentence[:110]}\"")
+
+    # A statistic about the market that nobody supplied. Every number the model was
+    # shown is in allowed_numbers; anything else attached to VIX, yields, spreads,
+    # inventories or crude was made up.
+    # Scenario probabilities ("Base case — 50 percent") are the script's own judgement, not
+    # market data, whatever words sit nearby.
+    if (ctx.get("allowed_numbers") is not None and _MARKET_WORDS.search(sentence)
+            and not _SCENARIO_LINE.search(sentence)):
+        for tok in _STAT_TOKEN.findall(sentence):
+            try:
+                x = float(re.sub(r"[^\d.]", "", tok))
+            except ValueError:
+                continue
+            # Rounding moves a statistic by a hundredth or two, never more, so a tight band:
+            # 4.85 must not pass as a rounding of 4.78.
+            if not any(abs(x - a) <= (0.06 if a < 100 else a * 0.005)
+                       for a in ctx["allowed_numbers"]):
+                probs.append(
+                    f"cites the market figure {tok.strip()}, which is not in the news it was given "
+                    f"— it was invented; leave the figure out — \"{sentence[:110]}\"")
                 break
+    return probs
+
+
+def verify_script_figures(script: str, facts: dict) -> list[str]:
+    """Every reason the script cannot be aired: wrong currency direction, portfolio
+    and position claims the context contradicts, and (when the facts mark
+    themselves strict) dollar figures nobody supplied."""
+    ctx = _verify_ctx(facts) if facts else None
+    problems, flags = [], _in_learning_flags(script)
+    for (kind, _, text), in_learning in zip(_iter_script(script), flags):
+        if kind == "marker":
+            continue
+        for sent in _split_sentences(text):
+            problems.extend(_sentence_problems(sent, ctx, in_learning))
 
     seen, unique = set(), []
     for p in problems:
@@ -1536,6 +1817,298 @@ def verify_script_figures(script: str, facts: dict) -> list[str]:
             seen.add(p)
             unique.append(p)
     return unique
+
+
+def strip_unsafe_sentences(script: str, facts: dict) -> tuple:
+    """Last resort: drop every sentence verify_script_figures would flag.
+
+    Used only after the regeneration attempts are spent. A slightly shorter
+    episode is a better outcome than no episode, and no flagged sentence is ever
+    aired. Only touches turns that actually contain one.
+    """
+    ctx = _verify_ctx(facts) if facts else None
+    out, removed, inside = [], [], False
+    for raw in script.split("\n"):
+        s = raw.strip()
+        if s.upper().startswith("[EDUCATION_TOPIC:"):
+            inside = True
+            out.append(raw)
+            continue
+        m = re.match(r"^(ALEX|SAM):\s*(.*\S)\s*$", s)
+        if not m:
+            out.append(raw)
+            continue
+        sents = _split_sentences(m.group(2))
+        kept = [x for x in sents if not _sentence_problems(x, ctx, inside)]
+        low = m.group(2).lower()
+        if inside and ("on to scenarios" in low or "learning segment for this week" in low):
+            inside = False
+        if len(kept) == len(sents):
+            out.append(raw)
+            continue
+        removed.extend(x for x in sents if x not in kept)
+        if kept:
+            out.append(f"{m.group(1)}: " + " ".join(kept))
+    return "\n".join(out), removed
+
+
+# ── Structure and density ────────────────────────────────────────────────────
+def scenario_problems(script: str) -> list:
+    """Ep18 announced "a roughly 50% base, 30% upside, and 20% downside" after
+    giving only the base case, so the listener was told about two scenarios that
+    were never spoken."""
+    low = script.lower()
+    return [f"the scenarios are incomplete — there is no {n}"
+            for n in ("base case", "bull case", "bear case") if n not in low]
+
+
+def agenda_problems(script: str) -> list:
+    """The opening must announce the learning topic the episode then delivers.
+
+    Ep16 promised "forward-contract roll yields" and delivered "Short Interest
+    Signals". The topic is now fixed before either half is written, but the marker
+    the model emits records what it actually wrote, so check the two agree."""
+    m = re.search(r"\[EDUCATION_TOPIC:\s*([^\]]+)\]", script, re.I)
+    if not m:
+        return ["there is no [EDUCATION_TOPIC: …] marker, so the learning segment is unlabelled"]
+    topic = m.group(1).strip()
+    words = re.findall(r"[a-z]{4,}", topic.lower())
+    if not words:
+        return []
+    # The opening is the first few turns BEFORE the segment itself; counting the
+    # segment's own turns would let a mismatch vouch for itself.
+    turns = []
+    for kind, _, t in _iter_script(script):
+        if kind == "marker":
+            break
+        if kind == "turn":
+            turns.append(t)
+    opening = " ".join(turns[:6]).lower().replace("\u2011", "-")
+    hit = sum(1 for w in words if w in opening)
+    if hit < max(1, round(0.6 * len(words))):
+        return [f'the opening agenda does not name the learning topic "{topic}" — the episode '
+                f"must announce what it goes on to deliver"]
+    return []
+
+
+def list_problems(script: str) -> list:
+    """A turn ending in a colon introduces a list that was never spoken. Ep18 had
+    four: "we should watch two things:", "the key watchlist is:", and so on."""
+    return [f"a turn ends with a colon, introducing a list that was never spoken — "
+            f"\"…{text[-80:]}\""
+            for kind, _, text in _iter_script(script)
+            if kind == "turn" and text.rstrip().endswith(":")]
+
+
+# Money, percentages, cents/basis points, and bare decimals (rates, levels).
+_FIGURE = re.compile(
+    r"[-+]?\$\s?\d[\d,]*(?:\.\d+)?(?:\s*(?:K|M|B|thousand|million|billion)(?![A-Za-z]))?"
+    r"|\d+(?:\.\d+)?\s*%"
+    r"|\d+(?:\.\d+)?[\s-]*(?:cents?|¢|basis[\s-]points?|bps?)\b"
+    r"|(?<![\d.])\d+\.\d+(?!\d|%|\.\d)", re.I)
+
+FIGURES_PER_TURN_MAX  = 4      # a turn above this is hard to follow by ear
+DENSITY_TARGET_PER100 = 1.6    # aim: about one figure every 60 words
+DENSITY_RETRY_PER100  = 2.6    # above this the draft is regenerated once more
+
+
+def figure_stats(script: str) -> dict:
+    """How many numbers the listener has to hold in their head."""
+    words = total = 0
+    heavy, mx = [], 0
+    for kind, _, text in _iter_script(script):
+        if kind != "turn":
+            continue
+        t = text.replace("‑", "-").replace("‐", "-")
+        n = len(_FIGURE.findall(t))
+        words += len(t.split())
+        total += n
+        mx = max(mx, n)
+        if n > FIGURES_PER_TURN_MAX:
+            heavy.append((n, t[:70]))
+    return {"total": total, "words": words, "max_turn": mx, "heavy_turns": heavy,
+            "per100": (total / words * 100) if words else 0.0}
+
+
+def density_problems(script: str) -> list:
+    """Ep18 had 112 figures in 2,608 words (4.3 per 100), and one turn carried 14."""
+    st = figure_stats(script)
+    if st["per100"] > DENSITY_RETRY_PER100:
+        return [f"too many numbers: {st['total']} figures in {st['words']} words "
+                f"({st['per100']:.1f} per 100; aim for about {DENSITY_TARGET_PER100}), and "
+                f"one turn carries {st['max_turn']}. Say fewer, rounder numbers."]
+    return []
+
+
+def collect_script_problems(script: str, facts: dict) -> list:
+    """Everything wrong with a draft, classed by what to do about it.
+
+    fatal   - could air a falsehood. Regenerate; if still present, strip the
+              sentence; if it somehow survives that, refuse to publish.
+    retry   - worth another attempt, but never worth losing the episode over.
+    """
+    out = []
+    for msg in verify_script_figures(script, facts):
+        out.append({"kind": "fact", "fatal": True, "retry": True, "msg": msg})
+    for msg in scenario_problems(script):
+        out.append({"kind": "structure", "fatal": False, "retry": True, "msg": msg})
+    for msg in list_problems(script) + agenda_problems(script):
+        out.append({"kind": "structure", "fatal": False, "retry": True, "msg": msg})
+    for msg in density_problems(script):
+        out.append({"kind": "density", "fatal": False, "retry": True, "msg": msg})
+    st = figure_stats(script)
+    if st["heavy_turns"] and not density_problems(script):
+        out.append({"kind": "density", "fatal": False, "retry": False,
+                    "msg": f"{len(st['heavy_turns'])} turn(s) carry more than "
+                           f"{FIGURES_PER_TURN_MAX} figures (worst {st['max_turn']})"})
+    return out
+
+
+def _editor_notes(problems: list, limit: int = 7) -> str:
+    """Turn the problems into instructions for the next attempt. Telling the model
+    exactly what was wrong works far better than regenerating blind."""
+    lines = [f"- {p['msg']}" for p in problems[:limit]]
+    return ("EDITOR'S NOTES — your previous draft of this episode was REJECTED. Fix exactly "
+            "these, in whichever half they concern, and keep to every rule below:\n"
+            + "\n".join(lines) + "\n")
+
+
+# ── Repair: list lines and speaker labels ────────────────────────────────────
+_LIST_ITEM = re.compile(r"^\s*(?:[-*\u2022\u2013]|\d{1,2}[.)])\s+(.*\S)\s*$")
+_ORDINALS  = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth"]
+# Lower-case an item's first word only when it is an ordinary word, never a name:
+# "First, watch the print" but "First, Nvidia reports".
+_COMMON_FIRST = {"watch", "keep", "track", "look", "expect", "the", "a", "an", "if", "when",
+                 "whether", "how", "what", "our", "we", "it", "that", "this", "any", "each",
+                 "see", "check", "notice", "remember", "consider", "think", "ask", "listen"}
+
+
+def _decap(item: str) -> str:
+    first = item.split(" ", 1)[0].strip(",.;:").lower()
+    return item[0].lower() + item[1:] if first in _COMMON_FIRST else item
+
+
+def _normalize_script(script: str) -> str:
+    """Make the model's formatting safe for parse_script, and fold list lines in.
+
+    1. "**ALEX:**" and similar become "ALEX:". parse_script only accepts a line
+       that starts with the bare label, so the bold form was silently dropped.
+    2. Bullet lines that follow a turn are folded back into it as spoken
+       sentences. Ep18 had four turns like "we should watch two things:" with the
+       two things on separate bullet lines; both the audio and the transcript
+       discarded them, leaving an introduction and nothing after it.
+    """
+    out, items = [], []
+    state = {"parent": None, "ok": False}
+
+    def flush():
+        if not items or state["parent"] is None:
+            items.clear()
+            return
+        prev = out[state["parent"]].rstrip()
+        had_colon = prev.endswith(":")
+        if had_colon:
+            prev = prev[:-1] + "."
+        elif not prev.endswith((".", "!", "?")):
+            prev += "."
+        ordinals = had_colon or len(items) >= 2
+        parts = []
+        for i, it in enumerate(items):
+            it = re.sub(r"[*_`]+", "", it).strip()      # no stray markdown mid-sentence
+            if not it:
+                continue
+            it = it[0].upper() + it[1:]
+            if not it.endswith((".", "!", "?")):
+                it += "."
+            if ordinals:
+                it = f"{_ORDINALS[min(i, len(_ORDINALS) - 1)]}, {_decap(it)}"
+            parts.append(it)
+        if parts:
+            out[state["parent"]] = prev + " " + " ".join(parts)
+        items.clear()
+
+    for raw in script.split("\n"):
+        line = re.sub(r"^\s*[*_]*\s*(ALEX|SAM)\s*[*_]*\s*:\s*[*_]*\s*", r"\1: ",
+                      raw.rstrip(), flags=re.I)
+        line = re.sub(r"^(alex|sam):", lambda m: m.group(1).upper() + ":", line)
+        s = line.strip()
+        if not s:
+            out.append(line)
+            continue
+        if s.startswith(("ALEX:", "SAM:")):
+            flush()
+            state["parent"], state["ok"] = len(out), True
+            out.append(line)
+            continue
+        m = _LIST_ITEM.match(s)
+        if m and state["ok"] and state["parent"] is not None:
+            items.append(m.group(1))
+            continue
+        flush()
+        state["ok"] = False
+        out.append(line)
+    flush()
+    return "\n".join(out)
+
+
+def produce_checked_script(generate, max_attempts: int = 3, log=print):
+    """Draft, check, and if need be redraft the script. Returns (script, facts) or None.
+
+    generate(feedback) -> (script, facts). Each rejected draft is regenerated WITH
+    the specific reasons it failed, which works far better than regenerating blind.
+    A wrong number spoken with confidence is worse than a missing episode, and it
+    shipped four times before anyone noticed — so the order of preference is:
+
+      1. a draft that passes every check;
+      2. after the attempts are spent, the last draft with each flagged sentence
+         removed (a slightly shorter episode, and nothing flagged is ever aired);
+      3. no episode at all, only if a flagged sentence somehow survives removal.
+
+    Structure and density problems trigger a redraft but never cost the episode.
+    """
+    feedback, script, facts, problems = "", "", {}, []
+    for attempt in range(1, max_attempts + 1):
+        try:
+            script, facts = generate(feedback)
+        except Exception as exc:
+            log(f"ERROR: Script generation failed (attempt {attempt}): {exc}")
+            return None
+        script   = _normalize_script(script)
+        problems = collect_script_problems(script, facts)
+        st       = figure_stats(script)
+        retry    = [p for p in problems if p["retry"]]
+        log(f"  attempt {attempt}/{max_attempts}: "
+            f"{sum(1 for p in problems if p['fatal'])} factual problem(s), "
+            f"{sum(1 for p in problems if p['retry'] and not p['fatal'])} structural/density; "
+            f"{st['total']} figures in {st['words']} words ({st['per100']:.1f} per 100)")
+        if not retry:
+            break
+        for p in retry[:6]:
+            log(f"      • [{p['kind']}] {p['msg']}")
+        if attempt < max_attempts:
+            feedback = _editor_notes(retry)
+            log("  ↻ regenerating with the editor's notes…")
+
+    removed = []
+    if any(p["fatal"] for p in problems):
+        script, removed = strip_unsafe_sentences(script, facts)
+        problems = collect_script_problems(script, facts)
+        if any(p["fatal"] for p in problems):
+            log(f"ERROR: Script still contains unsupported claims after {max_attempts} "
+                f"attempts and sentence removal — refusing to publish.")
+            for p in problems:
+                if p["fatal"]:
+                    log(f"      • {p['msg']}")
+            return None
+        log(f"  ⚠ Published with {len(removed)} unsafe sentence(s) removed:")
+        for sent in removed[:8]:
+            log(f"      - {sent[:140]}")
+    leftovers = [p for p in problems if p["retry"] and not p["fatal"]]
+    for p in leftovers:
+        log(f"  ⚠ {p['msg']}")
+    if not removed and not leftovers:
+        log("  ✓ Script passes every check")
+    return script, facts
 
 
 def parse_script(script: str) -> list[tuple[str, str]]:
@@ -1658,6 +2231,7 @@ def main() -> int:
     snapshot          = _fetch_snapshot()
     old_meta          = load_meta()
     computed_holdings = _fetch_computed_holdings()   # live from KV — auto-synced by dashboard
+    cash_positions    = _fetch_cash_positions()      # real balances, not a hand-typed line
 
     if not intel.get("generated_at"):
         print("  ⚠ No intelligence.json found — generating without weekly intel data")
@@ -1675,37 +2249,12 @@ def main() -> int:
 
     # 2. Generate script (registry preprocessing + two generation Groq calls)
     print("2/4  Generating script...")
-    try:
-        script, facts = generate_script(intel, snapshot, old_meta, groq_key, computed_holdings, registry)
-    except Exception as exc:
-        print(f"ERROR: Script generation failed: {exc}")
+    result = produce_checked_script(
+        lambda fb: generate_script(intel, snapshot, old_meta, groq_key, computed_holdings,
+                                   registry, cash_positions=cash_positions, feedback=fb))
+    if result is None:
         return 1
-
-    # Refuse to publish portfolio figures the context does not support. One
-    # regeneration, then fail the run — a wrong number spoken with confidence is
-    # worse than a missing episode, and this is the failure that shipped four
-    # times before anyone noticed.
-    problems = verify_script_figures(script, facts)
-    if problems:
-        print(f"  ⚠ {len(problems)} unsupported figure(s) — regenerating once:")
-        for p in problems[:5]:
-            print(f"      • {p}")
-        try:
-            script, facts = generate_script(intel, snapshot, old_meta, groq_key,
-                                            computed_holdings, registry)
-        except Exception as exc:
-            print(f"ERROR: Regeneration failed: {exc}")
-            return 1
-        problems = verify_script_figures(script, facts)
-        if problems:
-            print("ERROR: Script still cites unsupported portfolio figures after "
-                  "regeneration — refusing to publish.")
-            for p in problems:
-                print(f"      • {p}")
-            return 1
-        print("  ✓ Regenerated script passes figure verification")
-    else:
-        print("  ✓ Portfolio figures verified against context")
+    script, facts = result
 
     # Weekdays are arithmetic — correct them rather than let the listener act on
     # the wrong day. Episode 16 sent them to an EIA report on "Wednesday,

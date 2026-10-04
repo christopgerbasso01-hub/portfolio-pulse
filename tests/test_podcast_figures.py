@@ -16,7 +16,6 @@ four actual published transcripts rather than invented ones.
 
 Run: python3 tests/test_podcast_figures.py
 """
-import ast
 import datetime as dt
 import json
 import os
@@ -28,40 +27,13 @@ import urllib.request
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 SRC = os.path.join(ROOT, 'scripts', 'generate_podcast.py')
 
-_src = open(SRC).read()
-_tree = ast.parse(_src)
-_lines = _src.splitlines()
-
-# Import the real implementations without importing the module (its import-time
-# work needs network and credentials).
-NS = {
-    "re": re, "datetime": dt.datetime, "timedelta": dt.timedelta,
-    "_LEVERAGE_3X": {"FNGU", "SPXL", "UDOW", "TQQQ", "SOXL"},
-    "_PORTFOLIO_CONTEXT_FALLBACK": "(fallback)",
-}
-_WANT_FN = ("_week_baseline_date", "_build_portfolio_context",
-            "_claim_value", "_close", "verify_script_figures", "_stitch_parts",
-            "_choose_education_topic", "_fix_weekday_claims", "_clean_transcript",
-            "_speaker_run_warnings")
-_WANT_CONST = ("WEEK_BASELINE_DAYS", "_CLAIM_MONEY", "_CLAIM_PCT",
-               "_PORTFOLIO_CLAIM", "_POSITION_SCOPED", "_HYPOTHETICAL",
-               "_MONEY_RANGE", "_SIZE_PHRASE", "_PART1_SIGNOFF", "_PART2_REOPEN",
-               "_SECTORS", "EDUCATION_TOPICS", "_MONTHS", "_WEEKDAY_CLAIM",
-               "SCRIPT_PROMPT_PART1", "SCRIPT_PROMPT_PART2",
-               "MONEY_TOLERANCE_PCT", "MONEY_TOLERANCE_ABS", "PCT_TOLERANCE")
-
-for _node in _tree.body:
-    if isinstance(_node, ast.Assign):
-        for _t in _node.targets:
-            if isinstance(_t, ast.Name) and _t.id in _WANT_CONST:
-                exec("\n".join(_lines[_node.lineno - 1:_node.end_lineno]), NS)
-    elif isinstance(_node, ast.FunctionDef) and _node.name in _WANT_FN:
-        exec("\n".join(_lines[_node.lineno - 1:_node.end_lineno]), NS)
-
-missing = [n for n in _WANT_FN + _WANT_CONST if n not in NS]
-if missing:
-    print(f"FAIL  could not extract from source: {missing}")
-    sys.exit(1)
+# Import the real module. It has no import-time network or credential work, and
+# the verification layer now spans too many helpers to extract piecemeal.
+import importlib.util
+_spec = importlib.util.spec_from_file_location("gp_figures", SRC)
+_gp = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_gp)
+NS = _gp.__dict__
 
 week_baseline = NS["_week_baseline_date"]
 build_ctx = NS["_build_portfolio_context"]
@@ -282,12 +254,12 @@ for label, h, s in [("no holdings", [], {"2026-09-14": {}}),
 # KeyError at generation time — an entire week with no episode, discovered only
 # on the Monday. Nothing else in the suite would catch it.
 print("\n── prompt format contract ──")
-_K1 = dict(today="T", week_range="W", mood="M", registry_context="R",
-           ticker_rotation="TR", education_topic="ET", live_portfolio="LP",
-           outlook="O", macro="MA", news="N", portfolio="P")
-_K2 = dict(today="T", dive1_summary="D", ticker_rotation="TR", education_topic="ET",
-           education_topics_used="EU", picks="PK", strengths="S", concerns="C",
-           strategy="ST", news="N", portfolio="P")
+_K1 = dict(editor_notes="", today="T", week_range="W", mood="M", briefing_note="", registry_context="R",
+           outlook="O", macro="MA", news="N", portfolio="P",
+           dd1_title="D1", dd1_brief="B1", dd2_title="D2", education_topic="ET")
+_K2 = dict(editor_notes="", today="T", dive1_summary="D", briefing_note="", news="N", picks="PK",
+           strategy="ST", portfolio="P", dd2_title="D2", dd2_brief="B2",
+           education_topic="ET", education_topics_used="EU")
 for _label, _tpl, _kw in (("Part 1", NS["SCRIPT_PROMPT_PART1"], _K1),
                           ("Part 2", NS["SCRIPT_PROMPT_PART2"], _K2)):
     _ph = set(re.findall(r"\{(\w+)\}", _tpl))

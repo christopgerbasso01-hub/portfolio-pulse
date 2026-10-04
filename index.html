@@ -1154,6 +1154,16 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .m-acct-tbl tr:last-child td{border-bottom:none;}
 .m-acct-tbl .t-tk{color:var(--cyan);font-weight:700;font-family:var(--mono);}
 .m-acct-insight{background:var(--surf2);border-radius:8px;padding:9px 10px;margin-top:8px;font-size:10px;color:var(--t2);line-height:1.5;}
+/* Six columns where there used to be four: smaller type, nothing wraps, and the
+   headers read as controls. */
+.m-acct-tbl th{font-size:7px;padding:0 0 5px;cursor:pointer;white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;user-select:none;}
+.m-acct-tbl th.on{color:var(--cyan);}
+.m-ad-caret{font-size:7px;margin-left:1px;}
+.m-acct-tbl td{font-size:10px;padding:5px 0;white-space:nowrap;}
+.m-acct-tbl .t-tk{font-size:10px;}
+.m-acct-more{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.m-acct-more:active{color:var(--cyan);}
 
 /* Tax section */
 .m-sec-hdr{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);font-weight:700;margin-bottom:7px;}
@@ -9555,6 +9565,114 @@ function syncBenchmark(){
 }
 
 /* ════ ACCOUNT SELECT ═══════════════════════════════════════ */
+/* ════ ACCOUNT DETAIL CARD ══════════════════════════════════
+   Sort state lives at module level so tapping a column header re-renders just
+   this table. Routing a sort back through mSelectAcct would also re-filter the
+   value chart, re-click the desktop filter buttons and re-run the benchmark —
+   far too much work for a sort. */
+var _adSort='day', _adDir=-1, _adExpanded=false, _adKey=null;
+var _AD_COLS=[
+  {k:'tk',   label:'Ticker'},
+  {k:'mv',   label:'Value'},
+  {k:'day',  label:'Day $'},
+  {k:'dayp', label:'Day %'},
+  {k:'pnl',  label:'Total $'},
+  {k:'pnlp', label:'Total %'}
+];
+
+/* One row per holding in the account, priced the same way the desktop account
+   cards are: live price when present, book value as the fallback. */
+function _adRows(acctName){
+  if(typeof HOLDINGS_STATIC==='undefined')return [];
+  var ld=window._lastLiveData||{}, hp=ld.holdings||{}, fxr=ld.usdcad||1.38;
+  return HOLDINGS_STATIC.filter(function(h){return h.account===acctName;}).map(function(h){
+    var fx=h.ccy==='USD'?fxr:1;
+    var p=hp[h.ticker];
+    var acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;
+    var mv=(p&&p.price)?p.price*h.shares*fx
+                       :((h.unrealized||0)+(h.cost_total||0))*(h.ccy==='USD'?(h.book_rate||1):1);
+    var prev=(p&&p.prev)?p.prev:((p&&p.price)?p.price:0);
+    var day=(p&&p.price)?(p.price-prev)*h.shares*fx:0;
+    var dayp=(p&&p.price&&prev>0)?((p.price-prev)/prev*100):0;
+    return {tk:h.ticker, mv:mv, day:day, dayp:dayp,
+            pnl:mv-acb, pnlp:acb>0?((mv-acb)/acb*100):null};
+  });
+}
+
+function _renderAcctDetail(key){
+  var card=document.getElementById('m-acct-detail-card');
+  var d=(typeof ACCT_DATA!=='undefined')?ACCT_DATA[key]:null;
+  if(!card||!d)return;
+  _adKey=key;
+  card.style.display='block';
+
+  var g=function(id){var e=document.getElementById(id);return e?e.textContent.trim():'';};
+  var vTxt=g(d.valId)||'—', rTxt=g(d.roiId)||'—', pTxt=g(d.pnlId), fTxt=g(d.footerId);
+
+  var acctNameMap={tfsa:'TFSA',fhsa:'FHSA',rrsp:'RRSP',inv:'Investment'};
+  var all=_adRows(acctNameMap[key]||'');
+
+  all.sort(function(a,b){
+    var cmp;
+    if(_adSort==='tk'){ cmp=String(a.tk).localeCompare(String(b.tk)); }
+    else {
+      var va=a[_adSort], vb=b[_adSort];
+      /* A null return sorts to the bottom either way rather than ahead of a
+         real loss. */
+      va=(va==null?-Infinity:va); vb=(vb==null?-Infinity:vb);
+      cmp=va-vb;
+    }
+    /* Ties fall back to market value, largest first. Without it, a closed
+       market makes every Day $ identical and the default sort would show an
+       arbitrary order every weekend. */
+    return (_adDir*cmp) || (b.mv-a.mv);
+  });
+
+  var shown=_adExpanded?all:all.slice(0,8);
+  var rest =_adExpanded?[]:all.slice(8);
+
+  var sgn=function(v){return (v>=0?'+':'−')+mMoney(Math.abs(v)).replace('-','');};
+  var pc =function(v){return v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';};
+  var rows=shown.map(function(x){
+    var dC=x.day>0?'up':x.day<0?'dn':'neu';
+    var pC=(x.pnl==null||x.pnl===0)?'neu':(x.pnl>0?'up':'dn');
+    return'<tr><td class="t-tk">'+x.tk+'</td>'
+      +'<td>'+mMoney(x.mv)+'</td>'
+      +'<td class="'+dC+'">'+sgn(x.day)+'</td>'
+      +'<td class="'+dC+'">'+pc(x.dayp)+'</td>'
+      +'<td class="'+pC+'">'+sgn(x.pnl)+'</td>'
+      +'<td class="'+pC+'">'+pc(x.pnlp)+'</td></tr>';
+  }).join('');
+
+  var head=_AD_COLS.map(function(c){
+    var on=(_adSort===c.k);
+    return'<th data-asort="'+c.k+'"'+(on?' class="on"':'')+'>'+c.label
+      +(on?'<span class="m-ad-caret">'+(_adDir<0?'▾':'▴')+'</span>':'')+'</th>';
+  }).join('');
+
+  var moreLine='';
+  if(rest.length){
+    var restMv=rest.reduce(function(a,x){return a+x.mv;},0);
+    moreLine='<div class="m-acct-more" data-adexpand="1">+'+rest.length+' more · '+mMoney(restMv)+'</div>';
+  } else if(_adExpanded&&all.length>8){
+    moreLine='<div class="m-acct-more" data-adexpand="0">Show less</div>';
+  }
+
+  card.innerHTML=
+    '<div class="m-acct-detail">'
+    +'<div class="m-acct-detail-hdr">'
+    +'<div><span class="b '+d.cls+' m-acct-badge-lg" style="font-size:11px;padding:4px 10px">'+d.label+'</span>'
+    +'<div class="m-acct-total">'+vTxt+(pTxt?' <span style="font-size:14px;color:var(--green)">'+pTxt+'</span>':'')+'</div>'
+    +'<div class="m-acct-sub">'+rTxt+'</div></div>'
+    +'<span class="m-acct-type">'+d.type+'</span>'
+    +'</div>'
+    +'<table class="m-acct-tbl"><thead><tr>'+head+'</tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>'
+    +moreLine
+    +(fTxt?'<div class="m-acct-insight">'+fTxt+'</div>':'')
+    +'</div>';
+}
+
 window.mSelectAcct=function(key,clickedBtn){
   // Update tab active state
   var tabs=document.getElementById('m-acct-strip');
@@ -9576,59 +9694,8 @@ window.mSelectAcct=function(key,clickedBtn){
     if(allContent)allContent.style.display='none';
     var d=ACCT_DATA[key];
     if(d&&detailCard){
-      detailCard.style.display='block';
-      var valEl=document.getElementById(d.valId);
-      var roiEl=document.getElementById(d.roiId);
-      var pnlEl=document.getElementById(d.pnlId);
-      var ftrEl=document.getElementById(d.footerId);
-      var vTxt=valEl?valEl.textContent.trim():'—';
-      var rTxt=roiEl?roiEl.textContent.trim():'—';
-      var pTxt=pnlEl?pnlEl.textContent.trim():'';
-      var fTxt=ftrEl?ftrEl.textContent.trim():'';
-      /* Rows are built from HOLDINGS_STATIC and live prices, the same way the
-         desktop account cards are. The old path walked a hardcoded ACCT_DATA.hdgs
-         list and pulled each value from a live-{ticker}-{account} element — those
-         elements were removed when the desktop cards became dynamic, so every
-         Value read as an em dash and every return was frozen markup. */
-      var acctNameMap={tfsa:'TFSA',fhsa:'FHSA',rrsp:'RRSP',inv:'Investment'};
-      var acctName=acctNameMap[key]||'';
-      var rows='', moreLine='';
-      if(typeof HOLDINGS_STATIC!=='undefined'){
-        var ld=window._lastLiveData||{}, hp=ld.holdings||{}, fxr=ld.usdcad||1.38;
-        var held=HOLDINGS_STATIC.filter(function(h2){return h2.account===acctName;}).map(function(h2){
-          var fx=h2.ccy==='USD'?fxr:1;
-          var p=hp[h2.ticker];
-          var acb=h2.ccy==='USD'?h2.cost_total*(h2.book_rate||1):h2.cost_total;
-          var mv=(p&&p.price)?p.price*h2.shares*fx
-                             :((h2.unrealized||0)+(h2.cost_total||0))*(h2.ccy==='USD'?(h2.book_rate||1):1);
-          return {ticker:h2.ticker, shares:h2.shares, mv:mv, ret:acb>0?((mv-acb)/acb*100):null};
-        }).sort(function(a,b){return b.mv-a.mv;});
-        var shown=held.slice(0,8), rest=held.slice(8);
-        rows=shown.map(function(x){
-          var retTxt=x.ret==null?'—':(x.ret>=0?'+':'')+x.ret.toFixed(1)+'%';
-          var retCls=x.ret==null?'neu':(x.ret>=0?'up':'dn');
-          var shStr=(x.shares%1===0)?x.shares:x.shares.toFixed(2);
-          return'<tr><td class="t-tk">'+x.ticker+'</td><td>'+shStr+'</td><td>'
-                +mMoney(x.mv)+'</td><td class="'+retCls+'">'+retTxt+'</td></tr>';
-        }).join('');
-        if(rest.length){
-          var restMv=rest.reduce(function(a,x){return a+x.mv;},0);
-          moreLine='<div class="m-acct-more">+'+rest.length+' more · '+mMoney(restMv)+'</div>';
-        }
-      }
-      detailCard.innerHTML=
-        '<div class="m-acct-detail">'
-        +'<div class="m-acct-detail-hdr">'
-        +'<div><span class="b '+d.cls+' m-acct-badge-lg" style="font-size:11px;padding:4px 10px">'+d.label+'</span>'
-        +'<div class="m-acct-total">'+vTxt+(pTxt?' <span style="font-size:14px;color:var(--green)">'+pTxt+'</span>':'')+'</div>'
-        +'<div class="m-acct-sub">'+rTxt+'</div></div>'
-        +'<span class="m-acct-type">'+d.type+'</span>'
-        +'</div>'
-        +'<table class="m-acct-tbl"><thead><tr><th>Ticker</th><th>Shs</th><th>Value</th><th>Rtn</th></tr></thead>'
-        +'<tbody>'+rows+'</tbody></table>'
-        +moreLine
-        +(fTxt?'<div class="m-acct-insight">'+fTxt+'</div>':'')
-        +'</div>';
+      _adExpanded=false;        // a fresh account always starts collapsed
+      _renderAcctDetail(key);
     }
   }
 
@@ -10957,6 +11024,24 @@ document.addEventListener('click',function(e){
   if(portTab){
     var key=portTab.dataset.key||'all';
     window.mSelectAcct(key,portTab);
+    return;
+  }
+
+  /* Account detail table — sort headers */
+  var adTh=t.closest('#m-acct-detail-card th[data-asort]');
+  if(adTh){
+    var col=adTh.dataset.asort;
+    if(_adSort===col){ _adDir=-_adDir; }
+    else { _adSort=col; _adDir=(col==='tk')?1:-1; }   // names A-Z, numbers high-to-low
+    if(_adKey)_renderAcctDetail(_adKey);
+    return;
+  }
+
+  /* Account detail table — "+N more" / "Show less" */
+  var adMore=t.closest('#m-acct-detail-card .m-acct-more[data-adexpand]');
+  if(adMore){
+    _adExpanded=(adMore.dataset.adexpand==='1');
+    if(_adKey)_renderAcctDetail(_adKey);
     return;
   }
 

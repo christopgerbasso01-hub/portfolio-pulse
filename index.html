@@ -940,7 +940,40 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
    own 14px side padding) — drop the redundant side inset so it lines up with
    the chart above it. The Holdings tab's instance sits outside .m-scroll and
    keeps the shared class's own padding untouched. */
-#m-port-tabs{padding:0 0 10px;}
+/* Account summary strip (replaces #m-port-tabs). Three columns: identity and
+   value, today, all-time — the same split the row labels promise. */
+.m-acct-strip{padding:0 14px 10px;flex-shrink:0;}
+.m-as-hdr{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;padding:0 10px 4px;
+  font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);}
+.m-as-hdr span+span{text-align:right;}
+.m-as-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;align-items:center;
+  padding:8px 10px;margin-bottom:5px;background:var(--surf);
+  border:1px solid var(--bd);border-radius:10px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.m-as-row.on{border-color:var(--cyan);background:rgba(34,211,238,.09);}
+.m-as-name{font-size:11px;font-weight:800;color:var(--t1);line-height:1.2;}
+.m-as-val{font-size:13px;font-weight:700;font-family:var(--mono);margin-top:1px;}
+.m-as-n{text-align:right;font-family:var(--mono);}
+.m-as-n div:first-child{font-size:12px;font-weight:700;line-height:1.2;}
+.m-as-n div:last-child{font-size:10px;margin-top:1px;}
+
+/* Condensed holding card — two rows of three, no separate metrics footer.
+   Roughly half the previous height so more positions fit on one screen. */
+.m-card-tight{padding:10px 12px;}
+.m-c-r1,.m-c-r2{display:grid;grid-template-columns:1fr 1.15fr .8fr;gap:6px;align-items:baseline;}
+.m-c-r2{margin-top:3px;}
+.m-c-sym{font-size:15px;font-weight:800;color:var(--t1);white-space:nowrap;}
+/* nowrap matters: "$36,324 · +135.9%" is wider than it looks, and wrapping it
+   pushed the second row out of alignment with the first. */
+.m-c-at{text-align:right;font-size:10px;font-weight:700;font-family:var(--mono);white-space:nowrap;}
+.m-c-mv{text-align:right;font-size:15px;font-weight:700;font-family:var(--mono);white-space:nowrap;}
+ /* The long name clips; the dividend never does. Ellipsising the whole cell
+    ate the figure, which is the part worth reading. */
+.m-c-name{font-size:9px;color:var(--t3);display:flex;gap:4px;min-width:0;align-items:baseline;}
+.m-c-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.m-c-div{color:var(--t2);flex-shrink:0;white-space:nowrap;}
+.m-c-day{text-align:right;font-size:10px;font-weight:700;font-family:var(--mono);white-space:nowrap;}
+.m-c-cost{text-align:right;font-size:10px;color:var(--t3);font-family:var(--mono);white-space:nowrap;}
 .m-atab{padding:5px 12px;border-radius:18px;border:1px solid var(--bd);font-size:10px;font-weight:700;
         white-space:nowrap;cursor:pointer;color:var(--t2);background:var(--surf);flex-shrink:0;transition:all .15s;}
 .m-atab.on{background:var(--cyan);color:#040e1e;border-color:var(--cyan);}
@@ -9518,8 +9551,8 @@ function syncBenchmark(){
 /* ════ ACCOUNT SELECT ═══════════════════════════════════════ */
 window.mSelectAcct=function(key,clickedBtn){
   // Update tab active state
-  var tabs=document.getElementById('m-port-tabs');
-  if(tabs)Array.from(tabs.children).forEach(function(b){b.classList.remove('on');});
+  var tabs=document.getElementById('m-acct-strip');
+  if(tabs)tabs.querySelectorAll('.m-as-row').forEach(function(b){b.classList.remove('on');});
   if(clickedBtn)clickedBtn.classList.add('on');
 
   /* Scope the hero to this account: value, day change, all-time and the six
@@ -10268,6 +10301,32 @@ function mMoney(v){
 var mHeroAcct=null;                       // null = all accounts
 var M_ACCT_KEYS={all:null,tfsa:'TFSA',fhsa:'FHSA',rrsp:'RRSP',inv:'Investment'};
 
+/* One row per account, each from the same _heroScopedStats() the hero uses, so
+   the strip and the headline can never disagree. */
+function mUpdateAcctStrip(){
+  var strip=document.getElementById('m-acct-strip');
+  if(!strip||typeof window._heroScopedStats!=='function'||!window._lastLiveData)return;
+  var signed=function(v){return (v>=0?'+':'−')+mMoney(Math.abs(v)).replace('-','');};
+  var pct=function(v){return (v>=0?'+':'')+v.toFixed(2)+'%';};
+  [['all',null],['tfsa','TFSA'],['inv','Investment'],['fhsa','FHSA'],['rrsp','RRSP']]
+  .forEach(function(pair){
+    var row=strip.querySelector('.m-as-row[data-key="'+pair[0]+'"]');
+    if(!row)return;
+    var st; try{ st=window._heroScopedStats(window._lastLiveData,pair[1]); }catch(e){ return; }
+    var set=function(f,txt,cls){
+      var el=row.querySelector('[data-f="'+f+'"]');
+      if(!el)return;
+      el.textContent=txt;
+      if(cls!==undefined)el.className=(f==='val'?'m-as-val ':'')+cls;
+    };
+    var dT=st.dc>0?'up':st.dc<0?'dn':'';
+    var aT=st.pnl>0?'up':st.pnl<0?'dn':'';
+    set('val',mMoney(st.mktVal),'');
+    set('dayd',signed(st.dc),dT);  set('dayp',pct(st.dcp),dT);
+    set('atd',signed(st.pnl),aT);  set('atp',pct(st.pnlPct),aT);
+  });
+}
+
 function mUpdateHeroStats(){
   if(typeof window._heroScopedStats!=='function'||!window._lastLiveData)return;
   var s;
@@ -10355,18 +10414,9 @@ function syncMobile(){
     liveDst.innerHTML='<div class="m-live-dot"></div> LIVE'+(rv?' · '+rv:'');
   }
 
-  /* Account tab labels */
-  var tabBar=document.getElementById('m-port-tabs');
-  if(tabBar){
-    var tvIds=['kpiTotalValue','abTFSAVal','abFHSAVal','abRRSPVal','abInvVal'];
-    Array.from(tabBar.children).forEach(function(btn,i){
-      var el=document.getElementById(tvIds[i]);
-      if(!el)return;
-      var v=toK(el.textContent.trim());
-      var sp=btn.querySelector('span');
-      if(sp&&v&&v!=='—')sp.textContent=v;
-    });
-  }
+  /* Account values now live in the summary strip, populated by
+     mUpdateAcctStrip() from _heroScopedStats rather than scraped from the
+     desktop KPI elements this loop used to read. */
 
   /* Account 2x2 cards */
   var acctMap=[
@@ -10646,6 +10696,7 @@ function syncMobile(){
   /* Hero stats grid — overwrites the sub line above on success, so if
      _heroScopedStats is ever unavailable the older ROI text survives. */
   mUpdateHeroStats();
+  mUpdateAcctStrip();
 }
 
 /* ════ HOLDINGS GLANCE ══════════════════════════════════════ */
@@ -10788,14 +10839,17 @@ function buildCards(){
     /* Cash rows have no transaction history to show. */
     var tapAttr = (ticker && ticker !== 'CASH' && ticker.indexOf('CASH') !== 0)
       ? ' onclick="mOpenTxSheet(\''+ticker+'\',\''+acctAttr+'\')" style="cursor:pointer"' : '';
-    return'<div class="m-card"'+tapAttr+'>'
-      +'<div class="m-card-hdr"><div><div class="m-ticker-sym">'+ticker+' '+bHtml+'</div><div class="m-name">'+name+'</div></div>'
-      +'<div class="m-card-val"><div class="m-mv">'+mv+'</div><div class="m-dchg '+dCls+'">'+dayStr+'</div></div></div>'
-      +'<div class="m-metrics">'
-      +'<div><div class="m-metric-l">Cost</div><div class="m-metric-v">'+cost+'</div></div>'
-      +'<div><div class="m-metric-l">Divs</div><div class="m-metric-v">'+divs+'</div></div>'
-      +'<div><div class="m-metric-l">P&L</div><div class="m-metric-v '+pCls+'">'+pnl+'</div></div>'
-      +'<div><div class="m-metric-l">Return</div><div class="m-metric-v '+pCls+'">'+ret+'</div></div>'
+    var divTxt=(divs&&divs!=='—'&&divs!=='$0')?'<span class="m-c-div">· div '+divs+'</span>':'';
+    return'<div class="m-card m-card-tight"'+tapAttr+'>'
+      +'<div class="m-c-r1">'
+        +'<div class="m-c-sym">'+ticker+' '+bHtml+'</div>'
+        +'<div class="m-c-at '+pCls+'">'+pnl+' · '+ret+'</div>'
+        +'<div class="m-c-mv">'+mv+'</div>'
+      +'</div>'
+      +'<div class="m-c-r2">'
+        +'<div class="m-c-name"><span class="m-c-nm">'+name+'</span>'+divTxt+'</div>'
+        +'<div class="m-c-day '+dCls+'">'+dayStr+'</div>'
+        +'<div class="m-c-cost">'+cost+'</div>'
       +'</div></div>';
   }).join('');
 }
@@ -10893,7 +10947,7 @@ document.addEventListener('click',function(e){
   }
 
   /* Portfolio account tabs */
-  var portTab=t.closest('#m-port-tabs .m-atab');
+  var portTab=t.closest('#m-acct-strip .m-as-row');
   if(portTab){
     var key=portTab.dataset.key||'all';
     window.mSelectAcct(key,portTab);
@@ -11673,12 +11727,38 @@ document.addEventListener('DOMContentLoaded',function(){
         <div id="m-mv-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:4px"></div>
       </div>
 
-      <div class="m-acct-tabs" id="m-port-tabs">
-        <div class="m-atab on" data-key="all">All · <span>$—</span></div>
-        <div class="m-atab" data-key="tfsa">TFSA · <span>—</span></div>
-        <div class="m-atab" data-key="fhsa">FHSA · <span>—</span></div>
-        <div class="m-atab" data-key="rrsp">RRSP · <span>—</span></div>
-        <div class="m-atab" data-key="inv">Non-Reg · <span>—</span></div>
+      <!-- Account summary strip. Replaces the old #m-port-tabs chips: each row
+           both reports an account and selects it, so the tab carries one account
+           control instead of two. The All Accounts row holds the portfolio total
+           the chips used to show. Figures come from _heroScopedStats(), the same
+           function the hero uses, rather than scraped DOM. -->
+      <div class="m-acct-strip" id="m-acct-strip">
+        <div class="m-as-hdr"><span>Account</span><span>Today</span><span>All-time</span></div>
+        <div class="m-as-row on" data-key="all">
+          <div><div class="m-as-name">All Accounts</div><div class="m-as-val" data-f="val">—</div></div>
+          <div class="m-as-n"><div data-f="dayd">—</div><div data-f="dayp">—</div></div>
+          <div class="m-as-n"><div data-f="atd">—</div><div data-f="atp">—</div></div>
+        </div>
+        <div class="m-as-row" data-key="tfsa">
+          <div><div class="m-as-name">TFSA</div><div class="m-as-val" data-f="val">—</div></div>
+          <div class="m-as-n"><div data-f="dayd">—</div><div data-f="dayp">—</div></div>
+          <div class="m-as-n"><div data-f="atd">—</div><div data-f="atp">—</div></div>
+        </div>
+        <div class="m-as-row" data-key="inv">
+          <div><div class="m-as-name">Non-Reg</div><div class="m-as-val" data-f="val">—</div></div>
+          <div class="m-as-n"><div data-f="dayd">—</div><div data-f="dayp">—</div></div>
+          <div class="m-as-n"><div data-f="atd">—</div><div data-f="atp">—</div></div>
+        </div>
+        <div class="m-as-row" data-key="fhsa">
+          <div><div class="m-as-name">FHSA</div><div class="m-as-val" data-f="val">—</div></div>
+          <div class="m-as-n"><div data-f="dayd">—</div><div data-f="dayp">—</div></div>
+          <div class="m-as-n"><div data-f="atd">—</div><div data-f="atp">—</div></div>
+        </div>
+        <div class="m-as-row" data-key="rrsp">
+          <div><div class="m-as-name">RRSP</div><div class="m-as-val" data-f="val">—</div></div>
+          <div class="m-as-n"><div data-f="dayd">—</div><div data-f="dayp">—</div></div>
+          <div class="m-as-n"><div data-f="atd">—</div><div data-f="atp">—</div></div>
+        </div>
       </div>
 
       <!-- Six figures, under the value chart. Same _heroScopedStats() call the

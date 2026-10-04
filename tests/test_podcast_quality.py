@@ -453,5 +453,17 @@ try:
 except Exception as exc:  # noqa: BLE001
     print(f"  SKIP  needs network: {exc}")
 
+print("\n── minimum length ──")
+short = "ALEX: Hello there and welcome.\nSAM: Glad to be here today."
+ck("a short script is flagged for retry when a minimum is set",
+   any(p["kind"] == "length" and p["retry"] and not p["fatal"]
+       for p in gp.collect_script_problems(short, {}, None, 2200)), True)
+ck("no length flag when no minimum is set",
+   any(p["kind"] == "length" for p in gp.collect_script_problems(short, {})), False)
+ck("the production minimum is about 15 minutes", 2000 <= gp.MIN_SCRIPT_WORDS <= 2400, True)
+ck("the per-turn cap is unchanged at 4", gp.FIGURES_PER_TURN_MAX, 4)
+ck("prompts target the longer episode",
+   "1,400 to 1,800" in gp.SCRIPT_PROMPT_PART1 and "1,300 to 1,700" in gp.SCRIPT_PROMPT_PART2, True)
+
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

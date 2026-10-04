@@ -7,7 +7,7 @@ Runs via cron-job.org every Monday at 6:00 AM UTC.
 Pipeline:
   1. Load intelligence.json + KV snapshot + live holdings + past scripts
   2. Groq preprocessing call → deep topic registry (topics, tickers, education used)
-  3. Groq (Llama 3.3 70B) × 2 → full podcast script (3,500–4,300 words)
+  3. Groq (Llama 3.3 70B) × 2 → full podcast script (2,400–3,200 words, 15–20 minutes)
   4. edge-tts → MP3 segments per speaker turn
   5. Merge segments → podcast_epNNN.mp3
   6. Save script text → podcast_epNNN.txt (used by future episodes)
@@ -551,7 +551,7 @@ Use ONE everyday analogy for the whole episode — not two.
 
 [RECAP — 2 minutes] The week in plain words. Say once whether the portfolio was up or down and by about how much. Name the biggest mover and the biggest faller listed on the portfolio page. Give a reason for a move ONLY if the news above supplies it — otherwise say honestly that it moved with the market. At most 3 numbers in the whole recap. One short callback to last episode, only if natural.
 
-[DEEP DIVE 1 — about 5 minutes] on {dd1_title}.
+[DEEP DIVE 1 — about 7 minutes] on {dd1_title}.
 - SAM opens with the puzzle.
 - ALEX explains the mechanism in plain English, step by step.
 - SAM pushes back twice, the way a beginner would ("hang on — why would that happen?").
@@ -561,7 +561,7 @@ Use ONE everyday analogy for the whole episode — not two.
 
 DIALOGUE: company names, not tickers. A quarter of turns under 20 words. Natural reactions ("Right.", "Hmm.", "Okay but…"). No two turns start with the same word. Avoid: "it's worth noting", "going forward", "as mentioned", "at the end of the day", "in today's market", "landscape", "navigate", "tailwinds", "headwinds".
 
-LENGTH: aim for 1,300 to 1,800 words. If you run short, explain the mechanism more slowly with a simple everyday example. NEVER add dates, events, figures or details just to fill time.
+LENGTH: aim for 1,400 to 1,800 words (about 9–11 minutes spoken). Under 1,300 is too short. Length comes from depth, never from extra numbers: walk through the mechanism one step at a time, give a second everyday example, let SAM ask follow-up questions and restate it in his own words, and spend a turn on what it means for a long-term investor. Keep the 4-numbers-per-turn limit and keep every fact stated once. NEVER add dates, events, figures or invented details just to fill time.
 
 THIS IS THE FIRST HALF ONLY — DO NOT CLOSE THE EPISODE.
 Part 2 is written separately and is joined directly onto your final line, in the same episode. It contains Deep Dive 2, the learning segment, the scenarios and the closing. So do NOT write a sign-off, a wrap-up, "stay tuned", or "we'll be back next Monday". Stop mid-conversation on a Deep Dive 1 line so the second half continues straight out of it.
@@ -612,20 +612,20 @@ NUMBER BUDGET: at most 4 numbers in any one turn and about 12 in this half; stat
 Use plain, calm, conversational language — a smart friend over coffee. Do not introduce a second analogy (one was used in Part 1). Company names, not tickers. No two turns start with the same word. Avoid: "it's worth noting", "going forward", "as mentioned", "at the end of the day", "in today's market", "landscape", "navigate", "tailwinds", "headwinds".
 
 ━━━ STRUCTURE ━━━
-[DEEP DIVE 2 — about 4 minutes] on {dd2_title}.
+[DEEP DIVE 2 — about 6 minutes] on {dd2_title}.
 - ALEX introduces it with a hook; SAM asks why it matters for us right now.
 - ALEX explains how this business works and what the news means for it, using only the brief. SAM pushes back at least once.
 - Say how big the holding is in plain terms, using the size in the brief ("a small slice, about 2% of the portfolio").
 - Close by saying what we would watch next — only an event named in the news, or the type of event.
 
-[LEARNING SEGMENT — about 2 minutes]
+[LEARNING SEGMENT — about 3 minutes]
 THE TOPIC IS ALREADY CHOSEN: {education_topic}. Write exactly that topic — the first half has already told the listener, by name, that this is what the segment covers.
 (Covered in past episodes, not to be repeated: {education_topics_used})
 Place this marker on its own line immediately BEFORE the segment starts (no speaker prefix; it is never read aloud):
 [EDUCATION_TOPIC: {education_topic}]
 Then:
 - ALEX or SAM introduces: "Before we get to our scenarios, let's step back and learn something…"
-- Teach the idea in plain language, with one simple everyday example using small round numbers (like $100), never this portfolio's figures.
+- Teach the idea in plain language over several turns, with one simple everyday example using small round numbers (like $100), never this portfolio's figures.
 - Use NO current market data — no yields, no index levels, no VIX numbers, no "historically, X% of the time" statistics.
 - Connect it briefly to this investor where it fits. SAM asks one "but what does that actually mean in practice?" question.
 - Close with: "Alright, that's our learning segment for this week. On to scenarios…"
@@ -642,7 +642,7 @@ Probabilities add to 100; the base case is 45 to 55. Each case moves ONE lever o
 - "One thing we're watching next week" — only an event named in the news above, or the type of event.
 - A warm sign-off and a brief tease for next week.
 
-LENGTH: aim for 1,200 to 1,700 words. If you run short, explain the ideas more slowly with a simple everyday example. NEVER add dates, events, figures or details just to fill time.
+LENGTH: aim for 1,300 to 1,700 words (about 8–10 minutes spoken). Under 1,200 is too short. Length comes from depth, never from extra numbers: walk through the mechanism one step at a time, give a second everyday example, let SAM ask follow-up questions and restate it in his own words, and spend a turn on what it means for a long-term investor. Keep the 4-numbers-per-turn limit and keep every fact stated once. NEVER add dates, events, figures or invented details just to fill time.
 
 Write PART 2 now:"""
 
@@ -1941,6 +1941,7 @@ _FIGURE = re.compile(
     r"|\d+(?:\.\d+)?[\s-]*(?:cents?|¢|basis[\s-]points?|bps?)\b"
     r"|(?<![\d.])\d+\.\d+(?!\d|%|\.\d)", re.I)
 
+MIN_SCRIPT_WORDS      = 2200   # about 15 minutes spoken; a short draft is retried, never blocked
 FIGURES_PER_TURN_MAX  = 4      # the listener's limit: no turn may carry more
 DENSITY_TARGET_PER100 = 1.6    # aim: about one figure every 60 words
 DENSITY_RETRY_PER100  = 2.6    # above this the draft is regenerated once more
@@ -2168,7 +2169,7 @@ def _pick_fresh(cands: list, avoid: frozenset):
     return best[2] if best else None
 
 
-def collect_script_problems(script: str, facts: dict, history=None) -> list:
+def collect_script_problems(script: str, facts: dict, history=None, min_words: int = 0) -> list:
     """Everything wrong with a draft, classed by what to do about it.
 
     fatal   - could air a falsehood. Regenerate; if still present, strip the
@@ -2188,6 +2189,11 @@ def collect_script_problems(script: str, facts: dict, history=None) -> list:
         out.append({"kind": u["kind"], "fatal": False, "retry": True,
                     "msg": f"{u['reason']} — \"{u['sentence'][:110]}\""})
     st = figure_stats(script)
+    if min_words and st["words"] < min_words:
+        out.append({"kind": "length", "fatal": False, "retry": True,
+                    "msg": f"the episode is only {st['words']:,} words (about {st['words'] // 150} minutes); "
+                           f"it needs at least {min_words:,}. Explain more slowly, add a second everyday example "
+                           f"and more of SAM's questions — without adding any figures or invented facts"})
     if st["heavy_turns"]:
         out.append({"kind": "density", "fatal": False, "retry": True,
                     "msg": f"{len(st['heavy_turns'])} turn(s) carry more than {FIGURES_PER_TURN_MAX} "
@@ -2283,7 +2289,7 @@ def _normalize_script(script: str) -> str:
     return "\n".join(out)
 
 
-def produce_checked_script(generate, max_attempts: int = 3, log=print, history=None):
+def produce_checked_script(generate, max_attempts: int = 3, log=print, history=None, min_words: int = 0):
     """Draft, check, and if need be redraft the script. Returns (script, facts) or None.
 
     generate(feedback) -> (script, facts). Each rejected draft is regenerated WITH
@@ -2306,7 +2312,7 @@ def produce_checked_script(generate, max_attempts: int = 3, log=print, history=N
             log(f"ERROR: Script generation failed (attempt {attempt}): {exc}")
             return None
         script   = _normalize_script(script)
-        problems = collect_script_problems(script, facts, history)
+        problems = collect_script_problems(script, facts, history, min_words)
         st       = figure_stats(script)
         retry    = [p for p in problems if p["retry"]]
         log(f"  attempt {attempt}/{max_attempts}: "
@@ -2324,7 +2330,7 @@ def produce_checked_script(generate, max_attempts: int = 3, log=print, history=N
     removed = []
     if any(p["fatal"] for p in problems):
         script, removed = strip_unsafe_sentences(script, facts)
-        problems = collect_script_problems(script, facts, history)
+        problems = collect_script_problems(script, facts, history, min_words)
         if any(p["fatal"] for p in problems):
             log(f"ERROR: Script still contains unsupported claims after {max_attempts} "
                 f"attempts and sentence removal — refusing to publish.")
@@ -2344,7 +2350,7 @@ def produce_checked_script(generate, max_attempts: int = 3, log=print, history=N
         log(f"  ⚠ Cut {len(cut_a) + len(cut_b)} sentence(s) the listener asked not to hear:")
         for sent in (cut_a + cut_b)[:8]:
             log(f"      - {sent[:140]}")
-    problems = collect_script_problems(script, facts, history)
+    problems = collect_script_problems(script, facts, history, min_words)
     leftovers = [p for p in problems if p["retry"] and not p["fatal"]]
     for p in leftovers:
         log(f"  ⚠ {p['msg']}")
@@ -2494,7 +2500,7 @@ def main() -> int:
     result = produce_checked_script(
         lambda fb: generate_script(intel, snapshot, old_meta, groq_key, computed_holdings,
                                    registry, cash_positions=cash_positions, feedback=fb),
-        history=list(past_scripts.values()))
+        history=list(past_scripts.values()), min_words=MIN_SCRIPT_WORDS)
     if result is None:
         return 1
     script, facts = result

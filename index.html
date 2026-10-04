@@ -4760,6 +4760,7 @@ async function mergeKvChartData() {
 
     _KV_MONTH_END = monthEnd;
     _applyKvToCharts();
+    _applyKvContribToCharts();   // contributions need the same top-up
   } catch (e) {
     console.warn('[KV charts] fetch failed:', e.message);
   }
@@ -4869,8 +4870,71 @@ function _dsPush(chart, idx, val) {
 // any visible chart datasets. Called after applyAllTransactions() so CONTRIB_STATE
 // is current. Mutates the static cAllTime/cInv/etc arrays so setChartFilter also
 // picks up the live value without needing an extra call.
+// Months that exist in KV but never made it into the static contribution arrays.
+//
+// cAllTime and its siblings are hard-coded and stop at the last month someone
+// typed in (2026-07). _applyLiveContribToCharts() only ever upserts TODAY's
+// month, so everything in between was simply absent: the chart drew June, July,
+// then jumped straight to October, with August and September missing.
+//
+// This is the same top-up _applyKvToCharts() already performs for the value and
+// ROI charts, using each month-end snapshot's own account_cost. Mutating the
+// static arrays — as the live upsert does — means setChartFilter picks the
+// months up too, since it rebuilds the charts from these same arrays.
+function _upsertMonthPoint(arr, month, val) {
+  if (!Array.isArray(arr)) return;
+  const i = arr.findIndex(p => p.x === month);
+  if (i !== -1) { arr[i].y = val; return; }
+  let j = arr.findIndex(p => p.x > month);     // keep the series in month order
+  if (j === -1) j = arr.length;
+  arr.splice(j, 0, { x: month, y: val });
+}
+
+function _applyKvContribToCharts() {
+  if (!_KV_MONTH_END) return;
+  const ACCTS = ['TFSA', 'Investment', 'FHSA', 'RRSP'];
+  const targets = [
+    [typeof cAllTime  !== 'undefined' ? cAllTime  : null, null],
+    [typeof cInv      !== 'undefined' ? cInv      : null, 'Investment'],
+    [typeof cTFSA     !== 'undefined' ? cTFSA     : null, 'TFSA'],
+    [typeof cFHSA     !== 'undefined' ? cFHSA     : null, 'FHSA'],
+    [typeof cRRSP     !== 'undefined' ? cRRSP     : null, 'RRSP'],
+    [typeof cAllTimed !== 'undefined' ? cAllTimed : null, null],
+    [typeof cInvd     !== 'undefined' ? cInvd     : null, 'Investment'],
+    [typeof cTFSAd    !== 'undefined' ? cTFSAd    : null, 'TFSA'],
+    [typeof cFHSAd    !== 'undefined' ? cFHSAd    : null, 'FHSA'],
+    [typeof cRRSPd    !== 'undefined' ? cRRSPd    : null, 'RRSP'],
+  ];
+  Object.keys(_KV_MONTH_END).sort().forEach(mk => {
+    const cost = _KV_MONTH_END[mk].account_cost || {};
+    if (!Object.keys(cost).length) return;      // no basis recorded that month
+    targets.forEach(([arr, acct]) => {
+      if (!arr) return;
+      let val;
+      if (acct) {
+        if (cost[acct] == null) return;
+        val = Math.round(cost[acct]);
+      } else {
+        // A partial month would understate the total, so skip rather than
+        // draw a dip that never happened.
+        if (ACCTS.some(a => cost[a] == null)) return;
+        val = Math.round(ACCTS.reduce((sum, a) => sum + cost[a], 0));
+      }
+      _upsertMonthPoint(arr, mk, val);
+    });
+  });
+  if (typeof contribChart !== 'undefined' && contribChart && typeof cAllTime !== 'undefined') {
+    contribChart.data.labels           = cAllTime.map(p => p.x);
+    contribChart.data.datasets[0].data = cAllTime.map(p => p.y);
+    contribChart.update('none');
+  }
+}
+
 function _applyLiveContribToCharts() {
   const curMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+  // Fill in any month-ends the static arrays never received, before the live
+  // point for the current month is appended on the end.
+  _applyKvContribToCharts();
   function _upsert(arr, val) {
     if (!arr.length) { arr.push({ x: curMonth, y: val }); return; }
     const last = arr[arr.length - 1];

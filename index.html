@@ -9585,7 +9585,13 @@ var _AD_COLS=[
 function _adRows(acctName){
   if(typeof HOLDINGS_STATIC==='undefined')return [];
   var ld=window._lastLiveData||{}, hp=ld.holdings||{}, fxr=ld.usdcad||1.38;
-  return HOLDINGS_STATIC.filter(function(h){return h.account===acctName;}).map(function(h){
+  /* acctName null means the whole book. Positions are merged by ticker, so the
+     All view shows one Nvidia line carrying every account's shares rather than
+     the same ticker repeated four times. */
+  var byTk={};
+  HOLDINGS_STATIC.filter(function(h){
+    return acctName===null||h.account===acctName;
+  }).forEach(function(h){
     var fx=h.ccy==='USD'?fxr:1;
     var p=hp[h.ticker];
     var acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;
@@ -9594,23 +9600,46 @@ function _adRows(acctName){
     var prev=(p&&p.prev)?p.prev:((p&&p.price)?p.price:0);
     var day=(p&&p.price)?(p.price-prev)*h.shares*fx:0;
     var dayp=(p&&p.price&&prev>0)?((p.price-prev)/prev*100):0;
-    return {tk:h.ticker, mv:mv, day:day, dayp:dayp,
-            pnl:mv-acb, pnlp:acb>0?((mv-acb)/acb*100):null};
+    var e=byTk[h.ticker]||(byTk[h.ticker]={tk:h.ticker, mv:0, day:0, dayp:0, acb:0});
+    e.mv+=mv; e.day+=day; e.acb+=acb;
+    /* The daily % belongs to the price, so it is the same in every account
+       holding the ticker — carried across, never averaged. */
+    e.dayp=dayp;
+  });
+  return Object.keys(byTk).map(function(t){
+    var e=byTk[t];
+    return {tk:e.tk, mv:e.mv, day:e.day, dayp:e.dayp,
+            pnl:e.mv-e.acb, pnlp:e.acb>0?((e.mv-e.acb)/e.acb*100):null};
   });
 }
 
 function _renderAcctDetail(key){
   var card=document.getElementById('m-acct-detail-card');
-  var d=(typeof ACCT_DATA!=='undefined')?ACCT_DATA[key]:null;
-  if(!card||!d)return;
+  if(!card)return;
+  var isAll=(key==='all');
+  var d=(!isAll&&typeof ACCT_DATA!=='undefined')?ACCT_DATA[key]:null;
+  if(!isAll&&!d)return;
   _adKey=key;
   card.style.display='block';
 
   var g=function(id){var e=document.getElementById(id);return e?e.textContent.trim():'';};
-  var vTxt=g(d.valId)||'—', rTxt=g(d.roiId)||'—', pTxt=g(d.pnlId), fTxt=g(d.footerId);
+  var bCls,bLabel,bType,vTxt,rTxt,pTxt,fTxt;
+  if(isAll){
+    /* No per-account DOM node holds the whole book, so the header reads from
+       _heroScopedStats — the same source the hero and the strip use. */
+    var st=null; try{ st=window._heroScopedStats(window._lastLiveData,null); }catch(e){}
+    bCls='abt'; bLabel='ALL'; bType='ALL ACCOUNTS';
+    vTxt=st?mMoney(st.mktVal):'—';
+    pTxt=st?((st.pnl>=0?'+':'−')+mMoney(Math.abs(st.pnl)).replace('-','')):'';
+    rTxt=st?((st.pnlPct>=0?'+':'')+st.pnlPct.toFixed(2)+'% ROI'):'—';
+    fTxt='';
+  } else {
+    bCls=d.cls; bLabel=d.label; bType=d.type;
+    vTxt=g(d.valId)||'—'; rTxt=g(d.roiId)||'—'; pTxt=g(d.pnlId); fTxt=g(d.footerId);
+  }
 
   var acctNameMap={tfsa:'TFSA',fhsa:'FHSA',rrsp:'RRSP',inv:'Investment'};
-  var all=_adRows(acctNameMap[key]||'');
+  var all=_adRows(isAll?null:(acctNameMap[key]||''));
 
   all.sort(function(a,b){
     var cmp;
@@ -9661,10 +9690,10 @@ function _renderAcctDetail(key){
   card.innerHTML=
     '<div class="m-acct-detail">'
     +'<div class="m-acct-detail-hdr">'
-    +'<div><span class="b '+d.cls+' m-acct-badge-lg" style="font-size:11px;padding:4px 10px">'+d.label+'</span>'
+    +'<div><span class="b '+bCls+' m-acct-badge-lg" style="font-size:11px;padding:4px 10px">'+bLabel+'</span>'
     +'<div class="m-acct-total">'+vTxt+(pTxt?' <span style="font-size:14px;color:var(--green)">'+pTxt+'</span>':'')+'</div>'
     +'<div class="m-acct-sub">'+rTxt+'</div></div>'
-    +'<span class="m-acct-type">'+d.type+'</span>'
+    +'<span class="m-acct-type">'+bType+'</span>'
     +'</div>'
     +'<table class="m-acct-tbl"><thead><tr>'+head+'</tr></thead>'
     +'<tbody>'+rows+'</tbody></table>'
@@ -9684,20 +9713,10 @@ window.mSelectAcct=function(key,clickedBtn){
   mHeroAcct=(M_ACCT_KEYS[key]!==undefined)?M_ACCT_KEYS[key]:null;
   mUpdateHeroStats();
 
-  var allContent=document.getElementById('m-acct-all');
-  var detailCard=document.getElementById('m-acct-detail-card');
-
-  if(key==='all'){
-    if(allContent)allContent.style.display='';
-    if(detailCard)detailCard.style.display='none';
-  } else {
-    if(allContent)allContent.style.display='none';
-    var d=ACCT_DATA[key];
-    if(d&&detailCard){
-      _adExpanded=false;        // a fresh account always starts collapsed
-      _renderAcctDetail(key);
-    }
-  }
+  /* Rendered for every selection now, All included. #m-acct-all was referenced
+     here but never existed in the markup, so the All view simply had nothing. */
+  _adExpanded=false;            // a fresh selection always starts collapsed
+  _renderAcctDetail(key);
 
   // Update chart account filter — call setChartFilter with correct key
   var cfKeyMap={all:'all',tfsa:'tfsa',fhsa:'fhsa',rrsp:'rrsp',inv:'inv'};
@@ -10770,6 +10789,9 @@ function syncMobile(){
      _heroScopedStats is ever unavailable the older ROI text survives. */
   mUpdateHeroStats();
   mUpdateAcctStrip();
+  /* Repaint the open breakdown so Day $ tracks the refresh. Sort and expand
+     state live at module level, so the user's choices survive. */
+  if(_adKey)_renderAcctDetail(_adKey);
 }
 
 /* ════ HOLDINGS GLANCE ══════════════════════════════════════ */
@@ -11852,6 +11874,11 @@ document.addEventListener('DOMContentLoaded',function(){
         </div>
       </div>
 
+      <!-- Account breakdown — directly beneath the strip, so selecting an account
+           and reading its holdings are adjacent. Rendered for every selection
+           including All, which aggregates each ticker across all four accounts. -->
+      <div id="m-acct-detail-card" style="display:none"></div>
+
       <!-- Six figures, under the value chart. Same _heroScopedStats() call the
            desktop hero uses, so the two surfaces cannot disagree. -->
       <div class="m-hero-stats" id="m-hero-stats">
@@ -11872,11 +11899,6 @@ document.addEventListener('DOMContentLoaded',function(){
         <div style="position:relative;height:140px"><canvas id="m-roi-canvas"></canvas></div>
         <div id="m-roi-footer" style="display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-top:3px"></div>
       </div>
-
-      <!-- Account breakdown — sits under the ROI chart. Shown only when a
-           specific account is selected; the All view has no card here since the
-           account tabs already carry each account's value. -->
-      <div id="m-acct-detail-card" style="display:none"></div>
 
       <!-- Contribution-Weighted Benchmark -->
       <div class="m-chart-wrap" id="m-benchmark-wrap" style="padding-bottom:12px">

@@ -1407,12 +1407,36 @@ Return ONLY valid JSON:
   "action_items": ["2-3 specific portfolio actions discussed"],
   "education_topic": "the learning segment topic in 3-5 words, or empty string if none"
 }}"""
-    try:
-        raw = _groq_call(api_key, prompt, "Summary", max_tokens=900)
-        start, end = raw.find('{'), raw.rfind('}') + 1
-        return json.loads(raw[start:end]) if start >= 0 else {}
-    except Exception:
-        return {"episode_title": intel.get("daily_outlook", "Weekly Update")[:60]}
+    # Two tries. On 2026-10-12 one failed parse fell through to the briefing's first
+    # 60 characters, so the episode went out titled "The portfolio is positioned to
+    # benefit from a strong USD, wh". A cut-off sentence is never a title.
+    for _ in range(2):
+        try:
+            raw = _groq_call(api_key, prompt, "Summary", max_tokens=900)
+            start, end = raw.find('{'), raw.rfind('}') + 1
+            if start >= 0:
+                return json.loads(raw[start:end])
+        except Exception:  # noqa: BLE001
+            continue
+    return {}
+
+
+def _usable_title(title) -> bool:
+    """A real headline: a handful of words, no sentence punctuation, not cut off."""
+    t = str(title or "").strip()
+    n = len(t.split())
+    return (2 <= n <= 12 and len(t) <= 80 and not t.endswith((",", ";", ":", "-", "–"))
+            and not t.endswith(".") and not re.search(r"\b\w{1,2}$", t.split()[-1]) if t else False)
+
+
+def episode_title(summary: dict, script: str, education_topic: str, ep_num: int) -> str:
+    """The model's title if it is usable, otherwise one built from what was covered."""
+    t = str((summary or {}).get("episode_title", "")).strip().strip('"')
+    if _usable_title(t):
+        return t
+    if education_topic:
+        return f"Portfolio Pulse Ep {ep_num}: {education_topic}"
+    return f"Portfolio Pulse Ep {ep_num}"
 
 
 # ============================================================
@@ -2775,7 +2799,7 @@ def main() -> int:
         "file":             mp3_name,
         "date":             now.strftime("%Y-%m-%d"),
         "display_date":     now.strftime("%B %d, %Y"),
-        "title":            summary.get("episode_title", f"Portfolio Pulse Ep {ep_num}"),
+        "title":            episode_title(summary, script, education_topic, ep_num),
         "mood":             mood_val,
         "mood_summary":     mood_labels.get(mood_val, mood_val),
         "duration":         duration_str,

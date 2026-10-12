@@ -994,6 +994,53 @@ def _speaker_run_warnings(script: str, limit: int = 3) -> list:
 # ============================================================
 # GROQ SCRIPT GENERATION
 # ============================================================
+# ── Groq free-tier guard ────────────────────────────────────────────────────
+# Limits for openai/gpt-oss-120b on the free plan, per ORGANISATION (shared with
+# the daily briefing): 8,000 tokens/minute (max_tokens counts toward it), 200,000
+# tokens/day, 1,000 requests/day. The pacer below keeps every rolling minute
+# under the TPM limit, and the run budget keeps one podcast run to about half the
+# daily allowance, so the briefing and an occasional manual re-run still fit.
+GROQ_TPM_LIMIT        = 7_600     # a little under 8,000 for estimate error
+GROQ_RUN_TOKEN_BUDGET = 110_000   # one weekly run, all attempts included
+_GROQ_RECENT: list = []           # (time, tokens charged) in the last minute
+_GROQ_USED = {"tokens": 0, "calls": 0}
+
+
+class GroqDailyLimit(RuntimeError):
+    """Groq's tokens-per-day allowance is spent; waiting minutes will not help."""
+
+
+def _estimate_tokens(text: str) -> int:
+    return int(len(text) / 3.6) + 50      # deliberately high: ~4 chars per token in practice
+
+
+def groq_tokens_used() -> int:
+    return _GROQ_USED["tokens"]
+
+
+def groq_budget_allows(extra_tokens: int) -> bool:
+    return _GROQ_USED["tokens"] + extra_tokens <= GROQ_RUN_TOKEN_BUDGET
+
+
+def _pace(charge: int) -> None:
+    """Sleep until this request fits inside the rolling one-minute token window."""
+    import time
+    while True:
+        now = time.time()
+        _GROQ_RECENT[:] = [(t, c) for t, c in _GROQ_RECENT if now - t < 61]
+        if not _GROQ_RECENT or sum(c for _, c in _GROQ_RECENT) + charge <= GROQ_TPM_LIMIT:
+            _GROQ_RECENT.append((now, charge))
+            return
+        wait = 61 - (now - _GROQ_RECENT[0][0]) + 0.5
+        print(f"     pacing {wait:.0f}s to stay under Groq's per-minute limit")
+        time.sleep(max(1.0, wait))
+
+
+def _safe_max_tokens(prompt: str, wanted: int) -> int:
+    """prompt + max_tokens must stay under 8,000 or Groq rejects the request (413)."""
+    return max(1200, min(wanted, 7_900 - _estimate_tokens(prompt)))
+
+
 def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) -> str:
     """Call Groq with patience for the free-tier per-minute token (TPM) budget.
 
@@ -1012,8 +1059,11 @@ def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) ->
     max_attempts = 8
     last_err     = "unknown"
 
+    max_tokens = _safe_max_tokens(prompt, max_tokens)
+    daily_waited = False
     for attempt in range(max_attempts):
         try:
+            _pace(_estimate_tokens(prompt) + max_tokens)
             r = requests.post(
                 GROQ_URL,
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
@@ -1029,6 +1079,17 @@ def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) ->
 
             # 429 = per-minute token budget hit. Wait it out on the SAME model.
             if r.status_code == 429:
+                body = r.text.lower()
+                if "per day" in body or "tpd" in body or "rpd" in body:
+                    m = re.search(r"try again in (?:(\d+)h)?(?:(\d+)m)?([\d.]+)s", body)
+                    wait = (int(m.group(1) or 0) * 3600 + int(m.group(2) or 0) * 60
+                            + float(m.group(3))) if m else 99_999
+                    if wait <= 1_200 and not daily_waited:
+                        daily_waited = True
+                        print(f"  ⚠ {label}: Groq daily allowance momentarily full — waiting {wait:.0f}s")
+                        time.sleep(wait + 5)
+                        continue
+                    raise GroqDailyLimit(f"{label}: Groq daily allowance used up — {r.text[:200]}")
                 retry_after = r.headers.get("Retry-After") or r.headers.get("retry-after")
                 try:
                     wait = int(float(retry_after)) if retry_after else 0
@@ -1043,9 +1104,14 @@ def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) ->
                 continue
 
             r.raise_for_status()
-            text = r.json()["choices"][0]["message"]["content"].strip()
+            body = r.json()
+            used = int((body.get("usage") or {}).get("total_tokens") or 0)
+            _GROQ_USED["tokens"] += used or (_estimate_tokens(prompt) + max_tokens)
+            _GROQ_USED["calls"] += 1
+            text = body["choices"][0]["message"]["content"].strip()
             if text:
-                print(f"  ✓ {label} with {primary} ({len(text.split()):,} words)")
+                print(f"  ✓ {label} with {primary} ({len(text.split()):,} words, "
+                      f"{used:,} tokens; run total {_GROQ_USED['tokens']:,})")
                 return text
             last_err = "empty response"
             print(f"  ⚠ {label} attempt {attempt+1}: empty response")
@@ -1075,6 +1141,8 @@ def _groq_call(api_key: str, prompt: str, label: str, max_tokens: int = 4096) ->
                     print(f"  ⚠ {label} {fallback} outage-fallback also failed: {exc2}")
             time.sleep(min(30, 5 * (attempt + 1)))
 
+        except GroqDailyLimit:
+            raise
         except Exception as exc:
             last_err = str(exc)
             print(f"  ⚠ {label} attempt {attempt+1} failed: {exc}")
@@ -1212,31 +1280,90 @@ def _deep_dive_briefs(dd1: dict, dd2) -> tuple:
 
 
 REGISTRY_CHARS_PER_EPISODE = 5400   # three episodes stay well inside Groq's request limit
-PART1_MIN_WORDS = 1250     # below this a half is asked for once more, with the shortfall stated
-PART2_MIN_WORDS = 1150
+# ── Four-piece generation ────────────────────────────────────────────────────
+PIECE_MIN_WORDS = (380, 750, 700, 650)    # a piece under this is asked for once more
+
+SCOPE_OPENING = """━━━ THIS CALL WRITES ONLY THE OPENING ━━━
+Write ONLY the [WELCOME] and the [RECAP] described above. Aim for 450 to 600 words.
+Stop at the end of the recap on a line where SAM turns to Deep Dive 1 — do not start
+Deep Dive 1 itself, and do not sign off. Deep Dive 1 is written next and joined straight on.
+
+Write the opening now:"""
+
+SCOPE_DIVE1 = """━━━ THIS CALL WRITES ONLY DEEP DIVE 1 ━━━
+The welcome and the recap are already written. This is how they ended:
+{before}
+
+Write ONLY [DEEP DIVE 1] as described above. Begin directly with its first line — no greeting,
+no agenda, no recap of the week. Aim for 900 to 1,100 words: walk through the mechanism one step
+at a time, give a second everyday example, let SAM push back and put it in his own words, and
+spend a turn on what it means for a long-term investor. Keep the 4-numbers-per-turn limit and say
+every fact once. NEVER add dates, events, figures or invented details to fill time.
+Do NOT close the episode, sign off or say "stay tuned" — Deep Dive 2 is joined straight onto your
+last line. Stop mid-conversation on a Deep Dive 1 line.
+
+Write Deep Dive 1 now:"""
+
+SCOPE_DIVE2 = """━━━ THIS CALL WRITES ONLY DEEP DIVE 2 ━━━
+Write ONLY [DEEP DIVE 2] as described above. Do NOT start the learning segment, the scenarios
+or the closing — they are written next and joined straight onto your last line. Aim for 850 to
+1,000 words: explain how the business works and what the news means for it one step at a time,
+give a second everyday example, and let SAM push back and put it in his own words. Keep the
+4-numbers-per-turn limit and say every fact once. NEVER add dates, events, figures or invented
+details to fill time. Stop mid-conversation on a Deep Dive 2 line; do not sign off.
+
+Write Deep Dive 2 now:"""
+
+SCOPE_CLOSE = """━━━ THIS CALL WRITES ONLY THE LAST THREE SEGMENTS ━━━
+Deep Dive 2 is already written (see above). Write ONLY the [LEARNING SEGMENT] (with its
+[EDUCATION_TOPIC: ...] marker line), the [SCENARIOS] and the [CLOSING], as described above.
+Aim for 750 to 950 words: teach the learning topic over several turns with a simple example and
+SAM's questions, then the three scenarios, then the close. Keep the 4-numbers-per-turn limit and
+say every fact once. NEVER add dates, events, figures or invented details to fill time.
+
+Write the last three segments now:"""
+
+
+def _scoped(prompt: str, scope: str) -> str:
+    """Swap a half-prompt's own length and ending instructions for one piece's scope."""
+    cut = prompt.rfind("\nLENGTH:")
+    return (prompt[:cut] if cut >= 0 else prompt).rstrip() + "\n\n" + scope
+
+
+def _tail(text: str, chars: int = 900) -> str:
+    lines = [l[5:].strip() for l in text.split("\n") if l.strip().startswith(("ALEX:", "SAM:"))]
+    return " ".join(lines[-8:])[-chars:]
 
 
 def _groq_part(api_key: str, build, label: str, editor_notes: str, min_words: int) -> str:
-    """One half of the script. The model tends to undershoot the length target (last
-    Monday's halves came back at 970 and 692 words against 1,300+), so a short half
-    is asked for again, once, with the shortfall stated. The longer draft is kept."""
-    import time
-    text = _groq_call(api_key, build(editor_notes), label, max_tokens=4096)
+    """One piece of the script. A piece that comes back short is asked for again,
+    once, with the shortfall stated, but only while the run's Groq budget allows.
+    The longer draft is kept."""
+    text = _groq_call(api_key, build(editor_notes), label, max_tokens=3200)
     n = len(text.split())
     if n >= min_words:
         return text
+    if not groq_budget_allows(PIECE_COST_ESTIMATE):
+        print(f"     {label} is {n:,} words, but the run's Groq budget is reserved — keeping it")
+        return text
     print(f"     {label} is {n:,} words, under {min_words:,} — asking for a fuller version")
-    note = (f"LENGTH FIX: your last draft of this half was only {n:,} words, about "
-            f"{n // 150} minutes. Write at least {min_words + 150:,} words: slow the explanations down, "
-            f"add a second everyday example, let SAM ask more follow-up questions and put things "
-            f"in his own words. Do NOT add figures, dates or events to get there.\n")
-    time.sleep(35)
+    note = (f"LENGTH FIX: your last draft of this piece was only {n:,} words. Write at least "
+            f"{min_words + 150:,} words: slow the explanations down, add a second everyday example, "
+            f"let SAM ask more follow-up questions and put things in his own words. Do NOT add "
+            f"figures, dates or events to get there.\n")
     try:
-        again = _groq_call(api_key, build((editor_notes or "") + "\n" + note), label + " (fuller)", max_tokens=4096)
+        again = _groq_call(api_key, build((editor_notes or "") + "\n" + note), label + " (fuller)",
+                           max_tokens=3200)
+    except GroqDailyLimit:
+        raise
     except Exception as exc:  # noqa: BLE001  the shorter draft is still a usable episode
         print(f"     ⚠ fuller {label} failed ({str(exc)[:80]}) — keeping the first draft")
         return text
     return again if len(again.split()) > n else text
+
+
+PIECE_COST_ESTIMATE   = 7_000     # tokens for one piece (prompt + answer), measured high
+ATTEMPT_COST_ESTIMATE = 4 * PIECE_COST_ESTIMATE
 
 
 def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
@@ -1336,52 +1463,53 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     except Exception:
         briefing_note = ""
 
-    # Brief cooldown to separate from the registry-extraction call that ran just
-    # before this, keeping us clear of the free-tier per-minute token budget.
-    import time
-    time.sleep(20)
-
-    print("     Generating Part 1 (Welcome + Recap + Deep Dive 1)...")
-    part1 = _groq_part(api_key, lambda notes: SCRIPT_PROMPT_PART1.format(
+    p1 = lambda notes: SCRIPT_PROMPT_PART1.format(
         editor_notes=notes, today=today, week_range=week, mood=mood,
         briefing_note=briefing_note,
         registry_context=registry_context, outlook=outlook, macro=macro, news=news,
         portfolio=portfolio_ctx,
         dd1_title=dd1_title, dd1_brief=dd1_brief, dd2_title=dd2_title,
-        education_topic=education_topic,
-    ), "Part 1", editor_notes, PART1_MIN_WORDS)
-
-    # Summarise Part 1 for Part 2. This used to be the last 6 speaker lines
-    # truncated to 400 characters. In ep016 that tail happened to be a list of
-    # upcoming catalysts, so Part 2 opened by telling the listener the hosts had
-    # "just walked through the Bank of Canada's upcoming rate call" — which was
-    # one bullet in that list and was never discussed. Give it the agenda (what
-    # the episode is actually about) as well as a longer tail.
-    dive1_lines = [l for l in part1.split('\n') if l.strip().startswith(('ALEX:', 'SAM:'))]
-    agenda      = next((l[5:].strip() for l in dive1_lines[:4]
-                        if re.search(r"unpacking|covering|this week we", l, re.I)), "")
-    tail        = ' '.join(l[5:].strip() for l in dive1_lines[-8:])
-    dive1_last  = ((f"TOPICS PART 1 ACTUALLY COVERED: {agenda}\n" if agenda else "")
-                   + f"HOW PART 1 ENDED — continue straight out of this: {tail[-900:]}")
-
-    # Space out the two large generation calls so we stay under Groq's free-tier
-    # per-minute token budget (the back-to-back calls were the root cause of the
-    # 429 storm that aborted Part 2). This does not affect output — same prompt,
-    # same model — it just lets the rolling TPM window reset first.
-    print("     Cooling down 35s to reset Groq TPM window before Part 2...")
-    time.sleep(35)
-
-    print("     Generating Part 2 (Deep Dive 2 + Learning Segment + Scenarios + Close)...")
-    part2 = _groq_part(api_key, lambda notes: SCRIPT_PROMPT_PART2.format(
-        editor_notes=notes, today=today, dive1_summary=dive1_last,
+        education_topic=education_topic)
+    p2 = lambda notes, before: SCRIPT_PROMPT_PART2.format(
+        editor_notes=notes, today=today, dive1_summary=before,
         briefing_note=briefing_note,
         news=news, picks=picks, strategy=strategy, portfolio=portfolio_ctx,
         dd2_title=dd2_title, dd2_brief=dd2_brief,
-        education_topic=education_topic, education_topics_used=education_topics_str,
-    ), "Part 2", editor_notes, PART2_MIN_WORDS)
+        education_topic=education_topic, education_topics_used=education_topics_str)
+
+    # Four calls, each asking for a length this model actually writes. Asked for
+    # 1,400-1,800 words in one go, gpt-oss-120b stopped at 700-1,200 every time
+    # (2026-10-12: 834 and 686, then 1,223 and 975 when asked again), so the
+    # episode came out at ten minutes. One section per call fixes the length
+    # without loosening the 4-figures-per-turn cap.
+    print("     Generating piece 1/4 (Welcome + Recap)...")
+    a = _groq_part(api_key, lambda n: _scoped(p1(n), SCOPE_OPENING), "Piece 1", editor_notes, PIECE_MIN_WORDS[0])
+    print("     Generating piece 2/4 (Deep Dive 1)...")
+    b = _groq_part(api_key, lambda n: _scoped(p1(n), SCOPE_DIVE1.format(before=_tail(a))),
+                   "Piece 2", editor_notes, PIECE_MIN_WORDS[1])
+    part1 = _stitch_parts(a, b)
+
+    dive1_lines = [l for l in part1.split('\n') if l.strip().startswith(('ALEX:', 'SAM:'))]
+    agenda      = next((l[5:].strip() for l in dive1_lines[:4]
+                        if re.search(r"unpacking|covering|this week we", l, re.I)), "")
+    dive1_last  = ((f"TOPICS PART 1 ACTUALLY COVERED: {agenda}\n" if agenda else "")
+                   + f"HOW PART 1 ENDED — continue straight out of this: {_tail(part1)}")
+
+    print("     Generating piece 3/4 (Deep Dive 2)...")
+    c = _groq_part(api_key, lambda n: _scoped(p2(n, dive1_last), SCOPE_DIVE2),
+                   "Piece 3", editor_notes, PIECE_MIN_WORDS[2])
+    dive2_last = (f"{dive1_last}\nDEEP DIVE 2 IS ALSO WRITTEN. HOW IT ENDED — continue straight out of this: "
+                  f"{_tail(c)}")
+    print("     Generating piece 4/4 (Learning + Scenarios + Close)...")
+    d = _groq_part(api_key, lambda n: _scoped(p2(n, dive2_last), SCOPE_CLOSE)
+                   .replace("Begin directly with Deep Dive 2's hook.",
+                            "Deep Dive 2 is already written. Begin directly with the learning segment."),
+                   "Piece 4", editor_notes, PIECE_MIN_WORDS[3])
+    part2 = _stitch_parts(c, d)
 
     full = _stitch_parts(part1, part2)
-    print(f"  ✓ Full script: {len(full.split()):,} words across both parts")
+    print(f"  ✓ Full script: {len(full.split()):,} words in four pieces "
+          f"(Groq tokens so far this run: {groq_tokens_used():,})")
     return full, portfolio_facts
 
 
@@ -2365,16 +2493,28 @@ def produce_checked_script(generate, max_attempts: int = 3, log=print, history=N
     Structure and density problems trigger a redraft but never cost the episode.
     """
     feedback, script, facts, problems = "", "", {}, []
+    best = None   # (score, script, facts, problems): the draft to fall back on
     for attempt in range(1, max_attempts + 1):
+        if attempt > 1 and not groq_budget_allows(ATTEMPT_COST_ESTIMATE):
+            log(f"  ⚠ Groq budget for this run is nearly used ({groq_tokens_used():,} tokens) — "
+                f"no more redrafts; repairing the best draft instead")
+            break
         try:
             script, facts = generate(feedback)
         except Exception as exc:
-            log(f"ERROR: Script generation failed (attempt {attempt}): {exc}")
-            return None
+            if best is None:
+                log(f"ERROR: Script generation failed (attempt {attempt}): {exc}")
+                return None
+            # A redraft failing (rate limit, outage) must never lose a usable draft.
+            log(f"  ⚠ redraft {attempt} failed ({str(exc)[:120]}) — keeping the best earlier draft")
+            break
         script   = _normalize_script(script)
         problems = collect_script_problems(script, facts, history, min_words)
         st       = figure_stats(script)
         retry    = [p for p in problems if p["retry"]]
+        score    = (sum(1 for p in problems if p["fatal"]), len(retry), -st["words"])
+        if best is None or score < best[0]:
+            best = (score, script, facts, problems)
         log(f"  attempt {attempt}/{max_attempts}: "
             f"{sum(1 for p in problems if p['fatal'])} factual problem(s), "
             f"{sum(1 for p in problems if p['retry'] and not p['fatal'])} structural/density; "
@@ -2386,6 +2526,7 @@ def produce_checked_script(generate, max_attempts: int = 3, log=print, history=N
         if attempt < max_attempts:
             feedback = _editor_notes(retry)
             log("  ↻ regenerating with the editor's notes…")
+    _, script, facts, problems = best
 
     removed = []
     if any(p["fatal"] for p in problems):
@@ -2742,6 +2883,14 @@ def main() -> int:
     intel             = _load_intel()
     snapshot          = _fetch_snapshot()
     old_meta          = load_meta()
+    # Manual redo of the latest episode (workflow input replace_latest): generate as
+    # if the latest episode had never aired. Nothing is removed up front — the new
+    # episode simply takes the same number and overwrites its files and metadata
+    # when, and only when, this run succeeds.
+    if os.environ.get("REPLACE_LATEST") == "1" and old_meta.get("archive"):
+        replaced = old_meta.get("episode")
+        old_meta = {**old_meta["archive"][0], "archive": old_meta["archive"][1:]}
+        print(f"  ↺ Redoing episode {replaced}: building on episode {old_meta.get('episode')}")
     computed_holdings = _fetch_computed_holdings()   # live from KV — auto-synced by dashboard
     cash_positions    = _fetch_cash_positions()      # real balances, not a hand-typed line
 
@@ -2753,6 +2902,8 @@ def main() -> int:
     # Load saved past scripts & build deep topic registry (Groq preprocessing call if scripts exist)
     print("     Loading past scripts & building topic registry...")
     past_scripts = _load_past_scripts()
+    if os.environ.get("REPLACE_LATEST") == "1":
+        past_scripts = {k: v for k, v in past_scripts.items() if k <= (old_meta.get("episode") or 0)}
     registry = _build_deep_topic_registry(old_meta, past_scripts, groq_key)
     if registry["recently_spotlighted_tickers"]:
         print(f"  ✓ Spotlighted recently: {', '.join(registry['recently_spotlighted_tickers'][:5])}")

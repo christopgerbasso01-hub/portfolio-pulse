@@ -297,8 +297,8 @@ seen = []
 real_call, real_sleep = gp._groq_call, time.sleep
 gp._groq_call = lambda k, prompt, label, max_tokens=4096: (seen.append((label, prompt)) or "ALEX: Hello.\nSAM: Hi.")
 time.sleep = lambda s: None
-real_mins = gp.PART1_MIN_WORDS, gp.PART2_MIN_WORDS
-gp.PART1_MIN_WORDS = gp.PART2_MIN_WORDS = 0
+real_mins = gp.PIECE_MIN_WORDS
+gp.PIECE_MIN_WORDS = (0, 0, 0, 0)
 intel2 = {"market_mood": "mixed",
           "daily_outlook": "Oil is easing. However the portfolio remains vulnerable to USD translation drag.",
           "macro": [{"title": "CPI Surprise", "impact": "HIGH",
@@ -312,10 +312,18 @@ try:
                                       cash_positions=CASH, feedback="EDITOR'S NOTES — REJECTED: example\n")
 finally:
     gp._groq_call, time.sleep = real_call, real_sleep
-    gp.PART1_MIN_WORDS, gp.PART2_MIN_WORDS = real_mins
-p1 = dict(seen)["Part 1"]
-p2 = dict(seen)["Part 2"]
-ck("both halves were generated", sorted(dict(seen)), ["Part 1", "Part 2"])
+    gp.PIECE_MIN_WORDS = real_mins
+_pieces = dict(seen)
+ck("all four pieces were generated", sorted(_pieces), ["Piece 1", "Piece 2", "Piece 3", "Piece 4"])
+p1 = _pieces["Piece 1"] + _pieces["Piece 2"]
+p2 = _pieces["Piece 3"] + _pieces["Piece 4"]
+ck("each piece is told exactly which segment to write",
+   ["ONLY THE OPENING" in _pieces["Piece 1"], "ONLY DEEP DIVE 1" in _pieces["Piece 2"],
+    "ONLY DEEP DIVE 2" in _pieces["Piece 3"], "ONLY THE LAST THREE" in _pieces["Piece 4"]], [True] * 4)
+ck("no piece carries the old whole-half length target",
+   any("1,400 to 1,800" in v or "1,300 to 1,700" in v for v in _pieces.values()), False)
+ck("the last piece is not told to begin with Deep Dive 2",
+   "Begin directly with Deep Dive 2's hook" in _pieces["Piece 4"], False)
 ck("the wrong-direction briefing sentence never reaches the model", "pressure the portfolio" in p1, False)
 ck("neither does 'translation drag' wording", "translation drag" in p1 + p2, False)
 ck("the fixed Deep Dive 2 is named in both halves", "Enbridge" in p1 and "Enbridge" in p2, True)
@@ -331,8 +339,10 @@ ck("free-standing briefing figures stay allowed anywhere",
    flagged("ALEX: One idea in the briefing is a $50,000 hedge.", out_facts), False)
 ck("the numbers the model was shown are recorded, so invented ones can be spotted",
    1.4 in out_facts["allowed_numbers"] and 60000.0 in out_facts["allowed_numbers"], True)
-ck("both prompts leave room under Groq's 8,000 tokens/minute with 4,096 output",
-   max(len(p1), len(p2)) // 4 + 4096 < 8000, True)
+ck("every piece fits under Groq's 8,000-token request limit with its answer room",
+   all(gp._estimate_tokens(v) + gp._safe_max_tokens(v, 3200) <= 7900 for v in _pieces.values()), True)
+ck("...and each piece still has room for a full answer (2,500+ tokens)",
+   min(gp._safe_max_tokens(v, 3200) for v in _pieces.values()) >= 2500, True)
 
 print("\n── what the listener asked not to hear ──")
 def kinds(script, history=None):
@@ -465,8 +475,10 @@ ck("no length flag when no minimum is set",
    any(p["kind"] == "length" for p in gp.collect_script_problems(short, {})), False)
 ck("the production minimum is about 15 minutes", 2000 <= gp.MIN_SCRIPT_WORDS <= 2400, True)
 ck("the per-turn cap is unchanged at 4", gp.FIGURES_PER_TURN_MAX, 4)
-ck("prompts target the longer episode",
-   "1,400 to 1,800" in gp.SCRIPT_PROMPT_PART1 and "1,300 to 1,700" in gp.SCRIPT_PROMPT_PART2, True)
+import re as _re
+_lows = [int(x.replace(",", "")) for x in _re.findall(r"Aim for ([\d,]+) to",
+         gp.SCOPE_OPENING + gp.SCOPE_DIVE1 + gp.SCOPE_DIVE2 + gp.SCOPE_CLOSE)]
+ck("the four pieces together ask for at least 15 minutes (2,300+ words)", (len(_lows), sum(_lows) >= 2300), (4, True))
 
 print("\n── short halves are asked for again; audio never depends on one provider ──")
 import time as _t, asyncio as _a, tempfile as _tf, pathlib as _pl
@@ -509,6 +521,33 @@ finally:
     gp._generate_all_audio, gp.synthesize_with_piper, gp.synthesize_with_kokoro, gp._use_edge_host = _rg, _rp, _rk, _ru
 ck("the chosen voices are Adam for Alex and Heart for Sam", gp.KOKORO_VOICES, {"ALEX": "am_adam", "SAM": "af_heart"})
 ck("both speakers have an offline voice", sorted(gp.PIPER_VOICES), ["ALEX", "SAM"])
+
+print("\n── Groq free-tier guard ──")
+_saved = dict(gp._GROQ_USED)
+gp._GROQ_USED["tokens"] = gp.GROQ_RUN_TOKEN_BUDGET - 1000
+ck("a short piece is not re-asked once the run budget is nearly spent",
+   (lambda calls: (gp._groq_part.__globals__.__setitem__("_groq_call", lambda k, p, l, max_tokens=0: calls.append(l) or "w " * 10),
+                   gp._groq_part("k", lambda n: n, "Piece 1", "", 500), calls)[2])([]), ["Piece 1"])
+gp._groq_call = real_call
+_gen = []
+def _g(fb):
+    _gen.append(fb); return ("ALEX: Hello.\nSAM: Hi.", {})
+r = gp.produce_checked_script(_g, log=lambda *a: None)
+ck("no redraft is started when it would exceed the run budget", len(_gen), 1)
+ck("...and the first draft is still published", r is not None, True)
+gp._GROQ_USED.update(_saved)
+_n = []
+def _g2(fb):
+    _n.append(1)
+    if len(_n) > 1:
+        raise gp.GroqDailyLimit("daily allowance used up")
+    return ("ALEX: A 3x fund is built to move about three times as much as the index it follows.\nSAM: Hi.", {})
+r = gp.produce_checked_script(_g2, log=lambda *a: None)
+ck("hitting Groq's daily limit on a redraft keeps the earlier draft", r is not None and len(_n) == 2, True)
+ck("one run's budget leaves room for the daily briefing within 200,000/day",
+   gp.GROQ_RUN_TOKEN_BUDGET + gp.ATTEMPT_COST_ESTIMATE + 30_000 < 200_000, True)
+_p = gp._safe_max_tokens("x" * 18_000, 3200)
+ck("a long prompt gets less answer room so the request never exceeds 8,000", gp._estimate_tokens("x" * 18_000) + _p <= 7_900, True)
 
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

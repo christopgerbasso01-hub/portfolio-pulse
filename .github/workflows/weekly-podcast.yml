@@ -2,6 +2,11 @@ name: Weekly Podcast
 
 on:
   workflow_dispatch:  # Triggered by cron-job.org every Monday 6:00 AM UTC
+    inputs:
+      replace_latest:
+        description: "Redo the latest episode instead of adding a new one"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -9,7 +14,7 @@ permissions:
 jobs:
   generate-podcast:
     runs-on: ubuntu-latest
-    timeout-minutes: 35   # edge-tts synthesis needs ~15-20 min for a 15-20 min episode
+    timeout-minutes: 75   # four Groq pieces with pacing (~10 min) + audio; Kokoro fallback is slower
 
     steps:
       - name: Checkout repo
@@ -41,6 +46,7 @@ jobs:
         env:
           GROQ_API_KEY:  ${{ secrets.GROQ_API_KEY }}
           CRON_SECRET:   ${{ secrets.CRON_SECRET }}
+          REPLACE_LATEST: ${{ inputs.replace_latest && '1' || '0' }}
         run: python scripts/generate_podcast.py
 
       - name: Commit and push

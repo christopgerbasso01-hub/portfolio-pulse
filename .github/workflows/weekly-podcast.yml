@@ -22,10 +22,18 @@ jobs:
 
       # ffmpeg is pre-installed on GitHub Actions ubuntu-latest — no install needed
 
+      # Offline fallback voices (~125 MB) are cached so a Hugging Face blip cannot
+      # stop the episode; the script also re-downloads with retries if the cache is cold.
+      - name: Cache offline voices
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/piper-voices
+          key: piper-voices-en_US-ryan-amy-medium-v1
+
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
-          pip install requests edge-tts mutagen
+          pip install requests edge-tts mutagen piper-tts
 
       - name: Generate podcast
         env:

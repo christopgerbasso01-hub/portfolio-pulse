@@ -297,6 +297,8 @@ seen = []
 real_call, real_sleep = gp._groq_call, time.sleep
 gp._groq_call = lambda k, prompt, label, max_tokens=4096: (seen.append((label, prompt)) or "ALEX: Hello.\nSAM: Hi.")
 time.sleep = lambda s: None
+real_mins = gp.PART1_MIN_WORDS, gp.PART2_MIN_WORDS
+gp.PART1_MIN_WORDS = gp.PART2_MIN_WORDS = 0
 intel2 = {"market_mood": "mixed",
           "daily_outlook": "Oil is easing. However the portfolio remains vulnerable to USD translation drag.",
           "macro": [{"title": "CPI Surprise", "impact": "HIGH",
@@ -310,6 +312,7 @@ try:
                                       cash_positions=CASH, feedback="EDITOR'S NOTES — REJECTED: example\n")
 finally:
     gp._groq_call, time.sleep = real_call, real_sleep
+    gp.PART1_MIN_WORDS, gp.PART2_MIN_WORDS = real_mins
 p1 = dict(seen)["Part 1"]
 p2 = dict(seen)["Part 2"]
 ck("both halves were generated", sorted(dict(seen)), ["Part 1", "Part 2"])
@@ -464,6 +467,39 @@ ck("the production minimum is about 15 minutes", 2000 <= gp.MIN_SCRIPT_WORDS <= 
 ck("the per-turn cap is unchanged at 4", gp.FIGURES_PER_TURN_MAX, 4)
 ck("prompts target the longer episode",
    "1,400 to 1,800" in gp.SCRIPT_PROMPT_PART1 and "1,300 to 1,700" in gp.SCRIPT_PROMPT_PART2, True)
+
+print("\n── short halves are asked for again; audio never depends on one provider ──")
+import time as _t, asyncio as _a, tempfile as _tf, pathlib as _pl
+_rc, _rs = gp._groq_call, _t.sleep
+_calls = []
+def _fake(k, prompt, label, max_tokens=4096):
+    _calls.append((label, prompt))
+    return "word " * (900 if "fuller" in label else 300)
+gp._groq_call, _t.sleep = _fake, (lambda s: None)
+try:
+    out = gp._groq_part("k", lambda n: "P:" + n, "Part 1", "", 1250)
+    ck("a short half triggers exactly one more call", [c[0] for c in _calls], ["Part 1", "Part 1 (fuller)"])
+    ck("...which states the shortfall", "only 300 words" in _calls[1][1], True)
+    ck("...and the longer draft is kept", len(out.split()), 900)
+    _calls.clear()
+    gp._groq_call = lambda k, p, l, max_tokens=4096: (_calls.append(l) or "word " * 1400)
+    gp._groq_part("k", lambda n: n, "Part 2", "", 1150)
+    ck("a long-enough half is not regenerated", _calls, ["Part 2"])
+finally:
+    gp._groq_call, _t.sleep = _rc, _rs
+
+_rg, _rp = gp._generate_all_audio, gp.synthesize_with_piper
+_used = []
+async def _boom(turns, d): raise RuntimeError("403 Invalid response status")
+gp._generate_all_audio = _boom
+gp.synthesize_with_piper = lambda turns, out, d: _used.append("piper")
+try:
+    with _tf.TemporaryDirectory() as d:
+        eng = gp.synthesize_episode([("ALEX", "Hi there.")], _pl.Path(d) / "x.mp3", _pl.Path(d))
+    ck("edge-tts refusing (403) falls back to the offline voice", (eng, _used), ("piper", ["piper"]))
+finally:
+    gp._generate_all_audio, gp.synthesize_with_piper = _rg, _rp
+ck("both speakers have an offline voice", sorted(gp.PIPER_VOICES), ["ALEX", "SAM"])
 
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

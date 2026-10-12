@@ -1203,6 +1203,33 @@ def _deep_dive_briefs(dd1: dict, dd2) -> tuple:
     return dd1["title"], b1.strip(), title, brief
 
 
+PART1_MIN_WORDS = 1250     # below this a half is asked for once more, with the shortfall stated
+PART2_MIN_WORDS = 1150
+
+
+def _groq_part(api_key: str, build, label: str, editor_notes: str, min_words: int) -> str:
+    """One half of the script. The model tends to undershoot the length target (last
+    Monday's halves came back at 970 and 692 words against 1,300+), so a short half
+    is asked for again, once, with the shortfall stated. The longer draft is kept."""
+    import time
+    text = _groq_call(api_key, build(editor_notes), label, max_tokens=4096)
+    n = len(text.split())
+    if n >= min_words:
+        return text
+    print(f"     {label} is {n:,} words, under {min_words:,} — asking for a fuller version")
+    note = (f"LENGTH FIX: your last draft of this half was only {n:,} words, about "
+            f"{n // 150} minutes. Write at least {min_words + 150:,} words: slow the explanations down, "
+            f"add a second everyday example, let SAM ask more follow-up questions and put things "
+            f"in his own words. Do NOT add figures, dates or events to get there.\n")
+    time.sleep(35)
+    try:
+        again = _groq_call(api_key, build((editor_notes or "") + "\n" + note), label + " (fuller)", max_tokens=4096)
+    except Exception as exc:  # noqa: BLE001  the shorter draft is still a usable episode
+        print(f"     ⚠ fuller {label} failed ({str(exc)[:80]}) — keeping the first draft")
+        return text
+    return again if len(again.split()) > n else text
+
+
 def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
                     computed_holdings: list, registry: dict,
                     cash_positions: list = None, feedback: str = "") -> tuple[str, dict]:
@@ -1306,14 +1333,14 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     time.sleep(20)
 
     print("     Generating Part 1 (Welcome + Recap + Deep Dive 1)...")
-    part1 = _groq_call(api_key, SCRIPT_PROMPT_PART1.format(
-        editor_notes=editor_notes, today=today, week_range=week, mood=mood,
+    part1 = _groq_part(api_key, lambda notes: SCRIPT_PROMPT_PART1.format(
+        editor_notes=notes, today=today, week_range=week, mood=mood,
         briefing_note=briefing_note,
         registry_context=registry_context, outlook=outlook, macro=macro, news=news,
         portfolio=portfolio_ctx,
         dd1_title=dd1_title, dd1_brief=dd1_brief, dd2_title=dd2_title,
         education_topic=education_topic,
-    ), "Part 1", max_tokens=4096)
+    ), "Part 1", editor_notes, PART1_MIN_WORDS)
 
     # Summarise Part 1 for Part 2. This used to be the last 6 speaker lines
     # truncated to 400 characters. In ep016 that tail happened to be a list of
@@ -1336,13 +1363,13 @@ def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
     time.sleep(35)
 
     print("     Generating Part 2 (Deep Dive 2 + Learning Segment + Scenarios + Close)...")
-    part2 = _groq_call(api_key, SCRIPT_PROMPT_PART2.format(
-        editor_notes=editor_notes, today=today, dive1_summary=dive1_last,
+    part2 = _groq_part(api_key, lambda notes: SCRIPT_PROMPT_PART2.format(
+        editor_notes=notes, today=today, dive1_summary=dive1_last,
         briefing_note=briefing_note,
         news=news, picks=picks, strategy=strategy, portfolio=portfolio_ctx,
         dd2_title=dd2_title, dd2_brief=dd2_brief,
         education_topic=education_topic, education_topics_used=education_topics_str,
-    ), "Part 2", max_tokens=4096)
+    ), "Part 2", editor_notes, PART2_MIN_WORDS)
 
     full = _stitch_parts(part1, part2)
     print(f"  ✓ Full script: {len(full.split()):,} words across both parts")
@@ -2440,6 +2467,119 @@ def merge_mp3s(segment_paths: list[str], output: Path) -> None:
     print(f"  ✓ MP3 created: {output}")
 
 
+# ── Offline fallback voice (Piper) ───────────────────────────────────────────
+# edge-tts is an unofficial Microsoft endpoint. On 2026-10-12 it began answering
+# 403 to every request — from GitHub's runner and from a laptop alike, on the
+# newest release — and the whole episode was lost after the script was already
+# written. Piper runs on the runner itself with nothing external to refuse it, so
+# audio no longer depends on a third party being willing.
+PIPER_VOICE_DIR = Path(os.environ.get("PIPER_VOICE_DIR", Path.home() / ".cache" / "piper-voices"))
+PIPER_VOICES    = {"ALEX": "en_US-ryan-medium", "SAM": "en_US-amy-medium"}
+PIPER_BASE_URL  = "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/{who}/medium/{name}.{ext}"
+PIPER_LENGTH_SCALE = 0.93      # a touch faster than default, closer to the edge-tts pace
+PIPER_PAUSE_SECS   = 0.28      # silence between speaker turns
+
+
+def _ensure_piper_voices(attempts: int = 5) -> dict:
+    """Return {speaker: model path}, downloading any voice file that is missing."""
+    import time
+    import urllib.request
+    PIPER_VOICE_DIR.mkdir(parents=True, exist_ok=True)
+    paths = {}
+    for speaker, name in PIPER_VOICES.items():
+        who = name.split("-")[1]
+        for ext in ("onnx", "onnx.json"):
+            dest = PIPER_VOICE_DIR / f"{name}.{ext}"
+            if dest.exists() and dest.stat().st_size > 1000:
+                continue
+            url = PIPER_BASE_URL.format(who=who, name=name, ext=ext)
+            for n in range(attempts):
+                try:
+                    tmp = dest.with_suffix(dest.suffix + ".part")
+                    urllib.request.urlretrieve(url, tmp)
+                    tmp.replace(dest)
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    if n == attempts - 1:
+                        raise RuntimeError(f"could not download {name}.{ext}: {exc}") from exc
+                    time.sleep(3 * (n + 1))
+        paths[speaker] = str(PIPER_VOICE_DIR / f"{name}.onnx")
+    return paths
+
+
+def _ffmpeg_exe() -> str:
+    import shutil
+    exe = shutil.which("ffmpeg")
+    if exe:
+        return exe
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError("ffmpeg is not available to encode the fallback audio") from exc
+
+
+def synthesize_with_piper(turns: list, output: Path, tmp_dir: Path) -> None:
+    """Speak every turn offline and write one MP3. Same turns, same order as edge-tts."""
+    import subprocess
+    import wave
+    from piper import PiperVoice
+    try:
+        from piper import SynthesisConfig
+        cfg = SynthesisConfig(length_scale=PIPER_LENGTH_SCALE)
+    except Exception:  # noqa: BLE001  older piper-tts without SynthesisConfig
+        cfg = None
+
+    voices = {sp: PiperVoice.load(path) for sp, path in _ensure_piper_voices().items()}
+    wav_path = tmp_dir / "episode.wav"
+    out = None
+    for i, (speaker, text) in enumerate(turns):
+        voice = voices["ALEX" if speaker == "ALEX" else "SAM"]
+        part = tmp_dir / f"turn_{i:04d}.wav"
+        with wave.open(str(part), "wb") as wf:
+            if cfg is not None:
+                voice.synthesize_wav(text, wf, syn_config=cfg)
+            else:
+                voice.synthesize_wav(text, wf)
+        with wave.open(str(part), "rb") as wf:
+            params, frames = wf.getparams(), wf.readframes(wf.getnframes())
+        if out is None:
+            out = wave.open(str(wav_path), "wb")
+            out.setnchannels(params.nchannels)
+            out.setsampwidth(params.sampwidth)
+            out.setframerate(params.framerate)
+        out.writeframes(frames)
+        out.writeframes(b"\x00" * int(params.framerate * PIPER_PAUSE_SECS) * params.sampwidth * params.nchannels)
+        part.unlink()
+        if (i + 1) % 20 == 0 or i + 1 == len(turns):
+            print(f"    Synthesized {i + 1}/{len(turns)} turns (offline voice)...")
+    if out is None:
+        raise RuntimeError("no turns to synthesize")
+    out.close()
+    subprocess.run([_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(wav_path),
+                    "-codec:a", "libmp3lame", "-b:a", "64k", "-ar", "24000", "-ac", "1", str(output)],
+                   check=True)
+    print(f"  ✓ MP3 created: {output} (offline voice)")
+
+
+def synthesize_episode(turns: list, output: Path, tmp_dir: Path) -> str:
+    """edge-tts first (nicer voices); if it fails for any reason, the offline voice.
+
+    Returns the engine used. Raises only if BOTH fail."""
+    try:
+        seg_paths = asyncio.run(_generate_all_audio(turns, tmp_dir))
+        if not seg_paths:
+            raise RuntimeError("No segments produced")
+        merge_mp3s(seg_paths, output)
+        return "edge-tts"
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ⚠ edge-tts failed ({str(exc)[:120]}) — switching to the offline voice")
+    for stale in tmp_dir.glob("seg_*.mp3"):
+        stale.unlink()
+    synthesize_with_piper(turns, output, tmp_dir)
+    return "piper"
+
+
 # ============================================================
 # METADATA
 # ============================================================
@@ -2528,7 +2668,7 @@ def main() -> int:
         print("  ⚠ No [EDUCATION_TOPIC: ...] marker found in script")
 
     # 3. Synthesize audio
-    print("3/4  Synthesizing audio (edge-tts)...")
+    print("3/4  Synthesizing audio (edge-tts, offline voice as fallback)...")
     ep_num   = (old_meta.get("episode", 0) or 0) + 1
     mp3_name = f"podcast_ep{ep_num:03d}.mp3"
     txt_name = f"podcast_ep{ep_num:03d}.txt"
@@ -2538,10 +2678,8 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
         try:
-            seg_paths = asyncio.run(_generate_all_audio(turns, tmp_dir))
-            if not seg_paths:
-                raise RuntimeError("No segments produced")
-            merge_mp3s(seg_paths, mp3_path)
+            engine = synthesize_episode(turns, mp3_path, tmp_dir)
+            print(f"  ✓ Audio engine: {engine}")
         except Exception as exc:
             print(f"ERROR: Audio generation failed: {exc}")
             import traceback; traceback.print_exc()

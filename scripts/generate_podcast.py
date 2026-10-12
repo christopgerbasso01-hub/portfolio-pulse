@@ -740,7 +740,15 @@ def _build_deep_topic_registry(old_meta: dict, past_scripts: dict, api_key: str)
     if scripts_available:
         print(f"  ✓ Extracting topic registry from {len(scripts_available)} saved script(s)...")
         combined = ""
-        for ep_num, script_text in scripts_available:
+        # Four full transcripts (~14k tokens) made Groq answer 413 Payload Too Large on
+        # every attempt (2026-10-12), silently dropping the topic registry. Keep the
+        # latest three, each sampled from its start, middle and end.
+        for ep_num, script_text in scripts_available[-3:]:
+            if len(script_text) > REGISTRY_CHARS_PER_EPISODE:
+                k = REGISTRY_CHARS_PER_EPISODE // 3
+                mid = len(script_text) // 2
+                script_text = (script_text[:k] + "\n[…]\n" + script_text[mid - k // 2: mid + k // 2]
+                               + "\n[…]\n" + script_text[-k:])
             ep_meta = next((e for e in all_eps if e["episode"] == ep_num), {})
             combined += (f"\n\n### EPISODE {ep_num}: \"{ep_meta.get('title','')}\" "
                          f"({ep_meta.get('date','')})\n{script_text}")
@@ -1203,6 +1211,7 @@ def _deep_dive_briefs(dd1: dict, dd2) -> tuple:
     return dd1["title"], b1.strip(), title, brief
 
 
+REGISTRY_CHARS_PER_EPISODE = 5400   # three episodes stay well inside Groq's request limit
 PART1_MIN_WORDS = 1250     # below this a half is asked for once more, with the shortfall stated
 PART2_MIN_WORDS = 1150
 
@@ -2556,9 +2565,25 @@ def synthesize_with_piper(turns: list, output: Path, tmp_dir: Path) -> None:
     if out is None:
         raise RuntimeError("no turns to synthesize")
     out.close()
-    subprocess.run([_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(wav_path),
-                    "-codec:a", "libmp3lame", "-b:a", "64k", "-ar", "24000", "-ac", "1", str(output)],
-                   check=True)
+    try:
+        import lameenc   # pure wheel, no system packages: the runner has no ffmpeg
+        with wave.open(str(wav_path), "rb") as wf:
+            enc = lameenc.Encoder()
+            enc.set_bit_rate(64)
+            enc.set_in_sample_rate(wf.getframerate())
+            enc.set_channels(wf.getnchannels())
+            enc.set_quality(2)
+            with open(output, "wb") as fh:
+                while True:
+                    pcm = wf.readframes(65536)
+                    if not pcm:
+                        break
+                    fh.write(enc.encode(pcm))
+                fh.write(enc.flush())
+    except ImportError:
+        subprocess.run([_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(wav_path),
+                        "-codec:a", "libmp3lame", "-b:a", "64k", "-ar", "24000", "-ac", "1", str(output)],
+                       check=True)
     print(f"  ✓ MP3 created: {output} (offline voice)")
 
 

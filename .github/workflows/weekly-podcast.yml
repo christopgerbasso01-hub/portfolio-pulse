@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      # ffmpeg is pre-installed on GitHub Actions ubuntu-latest — no install needed
+      # ffmpeg is NOT on the runner; the offline-voice fallback encodes with lameenc (pip)
 
       # Offline fallback voices (~125 MB) are cached so a Hugging Face blip cannot
       # stop the episode; the script also re-downloads with retries if the cache is cold.
@@ -33,7 +33,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
-          pip install requests edge-tts mutagen piper-tts
+          pip install requests edge-tts mutagen piper-tts lameenc imageio-ffmpeg
 
       - name: Generate podcast
         env:

@@ -2611,22 +2611,97 @@ def synthesize_with_piper(turns: list, output: Path, tmp_dir: Path) -> None:
     print(f"  ✓ MP3 created: {output} (offline voice)")
 
 
-def synthesize_episode(turns: list, output: Path, tmp_dir: Path) -> str:
-    """edge-tts first (nicer voices); if it fails for any reason, the offline voice.
+# Microsoft moved Edge's read-aloud voices to a new host in October 2026; the old
+# one answers 403 to everything (rany2/edge-tts#490, fix proposed in #491). The
+# same voices and token work through the new host, so it is tried first and the
+# old host second, in case Microsoft swaps them back.
+EDGE_HOSTS = (
+    "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
+    "?Ocp-Apim-Subscription-Key={token}",
+    "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1"
+    "?TrustedClientToken={token}",
+)
 
-    Returns the engine used. Raises only if BOTH fail."""
-    try:
-        seg_paths = asyncio.run(_generate_all_audio(turns, tmp_dir))
-        if not seg_paths:
-            raise RuntimeError("No segments produced")
-        merge_mp3s(seg_paths, output)
-        return "edge-tts"
-    except Exception as exc:  # noqa: BLE001
-        print(f"  ⚠ edge-tts failed ({str(exc)[:120]}) — switching to the offline voice")
-    for stale in tmp_dir.glob("seg_*.mp3"):
-        stale.unlink()
-    synthesize_with_piper(turns, output, tmp_dir)
-    return "piper"
+
+def _use_edge_host(template: str) -> None:
+    import edge_tts.communicate as cm
+    import edge_tts.constants as c
+    c.WSS_URL = cm.WSS_URL = template.format(token=c.TRUSTED_CLIENT_TOKEN)
+
+
+# ── Second choice: Kokoro (offline, natural-sounding; chosen by ear 2026-10-12) ──
+KOKORO_VOICES   = {"ALEX": "am_adam", "SAM": "af_heart"}
+KOKORO_DIR      = Path(os.environ.get("KOKORO_DIR", Path.home() / ".cache" / "kokoro"))
+KOKORO_FILES    = {"kokoro-v1.0.int8.onnx": "kokoro-v1.0.int8.onnx", "voices-v1.0.bin": "voices-v1.0.bin"}
+KOKORO_BASE_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/{name}"
+KOKORO_SPEED    = 1.05
+
+
+def synthesize_with_kokoro(turns: list, output: Path, tmp_dir: Path) -> None:
+    import time
+    import urllib.request
+    import numpy as np
+    import lameenc
+    from kokoro_onnx import Kokoro
+    KOKORO_DIR.mkdir(parents=True, exist_ok=True)
+    for name in KOKORO_FILES:
+        dest = KOKORO_DIR / name
+        for n in range(5):
+            if dest.exists() and dest.stat().st_size > 1_000_000:
+                break
+            try:
+                urllib.request.urlretrieve(KOKORO_BASE_URL.format(name=name), dest.with_suffix(".part"))
+                dest.with_suffix(".part").replace(dest)
+            except Exception:  # noqa: BLE001
+                if n == 4:
+                    raise
+                time.sleep(3 * (n + 1))
+    k = Kokoro(str(KOKORO_DIR / "kokoro-v1.0.int8.onnx"), str(KOKORO_DIR / "voices-v1.0.bin"))
+    enc = None
+    with open(output, "wb") as fh:
+        for i, (speaker, text) in enumerate(turns):
+            voice = KOKORO_VOICES["ALEX" if speaker == "ALEX" else "SAM"]
+            samples, rate = k.create(text, voice=voice, speed=KOKORO_SPEED, lang="en-us")
+            if enc is None:
+                enc = lameenc.Encoder()
+                enc.set_bit_rate(64); enc.set_in_sample_rate(rate); enc.set_channels(1); enc.set_quality(2)
+            pcm = (np.clip(samples, -1, 1) * 32767).astype(np.int16).tobytes()
+            fh.write(enc.encode(pcm + b"\x00\x00" * int(rate * PIPER_PAUSE_SECS)))
+            if (i + 1) % 20 == 0 or i + 1 == len(turns):
+                print(f"    Synthesized {i + 1}/{len(turns)} turns (Kokoro)...")
+        if enc is None:
+            raise RuntimeError("no turns to synthesize")
+        fh.write(enc.flush())
+    print(f"  ✓ MP3 created: {output} (Kokoro)")
+
+
+def synthesize_episode(turns: list, output: Path, tmp_dir: Path) -> str:
+    """The original Microsoft voices first, through each known host; then Kokoro;
+    Piper only as the last resort. Returns the engine used; raises only if all fail."""
+    def _clear():
+        for stale in tmp_dir.glob("seg_*.mp3"):
+            stale.unlink()
+
+    for host in EDGE_HOSTS:
+        try:
+            _use_edge_host(host)
+            seg_paths = asyncio.run(_generate_all_audio(turns, tmp_dir))
+            if not seg_paths:
+                raise RuntimeError("No segments produced")
+            merge_mp3s(seg_paths, output)
+            return "edge-tts"
+        except Exception as exc:  # noqa: BLE001
+            print(f"  ⚠ edge-tts via {host.split('/')[2]} failed ({str(exc)[:100]})")
+            _clear()
+    for name, fn in (("kokoro", synthesize_with_kokoro), ("piper", synthesize_with_piper)):
+        try:
+            print(f"  → switching to {name}")
+            fn(turns, output, tmp_dir)
+            return name
+        except Exception as exc:  # noqa: BLE001
+            print(f"  ⚠ {name} failed ({str(exc)[:120]})")
+            _clear()
+    raise RuntimeError("every voice engine failed")
 
 
 # ============================================================
@@ -2717,7 +2792,7 @@ def main() -> int:
         print("  ⚠ No [EDUCATION_TOPIC: ...] marker found in script")
 
     # 3. Synthesize audio
-    print("3/4  Synthesizing audio (edge-tts, offline voice as fallback)...")
+    print("3/4  Synthesizing audio (Microsoft voices; Kokoro, then Piper, as fallbacks)...")
     ep_num   = (old_meta.get("episode", 0) or 0) + 1
     mp3_name = f"podcast_ep{ep_num:03d}.mp3"
     txt_name = f"podcast_ep{ep_num:03d}.txt"

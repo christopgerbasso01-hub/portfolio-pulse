@@ -488,17 +488,26 @@ try:
 finally:
     gp._groq_call, _t.sleep = _rc, _rs
 
-_rg, _rp = gp._generate_all_audio, gp.synthesize_with_piper
-_used = []
+_rg, _rp, _rk, _ru = gp._generate_all_audio, gp.synthesize_with_piper, gp.synthesize_with_kokoro, gp._use_edge_host
+_used, _hosts = [], []
 async def _boom(turns, d): raise RuntimeError("403 Invalid response status")
-gp._generate_all_audio = _boom
+def _kboom(turns, out, d): _used.append("kokoro"); raise RuntimeError("model download failed")
+gp._generate_all_audio, gp._use_edge_host = _boom, _hosts.append
+gp.synthesize_with_kokoro = lambda turns, out, d: _used.append("kokoro")
 gp.synthesize_with_piper = lambda turns, out, d: _used.append("piper")
 try:
     with _tf.TemporaryDirectory() as d:
         eng = gp.synthesize_episode([("ALEX", "Hi there.")], _pl.Path(d) / "x.mp3", _pl.Path(d))
-    ck("edge-tts refusing (403) falls back to the offline voice", (eng, _used), ("piper", ["piper"]))
+    ck("both Microsoft hosts are tried, new host first", [h.split("/")[2] for h in _hosts],
+       ["api.msedgeservices.com", "speech.platform.bing.com"])
+    ck("Microsoft refusing falls back to Kokoro, not Piper", (eng, _used), ("kokoro", ["kokoro"]))
+    _used.clear(); gp.synthesize_with_kokoro = _kboom
+    with _tf.TemporaryDirectory() as d:
+        eng = gp.synthesize_episode([("ALEX", "Hi there.")], _pl.Path(d) / "x.mp3", _pl.Path(d))
+    ck("Piper only if Kokoro also fails", (eng, _used), ("piper", ["kokoro", "piper"]))
 finally:
-    gp._generate_all_audio, gp.synthesize_with_piper = _rg, _rp
+    gp._generate_all_audio, gp.synthesize_with_piper, gp.synthesize_with_kokoro, gp._use_edge_host = _rg, _rp, _rk, _ru
+ck("the chosen voices are Adam for Alex and Heart for Sam", gp.KOKORO_VOICES, {"ALEX": "am_adam", "SAM": "af_heart"})
 ck("both speakers have an offline voice", sorted(gp.PIPER_VOICES), ["ALEX", "SAM"])
 
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")

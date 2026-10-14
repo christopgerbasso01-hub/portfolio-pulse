@@ -1371,6 +1371,18 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .pp-tx-desc{font-family:var(--mono);font-size:11px;color:var(--text)}
 .pp-tx-note{display:block;font-family:var(--sans);font-size:10px;color:var(--text3);margin-top:2px}
 .pp-tx-empty{font-family:var(--mono);font-size:11px;color:var(--text3);padding:10px 8px}
+.pp-tx-editable{cursor:pointer;transition:background .12s}
+.pp-tx-editable:hover,.pp-tx-editing{background:rgba(59,130,246,.08)!important}
+.pp-tx-edit{padding:10px 8px 12px;border-left:2px solid var(--blue-bright);margin:2px 0 6px;background:rgba(59,130,246,.04);border-radius:0 6px 6px 0}
+.pp-tx-edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0 10px}
+.pp-tx-edit .tx-field{margin-bottom:10px}
+.pp-tx-edit-btns{display:flex;gap:8px;align-items:center}
+.pp-tx-edit-btns .tx-submit{flex:0 0 auto;padding:7px 18px}
+.pp-tx-edit-btns .pp-tx-btn{margin-left:0;padding:7px 12px;font-size:11px}
+.pp-tx-del{color:var(--red)!important;border-color:rgba(239,68,68,.35)!important}
+.pp-tx-edit-err{font-family:var(--mono);font-size:11px;color:var(--red);margin-top:6px;min-height:0}
+.pp-tx-edit-err:empty{display:none}
+@media (max-width:768px){.pp-tx-edit .tx-field input{font-size:16px}.pp-tx-edit-btns .pp-tx-btn,.pp-tx-edit-btns .tx-submit{padding:10px 14px}}
 [data-theme="light"] .pp-tx-cell{background:rgba(8,145,178,.04)}
 [data-theme="light"] .pp-tx-title{color:#0e7490}
 [data-theme="light"] .pp-tx-acct{background:#f1f5f9;border-color:rgba(15,23,42,.12)}
@@ -8828,11 +8840,101 @@ window.ppTxEntriesHtml = function(ticker, acct) {
   const entries = ppTickerHistory(ticker, acct);
   if (!entries.length)
     return `<div class="pp-tx-empty">No transactions logged for ${ticker} in ${_ppAcctLabel(acct)}.</div>`;
-  return entries.map(e => `<div class="pp-tx-row">
+  return entries.map(e => `<div class="pp-tx-row${e.id ? ' pp-tx-editable' : ''}"${e.id
+        ? ` onclick="ppTxRowClick(this,'${e.id}','${ticker}','${acct}','desk')" title="Click to edit"` : ''}>
       <span class="pp-tx-date">${e.date || '—'}</span>
       <span class="pp-tx-tag pp-tag-${e.kind}">${e.label}</span>
       <span class="pp-tx-desc">${e.desc}${e.note ? `<span class="pp-tx-note">${e.note}</span>` : ''}</span>
     </div>`).join('');
+};
+
+
+// ── Editing a logged transaction from the per-ticker history ──────────────────
+// Clicking a row opens a small form under it (desktop row and mobile sheet alike).
+// Saving rewrites that one transaction by id and replays the ledger, exactly as
+// adding or deleting one does, so holdings, cash and dividends all follow.
+const _PP_EDIT_FIELDS = {
+  BUY:      [['date','Date','date'], ['shares','Shares'], ['price','Price'], ['rate','FX rate','usd'], ['commission','Commission (CAD)','opt']],
+  SELL:     [['date','Date','date'], ['shares','Shares'], ['price','Price'], ['rate','FX rate','usd'], ['commission','Commission (CAD)','opt']],
+  DIVIDEND: [['date','Date','date'], ['amount','Amount'], ['rate','FX rate','usd']],
+  SPLIT:    [['date','Date','date'], ['ratio','Ratio']],
+};
+
+window.ppTxRowClick = function(rowEl, id, ticker, acct, surface) {
+  const open = rowEl.nextElementSibling && rowEl.nextElementSibling.classList.contains('pp-tx-edit');
+  document.querySelectorAll('.pp-tx-edit').forEach(e => e.remove());
+  document.querySelectorAll('.pp-tx-editing').forEach(e => e.classList.remove('pp-tx-editing'));
+  if (open) return;                                   // clicking the open row closes it
+  const tx = getTransactions().find(t => t.id === id);
+  const fields = tx && _PP_EDIT_FIELDS[tx.type];
+  if (!fields) return;
+  const usd = (tx.ccy || (tx.type === 'DIVIDEND' ? 'CAD' : 'USD')) === 'USD';
+  const inputs = fields
+    .filter(([, , kind]) => kind !== 'usd' || usd || tx.rate)
+    .map(([k, label, kind]) => `<div class="tx-field"><label>${label}${k === 'amount' || k === 'price' ? ' (' + (tx.ccy || (tx.type === 'DIVIDEND' ? 'CAD' : 'USD')) + ')' : ''}</label>
+        <input data-k="${k}" type="${kind === 'date' ? 'date' : 'number'}" ${kind === 'date' ? '' : 'step="any" inputmode="decimal"'}
+               value="${tx[k] != null ? tx[k] : ''}"${kind === 'opt' ? ' placeholder="none"' : ''}></div>`).join('');
+  const ed = document.createElement('div');
+  ed.className = 'pp-tx-edit';
+  ed.onclick = e => e.stopPropagation();
+  ed.innerHTML = `<div class="pp-tx-edit-grid">${inputs}</div>
+    <div class="pp-tx-edit-btns">
+      <button class="tx-submit" onclick="ppSaveTxEdit(this,'${id}','${ticker}','${acct}','${surface}')">Save</button>
+      <button class="pp-tx-btn pp-tx-del" onclick="ppDeleteTxEdit('${id}','${ticker}','${acct}','${surface}')">Delete</button>
+      <button class="pp-tx-btn" onclick="ppTxRowClick(this.closest('.pp-tx-edit').previousElementSibling,'${id}')">Cancel</button>
+    </div>
+    <div class="pp-tx-edit-err" role="alert"></div>`;
+  rowEl.classList.add('pp-tx-editing');
+  rowEl.after(ed);
+  const first = ed.querySelector('input');
+  if (first && window.innerWidth > 768) first.focus();
+};
+
+async function _ppAfterTxEdit(ticker, acct, surface) {
+  applyAllTransactions();
+  await refreshAfterTx();
+  renderTxHistory();
+  if (surface === 'mobile') {
+    if (typeof window.mTxSelectAcct === 'function') window.mTxSelectAcct(ticker, acct);
+    return;
+  }
+  // The holdings table was just re-rendered, which drops the open history row: reopen it.
+  const cell = document.querySelector(`td[onclick^="ppToggleTxRow('${ticker}',"]`);
+  if (cell) { ppToggleTxRow(ticker, acct, cell); ppSelectTxAccount(ticker, acct); }
+}
+
+window.ppSaveTxEdit = async function(btn, id, ticker, acct, surface) {
+  const ed  = btn.closest('.pp-tx-edit');
+  const err = ed.querySelector('.pp-tx-edit-err');
+  const txs = getTransactions();
+  const i   = txs.findIndex(t => t.id === id);
+  if (i < 0) { err.textContent = 'This transaction no longer exists — it may have been deleted on another device.'; return; }
+  const upd = { ...txs[i] };
+  for (const inp of ed.querySelectorAll('input[data-k]')) {
+    const k = inp.dataset.k, v = inp.value.trim();
+    if (k === 'date') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) { err.textContent = 'Enter a full date.'; return; }
+      upd.date = v; continue;
+    }
+    if (k === 'commission' && v === '') { delete upd.commission; continue; }
+    const n = parseFloat(v);
+    if (!isFinite(n) || (k === 'commission' ? n < 0 : n <= 0)) {
+      err.textContent = `${inp.closest('.tx-field').querySelector('label').textContent} must be a number${k === 'commission' ? ' (0 or more)' : ' above 0'}.`;
+      return;
+    }
+    upd[k] = n;
+  }
+  upd.edited_at = new Date().toISOString();
+  txs[i] = upd;
+  btn.disabled = true;
+  _setTransactions(txs);
+  await _ppAfterTxEdit(ticker, acct, surface);
+};
+
+window.ppDeleteTxEdit = async function(id, ticker, acct, surface) {
+  if (!confirm('Delete this transaction? This cannot be undone.')) return;
+  _setTransactions(getTransactions().filter(t => t.id !== id));
+  await _ppAfterTxEdit(ticker, acct, surface);
 };
 
 window.ppSelectTxAccount = function(ticker, acct) {
@@ -11084,7 +11186,8 @@ window.mTxSelectAcct=function(ticker,acct){
       body.innerHTML='<div class="m-tx-empty">No transactions logged for '+ticker+' in '+(acct==='Investment'?'Non-Reg':acct)+'.</div>';
     } else {
       body.innerHTML=entries.map(function(e){
-        return'<div class="m-tx-item">'
+        return'<div class="m-tx-item'+(e.id?' pp-tx-editable':'')+'"'
+          +(e.id?' onclick="ppTxRowClick(this,\''+e.id+'\',\''+ticker+'\',\''+acct+'\',\'mobile\')"':'')+'>'
           +'<div class="m-tx-item-top"><span class="m-tx-tag t-'+e.kind+'">'+e.label+'</span>'
           +'<span class="m-tx-date">'+(e.date||'—')+'</span></div>'
           +'<div class="m-tx-desc">'+e.desc+'</div>'

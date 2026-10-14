@@ -1,7 +1,8 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'api'))
 os.environ.setdefault('KV_REST_API_URL',''); os.environ.setdefault('KV_REST_API_TOKEN','')
-from notify import shares_at_ex_date, resolve_rate, score_confidence
+from notify import shares_at_ex_date, resolve_rate, score_confidence, booked_dividend_for, learned_pay_lag, purge_booked
+import notify
 
 fails = []
 def ck(name, got, want):
@@ -47,6 +48,56 @@ ck("US statutory -> MEDIUM", score_confidence("AAPL","statutory",False,False),  
 ck("ET statutory -> LOW",    score_confidence("ET","statutory",False,False),    "LOW")
 ck("split -> LOW",           score_confidence("CM.TO","learned",True,False),    "LOW")
 ck("estimated pay -> LOW",   score_confidence("AAPL","statutory",False,True),   "LOW")
+
+print("\n── already-booked dividends are never queued again (2026-10-14) ──")
+LEDGER = [
+ {"type":"DIVIDEND","ticker":"UDOW","account":"RRSP","date":"2026-09-29","amount":5.27},
+ {"type":"DIVIDEND","ticker":"UDOW","account":"TFSA","date":"2026-09-29","amount":10.47},
+ {"type":"DIVIDEND","ticker":"UDOW","account":"FHSA","date":"2026-10-14","amount":10.71},
+ {"type":"DIVIDEND","ticker":"TXF.TO","account":"FHSA","date":"2026-08-31","amount":206.19},
+ {"type":"DIVIDEND","ticker":"TXF.TO","account":"FHSA","date":"2026-09-30","amount":124.04,"source":"autopilot"},
+ {"type":"DIVIDEND","ticker":"TXF.TO","account":"FHSA","date":"2026-08-17","amount":185.88,"source":"autopilot"},
+]
+ck("UDOW RRSP ex 9/23 matches the 9/29 booking",
+   (booked_dividend_for("UDOW","RRSP","2026-09-23","2026-12-23",LEDGER) or {}).get("amount"), 5.27)
+ck("UDOW FHSA booked 10/14 still matches",
+   (booked_dividend_for("UDOW","FHSA","2026-09-23","2026-12-23",LEDGER) or {}).get("amount"), 10.71)
+ck("TXF ex 9/23 matches 9/30, not the August payment",
+   (booked_dividend_for("TXF.TO","FHSA","2026-09-23","2026-10-23",LEDGER) or {}).get("amount"), 124.04)
+ck("another account's booking does not count",
+   booked_dividend_for("UDOW","Investment","2026-09-23","2026-12-23",LEDGER), None)
+ck("a payout with nothing booked is still queued",
+   booked_dividend_for("UDOW","RRSP","2026-12-24","",LEDGER), None)
+
+PEND = [{"id":f"{t}|{a}|2026-09-23","ticker":t,"account":a,"ex_date":"2026-09-23"}
+        for t,a in [("UDOW","RRSP"),("UDOW","TFSA"),("UDOW","FHSA"),("TXF.TO","FHSA"),("TXF.TO","Investment")]]
+st = {"pending": [dict(p) for p in PEND]}
+dropped = purge_booked(st, LEDGER)
+ck("the duplicates waiting in the queue are cleared", sorted(dropped),
+   sorted(["UDOW|RRSP|2026-09-23","UDOW|TFSA|2026-09-23","UDOW|FHSA|2026-09-23","TXF.TO|FHSA|2026-09-23"]))
+ck("...an entry with no booking stays", [p["id"] for p in st["pending"]], ["TXF.TO|Investment|2026-09-23"])
+ck("...and cleared ones are remembered so they never return", st["seen"]["UDOW|RRSP|2026-09-23"]["action"], "already_booked")
+st2 = {"pending":[{"id":"TXF.TO|FHSA|2026-09-23","ticker":"TXF.TO","account":"FHSA","ex_date":"2026-09-23"}]}
+ck("a monthly payer's NEXT payment does not clear this one",
+   purge_booked(st2, [{"type":"DIVIDEND","ticker":"TXF.TO","account":"FHSA","date":"2026-10-30"}]), [])
+
+print("\n── payment-date estimate learned from the ledger ──")
+TXF_EX = ["2026-07-27","2026-08-25","2026-09-23"]
+ck("TXF: real bookings 6-7 days after ex; the old 21-day echo is ignored",
+   learned_pay_lag("TXF.TO", TXF_EX, LEDGER), 7)
+ck("UDOW learns from the hand bookings", learned_pay_lag("UDOW", ["2026-06-24","2026-09-23"], LEDGER[:2]), 6)
+ck("no history -> None (caller uses the default)", learned_pay_lag("SPXL", ["2026-09-23"], LEDGER), None)
+ck("default lag is about a week, not three", notify.ASSUMED_PAY_LAG_DAYS, 7)
+
+print("\n── detect() end to end with today's real case ──")
+notify.fetch_dividend_events = lambda t: [{"ex_date":"2026-09-23","amount":0.146,"ccy":"USD"}] if t=="UDOW" else []
+notify.fetch_payment_dates   = lambda t: {}
+SET = {"computed_holdings":[{"ticker":"UDOW","account":"RRSP","shares":36},{"ticker":"UDOW","account":"Investment","shares":20}],
+       "transactions": LEDGER}
+found, diag = notify.detect(SET, {"start_date":"2026-09-01"})
+ck("booked UDOW RRSP is skipped; unbooked Investment is queued", [f["account"] for f in found], ["Investment"])
+ck("...dated about a week after the ex-date, not three weeks", found[0]["pay_date"] if found else None, "2026-09-29")
+ck("...and diagnostics count the skip", diag.get("already_booked"), 1)
 
 print(f"\n{'ALL PASS' if not fails else 'FAILURES: '+', '.join(fails)}")
 sys.exit(1 if fails else 0)

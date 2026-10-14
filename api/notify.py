@@ -424,9 +424,14 @@ RATE_BY_TICKER  = {
 }
 LOW_CONFIDENCE_TICKERS = {"ET"}
 
-# Used only to judge "has it been paid yet" when FMP has no payment date
-# (weaker coverage on .TO listings). Flagged in the payload when applied.
-ASSUMED_PAY_LAG_DAYS = 21
+# Used only when FMP has no payment date (.TO listings, leveraged ETFs) AND this
+# ticker has no booked history to learn from. It was 21, but the funds that lack
+# feed dates pay about a week after the ex-date (UDOW and TXF.TO: ex 23 Sep, paid
+# 29-30 Sep), so every estimate landed two weeks late and each dividend surfaced
+# two weeks after the money arrived — late enough to be booked by hand first.
+ASSUMED_PAY_LAG_DAYS = 7
+OLD_ESTIMATE_LAG_DAYS = 21        # what Autopilot used to assume; never learned from
+MAX_LEARNED_LAG_DAYS  = 40
 
 # Past this many days after the ex-date, payment has certainly landed, so an
 # estimated payment date is no longer a reason to distrust the entry. Without
@@ -500,6 +505,47 @@ def fetch_payment_dates(ticker: str) -> dict:
 
 
 # ── Pure logic (unit-tested in tests/test_dividend_autopilot.py) ──────────────
+
+def booked_dividend_for(ticker: str, account: str, ex_date: str, next_ex: str, txs: list):
+    """The DIVIDEND transaction already booked for this payout, or None.
+
+    A payout belongs to the window from its ex-date up to the next ex-date (or 45
+    days when there is no later one). Autopilot used to ignore the ledger, so a
+    dividend booked by hand came back as a pending entry once its estimated date
+    passed — on 2026-10-14 every one of seven new entries was already booked.
+    """
+    end = next_ex or (datetime.strptime(ex_date, "%Y-%m-%d") + timedelta(days=45)).strftime("%Y-%m-%d")
+    for tx in txs:
+        if (tx.get("type") == "DIVIDEND" and tx.get("ticker") == ticker
+                and tx.get("account") == account and ex_date <= (tx.get("date") or "") < end):
+            return tx
+    return None
+
+
+def learned_pay_lag(ticker: str, ex_dates: list, txs: list):
+    """Median days from ex-date to the date dividends were actually booked, or None.
+
+    Learned from the ledger: each booked dividend is matched to the latest ex-date
+    on or before it. Bookings sitting exactly on Autopilot's old 21-day guess are
+    skipped — that is the estimate echoed back, not a real payment date.
+    """
+    exs, lags = sorted(ex_dates), []
+    for tx in txs:
+        if tx.get("type") != "DIVIDEND" or tx.get("ticker") != ticker or not tx.get("date"):
+            continue
+        prior = [e for e in exs if e <= tx["date"]]
+        if not prior:
+            continue
+        lag = (datetime.strptime(tx["date"], "%Y-%m-%d") - datetime.strptime(prior[-1], "%Y-%m-%d")).days
+        if tx.get("source") == "autopilot" and lag == OLD_ESTIMATE_LAG_DAYS:
+            continue
+        if 0 <= lag <= MAX_LEARNED_LAG_DAYS:
+            lags.append(lag)
+    if not lags:
+        return None
+    lags.sort()
+    return lags[len(lags) // 2]
+
 
 def shares_at_ex_date(ticker: str, account: str, ex_date: str,
                       current_shares: float, txs: list) -> tuple:
@@ -591,7 +637,7 @@ def detect(settings: dict, state: dict) -> tuple:
     today    = now.strftime("%Y-%m-%d")
     holdings = settings.get("computed_holdings") or []
     txs      = settings.get("transactions") or []
-    seen     = state.get("seen") or {}
+    seen     = state.setdefault("seen", {})
     learned  = state.get("rates") or {}
     queued   = {p.get("id") for p in (state.get("pending") or [])}
 
@@ -604,7 +650,7 @@ def detect(settings: dict, state: dict) -> tuple:
                  if h.get("ticker") and h["ticker"] not in NO_DIVIDEND
                  and (h.get("shares") or 0) > 0]
 
-    div_cache, pay_cache, found = {}, {}, []
+    div_cache, pay_cache, lag_cache, found = {}, {}, {}, []
     diag = {"start_date": start_date, "tickers": 0, "fmp_ok": 0, "yahoo_ok": 0}
 
     for h in positions:
@@ -623,12 +669,24 @@ def detect(settings: dict, state: dict) -> tuple:
             key = f"{ticker}|{account}|{ex_date}"
             if key in seen or key in queued:
                 continue
+            later   = [e["ex_date"] for e in div_cache[ticker] if e["ex_date"] > ex_date]
+            booked  = booked_dividend_for(ticker, account, ex_date, later[0] if later else "", txs)
+            if booked:
+                # Already in the ledger (booked by hand) — never ask again.
+                seen[key] = {"resolved_at": now.isoformat(), "action": "already_booked",
+                             "pay_date": booked.get("date"), "amount": booked.get("amount")}
+                diag["already_booked"] = diag.get("already_booked", 0) + 1
+                continue
 
             pay_date = pay_cache[ticker].get(ex_date)
             estimated_pay = pay_date is None
             if estimated_pay:
+                if ticker not in lag_cache:
+                    lag_cache[ticker] = learned_pay_lag(
+                        ticker, [e["ex_date"] for e in div_cache[ticker]], txs)
+                lag = lag_cache[ticker] if lag_cache[ticker] is not None else ASSUMED_PAY_LAG_DAYS
                 pay_date = (datetime.strptime(ex_date, "%Y-%m-%d")
-                            + timedelta(days=ASSUMED_PAY_LAG_DAYS)).strftime("%Y-%m-%d")
+                            + timedelta(days=lag)).strftime("%Y-%m-%d")
             if pay_date > today:
                 continue                              # not paid out yet
 
@@ -662,6 +720,31 @@ def detect(settings: dict, state: dict) -> tuple:
             })
             queued.add(key)
     return found, diag
+
+
+def purge_booked(state: dict, txs: list) -> list:
+    """Drop pending entries that the ledger already holds; returns the dropped ids."""
+    pending, keep, dropped = state.get("pending") or [], [], []
+    seen = state.setdefault("seen", {})
+    for p in pending:
+        # Pending entries do not carry the next ex-date. 25 days covers the real
+        # payment lag yet stops short of a monthly payer's NEXT payment.
+        ex = p.get("ex_date") or ""
+        try:
+            end = (datetime.strptime(ex, "%Y-%m-%d") + timedelta(days=25)).strftime("%Y-%m-%d")
+        except ValueError:
+            keep.append(p)
+            continue
+        tx = booked_dividend_for(p.get("ticker"), p.get("account"), ex, end, txs)
+        if tx:
+            seen[p["id"]] = {"resolved_at": datetime.now(timezone.utc).isoformat(),
+                             "action": "already_booked", "pay_date": tx.get("date"),
+                             "amount": tx.get("amount")}
+            dropped.append(p["id"])
+        else:
+            keep.append(p)
+    state["pending"] = keep
+    return dropped
 
 
 def dividend_notif(entry: dict) -> dict:
@@ -698,6 +781,10 @@ class handler(BaseHTTPRequestHandler):
             return
         try:
             state = kv_get(AUTOPILOT_KEY) or {}
+            if state.get("pending"):
+                settings = kv_get(SETTINGS_KEY) or {}
+                if purge_booked(state, settings.get("transactions") or []):
+                    kv_set(AUTOPILOT_KEY, state, STATE_TTL)
             self._respond(200, {"pending": state.get("pending") or [],
                                 "rates":   state.get("rates") or {}})
         except Exception as exc:
@@ -830,7 +917,10 @@ class handler(BaseHTTPRequestHandler):
             #   {"action":"scan","start_date":"2026-01-01"}
             if body.get("start_date"):
                 state["start_date"] = body["start_date"]
+            state.setdefault("seen", {})
             found, diag = detect(settings, state)
+            purged = purge_booked(state, settings.get("transactions") or [])
+            diag["purged_pending"] = len(purged)
 
             if body.get("dry_run"):
                 self._respond(200, {"ok": True, "dry_run": True, "diagnostics": diag,

@@ -1,283 +1,307 @@
 {
   "macro": [
     {
-      "title": "Fed Rate Decision Could Shift USD/CAD Momentum",
-      "category": "monetary-policy",
+      "title": "US Jobless Claims Near Historic Low",
+      "category": "macro-economic",
+      "impact": "MED",
+      "confidence": 78,
+      "body": "Weekly initial claims fell to the lowest level since the early 1960s, indicating a tightening labor market and potential upward pressure on wages. Higher payroll costs could sustain inflationary pressures, influencing future Fed policy and USD strength.",
+      "bull": "If the labor market remains tight, the Fed may hold rates steady, supporting a strong USD.",
+      "bull_estimate": "USD exposure $240,280 CAD (USD notional $171,079) gains ~ $8,555 CAD if USD/CAD rises 0.05.",
+      "bull_probability": 40,
+      "base": "Fed likely holds rates, keeping USD stable and limiting CAD depreciation.",
+      "base_estimate": "Neutral impact on USD exposure; CAD value unchanged.",
+      "base_probability": 40,
+      "bear": "Unexpected slowdown could prompt a rate cut, weakening the USD.",
+      "bear_estimate": "USD exposure loses ~ $8,555 CAD if USD/CAD falls 0.05.",
+      "bear_probability": 20
+    },
+    {
+      "title": "Saudi Aramco Evacuation Raises Gulf Energy Risk",
+      "category": "geopolitical",
+      "impact": "HIGH",
+      "confidence": 65,
+      "body": "Aramco ordered staff to evacuate its Dhahran headquarters amid heightened regional tensions, signaling possible operational disruptions in the world’s largest oil producer. Any supply shock could lift global oil prices, benefitting North American energy exporters.",
+      "bull": "Higher crude supports Enbridge (ENB.TO $5,529 CAD) and Shell (SHEL $3,256 CAD).",
+      "bull_estimate": "Assuming a 5% rise in ENB and SHEL, combined gain ≈ $438 CAD.",
+      "bull_probability": 45,
+      "base": "Oil market absorbs shock with modest price increase.",
+      "base_estimate": "ENB and SHEL each up ~2%, gain ≈ $176 CAD total.",
+      "base_probability": 40,
+      "bear": "Escalation could trigger broader market sell‑off, hurting energy stocks.",
+      "bear_estimate": "ENB and SHEL each down 3%, loss ≈ $263 CAD total.",
+      "bear_probability": 15
+    },
+    {
+      "title": "Asian LNG Demand Surges Amid El Niño Concerns",
+      "category": "commodities",
       "impact": "MED",
       "confidence": 70,
-      "body": "The Federal Reserve is expected to announce its policy decision today. A dovish outcome would likely weaken the U.S. dollar, reducing the CAD value of the portfolio’s $236,742 CAD USD exposure, while a hawkish stance would have the opposite effect.",
-      "bull": "If the Fed holds rates steady or signals a cut, the USD may slip against the CAD.",
-      "bull_estimate": "USD/CAD fall 0.02 → ‑$3,356 CAD impact on USD exposure ($236,742 CAD)",
+      "body": "Reuter’s report notes that Asian importers are locking in LNG contracts despite price spikes, driven by El Niño‑related supply worries. Tightening gas markets can lift North American gas exporters and related infrastructure firms.",
+      "bull": "KGS (Kodiak Gas Services $5,578 CAD) could benefit from higher gas transport volumes.",
+      "bull_estimate": "Assuming a 7% price lift, KGS gains ≈ $390 CAD.",
       "bull_probability": 35,
-      "base": "A neutral decision leaves the exchange rate largely unchanged.",
-      "base_estimate": "0 CAD impact on USD exposure",
-      "base_probability": 40,
-      "bear": "If the Fed raises rates or signals further tightening, the USD could strengthen.",
-      "bear_estimate": "USD/CAD rise 0.03 → +$5,034 CAD impact on USD exposure ($236,742 CAD)",
-      "bear_probability": 25
-    },
-    {
-      "title": "Bank of Canada Signals Possible Rate Pause Amid Cooling Inflation",
-      "category": "fx",
-      "impact": "LOW",
-      "confidence": 60,
-      "body": "Recent comments from the Bank of Canada suggest a pause in policy tightening as CPI data shows a modest slowdown. A weaker CAD would boost the CAD value of U.S.‑denominated holdings, while a stronger CAD would erode it.",
-      "bull": "A pause leads to CAD weakening, adding value to USD assets.",
-      "bull_estimate": "USD/CAD rise 0.01 → +$1,678 CAD on USD exposure ($236,742 CAD)",
-      "bull_probability": 30,
-      "base": "No change in policy keeps the exchange rate stable.",
-      "base_estimate": "0 CAD impact",
+      "base": "Steady demand keeps gas prices flat.",
+      "base_estimate": "No material change to KGS value.",
       "base_probability": 50,
-      "bear": "Unexpected tightening strengthens the CAD, reducing USD asset value.",
-      "bear_estimate": "USD/CAD fall 0.01 → ‑$1,678 CAD on USD exposure ($236,742 CAD)",
-      "bear_probability": 20
-    },
-    {
-      "title": "AI‑Driven Earnings Beat Across US Tech Sector",
-      "category": "equity-sectors",
-      "impact": "MED",
-      "confidence": 75,
-      "body": "The latest earnings season shows several AI‑focused companies surpassing expectations, lifting sentiment for semiconductor and cloud players. This benefits the portfolio’s exposure to AI‑related stocks such as NVDA, AVGO and QCOM.",
-      "bull": "Strong AI earnings lift chip valuations.",
-      "bull_estimate": "3% price rise on NVDA ($12,253 CAD) → +$368 CAD",
-      "bull_probability": 40,
-      "base": "Mixed results keep valuations steady.",
-      "base_estimate": "0 CAD impact",
-      "base_probability": 40,
-      "bear": "Missed AI forecasts pressure chip stocks.",
-      "bear_estimate": "3% price drop on NVDA ($12,253 CAD) → ‑$368 CAD",
-      "bear_probability": 20
+      "bear": "If demand softens, gas prices fall, hurting KGS.",
+      "bear_estimate": "A 5% decline reduces KGS by ≈ $279 CAD.",
+      "bear_probability": 15
     }
   ],
   "news": [
     {
-      "headline": "Netflix drama may be ending – bullish sentiment for NFLX",
-      "impact": "MED",
-      "confidence": 65,
-      "category": "Sector & Stock",
-      "body": "Analysts note that recent subscriber growth and content wins could signal the end of Netflix’s recent volatility, supporting a price rebound.",
-      "exposure": "NFLX $1,971 CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 40,
-          "scenario": "A sustained subscriber uptick pushes the stock higher.",
-          "estimate": "5% rise on NFLX ($1,971 CAD) → +$99 CAD"
-        },
-        {
-          "label": "Base",
-          "probability": 40,
-          "scenario": "The stock trades sideways as market digests the news.",
-          "estimate": "0 CAD impact"
-        },
-        {
-          "label": "Bear",
-          "probability": 20,
-          "scenario": "Content costs rise and growth stalls, pulling the price down.",
-          "estimate": "5% fall on NFLX ($1,971 CAD) → ‑$99 CAD"
-        }
-      ]
-    },
-    {
-      "headline": "Apple lands iPhone business with Qnity – upside for AAPL",
-      "impact": "MED",
-      "confidence": 70,
-      "category": "Sector & Stock",
-      "body": "Apple’s agreement with Qnity to supply iPhones for emerging markets could broaden its revenue base, bolstering the stock.",
-      "exposure": "AAPL $1,936 CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 45,
-          "scenario": "Higher volume from new markets lifts earnings expectations.",
-          "estimate": "3% rise on AAPL ($1,936 CAD) → +$58 CAD"
-        },
-        {
-          "label": "Base",
-          "probability": 40,
-          "scenario": "The deal is priced in, leaving the stock flat.",
-          "estimate": "0 CAD impact"
-        },
-        {
-          "label": "Bear",
-          "probability": 15,
-          "scenario": "Supply‑chain delays offset revenue gains, pressuring the price.",
-          "estimate": "3% fall on AAPL ($1,936 CAD) → ‑$58 CAD"
-        }
-      ]
-    },
-    {
-      "headline": "Anthropic talks multibillion‑dollar AI deal – tailwinds for NVDA",
+      "headline": "AI stocks tumble as defensives rise",
       "impact": "HIGH",
       "confidence": 80,
       "category": "Sector & Stock",
-      "body": "Anthropic’s negotiations with a major cloud provider for AI infrastructure could drive demand for high‑performance GPUs, directly benefiting Nvidia.",
-      "exposure": "NVDA $12,253 CAD",
+      "body": "Following a sharp pullback in AI‑focused equities, investors shifted into defensive sectors. This pressure hits your core tech holdings – NVDA, AVGO, MSFT, AAPL – while boosting consumer staples and utilities.",
+      "exposure": "NVDA $12,470 CAD, AVGO $14,233 CAD, MSFT $1,497 CAD, AAPL $1,933 CAD",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 50,
-          "scenario": "Deal closes, spurring a surge in GPU orders.",
-          "estimate": "4% rise on NVDA ($12,253 CAD) → +$490 CAD"
+          "probability": 30,
+          "scenario": "Defensive rally is short‑lived; AI stocks recover, limiting losses.",
+          "estimate": "NVDA and AVGO each down 5% ≈ -$1,335 CAD total."
         },
         {
           "label": "Base",
-          "probability": 35,
-          "scenario": "Talks continue without immediate impact.",
-          "estimate": "0 CAD impact"
+          "probability": 55,
+          "scenario": "Tech stocks stay flat as investors rotate within the sector.",
+          "estimate": "No net change to the listed positions."
         },
         {
           "label": "Bear",
           "probability": 15,
-          "scenario": "Deal stalls, prompting a pull‑back in AI chip buying.",
-          "estimate": "4% fall on NVDA ($12,253 CAD) → ‑$490 CAD"
+          "scenario": "Continued sell‑off drives AI and semiconductor stocks lower.",
+          "estimate": "NVDA, AVGO, MSFT, AAPL each down 12% ≈ -$3,210 CAD total."
+        }
+      ]
+    },
+    {
+      "headline": "Citi sees oil risks skewed to upside despite Gulf export recovery",
+      "impact": "MED",
+      "confidence": 70,
+      "category": "Sector & Stock",
+      "body": "Citi analysts warn that supply disruptions could push crude higher, benefitting North American energy exporters. Your exposure includes ENB.TO, SHEL, and KGS.",
+      "exposure": "ENB.TO $5,529 CAD, SHEL $3,256 CAD, KGS $5,578 CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 40,
+          "scenario": "Crude spikes 8%, lifting energy equities.",
+          "estimate": "ENB up 6% (+$332 CAD), SHEL up 5% (+$163 CAD)."
+        },
+        {
+          "label": "Base",
+          "probability": 45,
+          "scenario": "Oil stabilises; modest gains.",
+          "estimate": "ENB and SHEL each up 2% (+$111 CAD total)."
+        },
+        {
+          "label": "Bear",
+          "probability": 15,
+          "scenario": "Unexpected supply surge depresses prices.",
+          "estimate": "ENB and SHEL each down 4% (-$352 CAD total)."
+        }
+      ]
+    },
+    {
+      "headline": "Egypt calls for Yemen talks as parliament weighs Saudi military support",
+      "impact": "MED",
+      "confidence": 60,
+      "category": "Geopolitical",
+      "body": "Escalating diplomatic moves in the Red Sea region could affect shipping routes and oil logistics. Energy transport firms like KGS and Enbridge may see volatility in freight rates.",
+      "exposure": "KGS $5,578 CAD, ENB.TO $5,529 CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 35,
+          "scenario": "De‑escalation improves shipping confidence, boosting transport earnings.",
+          "estimate": "KGS up 4% (+$223 CAD)."
+        },
+        {
+          "label": "Base",
+          "probability": 50,
+          "scenario": "Status quo; limited impact on transport margins.",
+          "estimate": "No material change."
+        },
+        {
+          "label": "Bear",
+          "probability": 15,
+          "scenario": "Renewed conflict spikes freight costs, hurting margins.",
+          "estimate": "KGS down 5% (-$279 CAD)."
         }
       ]
     }
   ],
-  "daily_outlook": "Today's mix of AI earnings strength and a potential Fed dovish tilt creates a modest upside for the portfolio’s tech and USD exposure, while FX volatility remains a key watch point. Monitor USD/CAD moves and AI‑related earnings for near‑term direction.",
+  "daily_outlook": "Today's mix of labor market strength, heightened Gulf energy risk, and a pullback in AI stocks creates a nuanced picture: USD exposure remains a key driver, while energy holdings could benefit from oil price upside. Monitor the USD/CAD move and any further developments in Middle‑East tensions.",
   "market_mood": "mixed",
   "risks": [
     {
       "title": "Leverage Decay Risk – 3x ETFs in Elevated VIX",
       "level": "HIGH",
-      "context": "3x leveraged ETFs (FNGU $63,079, SPXL $60,452, UDOW $19,323, SOXL $17,558) represent 52% of portfolio value.",
-      "body": "With the VIX hovering above 22, daily rebalancing drag can erode returns on the leveraged positions, especially if volatility stays elevated for weeks."
+      "context": "3x leveraged ETFs (FNGU $62,499, SPXL $61,688, UDOW $20,204, SOXL $18,277) represent 52% of portfolio ($162,668 CAD). VIX currently >22 increases decay pressure.",
+      "body": "The leveraged positions amplify both gains and losses. With volatility above 22, daily decay can erode returns even if the underlying indices are flat, posing a material drag on half the portfolio."
     },
     {
-      "title": "FX Exposure – USD/CAD Volatility Drag",
+      "title": "FX Exposure – Potential CAD Strengthening",
       "level": "MED",
-      "context": "USD holdings total $236,742 CAD (≈ $167,783 USD). A 0.01 move in USD/CAD changes portfolio value by $1,678 CAD.",
-      "body": "A strengthening Canadian dollar would reduce the CAD value of all US‑denominated holdings, directly impacting the leveraged ETFs and tech stocks."
+      "context": "USD-denominated holdings total $240,280 CAD (≈ $171,079 USD).",
+      "body": "If the Canadian dollar strengthens, the CAD value of all US‑listed positions (tech stocks, leveraged ETFs) falls, directly impacting portfolio NAV."
     },
     {
-      "title": "Earnings Concentration – Tech & AI Tilt",
+      "title": "Sector Concentration – Tech & AI Tilt",
       "level": "MED",
-      "context": "Tech and AI‑related holdings (NVDA $12,253, AVGO $14,163, MSFT $1,506, AAPL $1,936, TSLA $7,271, TSM $8,895, QCOM $1,224) account for ~15% of total portfolio.",
-      "body": "Quarterly earnings volatility in this sector could swing portfolio performance sharply, especially given the high beta of leveraged ETFs."
+      "context": "Tech‑heavy holdings (NVDA $12,470, AVGO $14,233, TXF.TO $40,382, TSM $9,096, MSFT $1,497, AAPL $1,933, QCOM $1,250, TSLA $7,599) total $88,360 CAD, ~28% of portfolio.",
+      "body": "A sector‑specific correction in high‑growth tech could disproportionately affect performance, especially given the leveraged exposure that magnifies tech moves."
     }
   ],
   "picks": [
     {
-      "ticker": "BA",
+      "ticker": "AMD",
       "action": "NEW",
       "account": "RRSP",
-      "thesis": "Boeing secured FAA approval for the 737 Max 10, unlocking production ramp‑up and potential order growth, offering exposure to aerospace without the leverage risk.",
-      "entry": "Consider entering with the $150 RRSP cash at current market levels; monitor quarterly earnings for order backlog trends."
+      "thesis": "AMD benefits from the same AI‑driven demand fueling Nvidia, but trades at a lower valuation and offers diversification within the semiconductor exposure.",
+      "entry": "Target entry around $115‑$120 USD; monitor quarterly earnings and AI spend trends."
     },
     {
-      "ticker": "CAT",
+      "ticker": "BEP-UN.TO",
       "action": "NEW",
       "account": "Investment",
-      "thesis": "Caterpillar benefits from global infrastructure spending and a weaker USD, providing a defensive industrial play that diversifies the tech‑heavy profile.",
-      "entry": "Deploy the $217 Investment cash; target entry near recent support levels and watch for macro‑data on construction PMI."
+      "thesis": "Brookfield Renewable provides stable Canadian‑dollar cash flow and offsets the portfolio’s heavy USD and growth bias, aligning with the upcoming home‑purchase horizon.",
+      "entry": "Consider buying on pull‑backs near $45 CAD; watch renewable credit spreads and policy incentives."
+    },
+    {
+      "ticker": "MRNA",
+      "action": "NEW",
+      "account": "RRSP",
+      "thesis": "Moderna’s mRNA platform is entering a new wave of vaccine and therapeutic launches, offering growth upside outside the current AI‑centric theme.",
+      "entry": "Enter between $120‑$130 USD if the upcoming FDA advisory panel is favorable."
     }
   ],
   "strengths": [
     {
       "ticker": null,
-      "text": "Large USD exposure ($236,742 CAD) acts as a natural hedge if the CAD weakens, boosting portfolio CAD value."
-    },
-    {
-      "ticker": null,
-      "text": "High historical ROI (65.1%) demonstrates effective growth orientation."
-    },
-    {
-      "ticker": "RRSP",
-      "text": "RRSP shelter protects future home‑purchase withdrawals (HBP) from Canadian tax, aligning with the GTA down‑payment goal."
+      "text": "Large USD exposure ($240,280 CAD) positions the portfolio to benefit from any CAD depreciation, which is common in a risk‑on environment."
     },
     {
       "ticker": "FNGU",
-      "text": "FNGU provides 3x exposure to the FAANG‑plus universe, capturing upside in the AI‑driven tech rally."
+      "text": "The FANG+ 3x ETF captures upside in the high‑growth tech sector, aligning with the investor’s aggressive risk tolerance."
     },
     {
-      "ticker": null,
-      "text": "Diversified sector mix includes energy (ENB, SHEL), financials (CM, RY, BMO), and consumer (COST, LYV), reducing single‑sector reliance."
+      "ticker": "RRSP",
+      "text": "Tax‑deferred growth in the RRSP shelters future capital gains and dividend income, especially valuable given the investor’s non‑resident status next year."
+    },
+    {
+      "ticker": "ENB.TO",
+      "text": "Energy exposure via Enbridge adds a defensive, dividend‑paying Canadian asset that offsets pure growth risk."
+    },
+    {
+      "ticker": "V",
+      "text": "Visa provides a high‑quality, low‑volatility earnings stream that diversifies the tech‑heavy core."
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "Uninvested cash ($367 total) sits idle, dragging overall return, especially in the RRSP where contribution room is limited."
+      "text": "Cash drag in the RRSP is limited to $150 CAD, leaving uninvested capital that could be deployed for diversification."
+    },
+    {
+      "ticker": "FNGU/SPXL/UDOW/SOXL",
+      "text": "Multiple leveraged ETFs create overlapping exposure to the same underlying indices, magnifying both upside and downside."
+    },
+    {
+      "ticker": "NVDA",
+      "text": "NVDA is a single‑stock tail risk; recent price volatility and sector rotation could trigger outsized losses."
+    },
+    {
+      "ticker": "BYDDF",
+      "text": "Tiny position ($38 CAD) is illiquid and adds negligible diversification while increasing transaction overhead."
     },
     {
       "ticker": null,
-      "text": "Heavy overlap among leveraged ETFs (FNGU, SPXL, UDOW, SOXL) creates concentration risk and amplifies volatility."
-    },
-    {
-      "ticker": null,
-      "text": "Liquidity of 3x ETFs can be thin during market stress, potentially widening bid‑ask spreads."
-    },
-    {
-      "ticker": null,
-      "text": "Limited FHSA room for 2026 restricts additional tax‑advantaged savings for the home purchase."
-    },
-    {
-      "ticker": null,
-      "text": "Tech‑centric holdings increase correlation risk; a sector pullback could disproportionately affect portfolio performance."
+      "text": "Account rule constraints (no new TFSA/FHSA contributions in 2026) limit flexibility for tax‑efficient positioning."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor VIX levels; if the index stays above 22 for two consecutive weeks, consider trimming 10% of the leveraged ETF exposure to curb decay."
+      "text": "Monitor VIX levels; if VIX stays above 22 for two consecutive weeks, consider scaling back one leveraged ETF (e.g., reduce SPXL by $10,000 CAD) to limit decay."
     },
     {
       "num": "02",
-      "text": "Use the $150 RRSP cash to add Boeing (BA) now, taking advantage of the FAA approval news while keeping cash minimal."
+      "text": "Deploy the $150 CAD RRSP cash into a modest AMD position (~$100 CAD) to add semiconductor diversification without breaching cash limits."
     },
     {
       "num": "03",
-      "text": "Set alerts for USD/CAD moves of ±0.02; if the CAD strengthens, evaluate a modest hedge using CAD‑denominated bonds."
+      "text": "Set alerts for USD/CAD moves; if the pair falls below 1.38, evaluate a small hedge using CAD‑denominated bond ETFs to protect USD holdings."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Rebalance the portfolio over the next 12 months to reduce leveraged ETF weight from 52% to ~35% and increase Canadian dividend stocks for stability."
+      "text": "Gradually reallocate a portion of leveraged ETF exposure (≈$30,000 CAD) into lower‑beta, dividend‑focused Canadian equities (e.g., BMO, RY) to smooth volatility over the next 12‑18 months."
     },
     {
       "num": "02",
-      "text": "Allocate a portion of future bonus income to build a diversified industrial/renewable position (e.g., CAT, Brookfield Renewable) within the RRSP."
+      "text": "Increase Canadian renewable exposure (BEP-UN.TO) to 5% of total portfolio within 6‑12 months, supporting the home‑purchase timeline with stable CAD‑denominated cash flow."
     },
     {
       "num": "03",
-      "text": "Plan the HBP withdrawal timeline to align with expected CAD depreciation, maximizing the CAD value of the RRSP balance at drawdown."
+      "text": "Plan a $5,000 CAD contribution to the RRSP before the 2027 non‑resident filing deadline to maximize future tax‑deferral benefits."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Gradually shift a core portion of the portfolio into high‑quality Canadian dividend aristocrats to create a tax‑efficient income stream for retirement."
+      "text": "Shift a modest portion (≈10% of portfolio) toward sustainable infrastructure assets (e.g., renewable REITs, green bonds) to align with long‑term ESG trends and reduce reliance on high‑growth tech."
     },
     {
       "num": "02",
-      "text": "Establish a permanent‑resident tax plan now, anticipating the 2027 return to Canada, to optimize the timing of capital gains and RRSP withdrawals."
+      "text": "Prepare to convert the FHSA balance into RRSP contributions after 2026, preserving the home‑down‑payment capital while maintaining tax‑advantaged growth."
     },
     {
       "num": "03",
-      "text": "Invest in a diversified global clean‑energy fund (e.g., iShares Global Clean Energy) within the Investment account to capture long‑term secular growth."
+      "text": "Establish a diversified global equity core (e.g., low‑cost index funds) in the Investment account to replace some of the leveraged exposure as the investor ages and risk tolerance moderates."
     }
   ],
   "tax": [
     {
       "ticker": null,
-      "text": "RRSP contributions are deductible against Canadian taxable income; the $150 used for BA reduces 2026 taxable income, beneficial before the non‑resident year ends."
+      "text": "All new purchases must be made in the RRSP or Investment account; contributions to the RRSP generate a tax deduction now and defer capital gains until withdrawal, which is advantageous given the upcoming non‑resident status."
     },
     {
       "ticker": null,
-      "text": "HBP withdrawals must be repaid over 15 years; a stronger CAD at withdrawal time will lower the CAD amount needed to meet repayment obligations."
+      "text": "US‑source dividends and capital gains from USD‑denominated holdings generate foreign tax credits; ensure proper filing to offset US withholding against Canadian tax liability."
     },
     {
       "ticker": null,
-      "text": "Capital gains on US‑listed securities are taxed at 15% after the foreign tax credit; the large USD exposure means careful tracking of FX gains/losses for CRA reporting."
+      "text": "When the investor becomes a non‑resident in 2027, RRSP withdrawals will be subject to a 25% withholding tax (reduced by tax treaty). Plan withdrawals strategically to minimize overall tax."
     }
   ],
-  "generated_at": "2026-10-20T20:01:08.696705+00:00",
-  "generated_date": "October 20, 2026",
+  "generated_at": "2026-10-22T20:01:11.869004+00:00",
+  "generated_date": "October 22, 2026",
   "next_update": "6:00 AM EST next trading day",
   "upcoming_earnings": [],
   "theme_history": [
+    {
+      "date": "2026-10-22",
+      "themes": [
+        {
+          "category": "macro-economic",
+          "title": "US Jobless Claims Near Historic Low"
+        },
+        {
+          "category": "geopolitical",
+          "title": "Saudi Aramco Evacuation Raises Gulf Energy Risk"
+        },
+        {
+          "category": "commodities",
+          "title": "Asian LNG Demand Surges Amid El Niño Concerns"
+        }
+      ]
+    },
     {
       "date": "2026-10-20",
       "themes": [
@@ -379,26 +403,36 @@
           "title": "Iran‑Russia Hybrid Campaigns Heighten UK Security Concerns"
         }
       ]
-    },
-    {
-      "date": "2026-10-12",
-      "themes": [
-        {
-          "category": "monetary-policy",
-          "title": "Fed Holds Rates Amid Sticky Inflation"
-        },
-        {
-          "category": "geopolitical",
-          "title": "Escalating Saudi Airport Attacks Pressure Oil Supply"
-        },
-        {
-          "category": "commodities",
-          "title": "European Gas Reserves Hit Record Lows, Prices Stay Elevated"
-        }
-      ]
     }
   ],
   "macro_history": [
+    {
+      "date": "2026-10-22",
+      "category": "macro-economic",
+      "title": "US Jobless Claims Near Historic Low",
+      "body": "Weekly initial claims fell to the lowest level since the early 1960s, indicating a tightening labor market and potential upward pressure on wages. Higher payroll costs could sustain inflationary pressures, influencing future Fed policy and USD strength.",
+      "bull": "If the labor market remains tight, the Fed may hold rates steady, supporting a strong USD.",
+      "base": "Fed likely holds rates, keeping USD stable and limiting CAD depreciation.",
+      "bear": "Unexpected slowdown could prompt a rate cut, weakening the USD."
+    },
+    {
+      "date": "2026-10-22",
+      "category": "geopolitical",
+      "title": "Saudi Aramco Evacuation Raises Gulf Energy Risk",
+      "body": "Aramco ordered staff to evacuate its Dhahran headquarters amid heightened regional tensions, signaling possible operational disruptions in the world’s largest oil producer. Any supply shock could lift global oil prices, benefitting North American energy exporters.",
+      "bull": "Higher crude supports Enbridge (ENB.TO $5,529 CAD) and Shell (SHEL $3,256 CAD).",
+      "base": "Oil market absorbs shock with modest price increase.",
+      "bear": "Escalation could trigger broader market sell‑off, hurting energy stocks."
+    },
+    {
+      "date": "2026-10-22",
+      "category": "commodities",
+      "title": "Asian LNG Demand Surges Amid El Niño Concerns",
+      "body": "Reuter’s report notes that Asian importers are locking in LNG contracts despite price spikes, driven by El Niño‑related supply worries. Tightening gas markets can lift North American gas exporters and related infrastructure firms.",
+      "bull": "KGS (Kodiak Gas Services $5,578 CAD) could benefit from higher gas transport volumes.",
+      "base": "Steady demand keeps gas prices flat.",
+      "bear": "If demand softens, gas prices fall, hurting KGS."
+    },
     {
       "date": "2026-10-20",
       "category": "monetary-policy",
@@ -506,50 +540,23 @@
       "bull": "Stronger Chinese exports buoy global growth, supporting semiconductor demand.",
       "base": "Mixed signals likely keep commodity and tech valuations steady.",
       "bear": "Weak exports depress demand for chips and energy, pressuring TSM and ENB.TO."
-    },
-    {
-      "date": "2026-10-19",
-      "category": "monetary-policy",
-      "title": "Fed Rate Decision Looms Amid Sticky US Inflation",
-      "body": "The Federal Reserve is scheduled to meet next week and markets are pricing in a possible 25 bp hike despite recent CPI prints staying above target. A rate increase would lift US Treasury yields, pressuring high‑beta US‑denominated equities that dominate the portfolio.",
-      "bull": "If the Fed holds rates steady, equity volatility eases and leveraged 3x ETFs retain momentum.",
-      "base": "A modest hike keeps yields higher but not enough to trigger a sell‑off.",
-      "bear": "A surprise 50 bp hike spikes yields, dragging down high‑beta US stocks and amplifying decay in leveraged ETFs."
-    },
-    {
-      "date": "2026-10-19",
-      "category": "fx",
-      "title": "USD/CAD Pressure from Oil‑Price Volatility",
-      "body": "Escalating tensions in the Middle East keep crude premiums elevated, supporting the US dollar against the Canadian loonie. A 0.02 rise in USD/CAD (≈1.40→1.42) would increase the CAD value of the portfolio’s $164,210 USD notional.",
-      "bull": "Stronger USD adds roughly $3,300 CAD to the portfolio.",
-      "base": "If USD/CAD stays flat, no material FX impact.",
-      "bear": "A 0.02 fall in USD/CAD erodes CAD value of USD holdings."
-    },
-    {
-      "date": "2026-10-19",
-      "category": "regulatory",
-      "title": "Potential Canadian Carbon‑Tax Adjustment Hits Energy Sector",
-      "body": "The federal government is reviewing the carbon‑tax rate for 2027. A higher rate would raise operating costs for ENB.TO and SHEL, while a lower rate would boost margins. Energy exposure in the portfolio totals $8,898 CAD.",
-      "bull": "If the tax is reduced, ENB.TO ($5,579 CAD) and SHEL ($3,318 CAD) could each see ~3% earnings uplift.",
-      "base": "No change in tax policy leaves current valuations unchanged.",
-      "bear": "If the tax rises, margins compress, potentially shaving ~4% off ENB and SHEL values."
     }
   ],
   "risk_history": [
     "Leverage Decay Risk – 3x ETFs in Elevated VIX",
+    "FX Exposure – Potential CAD Strengthening",
+    "Sector Concentration – Tech & AI Tilt",
     "FX Exposure – USD/CAD Volatility Drag",
     "Earnings Concentration – Tech & AI Tilt",
     "Leverage Decay Risk – 3x ETFs in Elevated Volatility",
     "Single‑Stock Tail Risk – NVIDIA (NVDA)",
     "FX Exposure – USD/CAD Strengthening",
     "Sector Overlap – Tech Concentration",
-    "FX Exposure – Potential CAD Strengthening",
     "Sector Concentration – AI & Semiconductor Tilt",
     "Leverage Decay Risk – 3x ETFs in Volatile Regime",
     "Tech Concentration – AI & Semiconductor Tilt",
     "Volatility Regime Shift – 3x ETF Sensitivity",
     "FX Exposure – CAD Strengthening Drag",
-    "Leverage Amplification Risk",
-    "Leverage Decay Risk – Elevated VIX"
+    "Leverage Amplification Risk"
   ]
 }

@@ -1382,6 +1382,14 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .pp-tx-del{color:var(--red)!important;border-color:rgba(239,68,68,.35)!important}
 .pp-tx-edit-err{font-family:var(--mono);font-size:11px;color:var(--red);margin-top:6px;min-height:0}
 .pp-tx-edit-err:empty{display:none}
+.ledger-check{position:fixed;left:12px;bottom:12px;z-index:9000;max-width:min(440px,calc(100vw - 24px));
+  background:var(--surface2,#1e293b);border:1px solid rgba(245,158,11,.5);border-left:3px solid #f59e0b;
+  color:var(--text,#e2e8f0);border-radius:8px;padding:8px 12px;font-family:var(--mono,monospace);font-size:11px;
+  cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.ledger-check.bad{border-color:rgba(239,68,68,.6);border-left-color:#ef4444}
+.ledger-check ul{display:none;margin:6px 0 0;padding-left:16px;line-height:1.5}
+.ledger-check.open ul{display:block}
+@media (max-width:768px){.ledger-check{bottom:calc(76px + env(safe-area-inset-bottom))}}
 @media (max-width:768px){.pp-tx-edit .tx-field input{font-size:16px}.pp-tx-edit-btns .pp-tx-btn,.pp-tx-edit-btns .tx-submit{padding:10px 14px}}
 [data-theme="light"] .pp-tx-cell{background:rgba(8,145,178,.04)}
 [data-theme="light"] .pp-tx-title{color:#0e7490}
@@ -8096,6 +8104,7 @@ function applyOneTx(holdings, closed, contribs, cash, tx) {
 
       // Realized gain/loss
       const realizedCAD = proceedsCAD - acbPerShare_CAD * sellShares;
+      _LEDGER_SELL_CAD += realizedCAD;          // for checkLedgerIntegrity()
 
       // Reduce position proportionally (book_rate stays the same)
       const fraction = sellShares / old.shares;
@@ -8103,20 +8112,31 @@ function applyOneTx(holdings, closed, contribs, cash, tx) {
       holdings[idx].shares     -= sellShares;
       holdings[idx].realized    = (old.realized || 0) + realizedCAD;
 
-      // Full close → move to closed positions
+      // Full close → move to closed positions.
+      // CONVENTION (see _CLOSED_BASE): total_pnl is NATIVE currency and every
+      // reader multiplies USD by (book_rate || USD_BOOK_RATE). `realized` here is
+      // CAD, so convert it back with that same rate. Storing CAD in total_pnl made
+      // MU's −$514 loss read as −$716 (converted twice).
       if (holdings[idx].shares <= 0.0001) {
         const closedIdx = closed.findIndex(c => c.ticker === old.ticker && c.account === old.account);
         const closedRealized = holdings[idx].realized;
+        const toNative = cad => old.ccy === 'USD' ? cad / (old.book_rate || USD_BOOK_RATE) : cad;
         if (closedIdx >= 0) {
-          closed[closedIdx].realized   = closedRealized;
-          closed[closedIdx].cost_total = 0;
-          closed[closedIdx].shares     = 0;
+          // Re-closing a position closed before: ADD this round's result. Only
+          // overwriting `realized` (as this did) dropped it, since readers use total_pnl.
+          const c = closed[closedIdx];
+          const cRate = c.ccy === 'USD' ? (c.book_rate || USD_BOOK_RATE) : 1;
+          c.realized   = (c.realized != null ? c.realized : (c.total_pnl || 0) * cRate) + closedRealized;
+          c.total_pnl  = (c.total_pnl || 0) + closedRealized / cRate;
+          c.dividends  = (c.dividends || 0) + (old.dividends || 0);
+          c.cost_total = 0;
+          c.shares     = 0;
         } else {
           closed.push({
             ticker: old.ticker, name: old.name, account: old.account,
             sector: old.sector, ccy: old.ccy,
             shares: 0, cost_total: 0, book_rate: old.book_rate,
-            realized: closedRealized, total_pnl: closedRealized,
+            realized: closedRealized, total_pnl: toNative(closedRealized),
             dividends: old.dividends || 0, unrealized: 0, weight: 0,
             pct_return: null,   // calculated at display time if needed
           });
@@ -8132,8 +8152,26 @@ function applyOneTx(holdings, closed, contribs, cash, tx) {
     case 'DIVIDEND': {
       const amtNative = tx.amount;
       const amtCAD    = tx.ccy === 'USD' ? amtNative * (tx.rate || 1.38) : amtNative;
+      // `realized` INCLUDES dividends — the opening balances were built that way
+      // (TXF.TO FHSA: realized 480.26 = dividends 480.26) and Total P&L is
+      // unrealized + realized. This used to bump `dividends` only, so every logged
+      // dividend was missing from Total P&L and the Realized card, and the FX
+      // residual quietly absorbed it ($1,897 by Oct 2026). checkLedgerIntegrity()
+      // now catches any drift between the two.
       const idx = holdings.findIndex(h => h.ticker === tx.ticker && h.account === tx.account);
-      if (idx >= 0) holdings[idx].dividends = (holdings[idx].dividends || 0) + amtCAD;
+      if (idx >= 0) {
+        holdings[idx].dividends = (holdings[idx].dividends || 0) + amtCAD;
+        holdings[idx].realized  = (holdings[idx].realized  || 0) + amtCAD;
+      } else {
+        // Paid after a full sale (or booked to a closed position): it still belongs in P&L.
+        const c = closed.find(c => c.ticker === tx.ticker && c.account === tx.account);
+        if (c) {
+          const cRate = c.ccy === 'USD' ? (c.book_rate || USD_BOOK_RATE) : 1;
+          c.dividends = (c.dividends || 0) + amtCAD;
+          c.realized  = (c.realized != null ? c.realized : (c.total_pnl || 0) * cRate) + amtCAD;
+          c.total_pnl = (c.total_pnl || 0) + amtCAD / cRate;
+        }
+      }
 
       // Add to cash balance in native currency
       const cashKey = tx.ccy || 'CAD';
@@ -8194,7 +8232,68 @@ function applyAllTransactions() {
   CASH_POSITIONS          = deepCopy(_CASH_BASE);
   CLOSED_POSITIONS_STATIC = deepCopy(_CLOSED_BASE);
   CONTRIB_STATE           = { ..._CONTRIB_BASE };
+  _LEDGER_SELL_CAD        = 0;
   txs.forEach(tx => applyOneTx(HOLDINGS_STATIC, CLOSED_POSITIONS_STATIC, CONTRIB_STATE, CASH_POSITIONS, tx));
+  try {
+    _showLedgerProblems(checkLedgerIntegrity(_HOLDINGS_BASE, _CLOSED_BASE, HOLDINGS_STATIC,
+                                             CLOSED_POSITIONS_STATIC, txs, _LEDGER_SELL_CAD));
+  } catch (e) { console.warn('ledger check could not run', e); }
+}
+
+// ── Ledger self-check ─────────────────────────────────────────────────────────
+// Realized P&L must move by exactly (logged dividends + gains on logged sales).
+// The dividend total here is summed straight from the transactions, NOT from the
+// code that updates `realized`, so if any handler forgets a step (as DIVIDEND did
+// until Oct 2026, hiding $1,897 inside the FX residual) the two disagree and the
+// dashboard says so instead of quietly folding the gap into FX Impact.
+var _LEDGER_SELL_CAD = 0;   // var, not let: applyOneTx can run before this line does
+
+function checkLedgerIntegrity(baseHoldings, baseClosed, holdings, closed, txs, sellCAD) {
+  const rateOf  = c => c.ccy === 'USD' ? (c.book_rate || USD_BOOK_RATE) : 1;
+  const closedCAD = c => (c.total_pnl || 0) * rateOf(c);
+  const sum = (list, f) => list.reduce((s, x) => s + (f(x) || 0), 0);
+  const problems = [];
+
+  // 1. Closed positions: native total_pnl must convert back to the CAD realized.
+  closed.forEach(c => {
+    if (c.realized != null && Math.abs(closedCAD(c) - c.realized) > 0.05)
+      problems.push(`${c.ticker} (${c.account}) closed P&L reads ${closedCAD(c).toFixed(2)} but realized is ${c.realized.toFixed(2)} CAD`);
+  });
+
+  // 2. Every logged dividend is inside realized.
+  const held = new Set(holdings.concat(closed).map(h => h.ticker + '|' + h.account));
+  let divCAD = 0;
+  const orphans = [];
+  txs.filter(t => t.type === 'DIVIDEND').forEach(t => {
+    const cad = t.ccy === 'USD' ? t.amount * (t.rate || 1.38) : t.amount;
+    if (held.has(t.ticker + '|' + t.account)) divCAD += cad;
+    else orphans.push(`${t.date} ${t.ticker} ${t.amount} ${t.ccy || 'CAD'} is booked to ${t.account}, which has never held ${t.ticker}`);
+  });
+  const before = sum(baseHoldings, h => h.realized) + sum(baseClosed, closedCAD);
+  const after  = sum(holdings, h => h.realized)     + sum(closed, closedCAD);
+  const gap    = (after - before) - (divCAD + sellCAD);
+  if (Math.abs(gap) > 1)
+    problems.push(`Realized moved by ${(after - before).toFixed(2)} CAD but logged dividends and sales add up to `
+                + `${(divCAD + sellCAD).toFixed(2)} — ${Math.abs(gap).toFixed(2)} CAD is unaccounted for`);
+  return { problems, orphans };
+}
+
+function _showLedgerProblems(res) {
+  const all = res.problems.concat(res.orphans);
+  let el = document.getElementById('ledgerCheck');
+  if (!all.length) { if (el) el.remove(); return; }
+  if (res.problems.length) console.error('Ledger check failed:', res.problems);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'ledgerCheck';
+    el.setAttribute('role', 'status');
+    el.onclick = () => el.classList.toggle('open');
+    document.body.appendChild(el);
+  }
+  el.className = res.problems.length ? 'ledger-check bad' : 'ledger-check';
+  el.innerHTML = `<strong>${res.problems.length ? 'Ledger check failed — P&L and FX figures are unreliable'
+                                                 : 'Ledger check: a transaction needs a look'}</strong>
+    <ul>${all.map(m => `<li>${m}</li>`).join('')}</ul>`;
 }
 
 async function refreshAfterTx() {

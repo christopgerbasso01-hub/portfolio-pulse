@@ -11,7 +11,7 @@
  * next one, and a hard refresh does not bypass the service worker.
  */
 
-const CACHE     = 'portfolio-pulse-v81';
+const CACHE     = 'portfolio-pulse-v82';
 const API_CACHE = 'portfolio-pulse-api-v27';
 
 // Icon URLs carry the same ?v= as index.html/manifest.json reference, so the

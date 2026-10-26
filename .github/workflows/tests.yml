@@ -1,0 +1,35 @@
+name: Tests
+
+# Runs every suite on each push, so a change that breaks the P&L engine, the
+# podcast checks or Dividend Autopilot is caught before anyone reads a wrong number.
+on:
+  push:
+    branches: [main]
+    paths: ['index.html', 'api/**', 'scripts/**', 'tests/**', '.github/workflows/tests.yml']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        run: pip install requests
+      - name: Ledger engine (index.html P&L code)
+        run: node tests/test_ledger_engine.js
+      - name: Python suites
+        run: |
+          set -e
+          for t in tests/test_*.py; do
+            echo "::group::$t"
+            python "$t"
+            echo "::endgroup::"
+          done

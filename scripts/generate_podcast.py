@@ -507,7 +507,30 @@ COMPANY_NAMES = {
     "ENB.TO": "Enbridge", "ET": "Energy Transfer", "SHEL": "Shell",
     "MSTR": "MicroStrategy", "GBTC": "Grayscale Bitcoin Trust",
     "BYDDF": "BYD", "V": "Visa", "LYV": "Live Nation",
-    "ZSP.TO": "BMO S&P 500 ETF",
+    "ZSP.TO": "BMO S&P 500 ETF", "KGS": "Kodiak Gas Services", "COST": "Costco",
+    "NFLX": "Netflix", "SOXL": "Semiconductor 3x ETF",
+}
+
+# What each holding IS, so the script never has to guess. The redone episode 22
+# called Kodiak Gas Services "the Canadian oil services firm" with "rigs"; it is a
+# US natural-gas compression company. A holding is described only this way.
+HOLDING_PROFILES = {
+    "FNGU": "3x fund on the FANG+ index of ten big US tech names",
+    "SPXL": "3x fund on the S&P 500", "UDOW": "3x fund on the Dow Jones Industrial Average",
+    "SOXL": "3x fund on US semiconductor stocks", "TQQQ": "3x fund on the Nasdaq-100",
+    "NVDA": "US chip designer, AI accelerators", "AVGO": "US chips and infrastructure software",
+    "TSM": "Taiwanese contract chipmaker", "QCOM": "US mobile and wireless chip designer",
+    "MSFT": "US software and cloud", "AAPL": "US consumer devices and services",
+    "TXF.TO": "Canadian-listed ETF of large US tech stocks that sells covered calls for income",
+    "TSLA": "US electric vehicles and energy storage", "BYDDF": "Chinese electric vehicles and batteries",
+    "NFLX": "US streaming", "LYV": "US live concerts and ticketing",
+    "COST": "US membership warehouse retailer",
+    "CM.TO": "Canadian bank (CIBC)", "RY.TO": "Canadian bank (Royal Bank of Canada)",
+    "BMO.TO": "Canadian bank (Bank of Montreal)", "IBKR": "US online brokerage",
+    "V": "US card-payments network",
+    "ENB.TO": "Canadian oil and gas pipelines and gas utility", "ET": "US pipelines and storage partnership",
+    "SHEL": "British integrated oil and gas major", "KGS": "US natural-gas compression services",
+    "MSTR": "US software company that holds large amounts of bitcoin", "GBTC": "fund that holds bitcoin",
 }
 
 
@@ -542,15 +565,16 @@ THE HOSTS: ALEX is the analyst — calm, precise, explains cause and effect in p
 THE SOUND: a well-produced weekly show. Conversational and specific. Most turns are one to four sentences; about a quarter are under fifteen words. Vary how turns begin.
 FORMAT: every line begins with "ALEX:" or "SAM:" — no headings, bullets, numbered lists, markdown or stage directions. The only exceptions are marker lines this segment asks for, written exactly as shown.
 FACTS: use only facts in this prompt. Never invent a number, price, date, event, cause, company announcement, earnings result or statistic. If no reason is given for a move, say it moved with the market.
-NUMBERS: at most 4 in any turn. Round them and say them in words ("about fourteen thousand dollars"). No arithmetic out loud. Say each figure once.
+NUMBERS: at most 4 in any turn. Round them and write them as digits — "about $14,000", "about 9.5%" — never "$14,386"; the voice reads digits aloud properly. No arithmetic out loud. Say each figure once. Never state a level for the S&P 500 or any index — you are not given one.
 NEVER explain how leveraged or 3x funds work — no amplifying, no daily reset, no decay. The listener knows. Say what they did.
-A company is a holding only if it is in WHAT WE OWN.
+A company is a holding only if it is in WHAT WE OWN, and it is described only as WHAT WE OWN describes it — never guess what a company does, where it is based, or confuse one holding with another.
+NO ADVICE: never tell Christopher to buy, sell, add, trim or hold anything. Give perspective, not instructions.
 {currency_rule}
 SAY IT ONCE: this segment covers only its own subject. Do not recap earlier segments or preview later ones (apart from a one-line handoff where asked), and never restate a point in new words. This week the other segments cover: {elsewhere}. Leave those alone.
 ANALOGIES: {analogy_rule}
 Never say: "it's worth noting", "going forward", "at the end of the day", "landscape", "navigate", "tailwinds", "headwinds", "buckle up", "let's dive in", "in today's market", "in my own words", "what does that actually mean".
 DATE: this episode airs {today}. {briefing_note}
-WHAT WE OWN: {held_line}
+WHAT WE OWN (and what each one is): {held_line}
 {continuity}
 """
 
@@ -560,7 +584,7 @@ CURRENCY_RULE_ON = """CURRENCY (this segment owns it — at most two sentences, 
 
 SEG_OPENING = """━━━ SEGMENT 1 of 6 — THE OPENING ━━━
 Write, in this order:
-1. COLD OPEN — two or three short lines BEFORE the theme music. Start mid-conversation on this week's most interesting fact: {hook} No greeting yet.
+1. COLD OPEN — two or three short lines BEFORE the theme music. Start mid-conversation on this week's most interesting fact: {hook} State the fact only — give no reason for it. No greeting yet.
 2. A line that is exactly: [THEME]
 3. WELCOME — ALEX welcomes everyone to Portfolio Pulse Weekly; SAM says hello. Two short turns.
 4. LAST TIME — {previously}
@@ -1402,8 +1426,10 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
                          f"the learning segment — {topic}", "and our scenarios for the week ahead"])
     frame = _desk.scenario_frame(facts.get("index_table") or {})
     frame_text = "\n".join(
-        f"- {f['label']}: {f['condition']}. For us: about {_say_money(f['effect'])} ({f['effect_note']})."
-        if f["effect"] else f"- {f['label']}: {f['condition']}. For us: describe the effect as small." for f in frame)
+        f"- {f['label']}: {f['condition']}. Effect on Christopher's PORTFOLIO (not the index): about "
+        f"{_say_money(f['effect'])} for {f['effect_note']}."
+        if f["effect"] else f"- {f['label']}: {f['condition']}. Effect on the portfolio: describe it as small."
+        for f in frame) + "\nThe dollar figures are changes in the PORTFOLIO's value. Never state a level for the S&P 500."
     drivers = "; ".join([_short(main["title"])] + [_short(q["title"]) for q in quick]) or "the week's news"
     upcoming = _upcoming_event([main] + quick)
     next_week = (f"say in one or two lines what is coming next week: the learning segment will be on {next_topic}"
@@ -1457,7 +1483,10 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
         "main": main, "spot": spot, "quick": quick, "fx_owner": fx_owner,
         "banned_analogies": rc["analogies"], "score": score,
         "sp500": {"close": sp_close, "date": sp_date, "week_pct": sp_week},
-        "held_line": ", ".join(sorted((facts.get("positions") or {}).keys())) or "(unavailable)",
+        "held_line": "; ".join(
+            f"{_LEVERAGE_NAMES.get(t) or COMPANY_NAMES.get(t, (facts['positions'][t].get('name') or t))}"
+            + (f" — {HOLDING_PROFILES[t]}" if t in HOLDING_PROFILES else "")
+            for t in sorted((facts.get("positions") or {}).keys())) or "(unavailable)",
         "fields": {
             "opening":   {"hook": hook, "previously": previously, "rundown": rundown},
             "desk":      {"desk": desk, "fx_instruction": (
@@ -1573,8 +1602,9 @@ def _segment_prompt(plan: dict, key: str, notes: str, before_tail: str) -> str:
         editor_notes=notes or "", currency_rule=CURRENCY_RULE_ON if plan["fx_owner"] == key else CURRENCY_RULE_OFF,
         elsewhere="; ".join(elsewhere), analogy_rule=analogy_rule, today=plan["today"],
         briefing_note=plan["briefing_note"], held_line=plan["held_line"],
-        continuity=(f"THE PREVIOUS SEGMENT ENDED WITH: {before_tail}\nContinue straight on from it — do not "
-                    f"greet, recap or repeat it." if before_tail else ""))
+        continuity=(f"THE PREVIOUS SEGMENT ENDED WITH: {before_tail}\nContinue straight on from it with a new "
+                    f"line of your own — do not greet, recap, repeat it, or open with \"Exactly\" or \"Right\"."
+                    if before_tail else ""))
     return bible + "\n" + template.format(**plan["fields"][key])
 
 
@@ -1625,6 +1655,13 @@ def segment_problems(key: str, text: str, plan: dict) -> list:
         w = [s for s in sents if _WATCH.search(s)]
         if len(w) > 1:
             out.append(f"tells the listener what to watch {len(w)} times; that belongs in the main story and the scenarios")
+    if key == "around":
+        own = plan["fields"]["around"]["items"].lower()
+        for tkr, aliases in _holding_aliases(plan["facts"]).items():
+            said = [a for a in aliases if re.search(r"\b" + re.escape(a) + r"\b", text, re.I)]
+            if said and not any(a.lower() in own for a in aliases):
+                out.append(f"mentions {said[0]}, which is not one of this segment's items — check it is not "
+                           f"calling one holding by another's name")
     if key == "opening" and not any("[THEME]" in l for l in text.split("\n")):
         out.append("is missing the [THEME] line after the cold open")
     if key == "learning" and not re.search(r"\[EDUCATION_TOPIC:", text, re.I):
@@ -1639,6 +1676,17 @@ def segment_problems(key: str, text: str, plan: dict) -> list:
         probs = _desk.scenario_probabilities(text)
         if len(probs) == 3 and sum(probs.values()) != 100:
             out.append(f"the scenario odds add up to {sum(probs.values())}, not 100")
+    return out
+
+
+def _holding_aliases(facts: dict) -> dict:
+    out = {}
+    for tkr, p in (facts.get("positions") or {}).items():
+        names = {COMPANY_NAMES.get(tkr, ""), str(p.get("name") or ""), _LEVERAGE_NAMES.get(tkr, "")}
+        base = tkr.split(".")[0]
+        if len(base) >= 3 and tkr not in ("ET",):
+            names.add(base)
+        out[tkr] = {n for n in names if n and len(n) >= 3}
     return out
 
 
@@ -2061,6 +2109,12 @@ _NOT_OWNED = re.compile(
 # Market statistics that are not dollar amounts: "VIX around 21.5", "the 2-year at
 # 4.78%, the 10-year at 4.85%", "a 10bp flattening correlates with a 0.3% drop".
 # Ep18 stated all three and none appeared anywhere in what the model was given.
+_INDEX_LEVEL = re.compile(
+    r"\b(?:s&p(?:\s*500)?|the index|the dow|nasdaq|tsx)\b(?:[^.?!]|(?<=\d)\.(?=\d)){0,90}?\b(?:at|to|around|near|about|reach\w*|"
+    r"hover\w*|slip\w*|climb\w*|fall\w*|drop\w*|ris\w*|end\w*|sit\w*)\s+(?:about\s+|roughly\s+|around\s+)?"
+    r"(?<!\$)(\d{1,2},\d{3}|\d{4,5})(?!\s*(?:%|percent|dollars|cad|usd))", re.I)
+_HYPOTHETICAL_PLAIN = re.compile(r"\bif\b", re.I)
+
 _MARKET_WORDS = re.compile(
     # No bare "spread": "20% downside spread across the next few weeks" is not a bond spread.
     r"\b(?:vix|ovx|yields?|yield[\s-]spreads?|basis[\s-]points?|bps|inventor(?:y|ies)|barrels?|brent|wti|"
@@ -2177,6 +2231,14 @@ def _sentence_problems(sentence: str, ctx, in_learning: bool = False) -> list:
     why = _fx_classify(sentence) or _fx_held_in_cad(sentence)
     if why:
         probs.append(f"{why} — \"{sentence[:110]}\"")
+    # An index LEVEL. The script is never given one, so any level it states is made
+    # up — the redone ep22 read the portfolio's dollar effects out as S&P levels
+    # ("the index hovers around 4,700", "slipping to about 9,500").
+    lvl = _INDEX_LEVEL.search(sentence)
+    if lvl and not _HYPOTHETICAL_PLAIN.search(sentence[:lvl.start()][-12:]):
+        probs.append(f"states an index level ({lvl.group(1)}) it was never given — the scenario figures are "
+                     f"changes in the portfolio's value, not index levels — \"{sentence[:110]}\"")
+
     if not ctx:
         return probs
 
@@ -2683,6 +2745,97 @@ def _decap(item: str) -> str:
     return item[0].lower() + item[1:] if first in _COMMON_FIRST else item
 
 
+_NW_SMALL = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen "
+    "sixteen seventeen eighteen nineteen".split())}
+_NW_TENS = {w: 10 * (i + 2) for i, w in enumerate("twenty thirty forty fifty sixty seventy eighty ninety".split())}
+_NW_SCALE = {"hundred": 100, "thousand": 1_000, "million": 1_000_000, "billion": 1_000_000_000}
+_NW = "|".join(list(_NW_SMALL) + list(_NW_TENS) + list(_NW_SCALE))
+_NUM_SPAN = re.compile(rf"\b(?:{_NW})(?:(?:[\s\u2011-]+(?:and[\s]+)?)(?:{_NW}|point))*\b"
+                       r"(?P<unit>\s+(?:percent|per\s+cent|dollars|cents))?", re.I)
+
+
+def _words_value(tokens: list):
+    """Parse ["three", "hundred", "ten", "thousand"] -> 310000, or None if malformed."""
+    if "point" in tokens:
+        i = tokens.index("point")
+        whole, frac = tokens[:i], tokens[i + 1:]
+        if not frac or any(t not in _NW_SMALL or _NW_SMALL[t] > 9 for t in frac):
+            return None
+        w = _words_value(whole) if whole else 0
+        return None if w is None else float(f"{w}." + "".join(str(_NW_SMALL[t]) for t in frac))
+    total = current = 0
+    last = None
+    for t in tokens:
+        if t in _NW_SMALL or t in _NW_TENS:
+            kind = "small" if t in _NW_SMALL else "tens"
+            if last == "small" or (last == "tens" and kind == "tens"):
+                return None                       # "fifty fifty", "one two" — not one number
+            if last == "tens" and _NW_SMALL.get(t, 0) >= 10:
+                return None
+            current += _NW_SMALL.get(t, _NW_TENS.get(t, 0))
+            last = kind
+        else:
+            scale = _NW_SCALE[t]
+            if scale == 100:
+                current = (current or 1) * 100
+            else:
+                total += (current or 1) * scale
+                current = 0
+            last = "scale"
+    return total + current
+
+
+def _digitize(text: str) -> str:
+    """Spelled-out figures back to digits ("three hundred ten thousand dollars" ->
+    "$310,000", "nine point five percent" -> "9.5%"). Every figure check reads digits,
+    and the model spells numbers out, so for weeks the checks counted "0 figures" and
+    could not see an invented one. The voice turns digits back into words anyway."""
+    def rep(m):
+        tokens = [t for t in re.split(r"[\s\u2011-]+", m.group(0).lower()) if t and t != "and"]
+        unit = (m.group("unit") or "").strip().lower()
+        if unit:
+            tokens = tokens[: -len(unit.split())]
+        has_scale = any(t in _NW_SCALE for t in tokens) or "point" in tokens
+        if not (unit or has_scale or len(tokens) >= 2):
+            return m.group(0)                     # "one thing", "two of them"
+        v = _words_value(tokens)
+        if v is None:
+            return m.group(0)
+        num = (f"{v:,.2f}".rstrip("0").rstrip(".") if isinstance(v, float) else f"{v:,}")
+        if unit.startswith("per"):
+            return f"{num}%"
+        if unit == "dollars":
+            return f"${num}"
+        if unit == "cents":
+            return f"{num} cents"
+        return num
+    return _NUM_SPAN.sub(rep, text)
+
+
+_FAKE_LABEL = re.compile(r"^(\s*(?:(?:ALEX|SAM):\s*)?)([A-Z][A-Z .]{1,14}):\s+")
+
+
+def _fix_label(line: str) -> str:
+    """Repair garbled speaker labels the model sometimes emits mid-line
+    ("SAM: A. L E X: KGS provides…", "SAM: AALIGN: A flat curve…"); the voice read them out."""
+    m = _FAKE_LABEL.match(line)
+    if not m:
+        return line
+    letters = re.sub(r"[^A-Z]", "", m.group(2))
+    if letters in ("ALEX", "SAM") and not m.group(1):
+        return line                                # an ordinary label
+    if "LEX" in letters or letters.startswith("AL") or letters.startswith("AA"):
+        who = "ALEX"
+    elif "SAM" in letters:
+        who = "SAM"
+    elif m.group(1) and len(letters) <= 8:
+        who = m.group(1).strip().rstrip(":")
+    else:
+        return line
+    return f"{who}: " + line[m.end():]
+
+
 def _normalize_script(script: str) -> str:
     """Make the model's formatting safe for parse_script, and fold list lines in.
 
@@ -2723,6 +2876,7 @@ def _normalize_script(script: str) -> str:
         items.clear()
 
     for raw in script.split("\n"):
+        raw = _fix_label(_digitize(raw))
         line = re.sub(r"^\s*[*_]*\s*(ALEX|SAM)\s*[*_]*\s*:\s*[*_]*\s*", r"\1: ",
                       raw.rstrip(), flags=re.I)
         line = re.sub(r"^(alex|sam):", lambda m: m.group(1).upper() + ":", line)

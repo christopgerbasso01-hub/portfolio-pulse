@@ -581,5 +581,34 @@ ck("one run's budget leaves room for the daily briefing within 200,000/day",
 _p = gp._safe_max_tokens("x" * 18_000, 3200)
 ck("a long prompt gets less answer room so the request never exceeds 8,000", gp._estimate_tokens("x" * 18_000) + _p <= 7_900, True)
 
+print("\n── the redone episode 22's faults (2026-10-26) ──")
+ck("spelled-out money is turned back into digits the checks can read",
+   gp._digitize("about three hundred ten thousand dollars, down roughly three thousand one hundred dollars"),
+   "about $310,000, down roughly $3,100")
+ck("...percentages and decimals too", gp._digitize("up about six point four percent"), "up about 6.4%")
+ck("...but ordinary words are left alone", gp._digitize("the one thing to watch, one of two, a fifty-fifty call"),
+   "the one thing to watch, one of two, a fifty-fifty call")
+ck("a garbled label read aloud is repaired", gp._fix_label("SAM: A. L E X: KGS provides equipment."), "ALEX: KGS provides equipment.")
+ck("...and another", gp._fix_label("SAM: AALIGN: A flat curve suggests uncertainty."), "ALEX: A flat curve suggests uncertainty.")
+ck("...a normal line is untouched", gp._fix_label("ALEX: Hello there."), "ALEX: Hello there.")
+lv = lambda t: bool([m for m in gp.verify_script_figures(t, {}) if "index level" in m])
+ck("an invented S&P level is a false statement",
+   lv("ALEX: Base case — 50 percent: the S&P 500 stays within 1.5 percent, so the index hovers around 4,700."), True)
+ck("...across a decimal", lv("ALEX: Bull case — 30 percent: the S&P 500 climbs more than 1.5 percent, reaching about 9,500."), True)
+ck("...but a move, a threshold or a portfolio effect is not",
+   [lv(t) for t in ("ALEX: The S&P 500 rose about 2% this week.",
+                    "ALEX: If the S&P 500 falls 2%, the portfolio loses about $9,300.",
+                    "ALEX: Bull case — 30 percent: the S&P 500 rises more than 1.5 percent; for us about $9,300.")],
+   [False, False, False])
+_plan_rb = dict(PLAN, facts={"positions": {"RY.TO": {"name": "Royal Bank", "cad": 5400}, "BMO.TO": {"name": "Bank of Montreal", "cad": 3500}}},
+                fields=dict(PLAN["fields"], around={"items": "1. HOLDING SPOTLIGHT — Royal Bank: we own about $5,400.", "count": "One", "plural": ""}))
+ck("the spotlight calling Royal Bank 'our BMO holding' is caught",
+   any("BMO" in m for m in gp.segment_problems("around", "ALEX: The spotlight is Royal Bank of Canada, our BMO holding.", _plan_rb)), True)
+ck("every holding the model may name comes with what it is",
+   all(t in gp.HOLDING_PROFILES for t in ("KGS", "RY.TO", "BMO.TO", "TXF.TO", "SOXL")) and "Enbridge — Canadian oil and gas pipelines" in PROMPTS["main"], True)
+ck("the prompts ask for digits, not spelled-out numbers",
+   all("write them as digits" in v for v in PROMPTS.values()), True)
+ck("...and forbid advice", all("never tell Christopher to buy, sell" in v for v in PROMPTS.values()), True)
+
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

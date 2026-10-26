@@ -249,31 +249,30 @@ for label, h, s in [("no holdings", [], {"2026-09-14": {}}),
         ck(f"{label}: guard no-ops rather than validating against nothing",
            verify("ALEX: The portfolio jumped $23,927 this week.", out[1]), [])
 
-# ── the prompt templates must accept exactly what generate_script passes ─────
-# A placeholder the call does not supply, or a kwarg the template dropped, is a
+# ── the prompt templates must accept exactly what the planner passes ────────
+# A placeholder the call does not supply, or a field the template dropped, is a
 # KeyError at generation time — an entire week with no episode, discovered only
 # on the Monday. Nothing else in the suite would catch it.
 print("\n── prompt format contract ──")
-_K1 = dict(editor_notes="", today="T", week_range="W", mood="M", briefing_note="", registry_context="R",
-           outlook="O", macro="MA", news="N", portfolio="P",
-           dd1_title="D1", dd1_brief="B1", dd2_title="D2", education_topic="ET")
-_K2 = dict(editor_notes="", today="T", dive1_summary="D", briefing_note="", news="N", picks="PK",
-           strategy="ST", portfolio="P", dd2_title="D2", dd2_brief="B2",
-           education_topic="ET", education_topics_used="EU")
-for _label, _tpl, _kw in (("Part 1", NS["SCRIPT_PROMPT_PART1"], _K1),
-                          ("Part 2", NS["SCRIPT_PROMPT_PART2"], _K2)):
+_BIBLE_KW = dict(editor_notes="", currency_rule="C", elsewhere="E", analogy_rule="A", today="T",
+                 briefing_note="B", held_line="H", continuity="")
+_FIELDS = {"SEG_OPENING": {"hook", "previously", "rundown"},
+           "SEG_DESK": {"desk", "fx_instruction"},
+           "SEG_MAIN": {"title", "brief", "exposure"},
+           "SEG_AROUND": {"items", "count", "plural"},
+           "SEG_LEARNING": {"topic"},
+           "SEG_SCENARIOS": {"frame", "drivers", "next_week"}}
+for _label, _kw in [("SHOW_BIBLE", set(_BIBLE_KW))] + list(_FIELDS.items()):
+    _tpl = NS[_label]
     _ph = set(re.findall(r"\{(\w+)\}", _tpl))
-    ck(f"{_label}: every placeholder is supplied", sorted(_ph - set(_kw)), [])
-    ck(f"{_label}: every argument is used", sorted(set(_kw) - _ph), [])
+    ck(f"{_label}: every placeholder is supplied", sorted(_ph - _kw), [])
+    ck(f"{_label}: every field is used", sorted(_kw - _ph), [])
     try:
-        _tpl.format(**_kw)
+        _tpl.format(**{k: "x" for k in _kw})
         _res = "ok"
     except Exception as exc:
         _res = f"{type(exc).__name__}: {exc}"
     ck(f"{_label}: formats without error", _res, "ok")
-ck("both halves are told the same learning topic",
-   "{education_topic}" in NS["SCRIPT_PROMPT_PART1"]
-   and "{education_topic}" in NS["SCRIPT_PROMPT_PART2"], True)
 
 # ── weekday claims are arithmetic, so they are corrected ─────────────────────
 print("\n── weekday repair ──")

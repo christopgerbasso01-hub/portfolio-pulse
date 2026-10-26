@@ -5,16 +5,23 @@ Portfolio Pulse — Weekly Podcast Generator
 Runs via cron-job.org every Monday at 6:00 AM UTC.
 
 Pipeline:
-  1. Load intelligence.json + KV snapshot + live holdings + past scripts
-  2. Groq preprocessing call → deep topic registry (topics, tickers, education used)
-  3. Groq (Llama 3.3 70B) × 2 → full podcast script (2,400–3,200 words, 15–20 minutes)
-  4. edge-tts → MP3 segments per speaker turn
-  5. Merge segments → podcast_epNNN.mp3
-  6. Save script text → podcast_epNNN.txt (used by future episodes)
-  7. Groq summary call → update podcast_meta.json
+  1. Load intelligence.json, the KV snapshot and settings, past scripts and the
+     show's memory (data/podcast_memory.json).
+  2. Plan the episode in code: one main story, a holding spotlight and quick news
+     items (all distinct, none repeated from recent weeks), the portfolio desk
+     (money in vs market, trades, dividends, sector mix, accounts, the house goal),
+     last week's scenario scorecard, this week's fixed scenario frame and the
+     learning topic promised the week before.
+  3. Groq (gpt-oss-120b) writes six segments, each from its own material only.
+     Segments with problems are rewritten (at most twice); what still cannot air
+     is cut. Paced and budgeted to stay inside the free tier.
+  4. Audio: cold open → intro theme → episode → outro theme. Microsoft voices
+     first, Kokoro then Piper as fallbacks.
+  5. Save podcast_epNNN.mp3/.txt, podcast_meta.json and the show's memory.
 
 Voices: en-US-AndrewMultilingualNeural (Alex), en-US-AvaMultilingualNeural (Sam)
-Style: NPR/Bloomberg deep-dive — mechanisms, genuine push-back, learning segment
+Format: a weekly magazine show — cold open, portfolio review, one main story,
+around the portfolio, a learning segment, scored scenarios, next-week tease.
 """
 
 import asyncio
@@ -31,6 +38,7 @@ import requests
 # Shared with the daily briefing. Added to the path explicitly so it imports whether
 # this runs as a script, from another directory, or under a test.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import podcast_desk as _desk                                  # noqa: E402
 from fx_guard import (classify as _fx_classify,            # noqa: E402
                       held_in_cad_reason as _fx_held_in_cad,
                       split_sentences as _split_sentences,
@@ -506,150 +514,115 @@ COMPANY_NAMES = {
 # ============================================================
 # SCRIPT PROMPT — PART 1: Welcome + Recap + Deep Dive 1
 # ============================================================
-SCRIPT_PROMPT_PART1 = """You are writing the FIRST HALF of a weekly podcast, "Portfolio Pulse Weekly", for one listener: a smart beginner who owns this portfolio. Two hosts: ALEX explains; SAM asks the questions a beginner would ask.
-{editor_notes}
-EPISODE DATE: {today}     TRADING WEEK: {week_range}     MARKET MOOD: {mood}
-
-{registry_context}
-
-━━━ THE NEWS — your ONLY source of facts about the outside world ━━━
-{briefing_note}Outlook: {outlook}
-
-Macro themes:
-{macro}
-
-Market news:
-{news}
-
-━━━ THE PORTFOLIO — your ONLY source of facts about the portfolio ━━━
-{portfolio}
-
-━━━ THIS EPISODE'S FIXED SUBJECTS ━━━
-Deep Dive 1: {dd1_title}
-{dd1_brief}
-Deep Dive 2 (the second half writes it): {dd2_title}
-Learning segment (the second half writes it): {education_topic}
-In the opening agenda name all three, exactly as written above. Never swap one for something else — the second half is already committed to them.
-
-━━━ HOW TO TALK ━━━
-Plain, calm and conversational — a smart friend explaining it over coffee. Short sentences, one idea at a time. Explain IDEAS and cause-and-effect, not figures. If a sentence works without a number, leave the number out.
-Use ONE everyday analogy for the whole episode — not two.
-
-━━━ THE FACT RULES (these matter more than anything else) ━━━
-1. State only facts that appear above: the portfolio page, the lookup tables, and the news items. Never invent a statistic, price, yield, VIX level, earnings result, company announcement or cause. If you have no reason for a move, say "it moved with the market" — do not make one up.
-2. Never do arithmetic on air. No multiplying, adding, subtracting or "netting" dollar figures. Read any dollar impact straight off the lookup table; it already has the leverage built in, so never apply a multiplier to it.
-3. Round: "about fourteen thousand dollars", never "$14,386".
-4. Call something a holding only if it is under "WHAT WE OWN". "Picks" are ideas, not owned.
-5. Currency: follow the CURRENCY box exactly. We hold US assets in US dollars, never in Canadian dollars. A stronger US dollar RAISES the Canadian-dollar value of our US holdings.
-6. No lists. Never write bullet points, numbered lists, or a sentence ending in a colon that introduces a list — say "first… second… third…" in full sentences. Every line starts with "ALEX:" or "SAM:".
-7. No dates unless they appear in the news above. Otherwise say "at the next Fed meeting" or "when the next inflation report comes out".
-8. The listener ALREADY understands leveraged and 3x funds — how they amplify a move, the daily reset, decay, volatility drag. NEVER explain any of it: no "a 3x fund moves three times as much", no "daily reset", no "decay", no "turns a 1% move into 3%". Just say what a fund did, or what a market move is worth to us.
-9. Say every fact ONCE. Never repeat a figure, restate a point in different words, or reuse a sentence from earlier in this episode. Do not reuse sentences, phrasing or analogies from the recent episodes listed above — find a fresh way in.
-
-━━━ STRUCTURE ━━━
-[WELCOME — 45 seconds] ALEX welcomes listeners to Portfolio Pulse Weekly, introduces himself and Sam, then gives the agenda naming the three subjects above. End with ONE sentence hook — the most surprising idea in this week's story.
-
-[RECAP — 2 minutes] The week in plain words. Say once whether the portfolio was up or down and by about how much. Name the biggest mover and the biggest faller listed on the portfolio page. Give a reason for a move ONLY if the news above supplies it — otherwise say honestly that it moved with the market. At most 3 numbers in the whole recap. One short callback to last episode, only if natural.
-
-[DEEP DIVE 1 — about 7 minutes] on {dd1_title}.
-- SAM opens with the puzzle.
-- ALEX explains the mechanism in plain English, step by step.
-- SAM pushes back twice, the way a beginner would ("hang on — why would that happen?").
-- ALEX re-explains more simply each time.
-- Connect it to a holding we actually own, by name.
-- Look ahead: what we would watch next — only events named in the news above, or the TYPE of event with no invented date.
-
-DIALOGUE: company names, not tickers. A quarter of turns under 20 words. Natural reactions ("Right.", "Hmm.", "Okay but…"). No two turns start with the same word. Avoid: "it's worth noting", "going forward", "as mentioned", "at the end of the day", "in today's market", "landscape", "navigate", "tailwinds", "headwinds".
-
-LENGTH: aim for 1,400 to 1,800 words (about 9–11 minutes spoken). Under 1,300 is too short. Length comes from depth, never from extra numbers: walk through the mechanism one step at a time, give a second everyday example, let SAM ask follow-up questions and restate it in his own words, and spend a turn on what it means for a long-term investor. Keep the 4-numbers-per-turn limit and keep every fact stated once. NEVER add dates, events, figures or invented details just to fill time.
-
-THIS IS THE FIRST HALF ONLY — DO NOT CLOSE THE EPISODE.
-Part 2 is written separately and is joined directly onto your final line, in the same episode. It contains Deep Dive 2, the learning segment, the scenarios and the closing. So do NOT write a sign-off, a wrap-up, "stay tuned", or "we'll be back next Monday". Stop mid-conversation on a Deep Dive 1 line so the second half continues straight out of it.
-
-Write PART 1 now:"""
-
-
-SCRIPT_PROMPT_PART2 = """You are writing the SECOND HALF of "Portfolio Pulse Weekly" for {today}. ALEX explains; SAM asks the questions a beginner would ask.
-{editor_notes}
-PART 1 IS ALREADY WRITTEN AND IS JOINED DIRECTLY ONTO YOUR FIRST LINE. The listener has just heard it:
-{dive1_summary}
-
-YOU ARE CONTINUING ONE EPISODE, NOT STARTING ANYTHING.
-- Do NOT greet the listener or say "welcome back".
-- Do NOT open with "let's pick up where we left off" or recap what Part 1 covered.
-- Do NOT say the hosts "just walked through" or "just discussed" a topic unless it appears above as something actually discussed.
-Begin directly with Deep Dive 2's hook.
-
-━━━ THE NEWS — your ONLY source of facts about the outside world ━━━
-{briefing_note}{news}
-
-SUGGESTIONS from the briefing. These are NOT decisions, rules or plans we have made, and none of the
-companies are owned. Never say "we have a rule", "we earmarked" or "our plan is" about them — at
-most, "one idea floating around is…". Ideas:
-{picks}
-{strategy}
-
-━━━ THE PORTFOLIO — your ONLY source of facts about the portfolio ━━━
-{portfolio}
-
-━━━ THIS HALF'S FIXED SUBJECTS ━━━
-Deep Dive 2: {dd2_title}
-{dd2_brief}
-Learning segment: {education_topic}
-
-━━━ THE FACT RULES (these matter more than anything else) ━━━
-1. State only facts that appear above. Never invent a statistic, price, yield, VIX level, earnings result, company announcement, buyback, date or cause. For Deep Dive 2 the ONLY facts you may state about the company are in the brief; beyond that, explain how that kind of business works, in general terms.
-2. Never do arithmetic on air. Read any dollar impact straight off the lookup table; it has the leverage built in, so never apply a multiplier to it.
-3. Round: "about fourteen thousand dollars".
-4. Call something a holding only if it is under "WHAT WE OWN". Picks are ideas, not owned. If a company IS owned, never say it isn't.
-5. Currency: follow the CURRENCY box exactly. We hold US assets in US dollars. A stronger US dollar RAISES the Canadian-dollar value of our US holdings.
-6. No lists, no bullets, no sentence ending in a colon introducing a list. Every line starts with "ALEX:" or "SAM:" — except the [EDUCATION_TOPIC] marker line.
-7. No dates unless they appear in the news above.
-8. The listener ALREADY understands leveraged and 3x funds — how they amplify a move, the daily reset, decay, volatility drag. NEVER explain any of it. Just say what a fund did, or what a market move is worth to us.
-9. Say every fact ONCE. Never repeat a figure, restate a point in different words, or reuse a sentence from earlier in this episode or from Part 1. Find a fresh way in.
-NUMBER BUDGET: at most 4 numbers in any one turn and about 12 in this half; state each figure once.
-
-Use plain, calm, conversational language — a smart friend over coffee. Do not introduce a second analogy (one was used in Part 1). Company names, not tickers. No two turns start with the same word. Avoid: "it's worth noting", "going forward", "as mentioned", "at the end of the day", "in today's market", "landscape", "navigate", "tailwinds", "headwinds".
-
-━━━ STRUCTURE ━━━
-[DEEP DIVE 2 — about 6 minutes] on {dd2_title}.
-- ALEX introduces it with a hook; SAM asks why it matters for us right now.
-- ALEX explains how this business works and what the news means for it, using only the brief. SAM pushes back at least once.
-- Say how big the holding is in plain terms, using the size in the brief ("a small slice, about 2% of the portfolio").
-- Close by saying what we would watch next — only an event named in the news, or the type of event.
-
-[LEARNING SEGMENT — about 3 minutes]
-THE TOPIC IS ALREADY CHOSEN: {education_topic}. Write exactly that topic — the first half has already told the listener, by name, that this is what the segment covers.
-(Covered in past episodes, not to be repeated: {education_topics_used})
-Place this marker on its own line immediately BEFORE the segment starts (no speaker prefix; it is never read aloud):
-[EDUCATION_TOPIC: {education_topic}]
-Then:
-- ALEX or SAM introduces: "Before we get to our scenarios, let's step back and learn something…"
-- Teach the idea in plain language over several turns, with one simple everyday example using small round numbers (like $100), never this portfolio's figures.
-- Use NO current market data — no yields, no index levels, no VIX numbers, no "historically, X% of the time" statistics.
-- Connect it briefly to this investor where it fits. SAM asks one "but what does that actually mean in practice?" question.
-- Close with: "Alright, that's our learning segment for this week. On to scenarios…"
-
-[SCENARIOS — about 90 seconds]
-Give exactly THREE cases for the next few weeks, as three separate turns, in this form:
-  "Base case — 50 percent: [one plain sentence on what happens]. For us that is about [one figure from the lookup table, or the word 'small']."
-  "Bull case — 30 percent: …"
-  "Bear case — 20 percent: …"
-Probabilities add to 100; the base case is 45 to 55. Each case moves ONE lever only — the stock market OR the currency, never both — so there is nothing to net. The bear case's effect must be at least as large as the bull case's. Read each figure straight off the lookup table; do not calculate. Never skip a case.
-
-[CLOSING — about 60 seconds]
-- ONE open question that leaves the listener thinking about investing itself, not about data.
-- "One thing we're watching next week" — only an event named in the news above, or the type of event.
-- A warm sign-off and a brief tease for next week.
-
-LENGTH: aim for 1,300 to 1,700 words (about 8–10 minutes spoken). Under 1,200 is too short. Length comes from depth, never from extra numbers: walk through the mechanism one step at a time, give a second everyday example, let SAM ask follow-up questions and restate it in his own words, and spend a turn on what it means for a long-term investor. Keep the 4-numbers-per-turn limit and keep every fact stated once. NEVER add dates, events, figures or invented details just to fill time.
-
-Write PART 2 now:"""
-
-
 # ============================================================
-# DATA HELPERS
+# THE SHOW — six segments, each written by its own call
 # ============================================================
+# Until episode 22 the script was written in two (then four) big calls that each
+# saw EVERYTHING: all the news, the whole portfolio page, the currency box and both
+# deep-dive subjects. So every part talked about every subject — ep22 explained the
+# exchange rate twice, restated its watch list five times, deep-dived the same Saudi
+# oil-storage story twice, and used seven analogies. Now each segment is given only
+# its own material, is told what the other segments cover, and is checked on its own.
+#
+# Run of show (about 17-20 minutes):
+#   1 opening      cold open, [THEME], welcome, last week's scorecard, run-down
+#   2 desk         the portfolio this week: money in vs market, trades, dividends,
+#                  sector mix, movers, accounts, the house goal
+#   3 main         ONE main story, with the other side argued
+#   4 around       two quick news items + one holding spotlight
+#   5 learning     the learning segment (topic promised the week before)
+#   6 scenarios    three fixed-threshold cases for the coming week, the close,
+#                  and what is coming next week
+# The intro theme plays at [THEME]; the outro theme plays after the last line.
+
+SHOW_BIBLE = """You are writing ONE segment of "Portfolio Pulse Weekly", a weekly podcast about one real portfolio, made for its owner.
+{editor_notes}
+THE LISTENER: Christopher, 24, Toronto. Base currency CAD. High risk tolerance. Saving for a GTA home: the FHSA and the RRSP are the down-payment money (target about $90,000). He has heard every episode — never re-explain a basic idea from scratch.
+THE HOSTS: ALEX is the analyst — calm, precise, explains cause and effect in plain words. SAM is the co-host — curious and practical, asks what a listener would ask, pushes back, sometimes disagrees, and ties things to Christopher's goals. They are friends: light, natural banter is fine; catchphrases are not.
+THE SOUND: a well-produced weekly show. Conversational and specific. Most turns are one to four sentences; about a quarter are under fifteen words. Vary how turns begin.
+FORMAT: every line begins with "ALEX:" or "SAM:" — no headings, bullets, numbered lists, markdown or stage directions. The only exceptions are marker lines this segment asks for, written exactly as shown.
+FACTS: use only facts in this prompt. Never invent a number, price, date, event, cause, company announcement, earnings result or statistic. If no reason is given for a move, say it moved with the market.
+NUMBERS: at most 4 in any turn. Round them and say them in words ("about fourteen thousand dollars"). No arithmetic out loud. Say each figure once.
+NEVER explain how leveraged or 3x funds work — no amplifying, no daily reset, no decay. The listener knows. Say what they did.
+A company is a holding only if it is in WHAT WE OWN.
+{currency_rule}
+SAY IT ONCE: this segment covers only its own subject. Do not recap earlier segments or preview later ones (apart from a one-line handoff where asked), and never restate a point in new words. This week the other segments cover: {elsewhere}. Leave those alone.
+ANALOGIES: {analogy_rule}
+Never say: "it's worth noting", "going forward", "at the end of the day", "landscape", "navigate", "tailwinds", "headwinds", "buckle up", "let's dive in", "in today's market", "in my own words", "what does that actually mean".
+DATE: this episode airs {today}. {briefing_note}
+WHAT WE OWN: {held_line}
+{continuity}
+"""
+
+CURRENCY_RULE_OFF = ("CURRENCY: do not mention the exchange rate, the US or Canadian dollar getting stronger "
+                     "or weaker, or currency effects at all. It is not this segment's subject this week.")
+CURRENCY_RULE_ON = """CURRENCY (this segment owns it — at most two sentences, and get the direction right): every US-listed holding is held and priced in US dollars; the Canadian-dollar figures are only a translation. USD/CAD going UP means the US dollar got stronger and our US holdings are worth MORE in Canadian dollars; going DOWN means they are worth less. Never call a stronger US dollar a drag on us, and never say we hold US assets in Canadian dollars."""
+
+SEG_OPENING = """━━━ SEGMENT 1 of 6 — THE OPENING ━━━
+Write, in this order:
+1. COLD OPEN — two or three short lines BEFORE the theme music. Start mid-conversation on this week's most interesting fact: {hook} No greeting yet.
+2. A line that is exactly: [THEME]
+3. WELCOME — ALEX welcomes everyone to Portfolio Pulse Weekly; SAM says hello. Two short turns.
+4. LAST TIME — {previously}
+5. RUN-DOWN — one ALEX turn naming today's segments in order, plainly, without explaining them: {rundown}.
+6. SAM hands over to the portfolio review in one line.
+LENGTH: 230 to 320 words. Write segment 1 now:"""
+
+SEG_DESK = """━━━ SEGMENT 2 of 6 — THE PORTFOLIO THIS WEEK ━━━
+A proper weekly portfolio review, the way a good adviser would walk a client through it. These are the facts, already rounded — the only portfolio numbers you may use:
+{desk}
+Cover these, in order, each ONCE:
+1. The headline: what the portfolio is worth and how the week went — and how much of that change was new money Christopher put in versus what the market did. Then total profit against everything he has contributed.
+2. What he did: trades (new positions, additions, sales) and dividends received. If there were none, one line and move on. For a trade, SAM asks what it does to the portfolio's risk or balance; ALEX answers from the sector mix.
+3. How the mix shifted: the sector changes listed, and what they say about how concentrated the portfolio is.
+4. Movers: the one that rose most and the one that fell most, with a reason only if the news gives one.
+5. The accounts and the house: how the down-payment accounts are tracking against the target.
+{fx_instruction}
+End with ALEX handing over to today's main story in one line.
+LENGTH: 500 to 650 words. Write segment 2 now:"""
+
+SEG_MAIN = """━━━ SEGMENT 3 of 6 — THE MAIN STORY: {title} ━━━
+What the news says — your only facts about it:
+{brief}
+What we own that it touches: {exposure}
+Structure:
+1. SAM sets up the question the story raises, in a line or two.
+2. ALEX explains what happened and why, one step at a time.
+3. What it means for THIS portfolio — name the holdings it touches and say how, in words.
+4. The other side: SAM makes the strongest case that it matters less (or more) than it seems; ALEX answers honestly, including what we do not know yet.
+5. One thing to watch next, said once — only an event named in the news, or the type of event with no invented date.
+End with SAM moving on to the rest of the week's news in one line.
+LENGTH: 650 to 850 words. Write segment 3 now:"""
+
+SEG_AROUND = """━━━ SEGMENT 4 of 6 — AROUND THE PORTFOLIO ━━━
+{count} short item{plural}, three to five turns each, each introduced so the listener knows a new item has started (vary how). None of them is the main story.
+{items}
+For a news item: what happened, then why it matters — or doesn't — for what we own.
+For the holding spotlight: what the business does, why it is in the portfolio, how big the position is, and the news if there is any.
+End with ALEX turning to the learning segment in one line.
+LENGTH: 420 to 560 words. Write segment 4 now:"""
+
+SEG_LEARNING = """━━━ SEGMENT 5 of 6 — THE LEARNING SEGMENT: {topic} ━━━
+First line, exactly: [EDUCATION_TOPIC: {topic}]
+Then teach {topic} over several turns: what it is, how it works step by step, and how an investor actually uses it. One worked example with small round numbers (like $100) — say each example number once. Use no current market data. SAM asks the practical question, and ALEX ties the idea to THIS portfolio in words, with no new figures.
+The last line is SAM saying: "That's our learning segment for this week."
+LENGTH: 380 to 500 words. Write segment 5 now:"""
+
+SEG_SCENARIOS = """━━━ SEGMENT 6 of 6 — SCENARIOS AND THE CLOSE ━━━
+SCENARIOS for the coming week. The three cases below are fixed — do not change them. You choose the odds: they add up to 100, and the base case is between 45 and 55.
+{frame}
+For EACH case, two to four turns, in this order:
+ a. ALEX opens it with a line beginning exactly "Base case — NN percent:" (or "Bull case — NN percent:", "Bear case — NN percent:") and says what would have to happen, using only these drivers from this week's news: {drivers}
+ b. The signpost: the one thing during the week that would tell us it is happening.
+ c. What it would mean for the portfolio, using the figure given for that case — said once.
+ d. SAM asks how Christopher should think about it; ALEX gives perspective tied to his goals and time horizon — never "buy" or "sell".
+THE CLOSE:
+ - One question for Christopher to think about this week — about investing itself, not about data.
+ - NEXT WEEK: {next_week}
+ - A warm, brief sign-off from both hosts.
+LENGTH: 480 to 620 words. Write segment 6 now:"""
+
+
 def _last_trading_day(ref: datetime) -> str:
     d = ref
     while d.weekday() >= 5:
@@ -698,171 +671,6 @@ def _load_past_scripts() -> dict:
             except Exception as exc:
                 print(f"  ⚠ Could not load {path.name}: {exc}")
     return scripts
-
-
-def _build_deep_topic_registry(old_meta: dict, past_scripts: dict, api_key: str) -> dict:
-    """Build a structured topic registry from past episodes.
-    Uses full scripts where available, meta summaries as fallback.
-    Returns a dict with registry_text, recently_spotlighted_tickers, education_topics_used.
-    """
-    all_eps = []
-    if old_meta.get("episode"):
-        all_eps.append({
-            "episode":         old_meta["episode"],
-            "title":           old_meta.get("title", ""),
-            "date":            old_meta.get("date", ""),
-            "script":          past_scripts.get(old_meta["episode"], ""),
-            "summary":         old_meta.get("summary", {}),
-            "education_topic": old_meta.get("education_topic", ""),
-        })
-    for ep in old_meta.get("archive", [])[:MAX_EPISODES - 1]:
-        ep_num = ep.get("episode", 0)
-        all_eps.append({
-            "episode":         ep_num,
-            "title":           ep.get("title", ""),
-            "date":            ep.get("date", ""),
-            "script":          past_scripts.get(ep_num, ""),
-            "summary":         ep.get("summary", {}),
-            "education_topic": ep.get("education_topic", ""),
-        })
-
-    if not all_eps:
-        return {
-            "registry_text":               "No previous episodes — fresh start, no callbacks needed.",
-            "recently_spotlighted_tickers": [],
-            "education_topics_used":        [],
-        }
-
-    # ── Extract structured registry from full scripts via Groq ──────────────
-    scripts_available = [(e["episode"], e["script"]) for e in all_eps if e["script"].strip()]
-    extracted_registry = {}
-
-    if scripts_available:
-        print(f"  ✓ Extracting topic registry from {len(scripts_available)} saved script(s)...")
-        combined = ""
-        # Four full transcripts (~14k tokens) made Groq answer 413 Payload Too Large on
-        # every attempt (2026-10-12), silently dropping the topic registry. Keep the
-        # latest three, each sampled from its start, middle and end.
-        for ep_num, script_text in scripts_available[-3:]:
-            if len(script_text) > REGISTRY_CHARS_PER_EPISODE:
-                k = REGISTRY_CHARS_PER_EPISODE // 3
-                mid = len(script_text) // 2
-                script_text = (script_text[:k] + "\n[…]\n" + script_text[mid - k // 2: mid + k // 2]
-                               + "\n[…]\n" + script_text[-k:])
-            ep_meta = next((e for e in all_eps if e["episode"] == ep_num), {})
-            combined += (f"\n\n### EPISODE {ep_num}: \"{ep_meta.get('title','')}\" "
-                         f"({ep_meta.get('date','')})\n{script_text}")
-
-        extract_prompt = f"""Read these past podcast episodes and extract a topic registry.
-Return ONLY valid JSON — no explanation, no markdown fences.
-
-{combined}
-
-Return this exact JSON structure:
-{{
-  "episodes": [
-    {{
-      "episode": <number>,
-      "topics_deep_dived": ["specific topic with brief description", ...],
-      "tickers_spotlighted": ["TICKER", ...],
-      "watch_items_stated": ["specific thing to watch mentioned in this episode", ...],
-      "scenarios_bull": "brief description of bull scenario stated",
-      "scenarios_bear": "brief description of bear scenario stated"
-    }}
-  ]
-}}"""
-        try:
-            raw   = _groq_call(api_key, extract_prompt, "Topic registry extraction", max_tokens=1500)
-            start = raw.find('{')
-            end   = raw.rfind('}') + 1
-            if start >= 0:
-                parsed = json.loads(raw[start:end])
-                for ep_data in parsed.get("episodes", []):
-                    extracted_registry[ep_data["episode"]] = ep_data
-        except Exception as exc:
-            print(f"  ⚠ Registry extraction failed (using meta summaries): {exc}")
-
-    # ── Build per-episode registry (extracted or summary fallback) ───────────
-    registry_episodes = []
-    for ep in all_eps:
-        ep_num = ep["episode"]
-        if ep_num in extracted_registry:
-            reg = extracted_registry[ep_num]
-        else:
-            s = ep.get("summary", {})
-            inferred_tickers = []
-            for item in (s.get("position_spotlight") or []):
-                for ticker, name in COMPANY_NAMES.items():
-                    if ticker in item or name.lower() in item.lower():
-                        if ticker not in inferred_tickers:
-                            inferred_tickers.append(ticker)
-            reg = {
-                "episode":          ep_num,
-                "topics_deep_dived": (s.get("market_context") or [])[:3],
-                "tickers_spotlighted": inferred_tickers,
-                "watch_items_stated": (s.get("watch_list") or [])[:2],
-                "scenarios_bull":   "",
-                "scenarios_bear":   "",
-            }
-        registry_episodes.append({
-            "episode":         ep_num,
-            "title":           ep["title"],
-            "date":            ep["date"],
-            "education_topic": ep["education_topic"],
-            "registry":        reg,
-        })
-
-    registry_episodes.sort(key=lambda x: x["episode"], reverse=True)
-
-    # ── Derived outputs ──────────────────────────────────────────────────────
-    recently_spotlighted = []
-    for ep_data in registry_episodes[:3]:
-        for t in ep_data["registry"].get("tickers_spotlighted", []):
-            if t and t not in recently_spotlighted:
-                recently_spotlighted.append(t)
-
-    education_topics_used = [
-        ep_data["education_topic"]
-        for ep_data in registry_episodes
-        if ep_data.get("education_topic")
-    ]
-
-    # ── Human-readable registry text ─────────────────────────────────────────
-    lines = ["=== PAST EPISODE TOPIC REGISTRY — you MUST read and respect this ==="]
-    for ep_data in registry_episodes[:3]:
-        reg = ep_data["registry"]
-        lines.append(f"\n📌 Episode {ep_data['episode']}: \"{ep_data['title']}\" ({ep_data['date']})")
-        topics  = reg.get("topics_deep_dived",  [])
-        tickers = reg.get("tickers_spotlighted", [])
-        watch   = reg.get("watch_items_stated",  [])
-        bull    = reg.get("scenarios_bull", "")
-        bear    = reg.get("scenarios_bear", "")
-        if topics:
-            lines.append(f"  Themes covered in depth: {' | '.join(str(t)[:100] for t in topics[:3])}")
-        if tickers:
-            lines.append(f"  Tickers spotlighted:     {', '.join(tickers[:6])}")
-        if watch:
-            lines.append(f"  Said to watch:           {' | '.join(str(w)[:80] for w in watch[:2])}")
-        if bull:
-            lines.append(f"  Bull scenario stated:    {bull[:120]}")
-        if bear:
-            lines.append(f"  Bear scenario stated:    {bear[:120]}")
-        if ep_data.get("education_topic"):
-            lines.append(f"  Education segment:       {ep_data['education_topic']}")
-
-    lines.append("\nTOPIC FRESHNESS RULES:")
-    lines.append("1. Do NOT use any of the above 'Themes covered in depth' as a Deep Dive topic this week.")
-    lines.append("2. If a past 'Said to watch' item developed into news THIS WEEK, you MAY reference it —")
-    lines.append("   but ONLY if there is material NEW information, and keep it brief.")
-    lines.append("3. Make exactly ONE natural callback to a past episode. One. Not two. One.")
-
-    return {
-        "registry_text":               "\n".join(lines),
-        "recently_spotlighted_tickers": recently_spotlighted,
-        "education_topics_used":        education_topics_used,
-        "recent_themes":                [str(t) for ep_data in registry_episodes[:3]
-                                         for t in (ep_data["registry"].get("topics_deep_dived") or [])],
-    }
 
 
 def _extract_education_topic(script: str) -> str:
@@ -1186,7 +994,7 @@ def _money_values_in(*texts) -> list:
 # delivered Broadcom — a company we already own, which it described as "not
 # currently in the portfolio". Both subjects are fixed here, before either half is
 # written, exactly as the learning topic is.
-def _choose_deep_dive_1(intel: dict, clean, recent_themes=frozenset()) -> dict:
+def _choose_deep_dive_1(intel: dict, clean, recent_themes=frozenset(), exclude_titles=()) -> dict:
     """The most important macro story that is NOT a theme covered in the last few
     episodes. Taking macro[0] blindly put the dollar and the CAD in ep15, ep17 and
     ep18 in a row."""
@@ -1203,12 +1011,14 @@ def _choose_deep_dive_1(intel: dict, clean, recent_themes=frozenset()) -> dict:
             cands.append((_themes_of(n["headline"]),
                           {"title": str(n["headline"]).strip(),
                            "body": clean(n.get("body", ""), 420), "bull": "", "bear": ""}))
+    # Never a story a recent episode already told.
+    cands = [c for c in cands if not any(_desk.same_story(c[1]["title"], x) for x in exclude_titles if x)] or cands
     pick = _pick_fresh(cands, frozenset(recent_themes))
     return pick or {"title": "the biggest market story of the week", "body": "", "bull": "", "bear": ""}
 
 
 def _choose_deep_dive_2(intel: dict, facts: dict, recently_spotlighted: list, clean,
-                        avoid_themes=frozenset()):
+                        avoid_themes=frozenset(), exclude_titles=()):
     """A holding we actually own that this week's news actually touches.
 
     The news items name what we hold in them ("ENB.TO $5,493 CAD"), so the first
@@ -1235,9 +1045,15 @@ def _choose_deep_dive_2(intel: dict, facts: dict, recently_spotlighted: list, cl
 
     cands = []
     for n in intel.get("news", []) or []:
+        head = str(n.get("headline") or "")
+        # Ep22 spotlit Enbridge on the very Saudi oil-storage story the main segment had
+        # just told. The spotlight's news must be a different story on a different theme.
+        if (any(_desk.same_story(head, x) for x in exclude_titles if x)
+                or (_themes_of(head) & frozenset(avoid_themes))):
+            continue
         for tkr in re.findall(r"\b[A-Z]{1,5}(?:\.TO)?\b", str(n.get("exposure") or "")):
             if tkr in positions and tkr not in _LEVERAGE_3X and tkr.upper() not in spot:
-                cands.append((_themes_of(n.get("headline", "")), (tkr, n)))
+                cands.append((_themes_of(head), (tkr, n)))
                 break
     chosen = _pick_fresh(cands, frozenset(avoid_themes))
     if chosen:
@@ -1279,238 +1095,695 @@ def _deep_dive_briefs(dd1: dict, dd2) -> tuple:
     return dd1["title"], b1.strip(), title, brief
 
 
-REGISTRY_CHARS_PER_EPISODE = 5400   # three episodes stay well inside Groq's request limit
-# ── Four-piece generation ────────────────────────────────────────────────────
-PIECE_MIN_WORDS = (380, 750, 700, 650)    # a piece under this is asked for once more
-
-SCOPE_OPENING = """━━━ THIS CALL WRITES ONLY THE OPENING ━━━
-Write ONLY the [WELCOME] and the [RECAP] described above. Aim for 450 to 600 words.
-Stop at the end of the recap on a line where SAM turns to Deep Dive 1 — do not start
-Deep Dive 1 itself, and do not sign off. Deep Dive 1 is written next and joined straight on.
-
-Write the opening now:"""
-
-SCOPE_DIVE1 = """━━━ THIS CALL WRITES ONLY DEEP DIVE 1 ━━━
-The welcome and the recap are already written. This is how they ended:
-{before}
-
-Write ONLY [DEEP DIVE 1] as described above. Begin directly with its first line — no greeting,
-no agenda, no recap of the week. Aim for 900 to 1,100 words: walk through the mechanism one step
-at a time, give a second everyday example, let SAM push back and put it in his own words, and
-spend a turn on what it means for a long-term investor. Keep the 4-numbers-per-turn limit and say
-every fact once. NEVER add dates, events, figures or invented details to fill time.
-Do NOT close the episode, sign off or say "stay tuned" — Deep Dive 2 is joined straight onto your
-last line. Stop mid-conversation on a Deep Dive 1 line.
-
-Write Deep Dive 1 now:"""
-
-SCOPE_DIVE2 = """━━━ THIS CALL WRITES ONLY DEEP DIVE 2 ━━━
-Write ONLY [DEEP DIVE 2] as described above. Do NOT start the learning segment, the scenarios
-or the closing — they are written next and joined straight onto your last line. Aim for 850 to
-1,000 words: explain how the business works and what the news means for it one step at a time,
-give a second everyday example, and let SAM push back and put it in his own words. Keep the
-4-numbers-per-turn limit and say every fact once. NEVER add dates, events, figures or invented
-details to fill time. Stop mid-conversation on a Deep Dive 2 line; do not sign off.
-
-Write Deep Dive 2 now:"""
-
-SCOPE_CLOSE = """━━━ THIS CALL WRITES ONLY THE LAST THREE SEGMENTS ━━━
-Deep Dive 2 is already written (see above). Write ONLY the [LEARNING SEGMENT] (with its
-[EDUCATION_TOPIC: ...] marker line), the [SCENARIOS] and the [CLOSING], as described above.
-Aim for 750 to 950 words: teach the learning topic over several turns with a simple example and
-SAM's questions, then the three scenarios, then the close. Keep the 4-numbers-per-turn limit and
-say every fact once. NEVER add dates, events, figures or invented details to fill time.
-
-Write the last three segments now:"""
-
-
-def _scoped(prompt: str, scope: str) -> str:
-    """Swap a half-prompt's own length and ending instructions for one piece's scope."""
-    cut = prompt.rfind("\nLENGTH:")
-    return (prompt[:cut] if cut >= 0 else prompt).rstrip() + "\n\n" + scope
-
-
-def _tail(text: str, chars: int = 900) -> str:
-    lines = [l[5:].strip() for l in text.split("\n") if l.strip().startswith(("ALEX:", "SAM:"))]
-    return " ".join(lines[-8:])[-chars:]
-
-
-def _groq_part(api_key: str, build, label: str, editor_notes: str, min_words: int) -> str:
-    """One piece of the script. A piece that comes back short is asked for again,
-    once, with the shortfall stated, but only while the run's Groq budget allows.
-    The longer draft is kept."""
-    text = _groq_call(api_key, build(editor_notes), label, max_tokens=3200)
+def _groq_part(api_key: str, build, label: str, editor_notes: str, min_words: int,
+               max_tokens: int = 3200) -> str:
+    """One segment. A segment that comes back short is asked for again, once, with the
+    shortfall stated, but only while the run's Groq budget allows. The longer draft is kept."""
+    text = _groq_call(api_key, build(editor_notes), label, max_tokens=max_tokens)
     n = len(text.split())
     if n >= min_words:
         return text
-    if not groq_budget_allows(PIECE_COST_ESTIMATE):
+    if not groq_budget_allows(SEGMENT_COST_ESTIMATE):
         print(f"     {label} is {n:,} words, but the run's Groq budget is reserved — keeping it")
         return text
     print(f"     {label} is {n:,} words, under {min_words:,} — asking for a fuller version")
-    note = (f"LENGTH FIX: your last draft of this piece was only {n:,} words. Write at least "
-            f"{min_words + 150:,} words: slow the explanations down, add a second everyday example, "
-            f"let SAM ask more follow-up questions and put things in his own words. Do NOT add "
-            f"figures, dates or events to get there.\n")
+    note = (f"LENGTH FIX: your last draft of this segment was only {n:,} words. Write at least "
+            f"{min_words + 100:,} words: slow the explanation down, give SAM more of the listener's "
+            f"questions, and go one step deeper. Do NOT add figures, dates or events to get there.\n")
     try:
         again = _groq_call(api_key, build((editor_notes or "") + "\n" + note), label + " (fuller)",
-                           max_tokens=3200)
+                           max_tokens=max_tokens)
     except GroqDailyLimit:
         raise
-    except Exception as exc:  # noqa: BLE001  the shorter draft is still a usable episode
+    except Exception as exc:  # noqa: BLE001  the shorter draft is still usable
         print(f"     ⚠ fuller {label} failed ({str(exc)[:80]}) — keeping the first draft")
         return text
     return again if len(again.split()) > n else text
 
 
-PIECE_COST_ESTIMATE   = 7_000     # tokens for one piece (prompt + answer), measured high
-ATTEMPT_COST_ESTIMATE = 4 * PIECE_COST_ESTIMATE
+# ── Episode plan: everything decided BEFORE the model writes a word ─────────
+MEMORY_FILE = DATA_DIR / "podcast_memory.json"
+
+# (key, template, min words, max_tokens). A segment that comes back under its
+# minimum is asked for once more (budget permitting); max_tokens leaves room for
+# the answer while keeping each request well inside Groq's 8,000-token limit.
+SEGMENTS = (
+    ("opening",   SEG_OPENING,   200, 1600),
+    ("desk",      SEG_DESK,      430, 2400),
+    ("main",      SEG_MAIN,      580, 2600),
+    ("around",    SEG_AROUND,    370, 2200),
+    ("learning",  SEG_LEARNING,  320, 2000),
+    ("scenarios", SEG_SCENARIOS, 420, 2400),
+)
+SEGMENT_KEYS = tuple(s[0] for s in SEGMENTS)
+SEGMENT_TITLES = {"opening": "the opening", "desk": "the portfolio this week",
+                  "main": "the main story", "around": "around the portfolio",
+                  "learning": "the learning segment", "scenarios": "scenarios and the close"}
+ANALOGY_SEGMENTS = ("main", "learning")      # the only places a comparison is allowed
+REPAIR_ROUNDS    = 2
+SEGMENT_COST_ESTIMATE = 6_000                 # tokens for one segment call, measured high
 
 
-def generate_script(intel: dict, snapshot: dict, old_meta: dict, api_key: str,
-                    computed_holdings: list, registry: dict,
-                    cash_positions: list = None, feedback: str = "") -> tuple[str, dict]:
-    now     = datetime.now(timezone.utc)
-    today   = now.strftime("%A, %B %d, %Y")
-    week    = _week_trading_range(now)
-    # Fixed before either half is written, so the agenda in Part 1 and the
-    # segment in Part 2 cannot disagree.
-    education_topic = _choose_education_topic(registry.get("education_topics_used", []))
-    print(f"     Learning segment fixed up front: {education_topic}")
+def _fetch_sp500() -> dict:
+    """{YYYY-MM-DD: close} for the S&P 500 over the last two months, or {}."""
+    try:
+        r = requests.get("https://query2.finance.yahoo.com/v8/finance/chart/%5EGSPC",
+                         params={"interval": "1d", "range": "2mo"},
+                         headers={"User-Agent": "Mozilla/5.0"}, timeout=12)
+        r.raise_for_status()
+        res = r.json()["chart"]["result"][0]
+        closes = res["indicators"]["quote"][0]["close"]
+        out = {}
+        for ts, c in zip(res["timestamp"], closes):
+            if c:
+                out[datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")] = float(c)
+        return out
+    except Exception as exc:
+        print(f"  ⚠ S&P 500 history unavailable ({exc}) — no scorecard this week")
+        return {}
 
-    # The briefing is the model's only window on the world, and it has contained
-    # wrong-direction currency statements ("a stronger USD ... pressuring the
-    # portfolio's USD-heavy exposure"), which the model then repeated. Drop those
-    # sentences before the model sees them.
-    removed_fx: list = []
 
-    def clean(text, limit=300):
-        c, gone = scrub_fx_sentences(str(text or ""), strict_wording=True)
-        removed_fx.extend(gone)
-        # ...and anything explaining how leveraged funds work or decay: the listener
-        # knows, and a briefing sentence about it is a prompt to say it again.
-        c = " ".join(x for x in _split_sentences(c) if not _LEVERAGE_TALK.search(x))
-        return c[:limit]
+def _close_on_or_before(series: dict, date: str):
+    keys = [d for d in sorted(series) if d <= date]
+    return (keys[-1], series[keys[-1]]) if keys else (None, None)
 
-    mood    = intel.get("market_mood", "neutral").upper()
-    outlook = clean(intel.get("daily_outlook", ""), 300)
-    macro   = "\n".join(f"• {m['title']} [{m.get('impact','?')}]: {clean(m.get('body',''), 300)}"
-                        for m in intel.get("macro", [])[:3])
-    news    = "\n".join(f"• {n['headline']}: {clean(n.get('body',''), 250)} | "
-                        f"What we own in it: {n.get('exposure','')[:100]}"
-                        for n in intel.get("news", [])[:4])
-    # Labelled explicitly as NOT owned. Episode 16 had Sam say "we've got a lot of
-    # exposure to other energy names — Enbridge, Canadian Natural", but Canadian
-    # Natural was a suggestion in this list, never a holding.
-    picks   = "\n".join(f"• {p['ticker']} ({COMPANY_NAMES.get(p['ticker'], p['ticker'])}) "
-                        f"— an IDEA, NOT OWNED: {clean(p.get('thesis',''), 200)}"
-                        for p in intel.get("picks", [])[:3])
-    strategy = "\n".join(f"• {clean(s['text'], 200)}" for s in intel.get("strategy_short", [])[:3])
 
-    # Registry-derived context
-    registry_context     = registry.get("registry_text", "No previous episodes — fresh start.")
-    recently_spotlighted = registry.get("recently_spotlighted_tickers", [])
-    education_used       = registry.get("education_topics_used", [])
-    if education_used:
-        education_topics_str = "\n".join(f"  • {t}" for t in education_used)
+def _fetch_settings() -> dict:
+    try:
+        r = requests.get(SETTINGS_API, timeout=10)
+        r.raise_for_status()
+        return r.json()
+    except Exception as exc:
+        print(f"  ⚠ settings fetch failed: {exc}")
+        return {}
+
+
+def _clean_briefing(text, limit, sink: list):
+    """The briefing is the model's only window on the world. Drop wrong-direction
+    currency sentences and leverage explainers before the model sees them."""
+    c, gone = scrub_fx_sentences(str(text or ""), strict_wording=True)
+    sink.extend(gone)
+    c = " ".join(x for x in _split_sentences(c) if not _LEVERAGE_TALK.search(x))
+    return c[:limit]
+
+
+def _intel_titles(intel: dict) -> list:
+    return [str(x.get(k) or "") for src, k in (("macro", "title"), ("news", "headline"))
+            for x in (intel or {}).get(src) or [] if x.get(k)]
+
+
+def _recent_context(old_meta: dict, memory: dict, ep_num: int, past_scripts: dict,
+                    intel_for_context: dict = None) -> dict:
+    """What recent episodes covered — from the memory file, bootstrapped from the
+    metadata archive and the saved transcripts for episodes made before it existed."""
+    mem_recent = _desk.recent(memory, ep_num, 4)
+    metas = ([old_meta] if old_meta.get("episode") else []) + list(old_meta.get("archive") or [])
+    edu = [m.get("education_topic") for m in metas if m.get("education_topic")]
+    edu += [e.get("learning_topic") for e in mem_recent if e.get("learning_topic")]
+    themes, headlines, spotlit, analogies = set(), [], [], []
+    for e in mem_recent[-3:]:
+        themes |= set((e.get("main_story") or {}).get("themes") or [])
+        headlines += [(e.get("main_story") or {}).get("title", "")] + list(e.get("quick_hits") or [])
+        if e.get("spotlight"):
+            spotlit.append(e["spotlight"])
+    for m in metas[:3]:
+        themes |= set(_themes_of(m.get("title", "")))
+        for item in ((m.get("summary") or {}).get("position_spotlight") or []):
+            for tkr, name in COMPANY_NAMES.items():
+                if (tkr in item or name.lower() in item.lower()) and tkr not in spotlit:
+                    spotlit.append(tkr)
+    for e in mem_recent:
+        analogies += [a for a in (e.get("analogies") or []) if a not in analogies]
+    for n in sorted(past_scripts)[-4:]:
+        analogies += [a for a in _desk.extract_analogies(past_scripts[n]) if a not in analogies]
+    last = _desk.last_episode(memory, ep_num)
+    # Episodes made before the memory file existed: a headline is "already told" if
+    # nearly all of its distinctive words were spoken in one of the last two episodes
+    # (ep22 read "Saudi Arabia to store oil in Singapore…" out in its agenda).
+    # Only the opening, where the agenda names the episode's actual subjects — a word
+    # mentioned in passing an hour in ("tariff talks") does not make a story "told".
+    recent_text = [past_scripts[n][:1500].lower() for n in sorted(past_scripts)[-2:]]
+    for title in _intel_titles(intel_for_context):
+        words = [w for w in re.findall(r"[a-z]{4,}", title.lower()) if w not in _desk._STOPWORDS]
+        if len(words) >= 4 and any(sum(w in t for w in words) / len(words) >= 0.8 for t in recent_text):
+            headlines.append(title)
+    return {"education_used": edu, "themes": frozenset(themes), "headlines": [h for h in headlines if h],
+            "spotlit": spotlit, "analogies": analogies[:24], "last": last}
+
+
+def _pick_quick_hits(intel: dict, exclude_titles: list, avoid_themes: frozenset, clean, n: int = 2) -> list:
+    """Two short news items: none the same story as the main story, the spotlight
+    or a recent episode's subjects, and not two on the same theme."""
+    cands = []
+    for src, tkey in (("news", "headline"), ("macro", "title")):
+        for it in intel.get(src) or []:
+            title = str(it.get(tkey) or "").strip()
+            if not title or any(_desk.same_story(title, x) for x in exclude_titles):
+                continue
+            if "currency" in _themes_of(title):       # only the portfolio review talks currency
+                continue
+            cands.append({"title": title, "body": clean(it.get("body", ""), 260),
+                          "exposure": str(it.get("exposure") or "")[:100], "themes": _themes_of(title)})
+    picked, used = [], set(avoid_themes)
+    for c in cands:                                   # fresh themes first
+        if not (c["themes"] & used):
+            picked.append(c)
+            used |= c["themes"]
+        if len(picked) == n:
+            return picked
+    for c in cands:                                   # then anything distinct
+        if c not in picked and not any(_desk.same_story(c["title"], p["title"]) for p in picked):
+            picked.append(c)
+        if len(picked) == n:
+            break
+    return picked
+
+
+def _desk_text(facts: dict, ch: dict, sp_week, fx_effect) -> str:
+    """The portfolio segment's facts, rounded for speech."""
+    def m(v):
+        return _say_money(v)
+    L = []
+    d = "up" if ch["change"] >= 0 else "down"
+    L.append(f"Portfolio value: about {m(ch['total_now'])} CAD (data to {ch['latest_date']}).")
+    L.append(f"This week ({ch['days']} days): {d} about {m(ch['change'])} ({d} about {_say_pct(ch['change_pct'])}).")
+    if ch["contrib_added"]:
+        md = "up" if ch["market_change"] >= 0 else "down"
+        L.append(f"New money Christopher added this week: about {m(ch['contrib_added'])}. "
+                 f"So the market itself moved the portfolio {md} about {m(ch['market_change'])}.")
     else:
-        education_topics_str = "  (none yet — first learning segment, all topics available)"
+        L.append("New money added this week: none — the whole change was the market.")
+    L.append(f"Everything contributed since the start: about {m(ch['contrib_total'])}. Total profit on top of "
+             f"that: about {m(ch['pnl_total'])}, about {ch['pnl_pct']:.0f} percent.")
+    if sp_week is not None:
+        L.append(f"The S&P 500 this week: {'up' if sp_week >= 0 else 'down'} about {_say_pct(sp_week)}.")
+    if ch["trades"]:
+        for t in ch["trades"]:
+            nm = _LEVERAGE_NAMES.get(t["ticker"]) or COMPANY_NAMES.get(t["ticker"], t["name"])
+            acct = _desk.ACCOUNT_LABEL.get(t["account"], t["account"])
+            L.append(f"Trade: {t['kind']} {nm} in the {acct} — about {m(t['cad'])}.")
+    else:
+        L.append("Trades this week: none.")
+    dv = ch["dividends"]
+    if dv["count"]:
+        top = _LEVERAGE_NAMES.get(dv["top"]) or COMPANY_NAMES.get(dv["top"], dv["top"])
+        L.append(f"Dividends received: {dv['count']}, about {m(dv['total'])} in total; the biggest from {top}.")
+    else:
+        L.append("Dividends received this week: none.")
+    w = ch["sector_weights"]
+    L.append("Sector mix now: " + ", ".join(f"{_sector_name(s)} about {v:.0f}%" for s, v in list(w.items())[:6]) + ".")
+    if ch["sector_shifts"]:
+        L.append("Biggest sector shifts this week: " + "; ".join(
+            f"{_sector_name(s['sector'])} from about {s['then']:.0f}% to about {s['now']:.0f}%"
+            for s in ch["sector_shifts"]) + ".")
+    else:
+        L.append("The sector mix barely moved this week.")
+    mv = sorted(facts.get("movers") or [], key=lambda x: x["pct"])
+    if mv:
+        up, dn = mv[-1], mv[0]
+        nm = lambda t: _LEVERAGE_NAMES.get(t) or COMPANY_NAMES.get(t, t)
+        if up["pct"] > 0:
+            L.append(f"Best mover: {nm(up['ticker'])}, up about {_say_pct(up['pct'])} (about {m(up['cad'])} for us).")
+        if dn["pct"] < 0:
+            L.append(f"Worst mover: {nm(dn['ticker'])}, down about {_say_pct(dn['pct'])} (about {m(dn['cad'])} for us).")
+    acc = ch["accounts"]
+    L.append("Accounts: " + "; ".join(
+        f"{_desk.ACCOUNT_LABEL.get(a, a)} about {m(v['value'])} ({'up' if v['change'] >= 0 else 'down'} about {m(v['change'])})"
+        for a, v in acc.items()) + ".")
+    house, target = ch["house"]["value"], DOWN_PAYMENT_TARGET
+    L.append(f"The house: FHSA and RRSP together about {m(house)} against the {m(target)} target — "
+             f"about {house / target * 100:.0f}% of the way.")
+    if fx_effect is not None:
+        L.append(f"Currency: USD/CAD went from about {ch['usdcad_then']:.3f} to about {ch['usdcad_now']:.3f}, "
+                 f"a move of about {abs(ch['fx_cents']):.1f} cents — "
+                 f"worth about {m(fx_effect)} {'more' if ch['fx_cents'] > 0 else 'less'} in Canadian dollars "
+                 f"for our US holdings.")
+    return "\n".join("- " + x for x in L)
 
-    # Build fully dynamic portfolio context — live holdings + snapshot prices + cash
-    snaps = snapshot.get("snapshots", {})
-    portfolio_ctx, portfolio_facts = _build_portfolio_context(
-        computed_holdings, snaps, cash_positions)
-    # Themes of the last few episodes, so neither deep dive repeats them.
-    recent_titles = [old_meta.get("title", "")] + [a.get("title", "")
-                                                   for a in (old_meta.get("archive") or [])[:2]]
-    recent_themes = frozenset().union(*[_themes_of(t) for t in recent_titles
-                                        + list(registry.get("recent_themes", [])) if t])
-    dd1 = _choose_deep_dive_1(intel, clean, recent_themes)
-    dd2 = _choose_deep_dive_2(intel, portfolio_facts, recently_spotlighted, clean,
-                              recent_themes | _themes_of(dd1["title"]))
-    dd1_title, dd1_brief, dd2_title, dd2_brief = _deep_dive_briefs(dd1, dd2)
-    if portfolio_facts:
-        # Dollar amounts the briefing itself supplied are figures the script may cite.
-        # Those tied to a holding ("TSLA $7,480 CAD") count only where that holding is
-        # named; the rest are free-standing.
-        pairs  = _position_pairs_in(news)
-        paired = {v for vs in pairs.values() for v in vs}
-        portfolio_facts["intel_money"] = [v for v in _money_values_in(outlook, macro, news, picks, strategy)
-                                          if v not in paired]
-        portfolio_facts["intel_positions"] = pairs
-        # Every number the model was shown, so a market statistic outside this set is
-        # known to be invented. Thousands separators are removed first so "5,493"
-        # is one number and not "5" and "493".
-        shown = " ".join([portfolio_ctx, outlook, macro, news, picks, strategy,
-                          dd1_brief, dd2_brief])
-        shown = re.sub(r"(?<=\d),(?=\d{3})", "", shown)
-        portfolio_facts["allowed_numbers"] = sorted({float(x) for x in re.findall(r"\d+(?:\.\d+)?", shown)})
 
-    print(f"     Deep Dive 1 fixed: {dd1_title[:80]}")
-    print(f"     Deep Dive 2 fixed: {dd2_title[:80]}")
-    if removed_fx:
-        print(f"  ✓ Removed {len(set(removed_fx))} briefing sentence(s) with the currency "
-              f"direction wrong before prompting")
+_SECTOR_SPOKEN = {"Leveraged ETF": "leveraged funds", "Technology": "technology", "Financials": "financials",
+                  "Energy": "energy", "Consumer Disc.": "consumer discretionary",
+                  "Comm. Services": "communication services", "Consumer Staples": "consumer staples",
+                  "Crypto": "crypto", "Unknown": "other", "Other": "other"}
 
-    editor_notes = feedback or ""
-    # Ep18 told listeners "the CPI release is today". The briefing it read was written
-    # on the Friday and the episode aired the following Monday, so "today" in the
-    # briefing meant a different day. Say so.
+
+def _sector_name(s: str) -> str:
+    return _SECTOR_SPOKEN.get(s, str(s).lower())
+
+
+def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts, ep_num, now=None) -> dict:
+    """Choose every subject and compute every number. The model only writes."""
+    now = now or datetime.now(timezone.utc)
+    removed_fx: list = []
+    clean = lambda t, n=300: _clean_briefing(t, n, removed_fx)
+    snaps = (snapshot or {}).get("snapshots", {})
+    holdings = settings.get("computed_holdings") or []
+    _, facts = _build_portfolio_context(holdings, snaps, settings.get("cash_positions") or [])
+    rc = _recent_context(old_meta, memory, ep_num, past_scripts, intel)
+
+    # ── The learning topic: keep last week's promise if there was one ──
+    promised = (rc["last"] or {}).get("next_learning_topic")
+    used = rc["education_used"]
+    if promised and not any(str(promised).lower() == str(u).lower() for u in used):
+        topic = promised
+    else:
+        topic = _choose_education_topic(used)
+    next_topic = _choose_education_topic(used + [topic])
+
+    # ── Subjects: one main story, a spotlight and two quick hits, all distinct ──
+    # Currency is never the main story: the listener asked to hear less about the
+    # exchange rate, and the portfolio review covers it whenever it actually moves.
+    main = _choose_deep_dive_1(intel, clean, rc["themes"] | {"currency"}, exclude_titles=rc["headlines"])
+    spot = _choose_deep_dive_2(intel, facts, rc["spotlit"], clean,
+                               rc["themes"] | _themes_of(main["title"]),
+                               exclude_titles=[main["title"]] + rc["headlines"])
+    quick = _pick_quick_hits(intel, [main["title"]] + ([spot["headline"]] if spot and spot.get("headline") else [])
+                             + rc["headlines"], _themes_of(main["title"]) | rc["themes"], clean)
+
+    # ── The portfolio week ──
+    dates = [d for d in sorted(snaps) if (snaps[d] or {}).get("holdings_prices")]
+    ch = (_desk.portfolio_changes(settings, snaps, facts["baseline_date"], facts["latest_date"])
+          if facts and len(dates) >= 2 else None)
+    sp = _fetch_sp500()
+    sp_week = None
+    if sp and ch:
+        _, a = _close_on_or_before(sp, ch["baseline_date"])
+        _, b = _close_on_or_before(sp, ch["latest_date"])
+        sp_week = round((b / a - 1) * 100, 2) if a and b else None
+    sp_date, sp_close = _close_on_or_before(sp, (ch or {}).get("latest_date") or now.strftime("%Y-%m-%d"))
+    fx_on = bool(ch) and _desk.fx_is_newsworthy(ch)
+    fx_effect = None
+    if fx_on and facts.get("fx_table"):
+        per_cent = float(facts["usd_notional"]) * 0.01
+        fx_effect = round(per_cent * abs(ch["fx_cents"]))
+    main_is_fx = "currency" in _themes_of(main["title"] + " " + main["body"])
+    fx_owner = "desk" if fx_on else ("main" if main_is_fx else None)
+
+    # ── Last week, scored from data ──
+    score = _desk.score_last_week(rc["last"], sp_close) if rc["last"] else None
+    if score and score.get("probability") is not None:
+        verb = "rose" if score["move_pct"] > 0 else "fell"
+        previously = (f"Last episode set three scenarios for the week. What happened: the S&P 500 {verb} about "
+                      f"{_say_pct(abs(score['move_pct']))}, so the {score['label']} played out — we had given it "
+                      f"{score['probability']} percent. Give that verdict in one or two lines, honestly; if the call "
+                      f"was wrong, say so with good humour. ")
+    elif rc["last"]:
+        previously = "Do not score last week's scenarios (no data). "
+    else:
+        previously = ("This is the first episode in the show's new format. In one line, say the show has a new "
+                      "shape from this week: a proper look at the portfolio, one main story, quick hits from "
+                      "around the portfolio, and scenarios that get scored the following week. ")
+    if rc["last"] and rc["last"].get("next_learning_topic") == topic:
+        previously += f"Then one line: last week we promised to explain {topic} — today we do."
+
+    hook = _hook(ch, facts, main)
+    rundown = ", ".join(["the portfolio this week", f"the main story — {_short(main['title'])}",
+                         "around the portfolio" + (f", with a spotlight on {spot['name']}" if spot else ""),
+                         f"the learning segment — {topic}", "and our scenarios for the week ahead"])
+    frame = _desk.scenario_frame(facts.get("index_table") or {})
+    frame_text = "\n".join(
+        f"- {f['label']}: {f['condition']}. For us: about {_say_money(f['effect'])} ({f['effect_note']})."
+        if f["effect"] else f"- {f['label']}: {f['condition']}. For us: describe the effect as small." for f in frame)
+    drivers = "; ".join([_short(main["title"])] + [_short(q["title"]) for q in quick]) or "the week's news"
+    upcoming = _upcoming_event([main] + quick)
+    next_week = (f"say in one or two lines what is coming next week: the learning segment will be on {next_topic}"
+                 + (f", and we will see how {upcoming} turned out" if upcoming else "")
+                 + ". Promise nothing else.")
+
+    exposure = _exposure_line(main, intel, facts)
+    items = []
+    for i, q in enumerate(quick, 1):
+        items.append(f"{i}. NEWS — {q['title']}: {q['body']}"
+                     + (f" | What we own in it: {q['exposure']}" if q["exposure"] else " | We own nothing directly in it."))
+    if spot:
+        size = (f"we own about {_say_money(spot['cad'])} of it, about {_say_pct(spot['share'])} of the portfolio, "
+                f"in the {' and '.join(_desk.ACCOUNT_LABEL.get(a, a) for a in spot['accounts']) or 'portfolio'}")
+        news = (f"The news: {spot['headline']} — {spot['body']}" if spot["headline"]
+                else "No news on it this week — explain the business and why we own it, nothing more.")
+        items.append(f"{len(items) + 1}. HOLDING SPOTLIGHT — {spot['name']}: {size}. {news} "
+                     f"Invent no announcement, buyback, number, date or earnings.")
+
+    desk = _desk_text(facts, ch, sp_week, fx_effect) if ch else (
+        "- Portfolio data is unavailable this week. Say so in one line and keep the review short; state no figures.")
+
+    # Figures the checker must accept, because the prompt supplied them.
+    if facts and ch:
+        extra_money = [ch["contrib_added"], ch["market_change"], ch["contrib_total"], ch["pnl_total"],
+                       ch["dividends"]["total"], ch["house"]["value"], DOWN_PAYMENT_TARGET,
+                       *[t["cad"] for t in ch["trades"]], *[v["value"] for v in ch["accounts"].values()],
+                       *[v["change"] for v in ch["accounts"].values()], *(f["effect"] for f in frame if f["effect"])]
+        if fx_effect:
+            extra_money.append(fx_effect)
+        extra_pct = [ch["pnl_pct"], ch["market_pct"], ch["house"]["value"] / DOWN_PAYMENT_TARGET * 100,
+                     *ch["sector_weights"].values(), *[s["then"] for s in ch["sector_shifts"]],
+                     *[s["now"] for s in ch["sector_shifts"]]]
+        if sp_week is not None:
+            extra_pct.append(abs(sp_week))
+        if score:
+            extra_pct.append(abs(score["move_pct"]))
+        facts["extra_money"] = [abs(float(x)) for x in extra_money if x]
+        facts["extra_pct"] = [abs(float(x)) for x in extra_pct if x]
+
     try:
         bdate = datetime.fromisoformat(str(intel.get("generated_at")).replace("Z", "+00:00"))
-        briefing_note = (f"(This briefing was written on {bdate.strftime('%A, %B %d')}; this episode "
-                         f"airs on {now.strftime('%A, %B %d')}. \"Today\", \"tonight\" and \"later today\" "
-                         f"in it mean THAT day — never repeat them as if they were now.)\n")
+        briefing_note = (f"The news was written on {bdate.strftime('%A, %B %d')}; \"today\" or \"tonight\" in it "
+                         f"means that day, not now.")
     except Exception:
         briefing_note = ""
 
-    p1 = lambda notes: SCRIPT_PROMPT_PART1.format(
-        editor_notes=notes, today=today, week_range=week, mood=mood,
-        briefing_note=briefing_note,
-        registry_context=registry_context, outlook=outlook, macro=macro, news=news,
-        portfolio=portfolio_ctx,
-        dd1_title=dd1_title, dd1_brief=dd1_brief, dd2_title=dd2_title,
-        education_topic=education_topic)
-    p2 = lambda notes, before: SCRIPT_PROMPT_PART2.format(
-        editor_notes=notes, today=today, dive1_summary=before,
-        briefing_note=briefing_note,
-        news=news, picks=picks, strategy=strategy, portfolio=portfolio_ctx,
-        dd2_title=dd2_title, dd2_brief=dd2_brief,
-        education_topic=education_topic, education_topics_used=education_topics_str)
+    plan = {
+        "ep_num": ep_num, "today": now.strftime("%A, %B %d, %Y"), "briefing_note": briefing_note,
+        "facts": facts, "changes": ch, "topic": topic, "next_topic": next_topic,
+        "main": main, "spot": spot, "quick": quick, "fx_owner": fx_owner,
+        "banned_analogies": rc["analogies"], "score": score,
+        "sp500": {"close": sp_close, "date": sp_date, "week_pct": sp_week},
+        "held_line": ", ".join(sorted((facts.get("positions") or {}).keys())) or "(unavailable)",
+        "fields": {
+            "opening":   {"hook": hook, "previously": previously, "rundown": rundown},
+            "desk":      {"desk": desk, "fx_instruction": (
+                "6. Currency — in no more than two sentences, from the Currency line above." if fx_owner == "desk" else "")},
+            "main":      {"title": main["title"], "brief": main["body"] or "(no detail beyond the headline)",
+                          "exposure": exposure},
+            "around":    {"items": "\n".join(items) or "No other news this week: one short look at the biggest holding.",
+                          "count": ["One", "One", "Two", "Three", "Four"][min(len(items), 4)],
+                          "plural": "" if len(items) <= 1 else "s"},
+            "learning":  {"topic": topic},
+            "scenarios": {"frame": frame_text, "drivers": drivers, "next_week": next_week},
+        },
+    }
+    shown = " ".join([desk, main["body"], exposure, plan["fields"]["around"]["items"], frame_text, hook])
+    shown = re.sub(r"(?<=\d),(?=\d{3})", "", shown)
+    if facts:
+        facts["allowed_numbers"] = sorted({float(x) for x in re.findall(r"\d+(?:\.\d+)?", shown)}
+                                          | set(facts.get("allowed_numbers") or []))
+        # A briefing figure tied to a holding ("TSLA $7,480 CAD") is valid only in a
+        # sentence naming that holding; the rest may be said anywhere.
+        pairs = _position_pairs_in(plan["fields"]["around"]["items"] + " " + exposure)
+        paired = {v for vs in pairs.values() for v in vs}
+        facts["intel_positions"] = pairs
+        facts["intel_money"] = [v for v in _money_values_in(main["body"], plan["fields"]["around"]["items"])
+                                if v not in paired]
+    if removed_fx:
+        print(f"  ✓ Removed {len(set(removed_fx))} briefing sentence(s) with the currency direction wrong")
+    print(f"     Main story:  {main['title'][:80]}")
+    print(f"     Spotlight:   {spot['name'] if spot else '—'}")
+    print(f"     Quick hits:  {' | '.join(q['title'][:50] for q in quick) or '—'}")
+    print(f"     Learning:    {topic}  (next week: {next_topic})")
+    print(f"     Currency:    {'segment ' + fx_owner if fx_owner else 'not discussed (moved under a cent)'}")
+    if score:
+        print(f"     Scorecard:   S&P {score['move_pct']:+.2f}% → {score['label']} (called {score.get('probability')}%)")
+    return plan
 
-    # Four calls, each asking for a length this model actually writes. Asked for
-    # 1,400-1,800 words in one go, gpt-oss-120b stopped at 700-1,200 every time
-    # (2026-10-12: 834 and 686, then 1,223 and 975 when asked again), so the
-    # episode came out at ten minutes. One section per call fixes the length
-    # without loosening the 4-figures-per-turn cap.
-    print("     Generating piece 1/4 (Welcome + Recap)...")
-    a = _groq_part(api_key, lambda n: _scoped(p1(n), SCOPE_OPENING), "Piece 1", editor_notes, PIECE_MIN_WORDS[0])
-    print("     Generating piece 2/4 (Deep Dive 1)...")
-    b = _groq_part(api_key, lambda n: _scoped(p1(n), SCOPE_DIVE1.format(before=_tail(a))),
-                   "Piece 2", editor_notes, PIECE_MIN_WORDS[1])
-    part1 = _stitch_parts(a, b)
 
-    dive1_lines = [l for l in part1.split('\n') if l.strip().startswith(('ALEX:', 'SAM:'))]
-    agenda      = next((l[5:].strip() for l in dive1_lines[:4]
-                        if re.search(r"unpacking|covering|this week we", l, re.I)), "")
-    dive1_last  = ((f"TOPICS PART 1 ACTUALLY COVERED: {agenda}\n" if agenda else "")
-                   + f"HOW PART 1 ENDED — continue straight out of this: {_tail(part1)}")
+def _short(title: str, n: int = 9) -> str:
+    words = re.sub(r"\s+", " ", str(title or "")).strip().split(" ")
+    return " ".join(words[:n]) + ("…" if len(words) > n else "")
 
-    print("     Generating piece 3/4 (Deep Dive 2)...")
-    c = _groq_part(api_key, lambda n: _scoped(p2(n, dive1_last), SCOPE_DIVE2),
-                   "Piece 3", editor_notes, PIECE_MIN_WORDS[2])
-    dive2_last = (f"{dive1_last}\nDEEP DIVE 2 IS ALSO WRITTEN. HOW IT ENDED — continue straight out of this: "
-                  f"{_tail(c)}")
-    print("     Generating piece 4/4 (Learning + Scenarios + Close)...")
-    d = _groq_part(api_key, lambda n: _scoped(p2(n, dive2_last), SCOPE_CLOSE)
-                   .replace("Begin directly with Deep Dive 2's hook.",
-                            "Deep Dive 2 is already written. Begin directly with the learning segment."),
-                   "Piece 4", editor_notes, PIECE_MIN_WORDS[3])
-    part2 = _stitch_parts(c, d)
 
-    full = _stitch_parts(part1, part2)
-    print(f"  ✓ Full script: {len(full.split()):,} words in four pieces "
-          f"(Groq tokens so far this run: {groq_tokens_used():,})")
-    return full, portfolio_facts
+def _hook(ch, facts, main) -> str:
+    """The cold open's subject: the single most striking portfolio fact this week."""
+    if not ch:
+        return f"this week's main story — {_short(main['title'])}."
+    opts = []
+    if ch["contrib_added"] and (ch["change"] >= 0) != (ch["market_change"] >= 0):
+        opts.append(f"the portfolio is {'up' if ch['change'] >= 0 else 'down'} on the week only because of new money "
+                    f"— the market itself moved it {'up' if ch['market_change'] >= 0 else 'down'}.")
+    if ch["new_tickers"]:
+        opts.append(f"a brand-new name joined the portfolio this week: "
+                    f"{', '.join(COMPANY_NAMES.get(t, t) for t in ch['new_tickers'])}.")
+    if ch["exited_tickers"]:
+        opts.append(f"something left the portfolio this week: {', '.join(COMPANY_NAMES.get(t, t) for t in ch['exited_tickers'])}.")
+    mv = sorted(facts.get("movers") or [], key=lambda x: -abs(x["pct"]))
+    if mv and abs(mv[0]["pct"]) >= 8:
+        t = mv[0]
+        opts.append(f"{_LEVERAGE_NAMES.get(t['ticker']) or COMPANY_NAMES.get(t['ticker'], t['ticker'])} "
+                    f"{'jumped' if t['pct'] > 0 else 'dropped'} about {_say_pct(abs(t['pct']))} in a week.")
+    if ch["sector_shifts"] and abs(ch["sector_shifts"][0]["pp"]) >= 1.5:
+        s = ch["sector_shifts"][0]
+        opts.append(f"{_sector_name(s['sector'])} went from about {s['then']:.0f}% to about {s['now']:.0f}% of the portfolio in a week.")
+    return opts[0] if opts else f"this week's main story — {_short(main['title'])}."
+
+
+def _upcoming_event(stories: list):
+    """A story covered THIS episode whose news says something is still to come — so
+    next week's tease follows up on something the listener has actually heard."""
+    rx = re.compile(r"\b(?:next week|upcoming|due (?:on|next)|scheduled|will (?:report|release|announce|meet|decide))\b", re.I)
+    for st in stories:
+        if rx.search(str(st.get("body") or "")):
+            return f"the {_short(st.get('title', ''), 7)} story"
+    return None
+
+
+def _exposure_line(main: dict, intel: dict, facts: dict) -> str:
+    for it in (intel.get("news") or []):
+        if str(it.get("headline") or "").strip() == main["title"] and it.get("exposure"):
+            return str(it["exposure"])[:120]
+    themes = _themes_of(main["title"] + " " + main["body"])
+    hits = [COMPANY_NAMES.get(t, t) for t in (facts.get("positions") or {})
+            if any(t in _SECTORS.get(s, ()) for s in _THEME_SECTORS.get(next(iter(themes), ""), ()))]
+    return ", ".join(hits[:5]) or "nothing directly — explain the indirect link in words, or say there isn't one"
+
+
+_THEME_SECTORS = {"oil & energy": ("Energy",), "banks & financials": ("Financials",),
+                  "ai & semiconductors": ("Tech", "Leveraged 3x")}
+
+
+# ── Writing a segment ────────────────────────────────────────────────────────
+
+def _segment_prompt(plan: dict, key: str, notes: str, before_tail: str) -> str:
+    template = dict((k, t) for k, t, _, _ in SEGMENTS)[key]
+    elsewhere = []
+    if key not in ("desk",):
+        elsewhere.append("the portfolio review (values, trades, sector mix, accounts)")
+    if key != "main":
+        elsewhere.append(f"the main story ({_short(plan['main']['title'], 7)})")
+    if key != "around":
+        elsewhere.append("the quick news items and the holding spotlight")
+    if key != "learning":
+        elsewhere.append(f"the learning segment ({plan['topic']})")
+    if key != "scenarios":
+        elsewhere.append("the scenarios and what to watch")
+    if key == "opening":
+        elsewhere = ["everything — the opening only names the segments"]
+    banned = ", ".join(plan["banned_analogies"][:16]) or "none yet"
+    analogy_rule = (f"at most ONE short everyday comparison in this segment. Do not reuse any used in recent "
+                    f"episodes: {banned}." if key in ANALOGY_SEGMENTS
+                    else "none in this segment — say things directly, with no metaphors or comparisons.")
+    bible = SHOW_BIBLE.format(
+        editor_notes=notes or "", currency_rule=CURRENCY_RULE_ON if plan["fx_owner"] == key else CURRENCY_RULE_OFF,
+        elsewhere="; ".join(elsewhere), analogy_rule=analogy_rule, today=plan["today"],
+        briefing_note=plan["briefing_note"], held_line=plan["held_line"],
+        continuity=(f"THE PREVIOUS SEGMENT ENDED WITH: {before_tail}\nContinue straight on from it — do not "
+                    f"greet, recap or repeat it." if before_tail else ""))
+    return bible + "\n" + template.format(**plan["fields"][key])
+
+
+def _segment_tail(text: str, n: int = 2) -> str:
+    lines = [l.strip() for l in (text or "").split("\n") if l.strip().startswith(("ALEX:", "SAM:"))]
+    return " ".join(lines[-n:])[-400:]
+
+
+def write_segment(api_key: str, plan: dict, key: str, notes: str, before_tail: str) -> str:
+    _, _, min_words, max_tokens = next(s for s in SEGMENTS if s[0] == key)
+    text = _groq_part(api_key, lambda n: _segment_prompt(plan, key, n, before_tail),
+                      f"Segment {SEGMENT_KEYS.index(key) + 1} ({SEGMENT_TITLES[key]})", notes, min_words,
+                      max_tokens=max_tokens)
+    return _normalize_script(text)
+
+
+# ── Checking a segment on its own ────────────────────────────────────────────
+_FX_TALK = re.compile(
+    r"\b(?:exchange rate|usd\s*/\s*cad|loonie|greenback|currency|currencies"
+    r"|(?:us|u\.s\.|american|canadian)\s+dollar\s+(?:has\s+|got\s+|gets\s+|is\s+|was\s+)?"
+    r"(?:strong|weak|rose|rise|fell|fall|climb|slip|gain|los|firm|soft)\w*"
+    r"|(?:strong|weak)\w*\s+(?:us|u\.s\.|american|canadian)\s+dollar)\b", re.I)
+_WATCH = re.compile(r"\b(?:watch(?:ing)?|keep an eye|keep tabs|monitor(?:ing)?)\b", re.I)
+
+
+def _turn_texts(text: str) -> list:
+    return [t for k, _, t in _iter_script(text) if k == "turn"]
+
+
+def segment_problems(key: str, text: str, plan: dict) -> list:
+    """What is wrong with ONE segment, in words the model can act on."""
+    out, turns = [], _turn_texts(text)
+    sents = [s for t in turns for s in _split_sentences(t)]
+    fx = [s for s in sents if _FX_TALK.search(s)]
+    if plan["fx_owner"] != key and fx:
+        out.append(f"talks about the exchange rate or currency, which is not this segment's subject — remove it: \"{fx[0][:100]}\"")
+    elif plan["fx_owner"] == key and len(fx) > 2:
+        out.append(f"spends {len(fx)} sentences on currency; two at most")
+    n_an = _desk.analogy_count(text)
+    if key not in ANALOGY_SEGMENTS and n_an:
+        out.append("uses an analogy or comparison; this segment must say things directly")
+    elif n_an > 1:
+        out.append(f"uses {n_an} analogies; one at most")
+    reused = set(_desk.extract_analogies(text)) & set(plan["banned_analogies"])
+    if reused:
+        out.append(f"reuses a comparison from a recent episode ({', '.join(sorted(reused))}); find a fresh one or none")
+    if key not in ("main", "scenarios"):
+        w = [s for s in sents if _WATCH.search(s)]
+        if len(w) > 1:
+            out.append(f"tells the listener what to watch {len(w)} times; that belongs in the main story and the scenarios")
+    if key == "opening" and not any("[THEME]" in l for l in text.split("\n")):
+        out.append("is missing the [THEME] line after the cold open")
+    if key == "learning" and not re.search(r"\[EDUCATION_TOPIC:", text, re.I):
+        out.append(f"is missing the first line [EDUCATION_TOPIC: {plan['topic']}]")
+    if key == "scenarios":
+        opened = {m.group(1).lower() for t in turns
+                  for m in [re.match(r"^\W*(base|bull|bear)\s+case\b", t, re.I)] if m}
+        missing = [f"{c} case" for c in ("base", "bull", "bear") if c not in opened]
+        if missing:
+            out.append(f"is missing the {', '.join(missing)} — each case must open its own turn, spoken by "
+                       f"ALEX, starting \"Base case — NN percent:\" (or Bull / Bear)")
+        probs = _desk.scenario_probabilities(text)
+        if len(probs) == 3 and sum(probs.values()) != 100:
+            out.append(f"the scenario odds add up to {sum(probs.values())}, not 100")
+    return out
+
+
+def _locate(problem_msg: str, segs: dict):
+    """Which segment a whole-script problem belongs to, from the sentence it quotes."""
+    m = re.search(r"\"(.{12,}?)(?:\"|$)", problem_msg)
+    if m:
+        frag = re.sub(r"\s+", " ", m.group(1).strip("…").strip())[:50].lower()
+        for k, t in segs.items():
+            if frag and frag in re.sub(r"\s+", " ", t).lower():
+                return k
+    low = problem_msg.lower()
+    if "scenario" in low:
+        return "scenarios"
+    if "agenda" in low or "opening" in low or "marker" in low:
+        return "opening" if "agenda" in low or "opening" in low else "learning"
+    return None
+
+
+def assemble(segs: dict) -> str:
+    """Join the segments, smoothing ONLY the seams: a sign-off or re-greeting at a join
+    is dropped, and when one host would speak twice across a join the two lines become
+    one turn. Turns inside a segment are never merged — merging them once glued three
+    scenario lines into a single turn, which the per-turn figure cap then cut down."""
+    turn = re.compile(r"^(ALEX|SAM):\s*(.*)$")
+    out = []
+    for k in SEGMENT_KEYS:
+        new = [l.strip() for l in segs.get(k, "").split("\n") if l.strip()]
+        if not new:
+            continue
+        if not out:
+            out = new
+            continue
+        # _stitch_parts returns head + a blank line + tail, minus any seam chatter.
+        head, tail = _stitch_parts("\n".join(out), "\n".join(new)).split("\n\n", 1)
+        out = [l for l in head.split("\n") if l.strip()]
+        new = [l for l in tail.split("\n") if l.strip()]
+        first = turn.match(new[0]) if new else None
+        last = turn.match(out[-1]) if out else None
+        if (first and last and first.group(1) == last.group(1)
+                and len(_FIGURE.findall(last.group(2) + " " + first.group(2))) <= FIGURES_PER_TURN_MAX):
+            out[-1] = f"{last.group(1)}: {last.group(2)} {first.group(2)}"
+            new = new[1:]
+        out += new
+    return "\n".join(out)
+
+
+def produce_episode(api_key: str, plan: dict, history=None, log=print):
+    """Write all six segments, then repair only the ones with problems.
+
+    Returns (script, facts, segments) or None. A wrong number spoken with confidence
+    is worse than a missing episode, so a falsehood that survives every repair still
+    blocks publication; anything else is fixed or trimmed, never fatal."""
+    facts, segs = plan["facts"], {}
+    try:
+        tail = ""
+        for k in SEGMENT_KEYS:
+            print(f"     Writing segment {SEGMENT_KEYS.index(k) + 1}/6 — {SEGMENT_TITLES[k]}...")
+            segs[k] = write_segment(api_key, plan, k, "", tail)
+            tail = _segment_tail(segs[k])
+    except GroqDailyLimit as exc:
+        log(f"ERROR: {exc}")
+        return None
+    except Exception as exc:
+        log(f"ERROR: Script generation failed: {exc}")
+        return None
+
+    def problems_by_segment():
+        script = assemble(segs)
+        by = {k: [] for k in SEGMENT_KEYS}
+        global_left = []
+        for p in collect_script_problems(script, facts, history, MIN_SCRIPT_WORDS):
+            k = _locate(p["msg"], segs)
+            (by[k] if k else global_left).append(p)
+        for k in SEGMENT_KEYS:
+            by[k] += [{"kind": "segment", "fatal": False, "retry": True, "msg": m}
+                      for m in segment_problems(k, segs[k], plan)]
+        return script, by, global_left
+
+    for rnd in range(1, REPAIR_ROUNDS + 1):
+        script, by, left = problems_by_segment()
+        st = figure_stats(script)
+        n_fatal = sum(p["fatal"] for ps in by.values() for p in ps) + sum(p["fatal"] for p in left)
+        log(f"  round {rnd}: {st['words']:,} words (~{st['words'] // 150} min), {st['total']} figures; "
+            f"{n_fatal} factual problem(s); " + ", ".join(f"{k} {len(v)}" for k, v in by.items() if v))
+        # A single repeated sentence is cheaper to cut than to rewrite a segment for.
+        redo = [k for k, ps in by.items()
+                if any(p["fatal"] or p["kind"] != "repeat" for p in ps) or sum(p["kind"] == "repeat" for p in ps) >= 2]
+        redo = [k for k in redo if not all(p["kind"] == "length" for p in by[k])]
+        if not redo:
+            break
+        for k in redo:
+            for p in by[k][:5]:
+                log(f"      • [{k}] {p['msg'][:150]}")
+        for k in redo:
+            if not groq_budget_allows(SEGMENT_COST_ESTIMATE):
+                log(f"  ⚠ Groq budget reserved ({groq_tokens_used():,} tokens used) — repairing the rest by trimming")
+                break
+            before = _segment_tail(segs[SEGMENT_KEYS[SEGMENT_KEYS.index(k) - 1]]) if k != "opening" else ""
+            notes = ("EDITOR'S NOTES — your previous draft of THIS segment was rejected. Fix exactly these, "
+                     "and keep to every rule below:\n" + "\n".join(f"- {p['msg']}" for p in by[k][:6]) + "\n")
+            try:
+                new = write_segment(api_key, plan, k, notes, before)
+            except Exception as exc:
+                log(f"  ⚠ rewrite of {k} failed ({str(exc)[:100]}) — keeping the earlier draft")
+                continue
+            old_score = sum(10 if p["fatal"] else 1 for p in by[k])
+            trial = dict(segs, **{k: new})
+            new_score = (sum(10 if p["fatal"] else 1 for p in
+                             [q for q in collect_script_problems(assemble(trial), facts, history)
+                              if _locate(q["msg"], trial) == k])
+                         + len(segment_problems(k, new, plan)))
+            if new_score <= old_score:
+                segs[k] = new
+            else:
+                log(f"  ⚠ rewrite of {k} was worse ({new_score} vs {old_score}) — keeping the earlier draft")
+
+    script = assemble(segs)
+    repaired = _final_repair(script, facts, history, log)
+    if repaired is None:
+        return None
+    return repaired, facts, segs
+
+
+def _final_repair(script: str, facts: dict, history, log=print):
+    """Last resort, after the rewrites: cut what still cannot air."""
+    problems = collect_script_problems(script, facts, history)
+    if any(p["fatal"] for p in problems):
+        script, removed = strip_unsafe_sentences(script, facts)
+        if any(p["fatal"] for p in collect_script_problems(script, facts, history)):
+            log("ERROR: the script still contains unsupported claims after repair — not publishing")
+            return None
+        log(f"  ⚠ Removed {len(removed)} unsafe sentence(s):")
+        for s in removed:
+            log(f"      - {s[:140]}")
+    script, cut_a = strip_unwanted_sentences(script, history)
+    script, cut_b = trim_heavy_turns(script)
+    if cut_a or cut_b:
+        log(f"  ⚠ Cut {len(cut_a) + len(cut_b)} repeated or overloaded sentence(s)")
+    left = collect_script_problems(script, facts, history, MIN_SCRIPT_WORDS)
+    for p in left:
+        log(f"  ⚠ {p['msg'][:150]}")
+    if not left:
+        log("  ✓ Script passes every check")
+    return script
 
 
 # ============================================================
@@ -1849,7 +2122,10 @@ def _verify_ctx(facts: dict) -> dict:
     allowed_money |= {abs(float(v)) for v in (facts.get("account_change") or {}).values()}
     allowed_money |= {abs(float(m.get("cad") or 0)) for m in (facts.get("movers") or [])}
 
+    allowed_money |= {abs(float(v)) for v in (facts.get("extra_money") or [])}
+
     allowed_pct = {abs(gain_pct), abs(float(facts.get("roi_pct") or 0))}
+    allowed_pct |= {abs(float(v)) for v in (facts.get("extra_pct") or [])}
     allowed_pct |= {abs(float(m.get("pct") or 0)) for m in (facts.get("movers") or [])}
 
     # Everything the script was actually GIVEN — the strict "invented figure"
@@ -2105,7 +2381,7 @@ def agenda_problems(script: str) -> list:
             break
         if kind == "turn":
             turns.append(t)
-    opening = " ".join(turns[:6]).lower().replace("\u2011", "-")
+    opening = " ".join(turns[:14]).lower().replace("\u2011", "-")
     hit = sum(1 for w in words if w in opening)
     if hit < max(1, round(0.6 * len(words))):
         return [f'the opening agenda does not name the learning topic "{topic}" — the episode '
@@ -2179,7 +2455,7 @@ _LEVERAGE_TALK = re.compile(
 
 # Lines that legitimately recur every week, so repeating them is not a defect.
 _BOILERPLATE = re.compile(
-    r"welcome back to portfolio pulse|joined as always|as always i'?m joined|joined by sam|i'?m alex|"
+    r"welcome (?:back )?to portfolio pulse|joined as always|as always i'?m joined|joined by sam|i'?m alex|"
     r"thanks for (?:listening|tuning)|catch you next|"
     r"take care, everyone|stay sharp|before we get to our scenarios|that's our learning segment|"
     r"on to scenarios|^(?:base|bull|bear) case", re.I)
@@ -2255,7 +2531,9 @@ def _scan_unwanted(script: str, history=None) -> list:
                 elif any(_similar(toks, t) for t in past):
                     out.append({"turn": ti, "sent": si, "kind": "repeat", "sentence": sent,
                                 "reason": "repeats a sentence from a recent episode"})
-            for m in _FIGURE.finditer(sent.replace("‑", "-")):
+            # Each scenario necessarily restates its threshold ("more than 1.5 percent");
+            # counting it cut ep-redesign's bear case as a "repeat".
+            for m in ([] if _SCENARIO_LINE.search(sent) else _FIGURE.finditer(sent.replace("‑", "-"))):
                 key = re.sub(r"[\s,]", "", m.group(0)).lower()
                 figs[key] = figs.get(key, 0) + 1
                 if figs[key] > REPEAT_FIGURE_LIMIT and not any(
@@ -2390,15 +2668,6 @@ def collect_script_problems(script: str, facts: dict, history=None, min_words: i
     return out
 
 
-def _editor_notes(problems: list, limit: int = 7) -> str:
-    """Turn the problems into instructions for the next attempt. Telling the model
-    exactly what was wrong works far better than regenerating blind."""
-    lines = [f"- {p['msg']}" for p in problems[:limit]]
-    return ("EDITOR'S NOTES — your previous draft of this episode was REJECTED. Fix exactly "
-            "these, in whichever half they concern, and keep to every rule below:\n"
-            + "\n".join(lines) + "\n")
-
-
 # ── Repair: list lines and speaker labels ────────────────────────────────────
 _LIST_ITEM = re.compile(r"^\s*(?:[-*\u2022\u2013]|\d{1,2}[.)])\s+(.*\S)\s*$")
 _ORDINALS  = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth"]
@@ -2471,93 +2740,28 @@ def _normalize_script(script: str) -> str:
             items.append(m.group(1))
             continue
         flush()
+        if s.startswith("[") and s.endswith("]"):          # [THEME], [EDUCATION_TOPIC: …]
+            out.append(s)
+            continue
+        if _HEADING.match(s):                               # "**SCENARIOS**", "## Close", "---"
+            state["ok"] = False
+            continue
+        if state["parent"] is not None and len(s.split()) >= 3 and re.search(r"[a-z]", s):
+            # Unlabelled speech. Episodes 21 and 22 wrote all three scenarios as bare
+            # "Base case — 50 percent: …" lines; the check saw them, but parse_script
+            # only speaks labelled lines, so the listener heard "On to scenarios…" and
+            # then nothing. Give the line to the host who was speaking.
+            speaker = out[state["parent"]].split(":", 1)[0].strip()
+            out.append(f"{speaker}: {re.sub(r'[*_`#]+', '', s).strip()}")
+            state["parent"], state["ok"] = len(out) - 1, True
+            continue
         state["ok"] = False
         out.append(line)
     flush()
     return "\n".join(out)
 
 
-def produce_checked_script(generate, max_attempts: int = 3, log=print, history=None, min_words: int = 0):
-    """Draft, check, and if need be redraft the script. Returns (script, facts) or None.
-
-    generate(feedback) -> (script, facts). Each rejected draft is regenerated WITH
-    the specific reasons it failed, which works far better than regenerating blind.
-    A wrong number spoken with confidence is worse than a missing episode, and it
-    shipped four times before anyone noticed — so the order of preference is:
-
-      1. a draft that passes every check;
-      2. after the attempts are spent, the last draft with each flagged sentence
-         removed (a slightly shorter episode, and nothing flagged is ever aired);
-      3. no episode at all, only if a flagged sentence somehow survives removal.
-
-    Structure and density problems trigger a redraft but never cost the episode.
-    """
-    feedback, script, facts, problems = "", "", {}, []
-    best = None   # (score, script, facts, problems): the draft to fall back on
-    for attempt in range(1, max_attempts + 1):
-        if attempt > 1 and not groq_budget_allows(ATTEMPT_COST_ESTIMATE):
-            log(f"  ⚠ Groq budget for this run is nearly used ({groq_tokens_used():,} tokens) — "
-                f"no more redrafts; repairing the best draft instead")
-            break
-        try:
-            script, facts = generate(feedback)
-        except Exception as exc:
-            if best is None:
-                log(f"ERROR: Script generation failed (attempt {attempt}): {exc}")
-                return None
-            # A redraft failing (rate limit, outage) must never lose a usable draft.
-            log(f"  ⚠ redraft {attempt} failed ({str(exc)[:120]}) — keeping the best earlier draft")
-            break
-        script   = _normalize_script(script)
-        problems = collect_script_problems(script, facts, history, min_words)
-        st       = figure_stats(script)
-        retry    = [p for p in problems if p["retry"]]
-        score    = (sum(1 for p in problems if p["fatal"]), len(retry), -st["words"])
-        if best is None or score < best[0]:
-            best = (score, script, facts, problems)
-        log(f"  attempt {attempt}/{max_attempts}: "
-            f"{sum(1 for p in problems if p['fatal'])} factual problem(s), "
-            f"{sum(1 for p in problems if p['retry'] and not p['fatal'])} structural/density; "
-            f"{st['total']} figures in {st['words']} words ({st['per100']:.1f} per 100)")
-        if not retry:
-            break
-        for p in retry[:6]:
-            log(f"      • [{p['kind']}] {p['msg']}")
-        if attempt < max_attempts:
-            feedback = _editor_notes(retry)
-            log("  ↻ regenerating with the editor's notes…")
-    _, script, facts, problems = best
-
-    removed = []
-    if any(p["fatal"] for p in problems):
-        script, removed = strip_unsafe_sentences(script, facts)
-        problems = collect_script_problems(script, facts, history, min_words)
-        if any(p["fatal"] for p in problems):
-            log(f"ERROR: Script still contains unsupported claims after {max_attempts} "
-                f"attempts and sentence removal — refusing to publish.")
-            for p in problems:
-                if p["fatal"]:
-                    log(f"      • {p['msg']}")
-            return None
-        log(f"  ⚠ Published with {len(removed)} unsafe sentence(s) removed:")
-        for sent in removed[:8]:
-            log(f"      - {sent[:140]}")
-    # What the listener has asked not to hear — repeats, explanations of how leveraged
-    # funds work, and more than four numbers in a turn — is cut rather than aired once
-    # the attempts are spent.
-    script, cut_a = strip_unwanted_sentences(script, history)
-    script, cut_b = trim_heavy_turns(script)
-    if cut_a or cut_b:
-        log(f"  ⚠ Cut {len(cut_a) + len(cut_b)} sentence(s) the listener asked not to hear:")
-        for sent in (cut_a + cut_b)[:8]:
-            log(f"      - {sent[:140]}")
-    problems = collect_script_problems(script, facts, history, min_words)
-    leftovers = [p for p in problems if p["retry"] and not p["fatal"]]
-    for p in leftovers:
-        log(f"  ⚠ {p['msg']}")
-    if not removed and not cut_a and not cut_b and not leftovers:
-        log("  ✓ Script passes every check")
-    return script, facts
+_HEADING = re.compile(r"^(?:#{1,6}\s.*|[-*_=]{3,}|\*\*[^*]{1,60}\*\*:?|[A-Z][A-Z0-9 &/,'’—–-]{2,60}:?|.{1,40}:)$")
 
 
 def parse_script(script: str) -> list[tuple[str, str]]:
@@ -2731,23 +2935,18 @@ def synthesize_with_piper(turns: list, output: Path, tmp_dir: Path) -> None:
         raise RuntimeError("no turns to synthesize")
     out.close()
     try:
-        import lameenc   # pure wheel, no system packages: the runner has no ffmpeg
+        import lameenc  # noqa: F401  pure wheel; ImportError selects the ffmpeg path
+        import numpy as np
         with wave.open(str(wav_path), "rb") as wf:
-            enc = lameenc.Encoder()
-            enc.set_bit_rate(64)
-            enc.set_in_sample_rate(wf.getframerate())
-            enc.set_channels(wf.getnchannels())
-            enc.set_quality(2)
-            with open(output, "wb") as fh:
-                while True:
-                    pcm = wf.readframes(65536)
-                    if not pcm:
-                        break
-                    fh.write(enc.encode(pcm))
-                fh.write(enc.flush())
+            rate = wf.getframerate()
+            pcm = np.frombuffer(wf.readframes(wf.getnframes()), dtype=np.int16).astype(np.float32)
+        if rate != AUDIO_RATE:        # Piper speaks at 22.05 kHz; the episode and themes are 24 kHz
+            n = int(len(pcm) * AUDIO_RATE / rate)
+            pcm = np.interp(np.linspace(0, len(pcm) - 1, n), np.arange(len(pcm)), pcm)
+        Path(output).write_bytes(_encode_mp3(pcm.astype(np.int16).tobytes()))
     except ImportError:
         subprocess.run([_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(wav_path),
-                        "-codec:a", "libmp3lame", "-b:a", "64k", "-ar", "24000", "-ac", "1", str(output)],
+                        "-codec:a", "libmp3lame", "-b:a", "48k", "-ar", str(AUDIO_RATE), "-ac", "1", str(output)],
                        check=True)
     print(f"  ✓ MP3 created: {output} (offline voice)")
 
@@ -2805,7 +3004,7 @@ def synthesize_with_kokoro(turns: list, output: Path, tmp_dir: Path) -> None:
             samples, rate = k.create(text, voice=voice, speed=KOKORO_SPEED, lang="en-us")
             if enc is None:
                 enc = lameenc.Encoder()
-                enc.set_bit_rate(64); enc.set_in_sample_rate(rate); enc.set_channels(1); enc.set_quality(2)
+                enc.set_bit_rate(48); enc.set_in_sample_rate(rate); enc.set_channels(1); enc.set_quality(2)
             pcm = (np.clip(samples, -1, 1) * 32767).astype(np.int16).tobytes()
             fh.write(enc.encode(pcm + b"\x00\x00" * int(rate * PIPER_PAUSE_SECS)))
             if (i + 1) % 20 == 0 or i + 1 == len(turns):
@@ -2844,6 +3043,76 @@ def synthesize_episode(turns: list, output: Path, tmp_dir: Path) -> str:
             _clear()
     raise RuntimeError("every voice engine failed")
 
+
+
+
+# ── Theme music ──────────────────────────────────────────────────────────────
+# Every engine writes 24 kHz mono 48 kbps MP3 (edge-tts's native format), and so do
+# the themes, so the pieces join byte-for-byte and players read one steady stream.
+AUDIO_RATE  = 24_000
+THEME_DIR   = Path(__file__).resolve().parent / "assets"
+THEME_INTRO = THEME_DIR / "theme_intro.mp3"
+THEME_OUTRO = THEME_DIR / "theme_outro.mp3"
+
+
+def _encode_mp3(pcm16: bytes) -> bytes:
+    import lameenc
+    enc = lameenc.Encoder()
+    enc.set_bit_rate(48)
+    enc.set_in_sample_rate(AUDIO_RATE)
+    enc.set_channels(1)
+    enc.set_quality(2)
+    return enc.encode(pcm16) + enc.flush()
+
+
+def split_at_theme(script: str) -> tuple:
+    """(cold-open turns, the rest) — split at the [THEME] line, if there is one."""
+    if "[THEME]" not in script:
+        return [], parse_script(script)
+    head, tail = script.split("[THEME]", 1)
+    return parse_script(head), parse_script(tail)
+
+
+def synthesize_with_theme(script: str, output: Path, tmp_dir: Path) -> str:
+    """cold open → intro theme → episode → outro theme. The music is optional: if a
+    theme file is missing the episode still airs, just without it."""
+    cold, rest = split_at_theme(script)
+    parts, engine = [], None
+    if cold:
+        d = tmp_dir / "cold"
+        d.mkdir(exist_ok=True)
+        engine = synthesize_episode(cold, d / "cold.mp3", d)
+        parts.append(d / "cold.mp3")
+    if THEME_INTRO.exists():
+        parts.append(THEME_INTRO)
+    d = tmp_dir / "main"
+    d.mkdir(exist_ok=True)
+    engine = synthesize_episode(rest, d / "main.mp3", d) if engine is None else \
+        _same_engine(engine, rest, d / "main.mp3", d)
+    parts.append(d / "main.mp3")
+    if THEME_OUTRO.exists():
+        parts.append(THEME_OUTRO)
+    with open(output, "wb") as out:
+        for p in parts:
+            out.write(Path(p).read_bytes())
+    print(f"  ✓ Assembled: {'cold open + ' if cold else ''}{'theme + ' if THEME_INTRO.exists() else ''}"
+          f"episode{' + outro' if THEME_OUTRO.exists() else ''}")
+    return engine
+
+
+def _same_engine(engine: str, turns: list, output: Path, tmp_dir: Path) -> str:
+    """The rest of the episode in the voice the cold open used, so the hosts never
+    change voice after the theme. Falls back through the chain only if that fails."""
+    try:
+        if engine == "kokoro":
+            synthesize_with_kokoro(turns, output, tmp_dir)
+            return engine
+        if engine == "piper":
+            synthesize_with_piper(turns, output, tmp_dir)
+            return engine
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ⚠ {engine} failed after the cold open ({str(exc)[:100]}) — trying the full chain")
+    return synthesize_episode(turns, output, tmp_dir)
 
 # ============================================================
 # METADATA
@@ -2891,34 +3160,28 @@ def main() -> int:
         replaced = old_meta.get("episode")
         old_meta = {**old_meta["archive"][0], "archive": old_meta["archive"][1:]}
         print(f"  ↺ Redoing episode {replaced}: building on episode {old_meta.get('episode')}")
-    computed_holdings = _fetch_computed_holdings()   # live from KV — auto-synced by dashboard
-    cash_positions    = _fetch_cash_positions()      # real balances, not a hand-typed line
+    settings          = _fetch_settings()            # holdings, transactions, cash — live from KV
+    computed_holdings = settings.get("computed_holdings") or _fetch_computed_holdings()
+    settings.setdefault("computed_holdings", computed_holdings)
+    memory            = _desk.load_memory(MEMORY_FILE)
+    ep_num            = (old_meta.get("episode", 0) or 0) + 1
 
     if not intel.get("generated_at"):
         print("  ⚠ No intelligence.json found — generating without weekly intel data")
     if not computed_holdings:
         print("  ⚠ No computed_holdings in KV — portfolio figures will use fallback context")
 
-    # Load saved past scripts & build deep topic registry (Groq preprocessing call if scripts exist)
-    print("     Loading past scripts & building topic registry...")
     past_scripts = _load_past_scripts()
     if os.environ.get("REPLACE_LATEST") == "1":
         past_scripts = {k: v for k, v in past_scripts.items() if k <= (old_meta.get("episode") or 0)}
-    registry = _build_deep_topic_registry(old_meta, past_scripts, groq_key)
-    if registry["recently_spotlighted_tickers"]:
-        print(f"  ✓ Spotlighted recently: {', '.join(registry['recently_spotlighted_tickers'][:5])}")
-    if registry["education_topics_used"]:
-        print(f"  ✓ Education topics used: {'; '.join(registry['education_topics_used'])}")
 
-    # 2. Generate script (registry preprocessing + two generation Groq calls)
-    print("2/4  Generating script...")
-    result = produce_checked_script(
-        lambda fb: generate_script(intel, snapshot, old_meta, groq_key, computed_holdings,
-                                   registry, cash_positions=cash_positions, feedback=fb),
-        history=list(past_scripts.values()), min_words=MIN_SCRIPT_WORDS)
+    # 2. Plan the episode (every subject and number decided in code), then write it
+    print("2/4  Planning and writing the episode...")
+    plan = build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts, ep_num)
+    result = produce_episode(groq_key, plan, history=list(past_scripts.values()))
     if result is None:
         return 1
-    script, facts = result
+    script, facts, segments = result
 
     # Weekdays are arithmetic — correct them rather than let the listener act on
     # the wrong day. Episode 16 sent them to an EIA report on "Wednesday,
@@ -2944,7 +3207,6 @@ def main() -> int:
 
     # 3. Synthesize audio
     print("3/4  Synthesizing audio (Microsoft voices; Kokoro, then Piper, as fallbacks)...")
-    ep_num   = (old_meta.get("episode", 0) or 0) + 1
     mp3_name = f"podcast_ep{ep_num:03d}.mp3"
     txt_name = f"podcast_ep{ep_num:03d}.txt"
     mp3_path = DATA_DIR / mp3_name
@@ -2953,7 +3215,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
         try:
-            engine = synthesize_episode(turns, mp3_path, tmp_dir)
+            engine = synthesize_with_theme(script, mp3_path, tmp_dir)
             print(f"  ✓ Audio engine: {engine}")
         except Exception as exc:
             print(f"ERROR: Audio generation failed: {exc}")
@@ -3036,6 +3298,25 @@ def main() -> int:
         "summary":          summary,
     }
     PODCAST_META.write_text(json.dumps(meta, indent=2))
+
+    # The show's memory: next week scores these scenarios, keeps the learning-topic
+    # promise, and avoids these subjects and comparisons.
+    ch = plan.get("changes") or {}
+    _desk.save_memory(MEMORY_FILE, memory, {
+        "episode": ep_num, "date": meta["date"], "title": meta["title"],
+        "main_story": {"title": plan["main"]["title"],
+                       "themes": sorted(_themes_of(plan["main"]["title"] + " " + plan["main"]["body"]))},
+        "spotlight": (plan.get("spot") or {}).get("ticker"),
+        "quick_hits": [q["title"] for q in plan.get("quick") or []],
+        "learning_topic": plan["topic"], "next_learning_topic": plan["next_topic"],
+        "scenarios": {"sp500_close": plan["sp500"]["close"], "sp500_date": plan["sp500"]["date"],
+                      "band_pct": _desk.SCENARIO_BAND_PCT,
+                      "probabilities": _desk.scenario_probabilities(segments.get("scenarios", ""))},
+        "analogies": _desk.extract_analogies(script),
+        "portfolio": {"total_value": ch.get("total_now"), "contrib_total": ch.get("contrib_total"),
+                      "pnl_total": ch.get("pnl_total"), "sector_weights": ch.get("sector_weights")},
+    })
+    print(f"  ✓ Show memory updated ({MEMORY_FILE.name})")
 
     print(f"\n  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print(f"  ✓ Episode {ep_num}: {meta['title']}")

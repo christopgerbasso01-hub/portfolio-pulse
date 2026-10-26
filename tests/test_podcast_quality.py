@@ -164,8 +164,12 @@ ck("ep16's failure — promised roll yields, delivered short interest — is cau
                           "[EDUCATION_TOPIC: Short Interest Signals]\nALEX: Short interest is…")), 1)
 ck("a missing marker is reported", len(gp.agenda_problems("ALEX: Hello.\nSAM: Hi.")), 1)
 ck("a topic announced later than the opening does not count",
-   len(gp.agenda_problems("ALEX: a.\nSAM: b.\nALEX: c.\nSAM: d.\nALEX: e.\nSAM: f.\n"
-                          "ALEX: Today, Yield Curve Recession Signals.\n[EDUCATION_TOPIC: Yield Curve Recession Signals]")), 1)
+   len(gp.agenda_problems("".join(f"{'ALEX' if i % 2 == 0 else 'SAM'}: line {i}.\n" for i in range(15))
+                          + "ALEX: Today, Yield Curve Recession Signals.\n[EDUCATION_TOPIC: Yield Curve Recession Signals]")), 1)
+ck("...but a run-down after a cold open and a welcome does",
+   gp.agenda_problems("ALEX: Hook.\nSAM: Yes.\n[THEME]\nALEX: Welcome.\nSAM: Hi.\nALEX: Last week we said this.\n"
+                      "ALEX: Today, and our learning segment on Yield Curve Recession Signals.\n"
+                      "[EDUCATION_TOPIC: Yield Curve Recession Signals]"), [])
 
 print("\n── repairs ──")
 ck("bold speaker labels are normalised",
@@ -200,40 +204,81 @@ ck("a wrong-direction sentence is fatal", [p["fatal"] for p in probs if p["kind"
 ck("missing scenarios retry but never cost the episode",
    [(p["fatal"], p["retry"]) for p in probs if "scenarios" in p["msg"]][0], (False, True))
 
-print("\n── redraft loop ──")
-GOOD = ("ALEX: This week, and in our learning segment, Yield Curve Recession Signals.\n"
-        "[EDUCATION_TOPIC: Yield Curve Recession Signals]\n"
-        "ALEX: A quiet week for the book.\nSAM: Base case — 50 percent: little happens. For us that is small.\n"
-        "ALEX: Bull case — 30 percent: the market rises a little.\nSAM: Bear case — 20 percent: it falls a little.\n")
-BADFX = GOOD + "ALEX: A firmer greenback compresses the CAD value of our US holdings.\n"
-logs, calls = [], []
+
+# ── an episode plan built by the real planner from synthetic data ────────────
+gp._fetch_sp500 = lambda: {}
+_SNAPS_P = {d: dict(v, account_cost={"TFSA": 100000, "RRSP": 20000, "FHSA": 30000}) for d, v in SNAPS.items()}
+_SNAPS_P["2026-09-25"]["account_cost"] = {"TFSA": 106000, "RRSP": 20000, "FHSA": 30000}   # $6,000 added
+_SET_P = {"computed_holdings": [dict(h, sector="Leveraged ETF" if h["ticker"] in ("FNGU", "SOXL") else "Technology")
+                                for h in HOLD],
+          "transactions": [{"type": "BUY", "date": "2026-09-23", "ticker": "AVGO", "account": "TFSA",
+                            "shares": 20, "price": 300, "ccy": "USD", "rate": 1.4}],
+          "cash_positions": CASH}
+INTEL_P = {"market_mood": "mixed", "generated_at": "2026-09-25T20:00:00Z",
+           "daily_outlook": "Oil is easing. However the portfolio remains vulnerable to USD translation drag.",
+           "macro": [{"title": "CPI Surprise Could Shift Dollar Strength", "impact": "HIGH",
+                      "body": "CPI is due today. A hot print would strengthen the USD and pressure the portfolio’s USD‑heavy exposure."},
+                     {"title": "China PMI Slides", "body": "Factories slowed for a third month."}],
+           "news": [{"headline": "Oil slides on supply glut", "body": "Lower oil prices weigh on producers.", "exposure": "ENB.TO $60,000 CAD"},
+                    {"headline": "Tesla starts Semi deliveries", "body": "First trucks shipped.", "exposure": "TSLA $7,480 CAD"},
+                    {"headline": "Saudi oil supply glut deepens", "body": "Same story again.", "exposure": "ENB.TO $60,000 CAD"}],
+           "picks": [{"ticker": "NVO", "thesis": "Defensive healthcare."}],
+           "strategy_short": [{"text": "Hedge $50,000 CAD of USD exposure, reducing translation drag."}]}
+PLAN = gp.build_episode_plan(INTEL_P, {"snapshots": _SNAPS_P}, _SET_P, {}, {"episodes": []}, {}, 1)
+PROMPTS = {k: gp._segment_prompt(PLAN, k, "", "SAM: a previous line.") for k in gp.SEGMENT_KEYS}
+
+print("\n── segment repair loop ──")
+CLEAN = {
+    "opening": "ALEX: Our big tech fund had a week.\nSAM: It did.\n[THEME]\nALEX: Welcome to Portfolio Pulse Weekly.\nSAM: Hello.\n"
+               "ALEX: Today: the portfolio, the main story, around the portfolio, the learning segment on "
+               + PLAN["topic"] + ", and scenarios.\nSAM: To the portfolio.",
+    "desk": "ALEX: A quiet week for the book.\nSAM: Any trades?\nALEX: One purchase of Broadcom.\nSAM: On to the main story.",
+    "main": "SAM: What happened in China?\nALEX: Factories slowed again.\nSAM: Does it touch us?\nALEX: Only indirectly.\nSAM: Next items.",
+    "around": "ALEX: First, Tesla shipped its first Semi trucks.\nSAM: Good for a holding we own.\nALEX: Now to learning.",
+    "learning": "[EDUCATION_TOPIC: " + PLAN["topic"] + "]\nALEX: Here is the idea.\nSAM: That's our learning segment for this week.",
+    "scenarios": "ALEX: Base case — 50 percent: little happens.\nSAM: What tells us?\nALEX: Quiet news.\n"
+                 "ALEX: Bull case — 30 percent: the market rises.\nSAM: And then?\nALEX: A good week for us.\n"
+                 "ALEX: Bear case — 20 percent: the market falls.\nSAM: How should he think about it?\nALEX: With patience.\n"
+                 "SAM: Thanks for listening.",
+}
+BADFX_MAIN = CLEAN["main"].replace("ALEX: Only indirectly.", "ALEX: A firmer greenback compresses the CAD value of our US holdings.")
+seg_calls = []
 
 
-def seq(*drafts):
-    it = iter(drafts)
+def writer(drafts):
+    def w(api_key, plan, key, notes, before):
+        seg_calls.append((key, notes))
+        d = drafts.get(key, CLEAN[key])
+        return d(notes) if callable(d) else d
+    return w
 
-    def gen(fb):
-        calls.append(fb)
-        return next(it), {}
-    return gen
 
-
-calls.clear()
-r = gp.produce_checked_script(seq(GOOD), log=logs.append)
-ck("a clean first draft is used straight away", (len(calls), r is not None), (1, True))
-calls.clear()
-r = gp.produce_checked_script(seq(BADFX, GOOD), log=logs.append)
-ck("a bad draft is redrafted once the second is clean", len(calls), 2)
-ck("...and the second attempt is told exactly what was wrong",
-   "REJECTED" in calls[1] and "greenback" in calls[1], True)
-ck("...and the first attempt was not given notes", calls[0], "")
-calls.clear()
-r = gp.produce_checked_script(seq(BADFX, BADFX, BADFX), log=logs.append)
-ck("three bad drafts: it stops at three", len(calls), 3)
-ck("...and still publishes, with the flagged sentence gone",
-   r is not None and "greenback" not in r[0] and "Base case" in r[0], True)
-ck("a failing generator means no episode", gp.produce_checked_script(
-    lambda fb: (_ for _ in ()).throw(RuntimeError("groq down")), log=logs.append), None)
+_real_write = gp.write_segment
+_saved_min = gp.MIN_SCRIPT_WORDS
+gp.MIN_SCRIPT_WORDS = 0
+try:
+    gp.write_segment = writer({})
+    r = gp.produce_episode("k", PLAN, log=lambda *a: None)
+    ck("clean segments: six calls, no rewrites", [k for k, _ in seg_calls], list(gp.SEGMENT_KEYS))
+    ck("...and the episode is published", r is not None, True)
+    seg_calls.clear()
+    gp.write_segment = writer({"main": lambda notes: CLEAN["main"] if notes else BADFX_MAIN})
+    r = gp.produce_episode("k", PLAN, log=lambda *a: None)
+    ck("a bad main story: only that segment is rewritten", [k for k, n in seg_calls if n], ["main"])
+    ck("...and it is told exactly what was wrong", "greenback" in [n for k, n in seg_calls if n][0], True)
+    ck("...and the published script is clean", "greenback" not in r[0], True)
+    seg_calls.clear()
+    gp.write_segment = writer({"main": BADFX_MAIN})
+    r = gp.produce_episode("k", PLAN, log=lambda *a: None)
+    ck("a segment that never comes back clean is rewritten at most twice",
+       sum(1 for k, n in seg_calls if k == "main" and n), 2)
+    ck("...and the episode still publishes, with the false sentence cut",
+       r is not None and "greenback" not in r[0] and "Base case" in r[0], True)
+    gp.write_segment = lambda *a: (_ for _ in ()).throw(RuntimeError("groq down"))
+    ck("a failing generator means no episode", gp.produce_episode("k", PLAN, log=lambda *a: None), None)
+finally:
+    gp.write_segment = _real_write
+    gp.MIN_SCRIPT_WORDS = _saved_min
 
 print("\n── the context the model is given ──")
 ck("no hand-typed stale facts remain",
@@ -252,14 +297,8 @@ t2, _ = gp._build_portfolio_context(HOLD, SNAPS, None)
 ck("with no cash data it says so instead of inventing one", "Cash balances: not provided" in t2, True)
 ck("the index table is the 3x figure, ready to read", f["index_table"]["1"], round(
     (1000 * 32 + 500 * 44) * 1.40 * 0.03))
-ck("a prompt placeholder mismatch would be a KeyError — both templates format",
-   all(isinstance(t, str) for t in (
-       gp.SCRIPT_PROMPT_PART1.format(editor_notes="", today="", week_range="", mood="", briefing_note="", registry_context="",
-                                     outlook="", macro="", news="", portfolio="", dd1_title="", dd1_brief="",
-                                     dd2_title="", education_topic=""),
-       gp.SCRIPT_PROMPT_PART2.format(editor_notes="", today="", dive1_summary="", briefing_note="", news="", picks="",
-                                     strategy="", portfolio="", dd2_title="", dd2_brief="",
-                                     education_topic="", education_topics_used=""))), True)
+ck("every segment prompt formats from the plan (a missing field would be a KeyError)",
+   sorted(k for k, v in PROMPTS.items() if isinstance(v, str) and len(v) > 500), sorted(gp.SEGMENT_KEYS))
 
 print("\n── fixed deep-dive subjects ──")
 ident = lambda t, n=300: t
@@ -292,57 +331,46 @@ ck("a China story is not", "CURRENCY box" in gp._deep_dive_briefs({"title": "Chi
 ck("the briefing's speculative bull and bear lines are left out",
    "BULLTEXT" in gp._deep_dive_briefs({"title": "t", "body": "b", "bull": "BULLTEXT", "bear": "BEARTEXT"}, None)[1], False)
 
-print("\n── a dry run of generate_script (fake model) ──")
-seen = []
-real_call, real_sleep = gp._groq_call, time.sleep
-gp._groq_call = lambda k, prompt, label, max_tokens=4096: (seen.append((label, prompt)) or "ALEX: Hello.\nSAM: Hi.")
-time.sleep = lambda s: None
-real_mins = gp.PIECE_MIN_WORDS
-gp.PIECE_MIN_WORDS = (0, 0, 0, 0)
-intel2 = {"market_mood": "mixed",
-          "daily_outlook": "Oil is easing. However the portfolio remains vulnerable to USD translation drag.",
-          "macro": [{"title": "CPI Surprise", "impact": "HIGH",
-                     "body": "CPI is due today. A hot print would strengthen the USD and pressure the portfolio’s USD‑heavy exposure."}],
-          "news": [{"headline": "Oil slides", "body": "Lower oil prices help pipelines.", "exposure": "ENB.TO $60,000 CAD"}],
-          "picks": [{"ticker": "NVO", "thesis": "Defensive healthcare."}],
-          "strategy_short": [{"text": "Hedge $50,000 CAD of USD exposure, reducing translation drag."}]}
-reg = {"registry_text": "", "recently_spotlighted_tickers": [], "education_topics_used": []}
-try:
-    _, out_facts = gp.generate_script(intel2, {"snapshots": SNAPS}, {}, "k", HOLD, reg,
-                                      cash_positions=CASH, feedback="EDITOR'S NOTES — REJECTED: example\n")
-finally:
-    gp._groq_call, time.sleep = real_call, real_sleep
-    gp.PIECE_MIN_WORDS = real_mins
-_pieces = dict(seen)
-ck("all four pieces were generated", sorted(_pieces), ["Piece 1", "Piece 2", "Piece 3", "Piece 4"])
-p1 = _pieces["Piece 1"] + _pieces["Piece 2"]
-p2 = _pieces["Piece 3"] + _pieces["Piece 4"]
-ck("each piece is told exactly which segment to write",
-   ["ONLY THE OPENING" in _pieces["Piece 1"], "ONLY DEEP DIVE 1" in _pieces["Piece 2"],
-    "ONLY DEEP DIVE 2" in _pieces["Piece 3"], "ONLY THE LAST THREE" in _pieces["Piece 4"]], [True] * 4)
-ck("no piece carries the old whole-half length target",
-   any("1,400 to 1,800" in v or "1,300 to 1,700" in v for v in _pieces.values()), False)
-ck("the last piece is not told to begin with Deep Dive 2",
-   "Begin directly with Deep Dive 2's hook" in _pieces["Piece 4"], False)
-ck("the wrong-direction briefing sentence never reaches the model", "pressure the portfolio" in p1, False)
-ck("neither does 'translation drag' wording", "translation drag" in p1 + p2, False)
-ck("the fixed Deep Dive 2 is named in both halves", "Enbridge" in p1 and "Enbridge" in p2, True)
-ck("the editor's notes reach both halves", "REJECTED: example" in p1 and "REJECTED: example" in p2, True)
-ck("suggestions are labelled as not rules", "NOT decisions, rules or plans" in p2, True)
+print("\n── the episode plan and what each segment is told ──")
+ALL = " ".join(PROMPTS.values())
+ck("the wrong-direction briefing sentence never reaches the model", "pressure the portfolio" in ALL, False)
+ck("neither does 'translation drag' wording", "translation drag" in ALL, False)
+ck("currency is never the main story", "currency" in gp._themes_of(PLAN["main"]["title"]), False)
+ck("...and no quick news item is a currency story", any("currency" in gp._themes_of(q["title"]) for q in PLAN["quick"]), False)
+ck("the main story and the quick items are different stories",
+   any(gp._desk.same_story(PLAN["main"]["title"], q["title"]) for q in PLAN["quick"]), False)
+ck("the same story twice in the news is used at most once",
+   sum("oil" in x.lower() for x in [PLAN["main"]["title"]] + [q["title"] for q in PLAN["quick"]]
+       + [(PLAN["spot"] or {}).get("headline", "")]) <= 1, True)
+ck("only the segment that owns currency gets the currency rules",
+   [k for k, v in PROMPTS.items() if "this segment owns it" in v], [PLAN["fx_owner"]] if PLAN["fx_owner"] else [])
+ck("every other segment is told not to mention it",
+   all("do not mention the exchange rate" in v for k, v in PROMPTS.items() if k != PLAN["fx_owner"]), True)
+ck("analogies are allowed only in the main story and the learning segment",
+   sorted(k for k, v in PROMPTS.items() if "at most ONE short everyday comparison" in v), ["learning", "main"])
+ck("each segment is told what the others cover", all("This week the other segments cover" in v for v in PROMPTS.values()), True)
+ck("the desk carries money in versus market", "New money Christopher added this week: about $6,000" in PROMPTS["desk"], True)
+ck("...the trade", "Trade: new position" in PROMPTS["desk"] or "Trade: added to" in PROMPTS["desk"], True)
+ck("...the house goal", "against the $90,000 target" in PROMPTS["desk"], True)
+ck("the scenario cases are fixed, with figures from the table",
+   PROMPTS["scenarios"].count("the S&P 500") >= 3 and "within 1.5 percent" in PROMPTS["scenarios"], True)
+ck("the close promises next week's learning topic", PLAN["next_topic"] in PROMPTS["scenarios"], True)
+ck("the opening asks for the theme marker after a cold open", "[THEME]" in PROMPTS["opening"], True)
+ck("the opening's run-down names the learning topic the segment delivers",
+   PLAN["topic"] in PROMPTS["opening"] and PLAN["topic"] in PROMPTS["learning"], True)
+ck("the learning segment states its marker", f"[EDUCATION_TOPIC: {PLAN['topic']}]" in PROMPTS["learning"], True)
+f_p = PLAN["facts"]
+ck("the spotlight states the real position size, from holdings and prices",
+   f"we own about {gp._say_money(800 * 75)} of it" in PROMPTS["around"], True)
 ck("a briefing figure tied to a holding is scoped to that holding",
-   60000 in out_facts["intel_positions"].get("ENB.TO", []) and 60000 not in out_facts["intel_money"], True)
-ck("...so it is allowed in a sentence naming Enbridge",
-   flagged("ALEX: We own about $60,000 of Enbridge, held in the FHSA.", out_facts), False)
-ck("...but not floating free in a sentence that names nothing",
-   flagged("ALEX: A 0.5% drop in the index is a $60,000 hit to the portfolio.", out_facts), True)
-ck("free-standing briefing figures stay allowed anywhere",
-   flagged("ALEX: One idea in the briefing is a $50,000 hedge.", out_facts), False)
+   7480.0 in f_p["intel_positions"].get("TSLA", []) and 7480.0 not in f_p["intel_money"], True)
+ck("the desk's figures are accepted by the checker",
+   flagged("ALEX: Christopher added about $6,000 this week.", f_p), False)
+ck("...an invented one is not", flagged("ALEX: Christopher added about $17,000 this week.", f_p), True)
 ck("the numbers the model was shown are recorded, so invented ones can be spotted",
-   1.4 in out_facts["allowed_numbers"] and 60000.0 in out_facts["allowed_numbers"], True)
-ck("every piece fits under Groq's 8,000-token request limit with its answer room",
-   all(gp._estimate_tokens(v) + gp._safe_max_tokens(v, 3200) <= 7900 for v in _pieces.values()), True)
-ck("...and each piece still has room for a full answer (2,500+ tokens)",
-   min(gp._safe_max_tokens(v, 3200) for v in _pieces.values()) >= 2500, True)
+   6000.0 in f_p["allowed_numbers"] and 90000.0 in f_p["allowed_numbers"], True)
+ck("every segment request fits Groq's 8,000-token limit with its answer room",
+   all(gp._estimate_tokens(PROMPTS[k]) + m <= 7900 for k, _, _, m in gp.SEGMENTS), True)
 
 print("\n── what the listener asked not to hear ──")
 def kinds(script, history=None):
@@ -365,8 +393,8 @@ for label, line in [
 ck("no education topic about leverage remains",
    [t for t in gp.EDUCATION_TOPICS if "3x" in t or "everage" in t], [])
 ck("the context no longer teaches 3x", "3x as much" in text or "multiply it by 3" in text, False)
-ck("both prompts forbid explaining it",
-   "ALREADY understands leveraged" in gp.SCRIPT_PROMPT_PART1 and "ALREADY understands leveraged" in gp.SCRIPT_PROMPT_PART2, True)
+ck("every segment is told never to explain it",
+   all("NEVER explain how leveraged or 3x funds work" in v for v in PROMPTS.values()), True)
 
 print("\n── nothing said twice ──")
 # Four lead-in turns first: the opening turns preview the episode and are exempt from
@@ -409,14 +437,11 @@ trimmed, dropped = gp.trim_heavy_turns(heavy)
 ck("trimming brings the turn within the cap", gp.figure_stats(trimmed)["max_turn"] <= 4, True)
 ck("...by dropping the heaviest sentence", len(dropped), 1)
 ck("a turn within the cap is untouched", gp.trim_heavy_turns(four), (four, []))
-logs2 = []
-r = gp.produce_checked_script(lambda fb: (GOOD + heavy + "\n", {}), log=logs2.append)
-ck("the loop guarantees the cap even if every draft breaks it",
-   r is not None and gp.figure_stats(r[0])["max_turn"] <= 4, True)
-r = gp.produce_checked_script(lambda fb: (GOOD + "ALEX: We have a lot of the portfolio humming along under the surface this week.\n", {}),
-                              log=logs2.append, history=hist)
-ck("the loop drops a sentence repeated from a recent episode",
-   r is not None and "humming along" not in r[0], True)
+r = gp._final_repair(CLEAN["scenarios"] + "\n" + heavy, {}, None, log=lambda *a: None)
+ck("the final repair guarantees the cap", r is not None and gp.figure_stats(r)["max_turn"] <= 4, True)
+r = gp._final_repair(CLEAN["desk"] + "\nALEX: We have a lot of the portfolio humming along under the surface this week.",
+                     {}, hist, log=lambda *a: None)
+ck("...and drops a sentence repeated from a recent episode", r is not None and "humming along" not in r, True)
 
 print("\n── topics are not repeated week to week ──")
 ck("themes are read from headlines",
@@ -476,11 +501,10 @@ ck("no length flag when no minimum is set",
 ck("the production minimum is about 15 minutes", 2000 <= gp.MIN_SCRIPT_WORDS <= 2400, True)
 ck("the per-turn cap is unchanged at 4", gp.FIGURES_PER_TURN_MAX, 4)
 import re as _re
-_lows = [int(x.replace(",", "")) for x in _re.findall(r"Aim for ([\d,]+) to",
-         gp.SCOPE_OPENING + gp.SCOPE_DIVE1 + gp.SCOPE_DIVE2 + gp.SCOPE_CLOSE)]
-ck("the four pieces together ask for at least 15 minutes (2,300+ words)", (len(_lows), sum(_lows) >= 2300), (4, True))
+_lows = [int(x.replace(",", "")) for x in _re.findall(r"LENGTH: ([\d,]+) to", " ".join(t for _, t, _, _ in gp.SEGMENTS))]
+ck("the six segments together ask for 15-20 minutes (2,500+ words)", (len(_lows), sum(_lows) >= 2500), (6, True))
 
-print("\n── short halves are asked for again; audio never depends on one provider ──")
+print("\n── short segments are asked for again; audio never depends on one provider ──")
 import time as _t, asyncio as _a, tempfile as _tf, pathlib as _pl
 _rc, _rs = gp._groq_call, _t.sleep
 _calls = []
@@ -523,29 +547,37 @@ ck("the chosen voices are Adam for Alex and Heart for Sam", gp.KOKORO_VOICES, {"
 ck("both speakers have an offline voice", sorted(gp.PIPER_VOICES), ["ALEX", "SAM"])
 
 print("\n── Groq free-tier guard ──")
+real_call = gp._groq_call
 _saved = dict(gp._GROQ_USED)
 gp._GROQ_USED["tokens"] = gp.GROQ_RUN_TOKEN_BUDGET - 1000
 ck("a short piece is not re-asked once the run budget is nearly spent",
    (lambda calls: (gp._groq_part.__globals__.__setitem__("_groq_call", lambda k, p, l, max_tokens=0: calls.append(l) or "w " * 10),
                    gp._groq_part("k", lambda n: n, "Piece 1", "", 500), calls)[2])([]), ["Piece 1"])
 gp._groq_call = real_call
-_gen = []
-def _g(fb):
-    _gen.append(fb); return ("ALEX: Hello.\nSAM: Hi.", {})
-r = gp.produce_checked_script(_g, log=lambda *a: None)
-ck("no redraft is started when it would exceed the run budget", len(_gen), 1)
-ck("...and the first draft is still published", r is not None, True)
+seg_calls.clear()
+gp.MIN_SCRIPT_WORDS = 0
+gp.write_segment = writer({"main": BADFX_MAIN})
+r = gp.produce_episode("k", PLAN, log=lambda *a: None)
+ck("no rewrite is started when it would exceed the run budget", [k for k, n in seg_calls if n], [])
+ck("...and the episode is still published, repaired", r is not None and "greenback" not in r[0], True)
 gp._GROQ_USED.update(_saved)
-_n = []
-def _g2(fb):
-    _n.append(1)
-    if len(_n) > 1:
+seg_calls.clear()
+
+
+def _limit(notes):
+    if notes:
         raise gp.GroqDailyLimit("daily allowance used up")
-    return ("ALEX: A 3x fund is built to move about three times as much as the index it follows.\nSAM: Hi.", {})
-r = gp.produce_checked_script(_g2, log=lambda *a: None)
-ck("hitting Groq's daily limit on a redraft keeps the earlier draft", r is not None and len(_n) == 2, True)
+    return BADFX_MAIN
+
+
+gp.write_segment = writer({"main": _limit})
+r = gp.produce_episode("k", PLAN, log=lambda *a: None)
+ck("hitting Groq's daily limit on a rewrite keeps the earlier draft (repaired)",
+   r is not None and "greenback" not in r[0], True)
+gp.write_segment = _real_write
+gp.MIN_SCRIPT_WORDS = _saved_min
 ck("one run's budget leaves room for the daily briefing within 200,000/day",
-   gp.GROQ_RUN_TOKEN_BUDGET + gp.ATTEMPT_COST_ESTIMATE + 30_000 < 200_000, True)
+   gp.GROQ_RUN_TOKEN_BUDGET + 6 * gp.SEGMENT_COST_ESTIMATE + 30_000 < 200_000, True)
 _p = gp._safe_max_tokens("x" * 18_000, 3200)
 ck("a long prompt gets less answer room so the request never exceeds 8,000", gp._estimate_tokens("x" * 18_000) + _p <= 7_900, True)
 

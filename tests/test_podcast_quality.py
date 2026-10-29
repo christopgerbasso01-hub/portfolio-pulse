@@ -641,7 +641,7 @@ ck("...a price-driven shift is fine",
 ck("the learning example's illustrative yields are not 'invented market data'",
    gp.verify_script_figures("[EDUCATION_TOPIC: X]\nALEX: Imagine the three-month Treasury yields 5% and the ten-year 4%.\n"
                             "SAM: That's our learning segment for this week.", {"strict_figures": True, "allowed_numbers": [1.0]}), [])
-ck("WHAT WE OWN carries each holding's weight", "of the portfolio" in PROMPTS["desk"].split("WHAT WE OWN")[1][:400], True)
+ck("WHAT WE OWN carries each holding's weight", "of the portfolio" in PROMPTS["desk"].split("WHAT WE OWN (and what each one is)")[1][:400], True)
 ck("the main story keeps the news's certainty", "Keep its certainty" in PROMPTS["main"], True)
 ck("the review no longer lists every account", "The account that moved most" in PROMPTS["desk"], True)
 

@@ -907,6 +907,43 @@ def _scrub_fx_in(obj, removed: list):
     return obj
 
 
+def _earnings_block(groq_key: str, finnhub_key: str) -> tuple:
+    """(earnings, legacy upcoming_earnings). Never raises."""
+    try:
+        import earnings as _earn
+        base = "https://portfolio-pulse-dun.vercel.app"
+        settings = requests.get(f"{base}/api/settings", timeout=15).json()
+        snaps = requests.get(f"{base}/api/snapshot", timeout=30).json().get("snapshots", {})
+        priced = [d for d in sorted(snaps) if (snaps[d] or {}).get("holdings_prices")]
+        latest = snaps[priced[-1]] if priced else {}
+        try:
+            previous = json.load(open("data/intelligence.json")).get("earnings") or {}
+        except Exception:
+            previous = {}
+        state = {"waited": False}
+
+        def summarise(prompt):
+            # The two briefing passes just used this minute's Groq allowance.
+            if not state["waited"]:
+                time.sleep(65)
+                state["waited"] = True
+            return _earn.groq_summary(groq_key, prompt)
+
+        session, crumb = _earn.yahoo_session()
+        block = _earn.build(
+            settings.get("computed_holdings") or [], session=session, crumb=crumb,
+            usdcad=float(latest.get("usdcad") or 1.38), total_value=float(latest.get("total_value") or 0),
+            previous=previous,
+            summary_fn=summarise if groq_key else None,
+            news_fn=(lambda t, a, b: _earn.fetch_news(finnhub_key, t, a, b)) if finnhub_key else None)
+        failed = f", {block['errors']} ticker(s) failed" if block["errors"] else ""
+        print(f"  ✓ Earnings: {len(block['recent'])} recent, {len(block['upcoming'])} upcoming{failed}")
+        return block, _earn.legacy_upcoming(block)
+    except Exception as exc:
+        print(f"  ⚠ Earnings step skipped (non-fatal): {exc}")
+        return {}, []
+
+
 def main() -> int:
     groq_key    = os.environ.get("GROQ_API_KEY", "")
     finnhub_key = os.environ.get("FINNHUB_API_KEY", "")
@@ -1025,30 +1062,12 @@ def main() -> int:
     if missing:
         print(f"  ⚠ Missing keys in Gemini response: {missing}")
 
-    # Fetch upcoming earnings for held US tickers and add to intelligence
-    if fmp_key:
-        try:
-            from datetime import timedelta
-            end_dt = now_utc + timedelta(days=14)
-            er = requests.get(
-                "https://financialmodelingprep.com/api/v3/earning_calendar",
-                params={"from": now_utc.strftime("%Y-%m-%d"), "to": end_dt.strftime("%Y-%m-%d"), "apikey": fmp_key},
-                timeout=10,
-            )
-            if er.ok:
-                held_us = {"NVDA","AVGO","TSLA","TSM","MSFT","AAPL","QCOM","IBKR","V","LYV","GBTC","MSTR","SHEL","ET"}
-                earnings_events = [
-                    {"symbol": e["symbol"], "date": e["date"], "eps_estimate": e.get("epsEstimated")}
-                    for e in (er.json() if isinstance(er.json(), list) else [])
-                    if e.get("symbol") in held_us
-                ]
-                intelligence["upcoming_earnings"] = sorted(earnings_events, key=lambda x: x["date"])[:8]
-                print(f"  ✓ {len(intelligence['upcoming_earnings'])} earnings events fetched")
-        except Exception as exc:
-            print(f"  ⚠ Earnings fetch failed (non-fatal): {exc}")
-            intelligence["upcoming_earnings"] = []
-    else:
-        intelligence["upcoming_earnings"] = []
+    # Earnings on the stocks we hold: recent reports (with a summary written only from
+    # the coverage) and the next two weeks. This replaces an FMP earnings-calendar
+    # call on a retired endpoint with a hard-coded US-only ticker list, which had been
+    # returning nothing. Entirely non-fatal: a failure here costs the earnings panel,
+    # never the briefing.
+    intelligence["earnings"], intelligence["upcoming_earnings"] = _earnings_block(groq_key, finnhub_key)
 
     # Save picks history to KV so tomorrow's run avoids repeating them
     new_pick_tickers = [p.get("ticker","") for p in intelligence.get("picks", []) if p.get("ticker")]

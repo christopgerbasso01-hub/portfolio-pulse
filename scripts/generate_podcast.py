@@ -627,6 +627,7 @@ LENGTH: 750 to 920 words. Write segment 3 now:"""
 SEG_AROUND = """━━━ SEGMENT 4 of 6 — AROUND THE PORTFOLIO ━━━
 {count} short item{plural}, three to five turns each, each introduced so the listener knows a new item has started (vary how). None of them is the main story.
 {items}
+For an EARNINGS item (always first): the scorecard — earnings per share against the estimate and revenue — then how the stock reacted and what that meant for us, what the company said (only from the summary given), and what it means for owning it.
 For a news item: what happened, then why it matters — or doesn't — for what we own.
 For the holding spotlight: what the business does, why it is in the portfolio, how big the position is, and the news if there is any.
 End with ALEX turning to the learning segment in one line.
@@ -1413,14 +1414,24 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
     next_topic = _choose_education_topic(used + [topic])
 
     # ── Subjects: one main story, a spotlight and two quick hits, all distinct ──
-    # Currency is never the main story: the listener asked to hear less about the
-    # exchange rate, and the portfolio review covers it whenever it actually moves.
-    main = _choose_deep_dive_1(intel, clean, rc["themes"] | {"currency"}, exclude_titles=rc["headlines"])
-    spot = _choose_deep_dive_2(intel, facts, rc["spotlit"], clean,
+    # ── Earnings on what we hold take priority ──
+    # Reports since the last episode (8 days) on stocks we own. A big one — a holding
+    # of 5%+ that moved 5%+ on the news — is the main story; otherwise the reports
+    # lead "around the portfolio", biggest positions first.
+    reported, big = _earnings_this_week(intel, facts, now)
+    if big:
+        main = _earnings_story(big[0])
+    else:
+        # Currency is never the main story: the listener asked to hear less about the
+        # exchange rate, and the portfolio review covers it whenever it actually moves.
+        main = _choose_deep_dive_1(intel, clean, rc["themes"] | {"currency"}, exclude_titles=rc["headlines"])
+    earn_items = [c for c in reported if not (big and c is big[0])][:2]
+    spot = _choose_deep_dive_2(intel, facts, rc["spotlit"] + [c["ticker"] for c in reported], clean,
                                rc["themes"] | _themes_of(main["title"]),
                                exclude_titles=[main["title"]] + rc["headlines"])
     quick = _pick_quick_hits(intel, [main["title"]] + ([spot["headline"]] if spot and spot.get("headline") else [])
-                             + rc["headlines"], _themes_of(main["title"]) | rc["themes"], clean)
+                             + rc["headlines"], _themes_of(main["title"]) | rc["themes"], clean,
+                             n=1 if earn_items else 2)
 
     # ── The portfolio week ──
     dates = [d for d in sorted(snaps) if (snaps[d] or {}).get("holdings_prices")]
@@ -1470,13 +1481,20 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
         for f in frame) + "\nThe dollar figures are changes in the PORTFOLIO's value. Never state a level for the S&P 500."
     drivers = "; ".join([_short(main["title"])] + [_short(q["title"]) for q in quick]) or "the week's news"
     upcoming = _upcoming_event([main] + quick)
+    reporting = _earnings_ahead(intel, facts, now)
     next_week = (f"say in one or two lines what is coming next week: the learning segment will be on {next_topic}"
                  + (f", and we will see how {upcoming} turned out" if upcoming else "")
+                 + (f". Also say which of our holdings report earnings: {reporting}" if reporting else "")
                  + ". Promise nothing else.")
+    if reporting:
+        drivers = drivers + "; earnings from " + reporting
 
-    exposure = _exposure_line(main, intel, facts)
+    exposure = main.get("exposure") or _exposure_line(main, intel, facts)
     items = []
-    for i, q in enumerate(quick, 1):
+    for c in earn_items:
+        items.append(f"{len(items) + 1}. EARNINGS — {COMPANY_NAMES.get(c['ticker'], c['name'])}: " + _earnings_brief(c))
+    for q in quick:
+        i = len(items) + 1
         items.append(f"{i}. NEWS — {q['title']}: {q['body']}"
                      + (f" | What we own in it: {q['exposure']}" if q["exposure"] else " | We own nothing directly in it."))
     if spot:
@@ -1564,6 +1582,79 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
     if score:
         print(f"     Scorecard:   S&P {score['move_pct']:+.2f}% → {score['label']} (called {score.get('probability')}%)")
     return plan
+
+
+EARNINGS_WINDOW_DAYS = 8          # reports since the last weekly episode
+EARNINGS_BIG_WEIGHT = 5.0         # % of the portfolio ...
+EARNINGS_BIG_MOVE = 5.0           # ... and % move on the report, to lead the episode
+
+
+def _earnings_this_week(intel: dict, facts: dict, now: datetime) -> tuple:
+    """(reports on holdings since the last episode, the big ones), biggest first."""
+    since = (now - timedelta(days=EARNINGS_WINDOW_DAYS)).strftime("%Y-%m-%d")
+    owned = set((facts or {}).get("positions") or {})
+    rep = [c for c in (((intel or {}).get("earnings") or {}).get("recent") or [])
+           if c.get("reported_at", "") >= since and c.get("ticker") in owned and c.get("eps_actual") is not None]
+    rep.sort(key=lambda c: -(c.get("weight_pct") or 0))
+    big = [c for c in rep if (c.get("weight_pct") or 0) >= EARNINGS_BIG_WEIGHT
+           and abs(c.get("reaction_pct") or 0) >= EARNINGS_BIG_MOVE]
+    return rep, big
+
+
+def _earnings_ahead(intel: dict, facts: dict, now: datetime) -> str:
+    """'Apple on Monday, November 2 (after the close); …' for holdings reporting within a week."""
+    owned = set((facts or {}).get("positions") or {})
+    end = (now + timedelta(days=7)).strftime("%Y-%m-%d")
+    out = []
+    for c in (((intel or {}).get("earnings") or {}).get("upcoming") or []):
+        if c.get("ticker") in owned and now.strftime("%Y-%m-%d") <= c.get("date", "") <= end:
+            d = datetime.fromisoformat(c["date"])
+            when = "" if c.get("timing") == "time not confirmed" else f" ({c['timing']})"
+            out.append(f"{COMPANY_NAMES.get(c['ticker'], c.get('name') or c['ticker'])} on "
+                       f"{d.strftime('%A')}, {d.strftime('%B')} {d.day}{when}")
+    return "; ".join(out[:4])
+
+
+def _earnings_brief(c: dict) -> str:
+    """The facts of one report, rounded for speech — the model's only source for it."""
+    name = COMPANY_NAMES.get(c["ticker"], c.get("name") or c["ticker"])
+    d = datetime.fromisoformat(c["reported_at"])
+    L = [f"Reported its {c.get('quarter') or 'latest'} results on {d.strftime('%A')}, {d.strftime('%B')} {d.day}"
+         + ("" if c.get("timing") == "time not confirmed" else f", {c['timing']}") + "."]
+    if c.get("eps_actual") is not None and c.get("eps_estimate") is not None:
+        L.append(f"Earnings per share: ${c['eps_actual']:.2f} against ${c['eps_estimate']:.2f} expected — "
+                 f"{'a beat' if c.get('verdict') == 'beat' else 'a miss' if c.get('verdict') == 'miss' else 'in line'}"
+                 + (f" by about {abs(c['surprise_pct']):.0f}%." if c.get("surprise_pct") is not None
+                    and c.get("verdict") != "in line" else "."))
+    if c.get("revenue_qoq_pct") is not None:
+        L.append(f"Revenue was {'up' if c['revenue_qoq_pct'] >= 0 else 'down'} about "
+                 f"{abs(c['revenue_qoq_pct']):.0f}% from the previous quarter.")
+    if c.get("reaction_pct") is not None:
+        L.append(f"The stock {'rose' if c['reaction_pct'] >= 0 else 'fell'} about {abs(c['reaction_pct']):.1f}% "
+                 f"on the news{' so far today' if c.get('reaction_partial') else ''}"
+                 + (f", worth about {_say_money(c['impact_cad'])} {'more' if c['impact_cad'] >= 0 else 'less'} to us."
+                    if c.get("impact_cad") else "."))
+    if c.get("summary"):
+        L.append("What the company said, from the coverage (your only facts beyond the numbers above): "
+                 + " ".join(f"({i}) {b}" for i, b in enumerate(c["summary"], 1)))
+    else:
+        L.append("There is no coverage of what the company said — stick to the numbers above.")
+    if c.get("position_cad"):
+        accts = " and ".join(_desk.ACCOUNT_LABEL.get(a, a) for a in c.get("accounts") or [])
+        L.append(f"We own about {_say_money(c['position_cad'])} of {name}"
+                 + (f", about {c['weight_pct']:.0f}% of the portfolio" if c.get("weight_pct") else "")
+                 + (f", in the {accts}" if accts else "") + ".")
+    if c.get("in_fngu"):
+        L.append(f"{name} is also one of the stocks in the FANG+ index our FANG+ 3x fund tracks, so this report moves "
+                 f"that fund too — say so in one line, without explaining how the fund works.")
+    return " ".join(L)
+
+
+def _earnings_story(c: dict) -> dict:
+    name = COMPANY_NAMES.get(c["ticker"], c.get("name") or c["ticker"])
+    return {"title": f"{name}'s earnings", "body": _earnings_brief(c), "bull": "", "bear": "",
+            "exposure": f"{name} directly" + (", and the FANG+ 3x fund that holds it" if c.get("in_fngu") else ""),
+            "earnings": c["ticker"]}
 
 
 def _short(title: str, n: int = 9) -> str:

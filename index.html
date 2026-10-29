@@ -254,6 +254,32 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .tax-item{font-size:12px;margin-bottom:8px;display:flex;gap:6px;align-items:flex-start}
 
 .news-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}
+.earn-panel{margin-bottom:18px}
+.earn-label{font-family:var(--mono,monospace);font-size:10px;color:var(--text3,#7a8ba3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.earn-card{border-left:3px solid var(--border,#1e3350)}
+.earn-card.beat{border-left-color:#10b981}.earn-card.miss{border-left-color:#ef4444}.earn-card.inline{border-left-color:#f59e0b}
+.earn-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}
+.earn-name{font-size:13px;font-weight:700;color:var(--text,#e6edf6)}
+.earn-tkr{font-family:var(--mono,monospace);font-size:10px;color:var(--text3,#7a8ba3);margin-left:4px}
+.earn-when{font-family:var(--mono,monospace);font-size:10px;color:var(--text3,#7a8ba3);white-space:nowrap}
+.earn-chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 8px}
+.earn-chip{font-family:var(--mono,monospace);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(122,139,163,.15);color:var(--text2,#b6c3d4)}
+.earn-chip.up{background:rgba(16,185,129,.15);color:#10b981}.earn-chip.dn{background:rgba(239,68,68,.15);color:#ef4444}
+.earn-chip.flat{background:rgba(245,158,11,.15);color:#f59e0b}
+.earn-line{font-size:11px;color:var(--text2,#b6c3d4);margin-bottom:6px;font-variant-numeric:tabular-nums}
+.earn-sum{margin:0 0 8px;padding-left:16px;font-size:12px;color:var(--text2,#b6c3d4);line-height:1.5}
+.earn-sum li{margin-bottom:3px}
+.earn-none{font-size:11px;color:var(--text3,#7a8ba3);font-style:italic;margin-bottom:8px}
+.earn-foot{font-size:11px;color:var(--text3,#7a8ba3);font-variant-numeric:tabular-nums}
+.earn-fngu{display:block;margin-top:3px;color:#f59e0b}
+.earn-up{border:1px solid var(--border,#1e3350);border-radius:8px;overflow:hidden;margin-top:4px}
+.earn-up-h{font-family:var(--mono,monospace);font-size:10px;color:var(--text3,#7a8ba3);text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;background:var(--surface2,#0f1b2d)}
+.earn-up-row{display:grid;grid-template-columns:96px 1fr auto;gap:10px;padding:7px 10px;border-top:1px solid var(--border,#1e3350);font-size:12px;align-items:baseline;font-variant-numeric:tabular-nums}
+.earn-up-d{font-family:var(--mono,monospace);font-size:11px;color:var(--text2,#b6c3d4)}
+.earn-up-d.soon{color:#f59e0b;font-weight:700}
+.earn-up-n{color:var(--text,#e6edf6)}.earn-up-n small{color:var(--text3,#7a8ba3);margin-left:6px}
+.earn-up-v{color:var(--text3,#7a8ba3);font-size:11px;text-align:right}
+#m-earn-upcoming .earn-up-row{grid-template-columns:72px 1fr auto;font-size:11px}
 .news-headline{font-size:13px;font-weight:600;margin-bottom:6px}
 .news-body{font-size:12px;color:var(--text2);margin-bottom:8px}
 .news-exposure{font-size:11px;color:var(--text3);font-style:italic;margin-bottom:8px}
@@ -1545,6 +1571,21 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   [data-theme="light"] .pp-mode-toggle{background:#f1f5f9;border-color:rgba(15,23,42,.12);}
   [data-theme="light"] .pp-mode-btn.active{background:rgba(8,145,178,.14);color:#0e7490;}
 
+  /* — period row, right-aligned under the mode toggle — */
+  .pp-range-row{display:flex;justify-content:flex-end;margin:-4px 0 8px;}
+  .pp-range{display:flex;gap:2px;padding:3px;border-radius:999px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);}
+  .pp-range-btn{font-family:var(--mono);font-size:10px;letter-spacing:.05em;padding:5px 11px;
+    border-radius:999px;border:none;background:none;color:var(--text3);cursor:pointer;transition:all .15s;}
+  .pp-range-btn:hover{color:var(--text2);}
+  .pp-range-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:1px;}
+  .pp-range-btn.active{background:rgba(0,212,255,.14);color:var(--cyan);font-weight:700;}
+  .pp-range-foot{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:11px;
+    color:var(--text3);margin-top:6px;font-variant-numeric:tabular-nums;}
+  .pp-range-foot .up{color:var(--green);} .pp-range-foot .dn{color:var(--red);}
+  [data-theme="light"] .pp-range{background:#f1f5f9;border-color:rgba(15,23,42,.12);}
+  [data-theme="light"] .pp-range-btn.active{background:rgba(8,145,178,.14);color:#0e7490;}
+
   /* — index strip: superseded on desktop. Left in the DOM and still updated by
        updateMarketWidget(); nothing else reads it. — */
   #sec01 #marketWidget{display:none !important;}
@@ -1779,10 +1820,28 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       </div>
     </div>
 
+    <!-- Period, under the Value / All-Time Change toggle. "All" shows the two
+         charts above untouched; any other period draws into #rangeChart, which
+         copies a window of their data and never writes to them. -->
+    <div class="pp-range-row">
+      <div class="pp-range" id="ppRange">
+        <button class="pp-range-btn" data-range="1d"  onclick="ppSetRange('1d')">1D</button>
+        <button class="pp-range-btn" data-range="1w"  onclick="ppSetRange('1w')">1W</button>
+        <button class="pp-range-btn" data-range="mtd" onclick="ppSetRange('mtd')">MTD</button>
+        <button class="pp-range-btn" data-range="3m"  onclick="ppSetRange('3m')">3M</button>
+        <button class="pp-range-btn" data-range="6m"  onclick="ppSetRange('6m')">6M</button>
+        <button class="pp-range-btn" data-range="ytd" onclick="ppSetRange('ytd')">YTD</button>
+        <button class="pp-range-btn" data-range="1y"  onclick="ppSetRange('1y')">1Y</button>
+        <button class="pp-range-btn active" data-range="all" onclick="ppSetRange('all')">ALL</button>
+      </div>
+    </div>
+
     <!-- Kept in the DOM (hidden on desktop): setChartFilter() writes to it. -->
     <div class="chart-title" id="mvChartTitle">Portfolio Market Value — All Accounts</div>
     <div class="pp-hero-chart" id="ppChartValue"><canvas id="portfolioValueChart"></canvas></div>
     <div class="pp-hero-chart" id="ppChartChange" style="display:none"><canvas id="changeValueChart"></canvas></div>
+    <div class="pp-hero-chart" id="ppChartRange" style="display:none"><canvas id="rangeChart"></canvas></div>
+    <div class="pp-range-foot" id="ppRangeFoot" style="display:none"></div>
   </div>
 
   <!-- Index Widget -->
@@ -2197,6 +2256,11 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
     <span class="ai-badge" id="ai06badge">⚡ LIVE · Loading...</span>
   </div>
   <div class="ai-section-wrap loading" id="aiSec06">
+    <div id="earningsPanel" class="earn-panel" style="display:none">
+      <div class="earn-label">Earnings — your holdings</div>
+      <div class="grid-3" id="earningsCards" style="align-items:start"></div>
+      <div id="earningsUpcoming"></div>
+    </div>
     <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:10px;text-transform:uppercase">Sector &amp; Market News</div>
     <div class="grid-3" id="newsSector" style="align-items:start">
       <div class="skeleton-card"><div class="skeleton skeleton-line h3"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
@@ -3165,6 +3229,8 @@ function _applyTodayToCharts(totalValue, roiPct, dailyChange, snapAccts) {
     _setRoiDs(roiLabels.length - 1);
   }
   roiChart.update('none');
+  // A period other than All draws its own copy: refresh it with today's figures.
+  if (typeof ppRange !== 'undefined' && ppRange !== 'all') ppRenderRange();
 }
 
 // Throttled save of today's computed portfolio state → KV today_snapshot key.
@@ -5240,6 +5306,7 @@ function setChartFilter(key, btn) {
 
   // ── All-Time Change chart — follows the same account filter ────────────────
   ppRenderChangeChart(key);
+  if (ppRange !== 'all') ppRenderRange();
 }
 
 // Build the change chart on first use, once its canvas is actually visible.
@@ -5286,11 +5353,150 @@ function ppRenderChangeChart(key) {
   changeValueChart.update('none');
 }
 
+// ── Period selector: 1D, 1W, MTD, 3M, 6M, YTD, 1Y, All ────────────────────────
+// "All" is the original pair of charts, untouched. Every other period draws into
+// rangeChart: the monthly periods take a window of the value or change series
+// (copied, never written back — the phone charts and live updates read those),
+// and 1D/1W use the intraday curve from ppIntradaySeries(), today's holdings
+// priced through the period.
+let ppRange = 'all';
+let rangeChart = null;
+let _ppRangeTok = 0;
+const PP_RANGE_MONTHS = { mtd: 1, '3m': 3, '6m': 6, '1y': 12 };
+
+function ppRangeCutoff(r) {
+  if (r === 'ytd') return new Date().getFullYear() + '-01';
+  const n = PP_RANGE_MONTHS[r];
+  if (!n) return null;
+  const c = new Date(); c.setMonth(c.getMonth() - n);
+  return c.toISOString().slice(0, 7);
+}
+
+function ppSetRange(r) {
+  ppRange = r;
+  document.querySelectorAll('.pp-range-btn').forEach(b => b.classList.toggle('active', b.dataset.range === r));
+  ppRenderRange();
+}
+
+function ppEnsureRangeChart() {
+  if (rangeChart) return true;
+  const cv = document.getElementById('rangeChart');
+  if (!cv || !cv.clientWidth) return false;
+  const o = cleanChartOpts('Value', 'dollar');
+  const intra = () => ppRange === '1d' || ppRange === '1w';
+  o.scales.x.ticks = Object.assign({}, o.scales.x.ticks, {
+    maxTicksLimit: 8, maxRotation: 0, autoSkip: true,
+    callback(v, i, ticks) {
+      const l = this.getLabelForValue(v) || '';
+      if (l.length <= 10) return l;
+      const t = new Date(l);
+      if (ppRange === '1d') return t.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
+      const day = t.toLocaleDateString('en-CA', { weekday: 'short', day: 'numeric' });
+      const prev = i > 0 ? this.getLabelForValue(ticks[i - 1].value) : '';   // every tick is kept in 1W
+      return prev && prev.length > 10 && new Date(prev).toDateString() === t.toDateString() ? '' : day;   // one label per day
+    },
+  });
+  o.plugins.tooltip = Object.assign({}, o.plugins.tooltip, {
+    callbacks: Object.assign({}, (o.plugins.tooltip || {}).callbacks, {
+      title(items) {
+        const l = (items[0] && items[0].label) || '';
+        if (!intra() || l.length <= 10) return l;
+        const t = new Date(l);
+        return t.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' }) + ' · '
+          + t.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
+      },
+    }),
+  });
+  rangeChart = new Chart(cv.getContext('2d'), { type: 'line', data: { labels: [], datasets: [] }, options: o });
+  return true;
+}
+
+function _ppShowHero(which) {           // 'value' | 'change' | 'range'
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  show('ppChartValue', which === 'value');
+  show('ppChartChange', which === 'change');
+  show('ppChartRange', which === 'range');
+  show('ppRangeFoot', which === 'range');
+}
+
+async function ppRenderRange() {
+  const foot = document.getElementById('ppRangeFoot');
+  if (ppRange === 'all') {
+    _ppRangeTok++;                                  // cancel any pending intraday draw
+    _ppShowHero(ppChartMode);
+    if (ppChartMode === 'change') requestAnimationFrame(() => { if (ppEnsureChangeChart()) ppRenderChangeChart(currentFilter); });
+    return;
+  }
+  _ppShowHero('range');
+  await new Promise(res => requestAnimationFrame(res));
+  if (!ppEnsureRangeChart()) return;
+  const tok = ++_ppRangeTok, range = ppRange, mode = ppChartMode;
+  const acct = { all: 'all', tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' }[currentFilter] || 'all';
+  let labels = [], main = [], ref = [], sp = null;
+  if (range === '1d' || range === '1w') {
+    if (foot) foot.innerHTML = `<span>Loading ${range === '1d' ? 'today' : 'this week'}…</span>`;
+    const S = await window.ppIntradaySeries(range);
+    if (tok !== _ppRangeTok) return;                // the user moved on
+    if (!S) { if (foot) foot.innerHTML = '<span>Intraday prices are unavailable right now.</span>'; return; }
+    const v = S.vals[acct] || S.vals.all, c = S.contrib[acct];
+    labels = S.labels.slice();
+    // No contributions / break-even line here: it sits far from a day's or a week's
+    // movement and stretches the axis until the line looks flat.
+    main = (mode === 'change' && c != null) ? v.map(x => +(x - c).toFixed(2)) : v.slice();
+    ref = [];
+    const spv = (S.sp || []).filter(x => x != null);
+    sp = spv.length ? spv[spv.length - 1] : null;
+  } else {
+    if (mode === 'change') {
+      const series = ppChangeSeries(currentFilter);
+      labels = series.map(p => p.x); main = series.map(p => p.y);
+      if (_lastLiveData) {
+        const st = _heroScopedStats(_lastLiveData, acct === 'all' ? null : acct);
+        labels.push(new Date().toISOString().slice(0, 10)); main.push(+(st.mktVal - st.contrib).toFixed(2));
+      }
+      ref = labels.map(() => 0);
+    } else {
+      labels = portfolioValueChart.data.labels.slice();
+      main = (portfolioValueChart.data.datasets[0] || {}).data.slice();
+      ref = ((portfolioValueChart.data.datasets[1] || {}).data || []).slice();
+    }
+    const cut = ppRangeCutoff(range);
+    let off = labels.findIndex(l => l >= cut);
+    if (off < 0) off = labels.length;
+    off = Math.max(0, Math.min(off, labels.length - 2));   // always at least two points
+    labels = labels.slice(off); main = main.slice(off); ref = ref.slice(off);
+  }
+  const colour = (mvByAcct[currentFilter] || mvByAcct.all).color;
+  // 1W labels each day once (on its first hourly point), so every tick must be
+  // considered rather than auto-skipped; the other periods auto-skip as usual.
+  Object.assign(rangeChart.options.scales.x.ticks,
+                range === '1w' ? { autoSkip: false, maxTicksLimit: 100 } : { autoSkip: true, maxTicksLimit: 8 });
+  rangeChart.data.labels = labels;
+  rangeChart.data.datasets = [
+    { ...lineDef(colour, mode === 'change' ? 'All-Time Change' : 'Market Value', main), fill: true, backgroundColor: colour + '15' },
+    { ...lineDef('#64748b', mode === 'change' ? 'Break-even' : 'Contributions', ref), borderDash: [4, 4], pointRadius: 0, fill: false },
+  ];
+  rangeChart.update('none');
+
+  const vals = main.filter(x => x != null);
+  if (foot && vals.length >= 2) {
+    const a = vals[0], b = vals[vals.length - 1], d = b - a;
+    const m = v => (v < 0 ? '−' : '') + '$' + Math.abs(Math.round(v)).toLocaleString('en-CA');
+    const sgn = v => (v >= 0 ? '+' : '−');
+    const pct = mode === 'value' && a > 0 ? ` (${sgn(d)}${Math.abs(d / a * 100).toFixed(1)}%)` : '';
+    const label = { '1d': 'Today', '1w': 'This week', mtd: 'Past month', '3m': '3 months', '6m': '6 months', ytd: 'Year to date', '1y': '1 year' }[range] || '';
+    foot.innerHTML = `<span>${label} · ${m(a)} start</span>`
+      + `<span class="${d >= 0 ? 'up' : 'dn'}">${m(b)} now · ${sgn(d)}${m(Math.abs(d)).replace('−', '')}${pct}`
+      + (sp != null ? ` <span style="color:var(--text3)">· S&amp;P 500 ${sgn(sp)}${Math.abs(sp).toFixed(1)}%</span>` : '') + '</span>';
+  }
+}
+
 // Swap which canvas is visible. Neither chart's data is touched here.
 function ppSetChartMode(mode) {
   ppChartMode = mode === 'change' ? 'change' : 'value';
   document.querySelectorAll('.pp-mode-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.mode === ppChartMode));
+  if (ppRange !== 'all') { ppRenderRange(); return; }
   const v = document.getElementById('ppChartValue');
   const c = document.getElementById('ppChartChange');
   if (v) v.style.display = ppChartMode === 'value'  ? '' : 'none';
@@ -5987,7 +6193,60 @@ function renderTaxSection(data, llmTax) {
   if (badge) badge.textContent = '⚡ LIVE · Updated with prices';
 }
 
+// Earnings on stocks we hold — computed daily by the intelligence run
+// (scripts/earnings.py) and stored in intelligence.json as `earnings`. Recent
+// reports as cards, the next two weeks as a list. Hidden when there is nothing.
+function renderEarnings(e) {
+  const panel = document.getElementById('earningsPanel');
+  if (!panel) return;
+  const recent = (e && e.recent) || [], upcoming = (e && e.upcoming) || [];
+  if (!recent.length && !upcoming.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const day = d => new Date(d + 'T12:00:00').toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+  const money = v => (v < 0 ? '−' : '+') + '$' + Math.abs(Math.round(v)).toLocaleString('en-CA');
+  const pct = (v, d = 1) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(d) + '%';
+  const acct = a => a === 'Investment' ? 'Non-Reg' : a;
+  // Your own name for the holding ("Microsoft"), not Yahoo's legal one ("Microsoft Corporation").
+  const name = c => ((HOLDINGS_STATIC.find(h => h.ticker === c.ticker) || {}).name) || c.name || c.ticker;
+  document.getElementById('earningsCards').innerHTML = recent.slice(0, 6).map(c => {
+    const v = c.verdict === 'beat' ? 'beat' : c.verdict === 'miss' ? 'miss' : 'inline';
+    const chips = [];
+    if (c.verdict) chips.push(`<span class="earn-chip ${v === 'beat' ? 'up' : v === 'miss' ? 'dn' : 'flat'}">EPS ${c.verdict === 'in line' ? 'IN LINE' : c.verdict.toUpperCase()}${c.surprise_pct != null && c.verdict !== 'in line' ? ' ' + pct(c.surprise_pct) : ''}</span>`);
+    if (c.revenue_qoq_pct != null) chips.push(`<span class="earn-chip ${c.revenue_qoq_pct >= 0 ? 'up' : 'dn'}">REV ${pct(c.revenue_qoq_pct)} Q/Q</span>`);
+    if (c.reaction_pct != null) chips.push(`<span class="earn-chip ${c.reaction_pct >= 0 ? 'up' : 'dn'}">STOCK ${pct(c.reaction_pct)}${c.reaction_partial ? ' SO FAR' : ''}</span>`);
+    const eps = c.eps_actual != null && c.eps_estimate != null
+      ? `EPS $${c.eps_actual.toFixed(2)} vs $${c.eps_estimate.toFixed(2)} expected` : '';
+    const imp = c.impact_cad ? ` · your impact <b class="${c.impact_cad >= 0 ? 'green' : 'red'}">${money(c.impact_cad)}</b>` : '';
+    const sum = (c.summary && c.summary.length)
+      ? `<ul class="earn-sum">${c.summary.map(b => `<li>${esc(b)}</li>`).join('')}</ul>`
+      : '<div class="earn-none">No coverage of the call yet — the figures above are the report.</div>';
+    const pos = c.position_cad
+      ? `You own $${Math.round(c.position_cad).toLocaleString('en-CA')}${c.weight_pct != null ? ` (${c.weight_pct.toFixed(1)}% of portfolio)` : ''} · ${(c.accounts || []).map(acct).join(', ')}` : '';
+    return `<div class="news-card earn-card ${v}">
+      <div class="earn-top"><div><span class="earn-name">${esc(name(c))}</span><span class="earn-tkr">${esc(c.ticker)}</span></div>
+        <span class="earn-when">${day(c.reported_at)} · ${esc(c.quarter || '')}</span></div>
+      <div class="earn-chips">${chips.join('')}</div>
+      <div class="earn-line">${eps}${imp}</div>
+      ${sum}
+      <div class="earn-foot">${pos}${c.in_fngu ? '<span class="earn-fngu">Also inside FNGU — this report moves your FANG+ 3x fund too</span>' : ''}</div>
+    </div>`;
+  }).join('');
+  const todayStr = new Date().toISOString().slice(0, 10);
+  document.getElementById('earningsUpcoming').innerHTML = upcoming.length ? `<div class="earn-up">
+    <div class="earn-up-h">Reporting soon</div>
+    ${upcoming.slice(0, 8).map(c => {
+      const days = Math.round((new Date(c.date + 'T12:00:00') - new Date(todayStr + 'T12:00:00')) / 86400000);
+      const when = days <= 0 ? 'Today' : days === 1 ? 'Tomorrow' : day(c.date);
+      const t = c.timing && c.timing !== 'time not confirmed' ? c.timing : 'time TBC';
+      return `<div class="earn-up-row"><span class="earn-up-d${days <= 2 ? ' soon' : ''}">${when}</span>
+        <span class="earn-up-n">${esc(name(c))}<small>${esc(c.ticker)} · ${t}${c.eps_estimate != null ? ` · est. EPS $${(+c.eps_estimate).toFixed(2)}` : ''}</small></span>
+        <span class="earn-up-v">$${Math.round(c.position_cad || 0).toLocaleString('en-CA')}${c.weight_pct != null ? ` · ${c.weight_pct.toFixed(1)}%` : ''}</span></div>`;
+    }).join('')}</div>` : '';
+}
+
 function renderAISection(analysis) {
+  try { renderEarnings(analysis && analysis.earnings); } catch (e) { console.warn('earnings panel', e); }
   if (!analysis || analysis.error) return;
 
   // Badge label: shows when the AI content was actually generated, not when the page refreshed
@@ -9663,11 +9922,12 @@ var CHART_OPTS_BASE={
 /* Resolve --t3 CSS variable for axis tick color (Chart.js can't read CSS vars) */
 /* Labels are "YYYY-MM-DD" for the monthly views and full ISO times for 1D/1W. */
 function mIsIntra(){return mTimeRange==='1d'||mTimeRange==='1w';}
-function mFmtTick(l){
+function mFmtTick(l,prev){
   if(!l)return'';
   if(l.length>10){
     var t=new Date(l);
     if(mTimeRange==='1d')return t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    if(prev&&prev.length>10&&new Date(prev).toDateString()===t.toDateString())return'';   /* one label per day */
     return t.toLocaleDateString('en-US',{weekday:'short'});
   }
   var d=new Date(l+'T00:00:00');
@@ -9720,7 +9980,7 @@ function makeMvOpts(){
         ticks:{
           maxTicksLimit:5,maxRotation:0,autoSkip:true,
           font:{size:8},color:axCol,
-          callback:function(v){return mFmtTick(this.getLabelForValue(v));}
+          callback:function(v,i,ticks){return mFmtTick(this.getLabelForValue(v),i>0?this.getLabelForValue(ticks[i-1].value):'');}
         }
       },
       /* Axis hidden so the plot uses the full width. Tooltips still carry the
@@ -9763,7 +10023,7 @@ function makeRoiOpts(){
         ticks:{
           maxTicksLimit:5,maxRotation:0,autoSkip:true,
           font:{size:8},color:axCol,
-          callback:function(v){return mFmtTick(this.getLabelForValue(v));}
+          callback:function(v,i,ticks){return mFmtTick(this.getLabelForValue(v),i>0?this.getLabelForValue(ticks[i-1].value):'');}
         }
       },
       /* Same as the value chart: no axis, full width, figures via tooltip. */
@@ -9851,15 +10111,15 @@ function applyIntradayRange(){
     var k={all:'all',tfsa:'TFSA',inv:'Investment',fhsa:'FHSA',rrsp:'RRSP'}[key]||'all';
     var v=S.vals[k]||S.vals.all, c=S.contrib[k];
     var lbl=S.labels.slice();
-    if(mChartMode==='change'&&c!=null){
-      mMvChart.data.labels=lbl;
-      mMvChart.data.datasets[0].data=v.map(function(x){return +(x-c).toFixed(2);});
-      mMvChart.data.datasets[1].data=lbl.map(function(){return 0;});
-    } else {
-      mMvChart.data.labels=lbl;
-      mMvChart.data.datasets[0].data=v.slice();
-      mMvChart.data.datasets[1].data=lbl.map(function(){return c;});
-    }
+    /* No contributions / break-even line for a day or a week: it stretches the
+       axis until the movement looks flat. */
+    [mMvChart,mRoiChart].forEach(function(ch){
+      Object.assign(ch.options.scales.x.ticks, range==='1w'?{autoSkip:false,maxTicksLimit:100}:{autoSkip:true,maxTicksLimit:5});
+    });
+    mMvChart.data.labels=lbl;
+    mMvChart.data.datasets[0].data=(mChartMode==='change'&&c!=null)
+      ? v.map(function(x){return +(x-c).toFixed(2);}) : v.slice();
+    mMvChart.data.datasets[1].data=[];
     mMvChart.update('none');
     var v0=v[0];
     mRoiChart.data.labels=lbl;
@@ -9875,6 +10135,7 @@ function applyMobileTimeRange(){
   if(!window.portfolioValueChart||!window.roiChart)return;
   if(mIsIntra()){applyIntradayRange();return;}
   _mIntraTok++;                                            // cancel a pending 1D/1W draw
+  [mMvChart,mRoiChart].forEach(function(ch){Object.assign(ch.options.scales.x.ticks,{autoSkip:true,maxTicksLimit:5});});
   var srcMv=portfolioValueChart, srcRoi=roiChart;
   var allMvL=srcMv.data.labels, allRoiL=srcRoi.data.labels;
   var mOff=0, rOff=0;
@@ -11020,6 +11281,16 @@ function syncMobile(){
   safeCarousel('macroThemes','m-macro-carousel','m-macro-carousel-dots');
   safeCarousel('riskFactors','m-risk-carousel','m-risk-carousel-dots');
   safeCarousel('newsSector','m-news-carousel','m-news-carousel-dots');
+  (function(){
+    var panel=document.getElementById('earningsPanel'),wrap=document.getElementById('m-earn-wrap');
+    if(!panel||!wrap)return;
+    var on=panel.style.display!=='none';
+    wrap.style.display=on?'':'none';
+    if(!on)return;
+    safeCarousel('earningsCards','m-earn-carousel','m-earn-carousel-dots');
+    var up=document.getElementById('earningsUpcoming'),dst=document.getElementById('m-earn-upcoming');
+    if(up&&dst&&dst.innerHTML!==up.innerHTML)dst.innerHTML=up.innerHTML;
+  })();
 
   // Picks: research tab — carousel (one card visible, swipe for others)
   safeCarousel('picksGrid','m-rsrch-picks','m-rsrch-picks-dots');
@@ -12478,6 +12749,16 @@ document.addEventListener('DOMContentLoaded',function(){
       </div>
       <div class="m-carousel" id="m-risk-carousel"></div>
       <div class="m-carousel-dots" id="m-risk-carousel-dots"></div>
+      <!-- Earnings on holdings (mirrors #earningsPanel) -->
+      <div id="m-earn-wrap" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div class="m-sec-hdr" style="margin-bottom:0">Earnings — Your Holdings</div>
+          <div style="font-size:9px;color:var(--t3)">swipe ›</div>
+        </div>
+        <div class="m-carousel" id="m-earn-carousel"></div>
+        <div class="m-carousel-dots" id="m-earn-carousel-dots"></div>
+        <div id="m-earn-upcoming" style="margin-bottom:14px"></div>
+      </div>
       <!-- News -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div class="m-sec-hdr" style="margin-bottom:0">Market News</div>

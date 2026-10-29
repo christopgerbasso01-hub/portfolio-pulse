@@ -627,5 +627,23 @@ ck("the learning example's practice figure is not a 'repeat'",
 ck("the review is given the two biggest slices, not the whole mix",
    "The two biggest slices" in PROMPTS["desk"] and "Sector mix now" not in PROMPTS["desk"], True)
 
+print("\n── the third redo's faults (2026-10-29) ──")
+ck("a question left without its answer after a cut is removed",
+   gp.drop_orphan_questions("SAM: How are the accounts looking?\nSAM: And the goal?\nALEX: About 93%.")[0],
+   "SAM: And the goal?\nALEX: About 93%.")
+ck("...a normal exchange is untouched", gp.drop_orphan_questions("SAM: And the goal?\nALEX: About 93%.")[1], [])
+ck("saying a trade moved the sector mix is caught",
+   any("trade changed the sector mix" in m for m in gp.segment_problems(
+       "desk", "ALEX: That trade pushes the leveraged-fund slice a bit lower, near 44 percent.", PLAN)), True)
+ck("...a price-driven shift is fine",
+   any("trade changed" in m for m in gp.segment_problems(
+       "desk", "ALEX: Leveraged funds slipped from about 46 percent to about 44 percent on price moves.", PLAN)), False)
+ck("the learning example's illustrative yields are not 'invented market data'",
+   gp.verify_script_figures("[EDUCATION_TOPIC: X]\nALEX: Imagine the three-month Treasury yields 5% and the ten-year 4%.\n"
+                            "SAM: That's our learning segment for this week.", {"strict_figures": True, "allowed_numbers": [1.0]}), [])
+ck("WHAT WE OWN carries each holding's weight", "of the portfolio" in PROMPTS["desk"].split("WHAT WE OWN")[1][:400], True)
+ck("the main story keeps the news's certainty", "Keep its certainty" in PROMPTS["main"], True)
+ck("the review no longer lists every account", "The account that moved most" in PROMPTS["desk"], True)
+
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

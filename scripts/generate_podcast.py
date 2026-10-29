@@ -569,6 +569,7 @@ NUMBERS: at most 4 in any turn. Round them and write them as digits — "about $
 NEVER explain how leveraged or 3x funds work — no amplifying, no daily reset, no decay. The listener knows. Say what they did.
 A company is a holding only if it is in WHAT WE OWN, and it is described only as WHAT WE OWN describes it — never guess what a company does, where it is based, or confuse one holding with another.
 NO ADVICE: never tell Christopher to buy, sell, add, trim or hold anything. Give perspective, not instructions.
+The portfolio is ONLY what WHAT WE OWN lists, at the weights shown: it holds no bonds, no cash plan and nothing else. Never call a small holding "core".
 {currency_rule}
 SAY IT ONCE: this segment covers only its own subject. Do not recap earlier segments or preview later ones (apart from a one-line handoff where asked), and never restate a point in new words. This week the other segments cover: {elsewhere}. Leave those alone.
 ANALOGIES: {analogy_rule}
@@ -609,6 +610,7 @@ LENGTH: 560 to 700 words. Write segment 2 now:"""
 SEG_MAIN = """━━━ SEGMENT 3 of 6 — THE MAIN STORY: {title} ━━━
 What the news says — your only facts about it:
 {brief}
+Keep its certainty: if it says something "may" happen or is being "evaluated", say exactly that — never that it happened. Add no details it does not give: who, how many, what kind, prices, or market reactions.
 What we own that it touches: {exposure}
 Structure:
 1. SAM sets up the question the story raises, in a line or two.
@@ -1333,9 +1335,10 @@ def _desk_text(facts: dict, ch: dict, sp_week, fx_effect) -> str:
         if dn["pct"] < 0:
             L.append(f"Worst mover: {nm(dn['ticker'])}, down about {_say_pct(dn['pct'])} (about {m(dn['cad'])} for us).")
     acc = ch["accounts"]
-    L.append("Accounts: " + "; ".join(
-        f"{_desk.ACCOUNT_LABEL.get(a, a)} about {m(v['value'])} ({'up' if v['change'] >= 0 else 'down'} about {m(v['change'])})"
-        for a, v in acc.items()) + ".")
+    if acc:
+        big = max(acc.items(), key=lambda kv: abs(kv[1]["change"]))
+        L.append(f"The account that moved most: the {_desk.ACCOUNT_LABEL.get(big[0], big[0])}, "
+                 f"{'up' if big[1]['change'] >= 0 else 'down'} about {m(big[1]['change'])}.")
     house, target = ch["house"]["value"], DOWN_PAYMENT_TARGET
     L.append(f"The house: FHSA and RRSP together about {m(house)} against the {m(target)} target — "
              f"about {house / target * 100:.0f}% of the way.")
@@ -1488,7 +1491,10 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
         "held_line": "; ".join(
             f"{_LEVERAGE_NAMES.get(t) or COMPANY_NAMES.get(t, (facts['positions'][t].get('name') or t))}"
             + (f" — {HOLDING_PROFILES[t]}" if t in HOLDING_PROFILES else "")
-            for t in sorted((facts.get("positions") or {}).keys())) or "(unavailable)",
+            + (f", about {_say_pct(facts['positions'][t]['cad'] / facts['total_value'] * 100)} of the portfolio"
+               if facts.get("total_value") else "")
+            for t in sorted((facts.get("positions") or {}).keys(),
+                            key=lambda t: -facts["positions"][t]["cad"])) or "(unavailable)",
         "fields": {
             "opening":   {"hook": hook, "previously": previously, "rundown": rundown},
             "desk":      {"desk": desk, "fx_instruction": (
@@ -1629,6 +1635,8 @@ _FX_TALK = re.compile(
     r"|(?:us|u\.s\.|american|canadian)\s+dollar\s+(?:has\s+|got\s+|gets\s+|is\s+|was\s+)?"
     r"(?:strong|weak|rose|rise|fell|fall|climb|slip|gain|los|firm|soft)\w*"
     r"|(?:strong|weak)\w*\s+(?:us|u\.s\.|american|canadian)\s+dollar)\b", re.I)
+_TRADE_CAUSE = re.compile(r"\b(?:trade|addition|purchase|buying|bought|added)\b[^.?!]{0,60}\b(?:push|nudg|lower|rais|lift|"
+                          r"shift|tilt|move|reduc|increas)\w*[^.?!]{0,50}\b(?:slice|share|weight|percent|exposure|mix)\b", re.I)
 _EMBELLISH = re.compile(r"\b(?:all year|this year|ever|record|biggest|largest|worst|best|since \w+|single[- ]day|"
                        r"in (?:months|years|a decade)|because|after the|thanks to|due to)\b", re.I)
 _WATCH = re.compile(r"\b(?:watch(?:ing)?|keep an eye|keep tabs|monitor(?:ing)?)\b", re.I)
@@ -1671,6 +1679,11 @@ def segment_problems(key: str, text: str, plan: dict) -> list:
     if heavy:
         out.append(f"{len(heavy)} turn(s) carry more than {cap} numbers — split them across SAM's questions: "
                    f"\"{heavy[0][:90]}\"")
+    if key == "desk":
+        cause = next((x for x in sents if _TRADE_CAUSE.search(x)), None)
+        if cause:
+            out.append(f"says a trade changed the sector mix — the shifts come from price moves and trades together: "
+                       f"\"{cause[:100]}\"")
     if key == "opening" and "[THEME]" in text:
         cold = " ".join(_turn_texts(text.split("[THEME]", 1)[0]))
         hook = plan.get("fields", {}).get("opening", {}).get("hook", "").lower()
@@ -1826,6 +1839,21 @@ def produce_episode(api_key: str, plan: dict, history=None, log=print):
     return repaired, facts, segs
 
 
+def drop_orphan_questions(script: str) -> tuple:
+    """A question left with no answer after a cut ("SAM: How are the accounts looking?"
+    followed straight by another SAM line) is removed as well. Returns (script, removed)."""
+    lines, out, removed = script.split("\n"), [], []
+    turn = re.compile(r"^(ALEX|SAM):\s*(.*\S)\s*$")
+    for i, line in enumerate(lines):
+        m = turn.match(line.strip())
+        nxt = next((turn.match(l.strip()) for l in lines[i + 1:] if l.strip()), None)
+        if m and nxt and m.group(1) == nxt.group(1) and m.group(2).rstrip().endswith("?"):
+            removed.append(m.group(2))
+            continue
+        out.append(line)
+    return "\n".join(out), removed
+
+
 def _final_repair(script: str, facts: dict, history, log=print):
     """Last resort, after the rewrites: cut what still cannot air."""
     problems = collect_script_problems(script, facts, history)
@@ -1839,6 +1867,8 @@ def _final_repair(script: str, facts: dict, history, log=print):
             log(f"      - {s[:140]}")
     script, cut_a = strip_unwanted_sentences(script, history)
     script, cut_b = trim_heavy_turns(script)
+    script, cut_q = drop_orphan_questions(script)
+    cut_b += cut_q
     if cut_a or cut_b:
         log(f"  ⚠ Cut {len(cut_a) + len(cut_b)} repeated or overloaded sentence(s):")
         for x in cut_a + cut_b:
@@ -2359,7 +2389,7 @@ def _sentence_problems(sentence: str, ctx, in_learning: bool = False) -> list:
     # Scenario probabilities ("Base case — 50 percent") are the script's own judgement, not
     # market data, whatever words sit nearby.
     if (ctx.get("allowed_numbers") is not None and _MARKET_WORDS.search(sentence)
-            and not _SCENARIO_LINE.search(sentence)):
+            and not _SCENARIO_LINE.search(sentence) and not in_learning):
         for tok in _STAT_TOKEN.findall(sentence):
             try:
                 x = float(re.sub(r"[^\d.]", "", tok))

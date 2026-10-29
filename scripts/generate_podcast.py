@@ -584,26 +584,27 @@ CURRENCY_RULE_ON = """CURRENCY (this segment owns it — at most two sentences, 
 
 SEG_OPENING = """━━━ SEGMENT 1 of 6 — THE OPENING ━━━
 Write, in this order:
-1. COLD OPEN — two or three short lines BEFORE the theme music. Start mid-conversation on this week's most interesting fact: {hook} State the fact only — give no reason for it. No greeting yet.
+1. COLD OPEN — two or three short lines between ALEX and SAM BEFORE the theme music, on this week's most interesting fact: {hook} Say that fact and react to it — add nothing to it: no reason, no comparison, no record, no "all year", no "biggest ever". No greeting yet.
 2. A line that is exactly: [THEME]
 3. WELCOME — ALEX welcomes everyone to Portfolio Pulse Weekly; SAM says hello. Two short turns.
 4. LAST TIME — {previously}
 5. RUN-DOWN — one ALEX turn naming today's segments in order, plainly, without explaining them: {rundown}.
 6. SAM hands over to the portfolio review in one line.
-LENGTH: 230 to 320 words. Write segment 1 now:"""
+LENGTH: 260 to 340 words. Write segment 1 now:"""
 
 SEG_DESK = """━━━ SEGMENT 2 of 6 — THE PORTFOLIO THIS WEEK ━━━
 A proper weekly portfolio review, the way a good adviser would walk a client through it. These are the facts, already rounded — the only portfolio numbers you may use:
 {desk}
+NUMBERS IN THIS SEGMENT: at most TWO in any turn. Spread them across SAM's questions; never read a list of figures.
 Cover these, in order, each ONCE:
-1. The headline: what the portfolio is worth and how the week went — and how much of that change was new money Christopher put in versus what the market did. Then total profit against everything he has contributed.
+1. The headline: start with what the portfolio is worth and how the week went. Then, in the next turns, how much of that change was new money Christopher put in versus what the market did, and total profit against everything he has contributed.
 2. What he did: trades (new positions, additions, sales) and dividends received. If there were none, one line and move on. For a trade, SAM asks what it does to the portfolio's risk or balance; ALEX answers from the sector mix.
-3. How the mix shifted: the sector changes listed, and what they say about how concentrated the portfolio is.
+3. How the mix shifted: the sector changes listed — they come from price moves and trades together, so never say a trade caused a shift — and what they say about how concentrated the portfolio is.
 4. Movers: the one that rose most and the one that fell most, with a reason only if the news gives one.
 5. The accounts and the house: how the down-payment accounts are tracking against the target.
 {fx_instruction}
 End with ALEX handing over to today's main story in one line.
-LENGTH: 500 to 650 words. Write segment 2 now:"""
+LENGTH: 560 to 700 words. Write segment 2 now:"""
 
 SEG_MAIN = """━━━ SEGMENT 3 of 6 — THE MAIN STORY: {title} ━━━
 What the news says — your only facts about it:
@@ -616,7 +617,7 @@ Structure:
 4. The other side: SAM makes the strongest case that it matters less (or more) than it seems; ALEX answers honestly, including what we do not know yet.
 5. One thing to watch next, said once — only an event named in the news, or the type of event with no invented date.
 End with SAM moving on to the rest of the week's news in one line.
-LENGTH: 650 to 850 words. Write segment 3 now:"""
+LENGTH: 750 to 920 words. Write segment 3 now:"""
 
 SEG_AROUND = """━━━ SEGMENT 4 of 6 — AROUND THE PORTFOLIO ━━━
 {count} short item{plural}, three to five turns each, each introduced so the listener knows a new item has started (vary how). None of them is the main story.
@@ -624,13 +625,13 @@ SEG_AROUND = """━━━ SEGMENT 4 of 6 — AROUND THE PORTFOLIO ━━━
 For a news item: what happened, then why it matters — or doesn't — for what we own.
 For the holding spotlight: what the business does, why it is in the portfolio, how big the position is, and the news if there is any.
 End with ALEX turning to the learning segment in one line.
-LENGTH: 420 to 560 words. Write segment 4 now:"""
+LENGTH: 480 to 620 words. Write segment 4 now:"""
 
 SEG_LEARNING = """━━━ SEGMENT 5 of 6 — THE LEARNING SEGMENT: {topic} ━━━
 First line, exactly: [EDUCATION_TOPIC: {topic}]
 Then teach {topic} over several turns: what it is, how it works step by step, and how an investor actually uses it. One worked example with small round numbers (like $100) — say each example number once. Use no current market data. SAM asks the practical question, and ALEX ties the idea to THIS portfolio in words, with no new figures.
 The last line is SAM saying: "That's our learning segment for this week."
-LENGTH: 380 to 500 words. Write segment 5 now:"""
+LENGTH: 440 to 560 words. Write segment 5 now:"""
 
 SEG_SCENARIOS = """━━━ SEGMENT 6 of 6 — SCENARIOS AND THE CLOSE ━━━
 SCENARIOS for the coming week. The three cases below are fixed — do not change them. You choose the odds: they add up to 100, and the base case is between 45 and 55.
@@ -644,7 +645,7 @@ THE CLOSE:
  - One question for Christopher to think about this week — about investing itself, not about data.
  - NEXT WEEK: {next_week}
  - A warm, brief sign-off from both hosts.
-LENGTH: 480 to 620 words. Write segment 6 now:"""
+LENGTH: 540 to 680 words. Write segment 6 now:"""
 
 
 def _last_trading_day(ref: datetime) -> str:
@@ -1152,12 +1153,12 @@ MEMORY_FILE = DATA_DIR / "podcast_memory.json"
 # minimum is asked for once more (budget permitting); max_tokens leaves room for
 # the answer while keeping each request well inside Groq's 8,000-token limit.
 SEGMENTS = (
-    ("opening",   SEG_OPENING,   200, 1600),
-    ("desk",      SEG_DESK,      430, 2400),
-    ("main",      SEG_MAIN,      580, 2600),
-    ("around",    SEG_AROUND,    370, 2200),
-    ("learning",  SEG_LEARNING,  320, 2000),
-    ("scenarios", SEG_SCENARIOS, 420, 2400),
+    ("opening",   SEG_OPENING,   230, 1800),
+    ("desk",      SEG_DESK,      480, 2600),
+    ("main",      SEG_MAIN,      650, 2800),
+    ("around",    SEG_AROUND,    420, 2400),
+    ("learning",  SEG_LEARNING,  380, 2200),
+    ("scenarios", SEG_SCENARIOS, 470, 2600),
 )
 SEGMENT_KEYS = tuple(s[0] for s in SEGMENTS)
 SEGMENT_TITLES = {"opening": "the opening", "desk": "the portfolio this week",
@@ -1315,7 +1316,8 @@ def _desk_text(facts: dict, ch: dict, sp_week, fx_effect) -> str:
     else:
         L.append("Dividends received this week: none.")
     w = ch["sector_weights"]
-    L.append("Sector mix now: " + ", ".join(f"{_sector_name(s)} about {v:.0f}%" for s, v in list(w.items())[:6]) + ".")
+    top = list(w.items())[:2]
+    L.append("The two biggest slices: " + " and ".join(f"{_sector_name(s)} about {v:.0f}%" for s, v in top) + ".")
     if ch["sector_shifts"]:
         L.append("Biggest sector shifts this week: " + "; ".join(
             f"{_sector_name(s['sector'])} from about {s['then']:.0f}% to about {s['now']:.0f}%"
@@ -1627,6 +1629,8 @@ _FX_TALK = re.compile(
     r"|(?:us|u\.s\.|american|canadian)\s+dollar\s+(?:has\s+|got\s+|gets\s+|is\s+|was\s+)?"
     r"(?:strong|weak|rose|rise|fell|fall|climb|slip|gain|los|firm|soft)\w*"
     r"|(?:strong|weak)\w*\s+(?:us|u\.s\.|american|canadian)\s+dollar)\b", re.I)
+_EMBELLISH = re.compile(r"\b(?:all year|this year|ever|record|biggest|largest|worst|best|since \w+|single[- ]day|"
+                       r"in (?:months|years|a decade)|because|after the|thanks to|due to)\b", re.I)
 _WATCH = re.compile(r"\b(?:watch(?:ing)?|keep an eye|keep tabs|monitor(?:ing)?)\b", re.I)
 
 
@@ -1662,6 +1666,17 @@ def segment_problems(key: str, text: str, plan: dict) -> list:
             if said and not any(a.lower() in own for a in aliases):
                 out.append(f"mentions {said[0]}, which is not one of this segment's items — check it is not "
                            f"calling one holding by another's name")
+    cap = 2 if key == "desk" else FIGURES_PER_TURN_MAX
+    heavy = [t for t in turns if len(_FIGURE.findall(t.replace("‑", "-"))) > cap]
+    if heavy:
+        out.append(f"{len(heavy)} turn(s) carry more than {cap} numbers — split them across SAM's questions: "
+                   f"\"{heavy[0][:90]}\"")
+    if key == "opening" and "[THEME]" in text:
+        cold = " ".join(_turn_texts(text.split("[THEME]", 1)[0]))
+        hook = plan.get("fields", {}).get("opening", {}).get("hook", "").lower()
+        extra = next((m for m in _EMBELLISH.finditer(cold) if m.group(0).lower() not in hook), None)
+        if extra:
+            out.append(f"the cold open adds \"{extra.group(0)}\" to the fact it was given — say the fact only")
     if key == "opening" and not any("[THEME]" in l for l in text.split("\n")):
         out.append("is missing the [THEME] line after the cold open")
     if key == "learning" and not re.search(r"\[EDUCATION_TOPIC:", text, re.I):
@@ -1825,7 +1840,9 @@ def _final_repair(script: str, facts: dict, history, log=print):
     script, cut_a = strip_unwanted_sentences(script, history)
     script, cut_b = trim_heavy_turns(script)
     if cut_a or cut_b:
-        log(f"  ⚠ Cut {len(cut_a) + len(cut_b)} repeated or overloaded sentence(s)")
+        log(f"  ⚠ Cut {len(cut_a) + len(cut_b)} repeated or overloaded sentence(s):")
+        for x in cut_a + cut_b:
+            log(f"      - {x[:140]}")
     left = collect_script_problems(script, facts, history, MIN_SCRIPT_WORDS)
     for p in left:
         log(f"  ⚠ {p['msg'][:150]}")
@@ -2576,7 +2593,8 @@ def _scan_unwanted(script: str, history=None) -> list:
     """
     past = _history_sentences(history)
     seen, figs, out, ti = [], {}, [], -1
-    for kind, _, text in _iter_script(script):
+    learning = _in_learning_flags(script)
+    for (kind, _, text), in_learning in zip(_iter_script(script), learning):
         if kind != "turn":
             continue
         ti += 1
@@ -2595,7 +2613,9 @@ def _scan_unwanted(script: str, history=None) -> list:
                                 "reason": "repeats a sentence from a recent episode"})
             # Each scenario necessarily restates its threshold ("more than 1.5 percent");
             # counting it cut ep-redesign's bear case as a "repeat".
-            for m in ([] if _SCENARIO_LINE.search(sent) else _FIGURE.finditer(sent.replace("‑", "-"))):
+            # The learning example's "$100" is a practice number, not a fact to state once.
+            for m in ([] if (_SCENARIO_LINE.search(sent) or in_learning)
+                      else _FIGURE.finditer(sent.replace("‑", "-"))):
                 key = re.sub(r"[\s,]", "", m.group(0)).lower()
                 figs[key] = figs.get(key, 0) + 1
                 if figs[key] > REPEAT_FIGURE_LIMIT and not any(

@@ -610,5 +610,22 @@ ck("the prompts ask for digits, not spelled-out numbers",
    all("write them as digits" in v for v in PROMPTS.values()), True)
 ck("...and forbid advice", all("never tell Christopher to buy, sell" in v for v in PROMPTS.values()), True)
 
+print("\n── the second redo's faults (2026-10-26) ──")
+_pl = dict(PLAN, fields=dict(PLAN["fields"], opening=dict(PLAN["fields"]["opening"], hook="FANG+ 3x fell about 9.5% in a week.")))
+ck("a cold open that embellishes its fact is caught",
+   any("cold open adds" in m for m in gp.segment_problems(
+       "opening", "ALEX: FANG+ 3x fell about 9.5% this week.\nSAM: The biggest single-day swing all year.\n[THEME]\nALEX: Welcome.", _pl)), True)
+ck("...a plain one is not",
+   any("cold open adds" in m for m in gp.segment_problems(
+       "opening", "ALEX: FANG+ 3x fell about 9.5% this week.\nSAM: Ouch.\n[THEME]\nALEX: Welcome.", _pl)), False)
+ck("the portfolio review allows two numbers a turn, and asks for a rewrite above that",
+   any("more than 2 numbers" in m for m in gp.segment_problems("desk", "ALEX: About $310,000, down about $3,100, about 1%.", PLAN)), True)
+ck("the learning example's practice figure is not a 'repeat'",
+   [u for u in gp._scan_unwanted("[EDUCATION_TOPIC: X]\nALEX: You have $100. A year on the $100 is $103.\n"
+                                 "SAM: And the other?\nALEX: The $100 becomes $102.\nSAM: That's our learning segment for this week.")
+    if "times" in u["reason"]], [])
+ck("the review is given the two biggest slices, not the whole mix",
+   "The two biggest slices" in PROMPTS["desk"] and "Sector mix now" not in PROMPTS["desk"], True)
+
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

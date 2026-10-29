@@ -2682,7 +2682,7 @@ const TICKER_NAMES = {};
 HOLDINGS_STATIC.forEach(h => { TICKER_NAMES[h.ticker] = h.name; });
 
 // Static ticker info for ticker strip
-const TICKER_STRIP_LIST = ["SPXL","FNGU","UDOW","NVDA","TSLA","AVGO","COST","NFLX","MSFT","AAPL","QCOM","TSM","IBKR","CM.TO","RY.TO","ENB.TO","BMO.TO","TXF.TO"];
+const TICKER_STRIP_LIST = ["SPXL","FNGU","UDOW","SOXL","NVDA","TSLA","AVGO","COST","NFLX","MSFT","AAPL","QCOM","TSM","IBKR","CM.TO","RY.TO","ENB.TO","BMO.TO","TXF.TO"];
 
 // Historical data for charts
 const dataAllTime=[{"x":"2021-09","y":6.85},{"x":"2021-10","y":17.42},{"x":"2021-11","y":16.03},{"x":"2021-12","y":20.66},{"x":"2022-01","y":10.99},{"x":"2022-02","y":6.29},{"x":"2022-03","y":12.53},{"x":"2022-04","y":-2.5},{"x":"2022-05","y":-9.95},{"x":"2022-06","y":-28.11},{"x":"2022-07","y":-20.72},{"x":"2022-08","y":-13.39},{"x":"2022-09","y":-19.25},{"x":"2022-10","y":-19.63},{"x":"2022-11","y":-16.82},{"x":"2022-12","y":-25.64},{"x":"2023-01","y":-14.37},{"x":"2023-02","y":-15.13},{"x":"2023-03","y":-12.34},{"x":"2023-04","y":-12.31},{"x":"2023-05","y":-8.07},{"x":"2023-06","y":0.54},{"x":"2023-07","y":3.05},{"x":"2023-08","y":4.55},{"x":"2023-09","y":-2.6},{"x":"2023-10","y":-4.58},{"x":"2023-11","y":6.84},{"x":"2023-12","y":12.32},{"x":"2024-01","y":16.04},{"x":"2024-02","y":26.5},{"x":"2024-03","y":29.54},{"x":"2024-04","y":21.18},{"x":"2024-05","y":30.1},{"x":"2024-06","y":38.88},{"x":"2024-07","y":38.42},{"x":"2024-08","y":36.68},{"x":"2024-09","y":42.33},{"x":"2024-10","y":43.66},{"x":"2024-11","y":65.31},{"x":"2024-12","y":58.76},{"x":"2025-01","y":66.66},{"x":"2025-02","y":46.11},{"x":"2025-03","y":37.01},{"x":"2025-04","y":18.6},{"x":"2025-05","y":32.32},{"x":"2025-06","y":38.39},{"x":"2025-07","y":51.19},{"x":"2025-08","y":54.12},{"x":"2025-09","y":70.35},{"x":"2025-10","y":78.1},{"x":"2025-11","y":59.87},{"x":"2025-12","y":49.81},{"x":"2026-01","y":46.3},{"x":"2026-02","y":38.19},{"x":"2026-03","y":30.41},{"x":"2026-04","y":59.98},{"x":"2026-05","y":83.09},{"x":"2026-06","y":65.94}];
@@ -5408,7 +5408,14 @@ function generateAnalysis(data) {
   const techLead   = ndxChg > spChg + 0.5;
 
   // Leveraged ETF concentration — computed from live holdings
-  const _levTickers = new Set(['FNGU','SPXL','UDOW','TQQQ','TECL','LABU','SOXL']);
+  const _levTickers = LEVERAGED_TICKERS;
+  // The funds actually held, with their total shares — named in the copy below
+  // rather than a hard-coded "FNGU, SPXL and UDOW" that left SOXL out.
+  const _levHeld = {};
+  HOLDINGS_STATIC.filter(h => _levTickers.has(h.ticker))
+    .forEach(h => { _levHeld[h.ticker] = (_levHeld[h.ticker] || 0) + h.shares; });
+  const _levList = Object.keys(_levHeld);
+  const levNames = _levList.length > 1 ? _levList.slice(0, -1).join(', ') + ' and ' + _levList.slice(-1) : (_levList[0] || 'none');
   const levEtfVal = Math.round(HOLDINGS_STATIC
     .filter(h => _levTickers.has(h.ticker))
     .reduce((s,h) => {
@@ -5498,7 +5505,7 @@ function generateAnalysis(data) {
       title: `3× ETF Daily Reset Decay (${levEtfPct}% of Portfolio)`,
       level: extremeVol ? 'HIGH' : 'HIGH',
       context: `${levEtfPct}% concentration | ~$${levEtfVal.toLocaleString()} CAD`,
-      body: `FNGU, SPXL and UDOW represent ~$${levEtfVal.toLocaleString()}. In a -15% S&P correction these lose ~45%, erasing ~$57,000. Today SPXL is ${s(spxlChg)} and FNGU is ${s(fnguChg)}.${highVol ? ` VIX at ${vixVal.toFixed(1)} is in the decay danger zone — no new leveraged ETF adds right now.` : ' VIX below 20 keeps decay manageable while the trend holds.'}`,
+      body: `${levNames} represent ~$${levEtfVal.toLocaleString()}. In a -15% S&P correction these lose ~45%, erasing ~$57,000. Today SPXL is ${s(spxlChg)} and FNGU is ${s(fnguChg)}.${highVol ? ` VIX at ${vixVal.toFixed(1)} is in the decay danger zone — no new leveraged ETF adds right now.` : ' VIX below 20 keeps decay manageable while the trend holds.'}`,
     },
     {
       title: `USD/CAD Currency Translation (${usdcad.toFixed(4)})`,
@@ -5525,7 +5532,7 @@ function generateAnalysis(data) {
       impact: Math.abs(spChg) > 1.5 ? 'HIGH' : 'MED',
       category: 'Macro & Rates',
       body: `The S&P 500 is ${spChg >= 0 ? 'up' : 'down'} ${Math.abs(spChg).toFixed(2)}% today. Your 3x ETFs multiply this: SPXL ${s(spxlChg)}, FNGU ${s(fnguChg)}, UDOW ${s(udowChg)}.${dailyChg ? ` Portfolio daily P&L estimate: ${dailyChg >= 0 ? '+' : ''}$${Math.abs(dailyChg).toLocaleString('en-CA',{maximumFractionDigits:0})}.` : ''}`,
-      exposure: `Your exposure: ~1,373 total FNGU shares + 151 SPXL shares + 206 UDOW shares across all accounts = ~$${levEtfVal.toLocaleString()} in 3x leveraged ETFs.`,
+      exposure: `Your exposure: ${_levList.map(t => `~${Math.round(_levHeld[t]).toLocaleString()} ${t}`).join(' + ')} shares across all accounts = ~$${levEtfVal.toLocaleString()} in 3x leveraged ETFs.`,
       scenarios: `🟢 Bull: Follow-through tomorrow → leveraged ETFs compound gains. 🔴 Bear: Reversal creates whipsaw — worst case for 3x decay.`,
     });
   } else {
@@ -5707,7 +5714,11 @@ function generateAnalysis(data) {
     tfsa: [
       { icon: '✅', text: `All capital gains, dividends and growth permanently sheltered — $${(tfsaVal-44500).toLocaleString('en-CA',{maximumFractionDigits:0})} unrealized gains protected from CRA.` },
       { icon: '✅', text: `NVDA +1,776% held here — optimal placement. ~$11,456 in gains permanently sheltered. This position alone justifies the TFSA-first strategy.` },
-      { icon: '⚠️', text: `FNGU/SPXL/UDOW concentration at 48.7% — acceptable here given tax-free status, but monitor VIX for decay risk in volatile markets.` },
+      { icon: '⚠️', text: `${_levList.join('/')} concentration at ${(() => {
+          const v = HOLDINGS_STATIC.filter(h => h.account === 'TFSA' && _levTickers.has(h.ticker))
+            .reduce((s, h) => { const p = hldgs[h.ticker]; return s + (p?.price ? p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1) : 0); }, 0);
+          return tfsaVal > 0 ? (v / tfsaVal * 100).toFixed(1) : '0';
+        })()}% of the TFSA — acceptable here given tax-free status, but monitor VIX for decay risk in volatile markets.` },
       { icon: '💡', text: `$7,000 TFSA room opens Jan 1, 2027 — when you return to Canada in March 2027 this room will be available. First priority: highest-conviction AI names (Broadcom, AMD) or add to existing Nvidia/FNGU positions.` },
       { icon: '💡', text: `Best account for highest-growth/highest-volatility names. AVGO and any new AI semis belong here first.` },
     ],
@@ -8067,9 +8078,12 @@ function applyOneTx(holdings, closed, contribs, cash, tx) {
           cost_total = tradeCostCAD;
           book_rate  = null;
         }
+        // Bought into a second account: take the name and sector the ticker already
+        // has elsewhere, rather than "SOXL" / "Unknown".
+        const twin = holdings.find(h => h.ticker === tx.ticker) || closed.find(h => h.ticker === tx.ticker);
         holdings.push({
-          ticker: tx.ticker, name: tx.name || tx.ticker, account: tx.account,
-          sector: tx.sector || 'Unknown', ccy: tx.ccy || 'USD',
+          ticker: tx.ticker, name: tx.name || (twin && twin.name) || tx.ticker, account: tx.account,
+          sector: tx.sector || (twin && twin.sector) || 'Unknown', ccy: tx.ccy || 'USD',
           shares: tx.shares, cost_total, book_rate,
           dividends: 0, realized: 0, unrealized: 0, weight: 0,
         });
@@ -8226,6 +8240,24 @@ function applyOneTx(holdings, closed, contribs, cash, tx) {
   }
 }
 
+// Every 3x leveraged fund we hold or might buy. A holding's sector comes from the
+// transaction that opened it, and SOXL's did not say "Leveraged ETF" — the RRSP
+// purchase was logged as Technology and a later one in Non-Reg as Unknown — so
+// every sector chart, breakdown and the podcast's portfolio review counted it as
+// tech. The engine now classes these by ticker, whatever the transaction said.
+const LEVERAGED_TICKERS = new Set(['FNGU', 'SPXL', 'UDOW', 'SOXL', 'TQQQ', 'TECL', 'LABU', 'FNGA']);
+const LEVERAGED_NAMES   = { FNGU: 'FANG+ 3x ETF', SPXL: 'S&P500 3x ETF', UDOW: 'Dow 3x ETF',
+                            SOXL: 'Semiconductor 3x ETF', TQQQ: 'Nasdaq-100 3x ETF' };
+
+function _classifyLeveraged(list) {
+  list.forEach(h => {
+    if (!LEVERAGED_TICKERS.has(h.ticker)) return;
+    h.sector = 'Leveraged ETF';
+    if (LEVERAGED_NAMES[h.ticker] && (!h.name || h.name === h.ticker || /direxion|proshares|daily .* bull/i.test(h.name)))
+      h.name = LEVERAGED_NAMES[h.ticker];
+  });
+}
+
 function applyAllTransactions() {
   const txs = getTransactions().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   HOLDINGS_STATIC         = deepCopy(_HOLDINGS_BASE);
@@ -8234,6 +8266,8 @@ function applyAllTransactions() {
   CONTRIB_STATE           = { ..._CONTRIB_BASE };
   _LEDGER_SELL_CAD        = 0;
   txs.forEach(tx => applyOneTx(HOLDINGS_STATIC, CLOSED_POSITIONS_STATIC, CONTRIB_STATE, CASH_POSITIONS, tx));
+  _classifyLeveraged(HOLDINGS_STATIC);
+  _classifyLeveraged(CLOSED_POSITIONS_STATIC);
   try {
     _showLedgerProblems(checkLedgerIntegrity(_HOLDINGS_BASE, _CLOSED_BASE, HOLDINGS_STATIC,
                                              CLOSED_POSITIONS_STATIC, txs, _LEDGER_SELL_CAD));
@@ -8577,6 +8611,7 @@ async function submitTx() {
       tx.name   = document.getElementById('txName').value.trim() || ticker;
       tx.sector = document.getElementById('txSectorSelect').value || 'Unknown';
     }
+    if (_txType === 'BUY' && LEVERAGED_TICKERS.has(ticker)) tx.sector = 'Leveraged ETF';
   } else if (_txType === 'CASH') {
     const dir    = document.getElementById('txCashDir').value;
     const amount = parseFloat(document.getElementById('txCashAmt').value);
@@ -8869,6 +8904,97 @@ function renderTxHistory() {
 // ============================================================================
 
 // Accounts a ticker is currently held in, plus any it has been traded in.
+
+// ============================================================================
+// 1D / 1W — THE PORTFOLIO'S OWN INTRADAY CURVE
+//
+// The value and ROI charts are built from month-end points, so a day or a week
+// is one or two points. For 1D and 1W the curve is computed from each holding's
+// intraday price bars (2-minute bars for a day, hourly for a week) — the same
+// /api/research chart feed the research page uses, KV-cached for five minutes —
+// times today's share counts, plus cash, at each bar's USD/CAD. These points
+// exist only for these two views; the monthly views are untouched.
+//
+// It is today's portfolio priced through the period, so the line shows what the
+// market did to what is held now; deposits during the week do not appear as jumps.
+// ============================================================================
+const _ppIntraCache = {};
+const PP_INTRA_TTL = 5 * 60 * 1000;
+
+async function _ppBars(ticker, range) {
+  try {
+    const r = await fetch(`${CONFIG.API_BASE}/api/research?ticker=${encodeURIComponent(ticker)}&type=chart&range=${range}`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    return Array.isArray(d.points) && d.points.length ? d.points.filter(p => p && p.c != null) : null;
+  } catch { return null; }
+}
+
+window.ppIntradaySeries = async function (range) {
+  const hit = _ppIntraCache[range];
+  if (hit && Date.now() - hit.at < PP_INTRA_TTL) return hit.data;
+  const live = window._lastLiveData || {};
+  const holdings = HOLDINGS_STATIC.filter(h => h.ticker && !h.ticker.startsWith('CASH') && h.shares > 0);
+  const tickers = [...new Set(holdings.map(h => h.ticker))];
+  const extra = ['CAD=X', '^GSPC'];
+  const all = tickers.concat(extra);
+  const bars = {};
+  // A handful at a time: thirty requests at once would only queue at the server.
+  for (let i = 0; i < all.length; i += 8) {
+    const chunk = all.slice(i, i + 8);
+    const got = await Promise.all(chunk.map(t => _ppBars(t, range)));
+    chunk.forEach((t, j) => { bars[t] = got[j]; });
+  }
+  const times = [...new Set(tickers.flatMap(t => (bars[t] || []).map(p => p.t)))].sort((a, b) => a - b);
+  if (times.length < 2) return null;
+
+  // Price of each series at each time, carried forward; before a series' first bar,
+  // its first bar; with no bars at all, today's live price (so nothing drops out).
+  const at = (series, fallback) => {
+    const out = new Array(times.length);
+    let j = 0, last = series && series.length ? series[0].c : fallback;
+    times.forEach((t, i) => {
+      while (series && j < series.length && series[j].t <= t) { last = series[j].c; j++; }
+      out[i] = last;
+    });
+    return out;
+  };
+  const fx = at(bars['CAD=X'], live.usdcad || 1.38);
+  const px = {};
+  tickers.forEach(t => { px[t] = at(bars[t], (live.holdings || {})[t]?.price || 0); });
+  // 1D starts at yesterday's close — the same base the hero's "today" figure uses —
+  // so an overnight gap shows on the chart instead of making the two disagree.
+  if (range === '1d') {
+    times.unshift(times[0] - 60);
+    fx.unshift(fx[0]);
+    tickers.forEach(t => { const prev = (live.holdings || {})[t]?.prev; px[t].unshift(prev != null ? prev : px[t][0]); });
+  }
+  const keys = { all: null, TFSA: 'TFSA', Investment: 'Investment', FHSA: 'FHSA', RRSP: 'RRSP' };
+  const vals = {}, contrib = {};
+  Object.entries(keys).forEach(([k, acct]) => {
+    const hs = holdings.filter(h => acct === null || h.account === acct);
+    const cash = CASH_POSITIONS.filter(c => acct === null || c.account === acct);
+    vals[k] = times.map((_, i) =>
+      hs.reduce((s, h) => s + h.shares * px[h.ticker][i] * (h.ccy === 'USD' ? fx[i] : 1), 0)
+      + cash.reduce((s, c) => s + (c.ccy === 'USD' ? c.amount * fx[i] : c.amount), 0));
+    // End on the live figure the hero shows, so "now" matches it exactly.
+    try {
+      const st = _heroScopedStats(live, acct);
+      vals[k].push(st.mktVal);
+      contrib[k] = st.contrib;
+    } catch { vals[k].push(vals[k][vals[k].length - 1]); contrib[k] = null; }
+  });
+  const spRaw = at(bars['^GSPC'], null);
+  if (range === '1d') spRaw.unshift(spRaw[0]);
+  const sp0 = spRaw.find(v => v != null);
+  const sp = spRaw.map(v => (v != null && sp0) ? (v / sp0 - 1) * 100 : null);
+  sp.push(sp[sp.length - 1]);
+  const labels = times.map(t => new Date(t * 1000).toISOString()).concat([new Date().toISOString()]);
+  const data = { range, labels, vals, contrib, sp, missing: tickers.filter(t => !bars[t]) };
+  _ppIntraCache[range] = { at: Date.now(), data };
+  return data;
+};
+
 window.ppTickerAccounts = function(ticker) {
   const held = HOLDINGS_STATIC.filter(h => h.ticker === ticker).map(h => h.account);
   const traded = getTransactions()
@@ -9504,7 +9630,7 @@ function fmtCur(v){
 function fmtPct(v){return v==null?'—':(v>=0?'+':'')+v.toFixed(1)+'%';}
 
 /* ════ CHARTS ═══════════════════════════════════════════════ */
-var mMvChart=null, mRoiChart=null, mTimeRange=0;   // 0 = all · N = trailing months · 'ytd'
+var mMvChart=null, mRoiChart=null, mTimeRange=0;   // 0 = all · N = trailing months · 'ytd' · '1d' · '1w'
 
 /* Earliest label to keep for the current range, as "YYYY-MM". Null shows all.
    YTD starts at January 1st. */
@@ -9535,6 +9661,29 @@ var CHART_OPTS_BASE={
 };
 
 /* Resolve --t3 CSS variable for axis tick color (Chart.js can't read CSS vars) */
+/* Labels are "YYYY-MM-DD" for the monthly views and full ISO times for 1D/1W. */
+function mIsIntra(){return mTimeRange==='1d'||mTimeRange==='1w';}
+function mFmtTick(l){
+  if(!l)return'';
+  if(l.length>10){
+    var t=new Date(l);
+    if(mTimeRange==='1d')return t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    return t.toLocaleDateString('en-US',{weekday:'short'});
+  }
+  var d=new Date(l+'T00:00:00');
+  return isNaN(d)?l:d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+}
+function mFmtTitle(l){
+  if(!l)return'';
+  if(l.length>10){
+    var t=new Date(l);
+    return t.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' · '
+      +t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  }
+  var d=new Date(l+'T00:00:00');
+  return isNaN(d)?l:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
 function getAxisColor(){
   return getComputedStyle(document.documentElement).getPropertyValue('--t3').trim()||'#3d6d8e';
 }
@@ -9555,12 +9704,7 @@ function makeMvOpts(){
         titleFont:{size:10,weight:'bold'},
         bodyFont:{size:10},
         callbacks:{
-          title:function(items){
-            var l=items[0].label||'';
-            if(!l)return'';
-            var d=new Date(l+'T00:00:00');
-            return isNaN(d)?l:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-          },
+          title:function(items){return mFmtTitle(items[0].label||'');},
           label:function(item){
             var v=item.raw;
             if(v==null)return null;
@@ -9576,12 +9720,7 @@ function makeMvOpts(){
         ticks:{
           maxTicksLimit:5,maxRotation:0,autoSkip:true,
           font:{size:8},color:axCol,
-          callback:function(v){
-            var l=this.getLabelForValue(v);
-            if(!l)return'';
-            var d=new Date(l+'T00:00:00');
-            return isNaN(d)?l:d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
-          }
+          callback:function(v){return mFmtTick(this.getLabelForValue(v));}
         }
       },
       /* Axis hidden so the plot uses the full width. Tooltips still carry the
@@ -9607,12 +9746,7 @@ function makeRoiOpts(){
         titleFont:{size:10,weight:'bold'},
         bodyFont:{size:10},
         callbacks:{
-          title:function(items){
-            var l=items[0].label||'';
-            if(!l)return'';
-            var d=new Date(l+'T00:00:00');
-            return isNaN(d)?l:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-          },
+          title:function(items){return mFmtTitle(items[0].label||'');},
           label:function(item){
             var v=item.raw;
             if(v==null)return null;
@@ -9629,12 +9763,7 @@ function makeRoiOpts(){
         ticks:{
           maxTicksLimit:5,maxRotation:0,autoSkip:true,
           font:{size:8},color:axCol,
-          callback:function(v){
-            var l=this.getLabelForValue(v);
-            if(!l)return'';
-            var d=new Date(l+'T00:00:00');
-            return isNaN(d)?l:d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
-          }
+          callback:function(v){return mFmtTick(this.getLabelForValue(v));}
         }
       },
       /* Same as the value chart: no axis, full width, figures via tooltip. */
@@ -9704,9 +9833,48 @@ window.mSetChartMode=function(mode){
   applyMobileTimeRange();
 };
 
+var _mIntraTok=0;
+/* 1D / 1W: the intraday curve from ppIntradaySeries(), drawn into the same two
+   charts, with the same footers and period label the other views update. */
+function applyIntradayRange(){
+  var tok=++_mIntraTok, range=mTimeRange;
+  var mvF=document.getElementById('m-mv-footer'), rF=document.getElementById('m-roi-footer');
+  if(mvF)mvF.innerHTML='<span>Loading '+(range==='1d'?'today':'this week')+'…</span>';
+  if(rF)rF.innerHTML='';
+  var pEl=document.getElementById('m-roi-period');
+  if(pEl)pEl.textContent=range==='1d'?'Today':'1 week';
+  if(typeof window.ppIntradaySeries!=='function')return;
+  window.ppIntradaySeries(range).then(function(S){
+    if(tok!==_mIntraTok||mTimeRange!==range)return;     // the user moved on
+    if(!S){ if(mvF)mvF.innerHTML='<span>Intraday prices are unavailable right now.</span>'; return; }
+    var key=(typeof currentFilter!=='undefined')?currentFilter:'all';
+    var k={all:'all',tfsa:'TFSA',inv:'Investment',fhsa:'FHSA',rrsp:'RRSP'}[key]||'all';
+    var v=S.vals[k]||S.vals.all, c=S.contrib[k];
+    var lbl=S.labels.slice();
+    if(mChartMode==='change'&&c!=null){
+      mMvChart.data.labels=lbl;
+      mMvChart.data.datasets[0].data=v.map(function(x){return +(x-c).toFixed(2);});
+      mMvChart.data.datasets[1].data=lbl.map(function(){return 0;});
+    } else {
+      mMvChart.data.labels=lbl;
+      mMvChart.data.datasets[0].data=v.slice();
+      mMvChart.data.datasets[1].data=lbl.map(function(){return c;});
+    }
+    mMvChart.update('none');
+    var v0=v[0];
+    mRoiChart.data.labels=lbl;
+    mRoiChart.data.datasets[0].data=v.map(function(x){return v0?+((x/v0-1)*100).toFixed(2):null;});
+    mRoiChart.data.datasets[1].data=S.sp.slice();
+    mRoiChart.update('none');
+    mUpdateFooters(true);
+  });
+}
+
 function applyMobileTimeRange(){
   if(!mMvChart||!mRoiChart)return;
   if(!window.portfolioValueChart||!window.roiChart)return;
+  if(mIsIntra()){applyIntradayRange();return;}
+  _mIntraTok++;                                            // cancel a pending 1D/1W draw
   var srcMv=portfolioValueChart, srcRoi=roiChart;
   var allMvL=srcMv.data.labels, allRoiL=srcRoi.data.labels;
   var mOff=0, rOff=0;
@@ -9760,6 +9928,12 @@ function applyMobileTimeRange(){
   mRoiChart.data.datasets[1].data=(rdSp.data?rdSp.data.slice(rOff):[]).slice(firstNonNull,lastNonNull+1);
   mRoiChart.update('none');
 
+  mUpdateFooters(false);
+}
+
+/* The two chart footers, from whatever the charts now show. For 1D/1W the lower
+   chart is the change over the period (both lines start at 0), not all-time ROI. */
+function mUpdateFooters(intra){
   // ROI chart footer: start% → end% with change
   var roiFooter=document.getElementById('m-roi-footer');
   if(roiFooter){
@@ -9768,8 +9942,12 @@ function applyMobileTimeRange(){
       var startR=rv[0],endR=rv[rv.length-1],deltaR=(endR-startR);
       var signR=deltaR>=0?'+':'-';
       var fmtR=function(v){return(v>=0?'+':'')+v.toFixed(1)+'%';};
-      roiFooter.innerHTML='<span>'+fmtR(startR)+' start</span>'
-        +'<span class="'+(deltaR>=0?'up':'dn')+'">'+fmtR(endR)+' now · '+signR+Math.abs(deltaR).toFixed(1)+'%</span>';
+      var spv=(mRoiChart.data.datasets[1].data||[]).filter(function(v){return v!=null;});
+      roiFooter.innerHTML=intra
+        ? '<span>Portfolio '+fmtR(endR)+'</span>'
+          +(spv.length?'<span class="'+(spv[spv.length-1]>=0?'up':'dn')+'">S&amp;P 500 '+fmtR(spv[spv.length-1])+'</span>':'')
+        : '<span>'+fmtR(startR)+' start</span>'
+          +'<span class="'+(deltaR>=0?'up':'dn')+'">'+fmtR(endR)+' now · '+signR+Math.abs(deltaR).toFixed(1)+'%</span>';
     }
   }
 
@@ -9783,17 +9961,17 @@ function applyMobileTimeRange(){
          move over the period instead. */
       footer.innerHTML='<span>'+fmtCur(first)+' start</span>'
         +'<span class="'+(last>=0?'up':'dn')+'">'+fmtCur(last)+' now · '
-        +(chg>=0?'+':'')+fmtCur(chg)+' over period</span>';
+        +(chg>=0?'+':'−')+fmtCur(Math.abs(chg))+' over period</span>';
     } else {
       var pct=first>0?((chg/first)*100).toFixed(1):'—';
       footer.innerHTML='<span>'+fmtCur(first)+' start</span>'
         +'<span class="'+(chg>=0?'up':'dn')+'">'+fmtCur(last)+' now · '
-        +(chg>=0?'+':'')+fmtCur(chg)+' ('+(chg>=0?'+':'')+pct+'%)</span>';
+        +(chg>=0?'+':'−')+fmtCur(Math.abs(chg))+' ('+(chg>=0?'+':'')+pct+'%)</span>';
     }
   }
   // Period label
   var pEl=document.getElementById('m-roi-period');
-  if(pEl)pEl.textContent=({ytd:'Year to date',1:'1 month',3:'3 months',
+  if(pEl)pEl.textContent=({'1d':'Today','1w':'1 week',ytd:'Year to date',1:'1 month',3:'3 months',
                           6:'6 months',12:'1 year',0:'All time'})[mTimeRange]||'';
 }
 
@@ -11343,7 +11521,7 @@ document.addEventListener('click',function(e){
     document.querySelectorAll('.m-tr-cf').forEach(function(b){b.classList.remove('on');});
     trBtn.classList.add('on');
     var _r=trBtn.dataset.months;
-    mTimeRange=(_r==='ytd')?_r:(parseInt(_r,10)||0);
+    mTimeRange=(_r==='ytd'||_r==='1d'||_r==='1w')?_r:(parseInt(_r,10)||0);
     applyMobileTimeRange();
     return;
   }
@@ -12139,6 +12317,8 @@ document.addEventListener('DOMContentLoaded',function(){
             <div class="m-mode-btn"    data-mmode="change" onclick="mSetChartMode('change')">CHG</div>
           </div>
           <div class="m-chart-filter">
+            <div class="m-tr-cf m-cf" data-months="1d">1D</div>
+            <div class="m-tr-cf m-cf" data-months="1w">1W</div>
             <div class="m-tr-cf m-cf" data-months="1">MTD</div>
             <div class="m-tr-cf m-cf" data-months="3">3M</div>
             <div class="m-tr-cf m-cf" data-months="6">6M</div>

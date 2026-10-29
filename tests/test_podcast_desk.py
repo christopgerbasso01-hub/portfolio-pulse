@@ -114,5 +114,16 @@ with tempfile.TemporaryDirectory() as d:
     ck("redoing an episode replaces it", [e["learning_topic"] for e in m["episodes"] if e["episode"] == 15], ["redo"])
     ck("the previous episode is the latest before this one", pd.last_episode(m, 15)["episode"], 14)
 
+print("\n── 3x funds are leveraged whatever their purchase said ──")
+_st = {"computed_holdings": [{"ticker": "SOXL", "account": "RRSP", "shares": 10, "ccy": "USD", "sector": "Technology"},
+                             {"ticker": "SOXL", "account": "Investment", "shares": 10, "ccy": "USD", "sector": "Unknown"},
+                             {"ticker": "NVDA", "account": "TFSA", "shares": 20, "ccy": "USD", "sector": "Technology"}],
+       "transactions": []}
+_px = {"SOXL": {"price": 10}, "NVDA": {"price": 10}}
+_sn = {"2026-10-16": {"total_value": 1, "usdcad": 1.4, "holdings_prices": _px},
+       "2026-10-23": {"total_value": 1, "usdcad": 1.4, "holdings_prices": _px}}
+ck("SOXL logged as Technology / Unknown counts as leveraged in the review",
+   pd.portfolio_changes(_st, _sn, "2026-10-16", "2026-10-23")["sector_weights"], {"Leveraged ETF": 50.0, "Technology": 50.0})
+
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

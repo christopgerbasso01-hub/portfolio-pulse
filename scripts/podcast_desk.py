@@ -28,6 +28,9 @@ SECTOR_SHIFT_MIN_PP = 0.5          # a sector move smaller than this is noise
 FX_MENTION_MIN_CENTS = 1.0         # USD/CAD must move at least a cent to be worth a word
 SCENARIO_BAND_PCT = 1.5            # base case: the S&P 500 within +/-1.5% over the week
 MEMORY_KEEP = 12
+# 3x funds are leveraged whatever sector their purchase was logged under (SOXL was
+# logged as Technology and as Unknown, so the review counted it as tech).
+LEVERAGED = frozenset({"FNGU", "SPXL", "UDOW", "SOXL", "TQQQ", "TECL", "LABU"})
 
 
 def _d(s: str):
@@ -63,7 +66,8 @@ def portfolio_changes(settings: dict, snapshots: dict, baseline_date: str, lates
         k = (h["ticker"], h.get("account", ""))
         shares_now[k] = shares_now.get(k, 0.0) + float(h.get("shares") or 0)
         info.setdefault(h["ticker"], {"name": h.get("name") or h["ticker"],
-                                      "sector": h.get("sector") or "Other",
+                                      "sector": "Leveraged ETF" if h["ticker"] in LEVERAGED
+                                      else (h.get("sector") or "Other"),
                                       "ccy": h.get("ccy") or "USD"})
     shares_then = dict(shares_now)
     for t in window:

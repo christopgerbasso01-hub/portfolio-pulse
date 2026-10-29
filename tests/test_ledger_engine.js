@@ -30,8 +30,12 @@ function extract(name) {
 
 const ctx = { console };
 vm.createContext(ctx);
+const levConsts = html.match(/const LEVERAGED_TICKERS[^;]+;\s*const LEVERAGED_NAMES[\s\S]+?};/)[0];
 vm.runInContext(`
   const USD_BOOK_RATE = 1.3925;
+  ${levConsts}
+  ${extract('_classifyLeveraged')}
+  this._classifyLeveraged = _classifyLeveraged;
   var _LEDGER_SELL_CAD = 0;
   ${extract('applyOneTx')}
   ${extract('checkLedgerIntegrity')}
@@ -118,6 +122,19 @@ ck('CAD stored in a USD total_pnl is flagged', res.problems.some(p => /MU \(RRSP
 res = ctx.checkLedgerIntegrity([], [], [UDOW], [], [{ type: 'DIVIDEND', ticker: 'BYDDF', account: 'TFSA',
                                                        date: '2026-08-04', amount: 0.13, ccy: 'USD' }], 0);
 ck('a dividend booked to an account without the holding is reported', res.orphans.length, 1);
+
+console.log('\n── 3x funds are always leveraged ──');
+r = run([{ ticker: 'SOXL', account: 'RRSP', ccy: 'USD', shares: 10, cost_total: 300, book_rate: 1.4, realized: 0, dividends: 0,
+           sector: 'Technology', name: 'Direxion Daily Semiconductor Bull 3X Shares' }], [],
+        [{ type: 'BUY', ticker: 'SOXL', account: 'Investment', date: '2026-10-23', shares: 50, price: 85, rate: 1.4, ccy: 'USD' }]);
+ck('a second-account purchase inherits the ticker\'s name and sector instead of "Unknown"',
+   [r.h[1].sector, r.h[1].name], ['Technology', 'Direxion Daily Semiconductor Bull 3X Shares']);
+ctx._classifyLeveraged(r.h);
+ck('...and the engine then classes every SOXL lot as a leveraged ETF', r.h.map(h => h.sector), ['Leveraged ETF', 'Leveraged ETF']);
+ck('...with a readable name', r.h.map(h => h.name), ['Semiconductor 3x ETF', 'Semiconductor 3x ETF']);
+const nv = [{ ticker: 'NVDA', sector: 'Technology', name: 'NVIDIA' }];
+ctx._classifyLeveraged(nv);
+ck('an ordinary stock is untouched', nv[0].sector, 'Technology');
 
 console.log(`\n${fails.length ? fails.length + ' FAILED' : 'ALL PASS'}`);
 process.exit(fails.length ? 1 : 0);

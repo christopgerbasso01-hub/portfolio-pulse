@@ -132,8 +132,11 @@ def _round_sig(v: float, sig: int = 2) -> float:
 
 
 def _say_money(v: float) -> str:
-    """A figure as it should be SAID — rounded, no cents, no false precision."""
-    return f"${_round_sig(abs(v)):,.0f}"
+    """A figure as it should be SAID — rounded, no cents, no false precision. Six-figure
+    amounts keep three significant figures: $317,283 rounded to two read as "$320,000",
+    which the listener could not match to the $317K in the app."""
+    v = abs(v)
+    return f"${_round_sig(v, 3 if v >= 100_000 else 2):,.0f}"
 
 
 def _say_pct(p: float) -> str:
@@ -1195,6 +1198,28 @@ def _close_on_or_before(series: dict, date: str):
     return (keys[-1], series[keys[-1]]) if keys else (None, None)
 
 
+def _intel_as_of(when: datetime):
+    """The news briefing as it was committed before `when`, from git history."""
+    import subprocess
+    root = Path(__file__).resolve().parent.parent
+    try:
+        since = (when - timedelta(days=10)).strftime("%Y-%m-%d")
+        subprocess.run(["git", "fetch", "--quiet", f"--shallow-since={since}", "origin", "main"],
+                       cwd=root, capture_output=True, timeout=120)
+        sha = subprocess.run(["git", "log", "-1", f"--before={when.isoformat()}", "--format=%H", "origin/main",
+                              "--", "data/intelligence.json"], cwd=root, capture_output=True, text=True,
+                             timeout=60).stdout.strip()
+        if not sha:
+            return None
+        txt = subprocess.run(["git", "show", f"{sha}:data/intelligence.json"], cwd=root,
+                             capture_output=True, text=True, timeout=60).stdout
+        print(f"  ✓ News briefing as of {when:%Y-%m-%d %H:%M} UTC ({sha[:7]})")
+        return json.loads(txt)
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ⚠ could not load the briefing as of {when:%Y-%m-%d} ({exc}) — using the current one")
+        return None
+
+
 def _fetch_settings() -> dict:
     try:
         r = requests.get(SETTINGS_API, timeout=10)
@@ -1360,12 +1385,20 @@ def _sector_name(s: str) -> str:
     return _SECTOR_SPOKEN.get(s, str(s).lower())
 
 
-def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts, ep_num, now=None) -> dict:
-    """Choose every subject and compute every number. The model only writes."""
+def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts, ep_num, now=None,
+                       as_of: str = None) -> dict:
+    """Choose every subject and compute every number. The model only writes.
+
+    as_of (YYYY-MM-DD): build the episode from the data as it stood before that day —
+    used when an episode is redone. The third ep22 redo ran on the Wednesday and used
+    Wednesday's data ($317K), not the $301K the Monday episode was about."""
     now = now or datetime.now(timezone.utc)
     removed_fx: list = []
     clean = lambda t, n=300: _clean_briefing(t, n, removed_fx)
     snaps = (snapshot or {}).get("snapshots", {})
+    if as_of:
+        snaps = {d: v for d, v in snaps.items() if d < as_of}
+        settings = _desk.settings_as_of(settings, as_of)
     holdings = settings.get("computed_holdings") or []
     _, facts = _build_portfolio_context(holdings, snaps, settings.get("cash_positions") or [])
     rc = _recent_context(old_meta, memory, ep_num, past_scripts, intel)
@@ -1473,6 +1506,7 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
         if score:
             extra_pct.append(abs(score["move_pct"]))
         facts["extra_money"] = [abs(float(x)) for x in extra_money if x]
+        facts["market_change"] = ch["market_change"]
         facts["extra_pct"] = [abs(float(x)) for x in extra_pct if x]
 
     try:
@@ -2156,6 +2190,11 @@ _NOT_OWNED = re.compile(
 # Market statistics that are not dollar amounts: "VIX around 21.5", "the 2-year at
 # 4.78%, the 10-year at 4.85%", "a 10bp flattening correlates with a 0.3% drop".
 # Ep18 stated all three and none appeared anywhere in what the model was given.
+_MARKET_UP = re.compile(r"\bmarket(?:\s+itself)?\b[^.!?]{0,40}\b(?:added|gained|rose|lifted|boosted|contributed|"
+                        r"grew|pushed (?:it|us|the portfolio|things) up|moved (?:it|us|the portfolio) up)\b", re.I)
+_MARKET_DOWN = re.compile(r"\bmarket(?:\s+itself)?\b[^.!?]{0,40}\b(?:took|erased|pulled|cost|dragged|subtracted|knocked|"
+                          r"shaved|nudged (?:it|us|the portfolio) lower|moved (?:it|us|the portfolio) down)\b", re.I)
+
 _INDEX_LEVEL = re.compile(
     r"\b(?:s&p(?:\s*500)?|the index|the dow|nasdaq|tsx)\b(?:[^.?!]|(?<=\d)\.(?=\d)){0,90}?\b(?:at|to|around|near|about|reach\w*|"
     r"hover\w*|slip\w*|climb\w*|fall\w*|drop\w*|ris\w*|end\w*|sit\w*)\s+(?:about\s+|roughly\s+|around\s+)?"
@@ -2262,6 +2301,7 @@ def _verify_ctx(facts: dict) -> dict:
         index.append((aliases, tkr, p))
 
     return {"total": total, "gain": gain, "gain_pct": gain_pct,
+            "market_change": facts.get("market_change"),
             "allowed_money": allowed_money, "allowed_pct": allowed_pct,
             "given": given, "pos_extra": pos_extra, "index": index,
             "strict": bool(facts.get("strict_figures")),
@@ -2358,6 +2398,17 @@ def _sentence_problems(sentence: str, ctx, in_learning: bool = False) -> list:
         probs.append(
             f"says {p.get('name') or tkr} is not owned, but we hold about "
             f"${float(p.get('cad') or 0):,.0f} of it — \"{sentence[:110]}\"")
+
+    # The market's share of the week, with the sign flipped. The third ep22 redo was told
+    # "the market itself moved the portfolio down about $2,500" and said "the market
+    # itself added about $2,500".
+    mc = ctx.get("market_change")
+    if (mc and not _HYPOTHETICAL.search(sentence) and not _SCENARIO_LINE.search(sentence)
+            and re.search(r"\$|\bportfolio\b|\bfor us\b", sentence, re.I)):
+        wrong = (_MARKET_UP if mc < 0 else _MARKET_DOWN).search(sentence)
+        if wrong:
+            probs.append(f"says the market {'added to' if mc < 0 else 'took from'} the portfolio, but this week it "
+                         f"{'took away' if mc < 0 else 'added'} about ${abs(mc):,.0f} — \"{sentence[:110]}\"")
 
     # Calling a losing week a gain is the failure the user actually noticed.
     # Per sentence so a forecast is not mistaken for a claim about the period.
@@ -3360,10 +3411,18 @@ def main() -> int:
     # if the latest episode had never aired. Nothing is removed up front — the new
     # episode simply takes the same number and overwrites its files and metadata
     # when, and only when, this run succeeds.
+    replaced_date = None
     if os.environ.get("REPLACE_LATEST") == "1" and old_meta.get("archive"):
-        replaced = old_meta.get("episode")
+        replaced, replaced_date = old_meta.get("episode"), old_meta.get("date")
         old_meta = {**old_meta["archive"][0], "archive": old_meta["archive"][1:]}
         print(f"  ↺ Redoing episode {replaced}: building on episode {old_meta.get('episode')}")
+    # A redo is the same episode: same air date, same data, same news.
+    as_of, run_time = None, None
+    if os.environ.get("REPLACE_LATEST") == "1" and replaced_date:
+        as_of = replaced_date
+        run_time = datetime.fromisoformat(as_of).replace(hour=6, minute=15, tzinfo=timezone.utc)
+        intel = _intel_as_of(run_time) or intel
+        print(f"  ↺ Using the data and news as they stood on {as_of}")
     settings          = _fetch_settings()            # holdings, transactions, cash — live from KV
     computed_holdings = settings.get("computed_holdings") or _fetch_computed_holdings()
     settings.setdefault("computed_holdings", computed_holdings)
@@ -3381,7 +3440,8 @@ def main() -> int:
 
     # 2. Plan the episode (every subject and number decided in code), then write it
     print("2/4  Planning and writing the episode...")
-    plan = build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts, ep_num)
+    plan = build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts, ep_num,
+                              now=run_time, as_of=as_of)
     result = produce_episode(groq_key, plan, history=list(past_scripts.values()))
     if result is None:
         return 1
@@ -3390,7 +3450,7 @@ def main() -> int:
     # Weekdays are arithmetic — correct them rather than let the listener act on
     # the wrong day. Episode 16 sent them to an EIA report on "Wednesday,
     # September 18" when the 18th was a Friday.
-    script, weekday_fixes = _fix_weekday_claims(script, datetime.now(timezone.utc))
+    script, weekday_fixes = _fix_weekday_claims(script, run_time or datetime.now(timezone.utc))
     for fix in weekday_fixes:
         print(f"  ✓ Corrected weekday: {fix}")
     for warning in _speaker_run_warnings(script):
@@ -3447,7 +3507,7 @@ def main() -> int:
     if not education_topic:
         education_topic = summary.get("education_topic", "")
 
-    now = datetime.now(timezone.utc)
+    now = run_time or datetime.now(timezone.utc)
 
     # Build archive — preserve education_topic in each archived entry
     archive = []

@@ -645,5 +645,23 @@ ck("WHAT WE OWN carries each holding's weight", "of the portfolio" in PROMPTS["d
 ck("the main story keeps the news's certainty", "Keep its certainty" in PROMPTS["main"], True)
 ck("the review no longer lists every account", "The account that moved most" in PROMPTS["desk"], True)
 
+print("\n── the market's direction, rounding, and redoing with the original data ──")
+_fm = {"strict_figures": False, "market_change": -2486, "total_value": 317283, "wk_gain": 3514}
+mk = lambda t: bool([m for m in gp.verify_script_figures(t, _fm) if "says the market" in m])
+ck("'the market added' in a week the market took money away is caught",
+   mk("ALEX: You contributed about $6,000, while the market itself added about $2,500."), True)
+ck("...the right direction passes", mk("ALEX: You added about $6,000, so the market itself took about $2,500."), False)
+ck("...and a hypothetical is left alone", mk("ALEX: If the market added 2% next week, that is about $9,300 for us."), False)
+ck("a six-figure total keeps three figures ($317,283 is not '$320,000')", gp._say_money(317283), "$317,000")
+ck("smaller amounts still round to two", gp._say_money(3514), "$3,500")
+_st = {"computed_holdings": [{"ticker": "SOXL", "account": "Investment", "shares": 150, "ccy": "USD"}],
+       "transactions": [{"type": "BUY", "date": "2026-10-23", "ticker": "SOXL", "account": "Investment", "shares": 50},
+                        {"type": "BUY", "date": "2026-10-27", "ticker": "SOXL", "account": "Investment", "shares": 30},
+                        {"type": "SELL", "date": "2026-10-28", "ticker": "NVDA", "account": "TFSA", "shares": 5, "ccy": "USD"}]}
+_as = gp._desk.settings_as_of(_st, "2026-10-26")
+ck("a redo undoes trades made after the original air date",
+   sorted((h["ticker"], h["shares"]) for h in _as["computed_holdings"]), [("NVDA", 5.0), ("SOXL", 120.0)])
+ck("...and drops those transactions", [x["date"] for x in _as["transactions"]], ["2026-10-23"])
+
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

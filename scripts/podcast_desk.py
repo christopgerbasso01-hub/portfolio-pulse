@@ -174,6 +174,27 @@ def portfolio_changes(settings: dict, snapshots: dict, baseline_date: str, lates
     }
 
 
+def settings_as_of(settings: dict, as_of: str) -> dict:
+    """The dashboard's settings as they stood before `as_of`: later transactions are
+    dropped and later buys and sells are undone on the holdings' share counts."""
+    later = [x for x in (settings.get("transactions") or []) if (x.get("date") or "") >= as_of]
+    holdings = [dict(h) for h in (settings.get("computed_holdings") or [])]
+    for x in later:
+        if x.get("type") not in ("BUY", "SELL"):
+            continue
+        sign = -1 if x["type"] == "BUY" else 1
+        h = next((h for h in holdings if h.get("ticker") == x.get("ticker")
+                  and h.get("account") == x.get("account")), None)
+        if h is None and sign > 0:
+            h = {"ticker": x.get("ticker"), "account": x.get("account"), "shares": 0.0,
+                 "ccy": x.get("ccy") or "USD", "name": x.get("ticker"), "sector": "Other"}
+            holdings.append(h)
+        if h is not None:
+            h["shares"] = float(h.get("shares") or 0) + sign * float(x.get("shares") or 0)
+    return dict(settings, computed_holdings=[h for h in holdings if float(h.get("shares") or 0) > 1e-6],
+                transactions=[x for x in (settings.get("transactions") or []) if (x.get("date") or "") < as_of])
+
+
 def fx_is_newsworthy(changes: dict) -> bool:
     return abs(float(changes.get("fx_cents") or 0)) >= FX_MENTION_MIN_CENTS
 

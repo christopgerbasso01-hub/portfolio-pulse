@@ -774,6 +774,47 @@ def _fit_max_tokens(prompt: str) -> int:
     return max(MAX_TOKENS_MIN, min(MAX_TOKENS_WANT, budget))
 
 
+def salvage_json(text: str):
+    """The longest prefix of a cut-off JSON object that parses once its open strings,
+    arrays and objects are closed — or None. Incomplete trailing items are dropped,
+    never invented."""
+    text = (text or "").strip()
+    start = text.find("{")
+    if start < 0:
+        return None
+    text = text[start:]
+    # Candidate cut points: just after each complete value that ends a container item.
+    cuts = [i + 1 for i, ch in enumerate(text) if ch in "}]"]
+    for end in reversed(cuts[-400:]):
+        frag = text[:end]
+        stack, in_str, esc = [], False, False
+        for ch in frag:
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+            elif ch == '"':
+                in_str = True
+            elif ch in "{[":
+                stack.append("}" if ch == "{" else "]")
+            elif ch in "}]":
+                if not stack:
+                    break
+                stack.pop()
+        if in_str:
+            continue
+        try:
+            data = json.loads(frag + "".join(reversed(stack)))
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict) and data:
+            return data
+    return None
+
+
 def call_llm(api_key: str, prompt: str) -> dict:
     """
     Call Groq's free-tier Llama API and return parsed JSON.
@@ -864,8 +905,23 @@ def call_llm(api_key: str, prompt: str) -> dict:
                 end = len(lines) - 1 if lines[-1].strip() == "```" else len(lines)
                 text = "\n".join(lines[start:end])
 
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError as exc:
+                # Six of twelve runs between 26 and 29 October died right here: the
+                # answer ran past max_tokens mid-string ("Unterminated string") or
+                # came back malformed, and the whole briefing was lost. Keep every
+                # complete section and drop only the broken tail; if nothing usable
+                # survives, wait out the per-minute window and ask again.
+                data = salvage_json(text)
+                if data:
+                    print(f"  ⚠ {model} returned truncated JSON ({exc.msg}) — kept {len(data)} complete section(s)")
+                else:
+                    print(f"  ⚠ {model} returned unusable JSON on attempt {attempt+1}/4 ({exc.msg}) — retrying in 65s")
+                    time.sleep(65)
+                    continue
             print(f"  ✓ Generated with {model} (attempt {attempt+1})")
-            return json.loads(text)
+            return data
 
         print(f"  ⚠ All retries exhausted for {model}, trying next model...")
 

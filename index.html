@@ -4218,8 +4218,10 @@ function buildSummaryRows(hPrices, usdcad, totalVal) {
     const acctBadgesHtml = g.accounts.map(a =>
       `<span class="badge ${acctBadgeClass(a)}" style="font-size:8px;padding:1px 4px">${a === 'Investment' ? 'NON-REG' : a}</span>`
     ).join(' ');
-    // Live return %: (total market value across accounts − total cost basis) / cost basis
-    const retPct  = g.costBasisCAD > 0 ? (g.mktVal - g.costBasisCAD) / g.costBasisCAD * 100 : null;
+    // Total return % = Total P&L / cost basis, so it always agrees with the Total P&L
+    // beside it. It was (market value − cost) / cost — unrealized only — which showed
+    // TXF.TO at −10% while its dividends made the Total P&L positive.
+    const retPct  = g.costBasisCAD > 0 ? totalPnlCAD / g.costBasisCAD * 100 : null;
     const retColor = retPct != null ? (retPct >= 0 ? 'green' : 'red') : '';
     const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
     return `<tr data-rowtype="summary" data-account="${g.accounts[0]}" data-sector="${g.sector}" data-pnl="${pnlAttr}" data-mv="${g.mktVal.toFixed(2)}" data-cb="${g.costBasisCAD.toFixed(2)}" data-unreal="${g.unrealizedCAD.toFixed(2)}" data-div="${g.dividends.toFixed(2)}" data-real="${g.realized.toFixed(2)}" data-pnlval="${totalPnlCAD.toFixed(2)}" data-daychg="${dayDollarCAD.toFixed(2)}">
@@ -4337,8 +4339,9 @@ function renderHoldingsTable(liveData) {
     const realColor    = realizedCAD   >  0 ? 'green' : (realizedCAD < 0 ? 'red' : 'text2');
     const pnlColor     = totalPnlCAD   >= 0 ? 'green' : 'red';
     const pnlAttr      = totalPnlCAD   >= 0 ? 'gain'  : 'loss';
-    // Live return %: (market value − cost basis) / cost basis
-    const retPct  = costBasisCAD > 0 ? (mktVal - costBasisCAD) / costBasisCAD * 100 : null;
+    // Total return % = Total P&L / cost basis (realized and dividends included), so it
+    // agrees with the Total P&L column — see buildSummaryRows.
+    const retPct  = costBasisCAD > 0 ? totalPnlCAD / costBasisCAD * 100 : null;
     const retColor = retPct != null ? (retPct >= 0 ? 'green' : 'red') : '';
     const retStr   = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
 
@@ -4496,7 +4499,7 @@ function refreshTablePrices(liveData) {
     const totalPnlCAD   = unrealizedCAD + realizedCAD;
     const weight        = totalVal > 0 ? (mktVal / totalVal * 100).toFixed(1) : h.weight.toFixed(1);
     const widthPx       = Math.max(1, Math.round(parseFloat(weight) * 1.5));
-    const retPct        = costBasisCAD > 0 ? (mktVal - costBasisCAD) / costBasisCAD * 100 : null;
+    const retPct        = costBasisCAD > 0 ? totalPnlCAD / costBasisCAD * 100 : null;   // matches Total P&L
     const retStr        = retPct != null ? (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%' : '—';
     const dayColor      = dayChg == null ? '' : (dayChg >= 0 ? 'green' : 'red');
 
@@ -4663,13 +4666,13 @@ function updateSubtotals() {
     }
   }
 
-  // Return % subtotal: (total market value − total cost basis) / total cost basis
+  // Return % subtotal: total P&L / total cost basis — the same basis as each row.
   const retEl = document.getElementById('stRet');
   if (retEl) {
     if (count === 0 || cb === 0) {
       retEl.textContent = '—'; retEl.className = 'mono text3';
     } else {
-      const retPct = (mv - cb) / cb * 100;
+      const retPct = pnl / cb * 100;
       retEl.textContent = (retPct >= 0 ? '+' : '') + retPct.toFixed(1) + '%';
       retEl.className = `mono ${colorClass(retPct)}`;
     }

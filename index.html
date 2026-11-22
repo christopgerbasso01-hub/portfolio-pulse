@@ -231,7 +231,8 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .pp-lot-wrap{margin:0 -16px;overflow:hidden}
 .pp-lot-tbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
 .pp-lot-tbl td,.pp-lot-tbl th{overflow:hidden;text-overflow:ellipsis}
-.pp-lot-tbl td:nth-child(2){white-space:normal;overflow:visible}
+.pp-lot-tbl td:first-child,.pp-lot-tbl th:first-child{white-space:nowrap;overflow:visible;text-overflow:clip}   /* the date is never cut */
+.pp-lot-tbl td:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* the transaction text gives way instead */
 .pp-lot-tbl th{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
 .pp-lot-tbl td{padding:6px;border-bottom:1px solid var(--border);vertical-align:top}
 .pp-lot-tbl .pp-lot-other td{font-style:italic;opacity:.85}
@@ -1464,6 +1465,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .pp-tx-editable{cursor:pointer;transition:background .12s}
 .pp-tx-editing{background:rgba(59,130,246,.08)!important}
 .holdings-table #ppTxDetailRow tr:hover td,.holdings-table #ppTxDetailRow tr:hover{background:transparent!important}
+.holdings-table #ppTxDetailRow .pp-lot-tbl tbody tr:hover td,.holdings-table #ppTxDetailRow .pp-tx-row:hover{background:var(--blue-glow)!important}
 .holdings-table #ppTxDetailRow:hover > td.pp-tx-cell{background:rgba(0,212,255,.03)}
 [data-theme="light"] .holdings-table #ppTxDetailRow:hover > td.pp-tx-cell{background:rgba(8,145,178,.04)}
 .pp-tx-edit{padding:10px 8px 12px;border-left:2px solid var(--blue-bright);margin:2px 0 6px;background:rgba(59,130,246,.04);border-radius:0 6px 6px 0}
@@ -10161,7 +10163,7 @@ function ppLotTableHtml(ticker, accts, data) {
   const live = p.price ? `$${p.price.toFixed(2)} ${h ? h.ccy : ''}` : '—';
   const tr = r => `<tr class="pp-lot-${r.kind.toLowerCase()}">
       <td class="mono">${r.date || '—'}</td>
-      <td class="text2">${r.kind === 'SELL' ? '<b class="red">SELL</b> ' : r.kind === 'LOT' ? '<b class="blue">BUY</b> ' : ''}${r.desc}${r.src === 'history' && r.kind !== 'OTHER' ? ' <span class="pp-lot-src" title="From data/transactions.csv, before the transaction log began">history</span>' : ''}</td>
+      <td class="text2" title="${String(r.desc).replace(/"/g, '&quot;')}">${r.kind === 'SELL' ? '<b class="red">SELL</b> ' : r.kind === 'LOT' ? '<b class="blue">BUY</b> ' : ''}${r.desc}${r.src === 'history' && r.kind !== 'OTHER' ? ' <span class="pp-lot-src" title="From data/transactions.csv, before the transaction log began">history</span>' : ''}</td>
       <td>${r.acct ? `<span class="badge ${acctBadgeClass(r.acct)}">${_ppAcctLabel(r.acct)}</span>` : ''}</td>
       <td class="mono small">${r.weight != null ? r.weight.toFixed(1) + '%' : ''}</td>
       <td class="mono">${r.shares == null ? '' : +r.shares.toFixed(4)}${r.partial ? `<div class="pp-lot-sub">of ${+r.boughtAdj.toFixed(4)}</div>` : ''}</td>

@@ -236,6 +236,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .pp-lot-tbl th{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
 .pp-lot-tbl td{padding:6px;border-bottom:1px solid var(--border);vertical-align:top}
 .pp-lot-tbl .pp-lot-totalrow td{font-weight:700;background:rgba(0,212,255,.06);border-bottom:1px solid var(--border2)}
+.pp-lot-tbl .pp-lot-divtotal td{font-weight:700;border-top:1px solid var(--border2)}
 .pp-lot-tbl .pp-lot-other td{font-style:italic;opacity:.85}
 .pp-lot-sub{font-size:9px;color:var(--text3);font-weight:400}
 .pp-lot-src{font-family:var(--mono);font-size:8px;padding:0 4px;border:1px solid var(--border);border-radius:3px;color:var(--text3)}
@@ -10138,12 +10139,19 @@ function ppHoldingDetail(ticker, accts, data) {
       if (c) mainTotal += (c.total_pnl ?? c.realized ?? 0) * (c.ccy === 'USD' ? (c.book_rate || USD_BOOK_RATE) : 1);
     }
   });
-  rows.sort((a, b) => (a.kind === 'OTHER') - (b.kind === 'OTHER') || (b.date || '').localeCompare(a.date || ''));   // newest first, 'other' last
+  const _rank = r => r.kind === 'OTHER' ? 2 : r.kind === 'DIVTOTAL' ? 1 : 0;
+  rows.sort((a, b) => _rank(a) - _rank(b) || (b.date || '').localeCompare(a.date || ''));   // newest first, then dividends, 'other' last
   const sum = k => rows.reduce((s, r) => s + (r[k] || 0), 0);
   const other = mainTotal - sum('total');
   if (Math.abs(other) >= 1 || unalloc >= 1) rows.push({ kind: 'OTHER', date: null, acct: accts.length > 1 ? null : accts[0],
-    desc: 'Other realized — the holdings table’s realized figure minus the sales shown. Mostly currency treatment (the table values a USD gain at the sale-day rate; the sale line uses the CAD actually paid), plus dividends received while no shares were held.',
-    shares: null, cost: null, mv: null, day: null, dayPct: null, div: unalloc >= 0.5 ? unalloc : null, total: other, ret: null, weight: null });
+    desc: 'Other realized — the holdings table’s figure minus what is itemised above. For a sale this is mostly currency treatment (the table values the USD gain at the sale-day rate; the sale line uses the CAD actually paid).',
+    shares: null, cost: null, mv: null, day: null, dayPct: null, div: null, total: other, ret: null, weight: null });
+  const _divAll = rows.filter(r => r.kind === 'LOT').reduce((a, r) => a + (r.div || 0), 0) + unalloc;
+  if (_divAll >= 0.5) {
+    rows.push({ kind: 'DIVTOTAL', date: null, acct: null, desc: 'Total dividends received (already counted in the P/L above and the line below)',
+      shares: null, cost: null, mv: null, day: null, dayPct: null, div: _divAll, total: null, ret: null, weight: null });
+    rows.sort((a, b) => _rank(a) - _rank(b) || (b.date || '').localeCompare(a.date || ''));
+  }
   const lotRows = rows.filter(r => r.kind === 'LOT');
   const lotSum = k => lotRows.reduce((s, r) => s + (r[k] || 0), 0);
   const cost = lotSum('cost'), mv = lotSum('mv'), day = lotSum('day');
@@ -10173,9 +10181,9 @@ function ppLotTableHtml(ticker, accts, data) {
       <td class="mono">${r.mv != null ? fmt$(r.mv) : ''}${r.kind === 'SELL' ? '<div class="pp-lot-sub">proceeds</div>' : ''}</td>
       <td class="mono small ${_ppCls(r.day)}">${r.day != null ? _ppSigned(r.day) : ''}</td>
       <td class="mono small ${_ppCls(r.dayPct)}">${r.dayPct != null ? _ppPct(r.dayPct) : ''}</td>
-      <td class="mono small text2">${r.div ? fmt$(r.div) : r.kind === 'LOT' ? '—' : ''}${r.kind === 'OTHER' && r.div ? '<div class="pp-lot-sub">included in P/L</div>' : ''}</td>
-      <td class="mono ${_ppCls(r.total)}">${_ppSigned(r.total)}${r.kind === 'SELL' ? '<div class="pp-lot-sub">realized</div>' : ''}</td>
-      <td class="mono ${_ppCls(r.ret)}">${_ppPct(r.ret)}</td>
+      <td class="mono small ${r.kind === 'DIVTOTAL' ? '' : 'text2'}">${r.div ? fmt$(r.div) : r.kind === 'LOT' ? '—' : ''}</td>
+      <td class="mono ${_ppCls(r.total)}">${r.total == null ? '' : _ppSigned(r.total)}${r.kind === 'SELL' ? '<div class="pp-lot-sub">realized</div>' : ''}</td>
+      <td class="mono ${_ppCls(r.ret)}">${r.ret == null ? '' : _ppPct(r.ret)}</td>
     </tr>`;
   return `<div class="pp-lot-wrap"><table class="pp-lot-tbl">
     <thead><tr><th>Date</th><th>Transaction</th><th>Account</th><th>Weight</th><th>Shares</th><th>Live Price</th><th>Cost Base</th>
@@ -10209,7 +10217,9 @@ function ppLotCardsHtml(ticker, accts, data) {
       ? card(r, `${r.date}${badge(r.acct)}`, `${r.desc}${r.partial ? ` · ${+r.shares.toFixed(4)} of ${+r.boughtAdj.toFixed(4)} left` : ''}${r.div ? ` · div ${fmt$(r.div)}` : ''}`)
       : r.kind === 'SELL'
         ? card(r, `${r.date}${badge(r.acct)} <span class="m-lot-selltag">SELL</span>`, `${r.desc} · realized · proceeds ${fmt$(r.mv)}`)
-        : card(r, 'Other realized', r.desc))
+        : r.kind === 'DIVTOTAL'
+          ? `<div class="m-card m-card-tight m-lot-card"><div class="m-c-r1"><div class="m-c-sym">Total dividends</div><div class="m-c-mv">${fmt$(r.div)}</div></div><div class="m-c-r2"><div class="m-c-name"><span class="m-c-nm">Already counted in the P&amp;L above and the line below</span></div></div></div>`
+          : card(r, 'Other realized', r.desc))
     .join('')
     + '<div class="m-tx-note" style="margin:6px 2px 12px">Sales reduce every purchase by the same proportion (average cost), so purchases add up to the holding.</div>';
 }

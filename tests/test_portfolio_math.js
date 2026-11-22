@@ -43,9 +43,10 @@ const ctx = { console };
 vm.createContext(ctx);
 const fns = ['_bracketTax', '_ontarioHealthPremium', 'ontarioIncomeTax', 'ontarioMarginalRate',
              'superficialLossCheck', 'nonRegTaxYear', 'hbpUsable', 'xirr', 'monthlyReturns',
-             'riskStats', 'calendarYearReturns', 'forwardDividends', '_divNetFactor', 'ppLotModel'];
+             'riskStats', 'calendarYearReturns', 'forwardDividends', '_divNetFactor', 'ppLotModel', 'ppFmtDate'];
 vm.runInContext(`
   const USD_BOOK_RATE = 1.3925;
+  var _ppMon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   ${extractConst('TAX_PARAMS')}
   ${fns.map(extract).join('\n')}
   ${fns.map(f => `this.${f} = ${f};`).join('\n')}
@@ -180,6 +181,11 @@ const sold = ctx.ppLotModel('SLD', 'Investment', null, [
 ]);
 ck('a fully sold position has no open purchases', sold.lots.length, 0);
 ck('...but its 12 USD dividend (16.80 CAD) is kept, not lost', +sold.divUnalloc.toFixed(2), 16.8);
+
+console.log('\nDate format');
+ck('2025-04-04 -> Apr 4, 2025', ctx.ppFmtDate('2025-04-04'), 'Apr 4, 2025');
+ck('2026-12-31 -> Dec 31, 2026', ctx.ppFmtDate('2026-12-31'), 'Dec 31, 2026');
+ck('a missing date stays a dash', ctx.ppFmtDate(null), '—');
 
 console.log('\nHolding-detail table is not touched by the holdings-table loops');
 // The detail panel nests a <table> inside #holdingsBody. Any loop that selects

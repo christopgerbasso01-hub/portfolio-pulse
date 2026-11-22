@@ -231,6 +231,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .pp-lot-wrap{margin:0 -16px;overflow:hidden}
 .pp-lot-tbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
 .pp-lot-tbl td,.pp-lot-tbl th{overflow:hidden;text-overflow:ellipsis}
+.pp-lot-date{font-size:11px;letter-spacing:-.2px}
 .pp-lot-tbl td:first-child,.pp-lot-tbl th:first-child{white-space:nowrap;overflow:visible;text-overflow:clip}   /* the date is never cut */
 .pp-lot-tbl td:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* the transaction text gives way instead */
 .pp-lot-tbl th{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
@@ -10166,6 +10167,12 @@ function ppHoldingDetail(ticker, accts, data) {
     div: lotSum('div') + unalloc, total: mainTotal, ret: cost > 0 ? mainTotal / cost * 100 : null, weight: mv / totalMv * 100 } };
 }
 
+// 2025-04-04 -> "Apr 4, 2025" (built from the parts: no timezone shift)
+var _ppMon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function ppFmtDate(d) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
+  return m ? `${_ppMon[+m[2] - 1]} ${+m[3]}, ${m[1]}` : (d || '—');
+}
 const _ppSigned = v => v == null ? '—' : (v >= 0 ? '+' : '−') + fmt$(Math.abs(Math.round(v)));
 const _ppPct = v => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
 const _ppCls = v => v == null ? 'text2' : v >= 0 ? 'green' : 'red';
@@ -10178,7 +10185,7 @@ function ppLotTableHtml(ticker, accts, data) {
   const h = HOLDINGS_STATIC.find(x => x.ticker === ticker);
   const live = p.price ? `$${p.price.toFixed(2)} ${h ? h.ccy : ''}` : '—';
   const tr = r => `<tr class="pp-lot-${r.kind.toLowerCase()}">
-      <td class="mono">${r.date || '—'}</td>
+      <td class="mono pp-lot-date">${ppFmtDate(r.date)}</td>
       <td class="text2" title="${((r.kind === 'SELL' ? 'SELL ' : r.kind === 'LOT' ? 'BUY ' : '') + r.desc).replace(/"/g, '&quot;')}">${r.kind === 'SELL' ? '<b class="red">SELL</b> ' : r.kind === 'LOT' ? '<b class="blue">BUY</b> ' : ''}${r.desc}${r.src === 'history' && r.kind !== 'OTHER' ? ' <span class="pp-lot-src" title="From data/transactions.csv, before the transaction log began">history</span>' : ''}</td>
       <td>${r.acct ? `<span class="badge ${acctBadgeClass(r.acct)}">${_ppAcctLabel(r.acct)}</span>` : ''}</td>
       <td class="mono small">${r.weight != null ? r.weight.toFixed(1) + '%' : ''}</td>
@@ -10221,9 +10228,9 @@ function ppLotCardsHtml(ticker, accts, data) {
   return card({ kind: 'total', day: s.day, dayPct: s.dayPct, mv: s.mv, total: s.total, ret: s.ret, cost: s.cost },
            'Subtotal', `${+s.shares.toFixed(4)} shares`)
     + rows.map(r => r.kind === 'LOT'
-      ? card(r, `${r.date}${badge(r.acct)}`, `${r.desc}${r.partial ? ` · ${+r.shares.toFixed(4)} of ${+r.boughtAdj.toFixed(4)} left` : ''}${r.div ? ` · div ${fmt$(r.div)}` : ''}`)
+      ? card(r, `${ppFmtDate(r.date)}${badge(r.acct)}`, `${r.desc}${r.partial ? ` · ${+r.shares.toFixed(4)} of ${+r.boughtAdj.toFixed(4)} left` : ''}${r.div ? ` · div ${fmt$(r.div)}` : ''}`)
       : r.kind === 'SELL'
-        ? card(r, `${r.date}${badge(r.acct)} <span class="m-lot-selltag">SELL</span>`, `${r.desc} · realized${r.withDiv ? ' + ' + fmt$(r.div) + ' dividends' : ''} · proceeds ${fmt$(r.mv)}`)
+        ? card(r, `${ppFmtDate(r.date)}${badge(r.acct)} <span class="m-lot-selltag">SELL</span>`, `${r.desc} · realized${r.withDiv ? ' + ' + fmt$(r.div) + ' dividends' : ''} · proceeds ${fmt$(r.mv)}`)
         : r.kind === 'DIVTOTAL'
           ? `<div class="m-card m-card-tight m-lot-card"><div class="m-c-r1"><div class="m-c-sym">Total dividends</div><div class="m-c-mv">${fmt$(r.div)}</div></div><div class="m-c-r2"><div class="m-c-name"><span class="m-c-nm">Already counted in the P&amp;L above and the line below</span></div></div></div>`
           : card(r, r.kind === 'DIVSOLD' ? 'Dividends on sold shares' : 'Other realized', r.desc))
@@ -10333,7 +10340,7 @@ window.ppTxEntriesHtml = function(ticker, acct) {
     return `<div class="pp-tx-empty">No transactions logged for ${ticker} in ${acct === 'ALL' ? 'any account' : _ppAcctLabel(acct)}.</div>`;
   return entries.map(e => `<div class="pp-tx-row${e.id ? ' pp-tx-editable' : ''}"${e.id
         ? ` onclick="ppTxRowClick(this,'${e.id}','${ticker}','${e.acct}','desk')" title="Click to edit"` : ''}>
-      <span class="pp-tx-date">${e.date || '—'}</span>
+      <span class="pp-tx-date">${ppFmtDate(e.date)}</span>
       <span class="pp-tx-tag pp-tag-${e.kind}">${e.label}</span>
       <span class="pp-tx-desc">${acct === 'ALL' ? `<span class="badge ${acctBadgeClass(e.acct)}" style="font-size:8px;padding:1px 4px;margin-right:6px;vertical-align:1px">${_ppAcctLabel(e.acct)}</span>` : ''}${e.desc}${e.history ? '<span class="pp-tx-note">from history file · read-only</span>' : ''}${e.note ? `<span class="pp-tx-note">${e.note}</span>` : ''}</span>
     </div>`).join('');
@@ -12764,7 +12771,7 @@ window.mTxSelectAcct=function(ticker,acct){
             +(e.id?' onclick="ppTxRowClick(this,\''+e.id+'\',\''+ticker+'\',\''+e.acct+'\',\'mobile\')"':'')+'>'
             +'<div class="m-tx-item-top"><span class="m-tx-tag t-'+e.kind+'">'+e.label+'</span>'
             +(acct==='ALL'?'<span class="m-lot-acct">'+lbl+'</span>':'')
-            +'<span class="m-tx-date">'+(e.date||'—')+'</span></div>'
+            +'<span class="m-tx-date">'+ppFmtDate(e.date)+'</span></div>'
             +'<div class="m-tx-desc">'+e.desc+'</div>'
             +(e.history?'<div class="m-tx-note">from history file · read-only</div>':'')
             +(e.note?'<div class="m-tx-note">'+e.note+'</div>':'')

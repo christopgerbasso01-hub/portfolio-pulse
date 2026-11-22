@@ -230,7 +230,6 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .pp-lot-tbl td:nth-child(2){white-space:normal;overflow:visible}
 .pp-lot-tbl th{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
 .pp-lot-tbl td{padding:6px;border-bottom:1px solid var(--border);vertical-align:top}
-.pp-lot-tbl .pp-lot-totalrow td{font-weight:700;background:rgba(0,212,255,.06);border-bottom:1px solid var(--border2)}
 .pp-lot-tbl .pp-lot-other td{font-style:italic;opacity:.85}
 .pp-lot-sub{font-size:9px;color:var(--text3);font-weight:400}
 .pp-lot-src{font-family:var(--mono);font-size:8px;padding:0 4px;border:1px solid var(--border);border-radius:3px;color:var(--text3)}
@@ -1431,7 +1430,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .pp-tx-cell{padding:0 !important;background:rgba(0,212,255,.03);border-bottom:1px solid var(--border)}
 /* width:0 + min-width:100%: the panel takes the table's width but contributes none to
    the column-width calculation, so opening a holding never resizes the table. */
-.pp-tx-panel{padding:14px 16px 16px;width:0;min-width:100%;box-sizing:border-box}
+.pp-tx-panel{padding:14px 16px 16px;width:0;min-width:100%;box-sizing:border-box;overflow:hidden}
 .pp-tx-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .pp-tx-title{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--cyan)}
 .pp-tx-accts{display:flex;gap:6px;flex-wrap:wrap}
@@ -1459,7 +1458,10 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .pp-tx-note{display:block;font-family:var(--sans);font-size:10px;color:var(--text3);margin-top:2px}
 .pp-tx-empty{font-family:var(--mono);font-size:11px;color:var(--text3);padding:10px 8px}
 .pp-tx-editable{cursor:pointer;transition:background .12s}
-.pp-tx-editable:hover,.pp-tx-editing{background:rgba(59,130,246,.08)!important}
+.pp-tx-editing{background:rgba(59,130,246,.08)!important}
+.holdings-table #ppTxDetailRow tr:hover td,.holdings-table #ppTxDetailRow tr:hover{background:transparent!important}
+.holdings-table #ppTxDetailRow:hover > td.pp-tx-cell{background:rgba(0,212,255,.03)}
+[data-theme="light"] .holdings-table #ppTxDetailRow:hover > td.pp-tx-cell{background:rgba(8,145,178,.04)}
 .pp-tx-edit{padding:10px 8px 12px;border-left:2px solid var(--blue-bright);margin:2px 0 6px;background:rgba(59,130,246,.04);border-radius:0 6px 6px 0}
 .pp-tx-edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0 10px}
 .pp-tx-edit .tx-field{margin-bottom:10px}
@@ -10171,12 +10173,7 @@ function ppLotTableHtml(ticker, accts, data) {
   return `<div class="pp-lot-wrap"><table class="pp-lot-tbl">
     <thead><tr><th>Date</th><th>Transaction</th><th>Account</th><th>Weight</th><th>Shares</th><th>Live Price</th><th>Cost Base</th>
       <th>Market Value</th><th>Day Gain $</th><th>Day Gain %</th><th>Dividends</th><th>Total P/L $</th><th>Total Return %</th></tr></thead>
-    <tbody><tr class="pp-lot-totalrow"><td>TOTAL</td><td class="text2">${rows.filter(r => r.kind === 'LOT').length} open purchase${rows.filter(r => r.kind === 'LOT').length === 1 ? '' : 's'}${rows.some(r => r.kind === 'SELL') ? ` · ${rows.filter(r => r.kind === 'SELL').length} sale(s)` : ''}</td><td></td>
-      <td class="mono small">${s.weight.toFixed(1)}%</td><td class="mono">${+s.shares.toFixed(4)}</td><td class="mono small">${live}</td>
-      <td class="mono">${fmt$(s.cost)}</td><td class="mono">${fmt$(s.mv)}</td>
-      <td class="mono small ${_ppCls(s.day)}">${_ppSigned(s.day)}</td><td class="mono small ${_ppCls(s.dayPct)}">${_ppPct(s.dayPct)}</td>
-      <td class="mono small">${s.div ? fmt$(s.div) : '—'}</td><td class="mono ${_ppCls(s.total)}">${_ppSigned(s.total)}</td>
-      <td class="mono ${_ppCls(s.ret)}">${_ppPct(s.ret)}</td></tr>${rows.map(tr).join('')}</tbody>
+    <tbody>${rows.map(tr).join('')}</tbody>
 
   </table></div>
   <div class="pp-lot-note">Each purchase is shown with what it cost, what it's worth now and its share of dividends. Sales reduce every open purchase by the same proportion (Canada's average-cost rule), so the purchases always add up to the holding; a sale's realized gain uses that average cost. Totals match the holdings table.</div>`;
@@ -10194,9 +10191,7 @@ function ppLotCardsHtml(ticker, accts, data) {
         <div class="m-c-at ${r.total >= 0 ? 'up' : 'dn'}">${_ppSigned(r.total)} · ${_ppPct(r.ret)}</div>
         <div class="m-c-cost">${r.cost != null ? fmt$(r.cost) : ''}</div></div></div>`;
   const badge = a => a && accts.length > 1 ? ` <span class="m-lot-acct">${_ppAcctLabel(a)}</span>` : '';
-  return card({ kind: 'total', day: s.day, dayPct: s.dayPct, mv: s.mv, total: s.total, ret: s.ret, cost: s.cost },
-           'Total', `${+s.shares.toFixed(4)} shares · matches the holdings list`)
-    + rows.map(r => r.kind === 'LOT'
+  return rows.map(r => r.kind === 'LOT'
       ? card(r, `${r.date}${badge(r.acct)}`, `${r.desc}${r.partial ? ` · ${+r.shares.toFixed(4)} of ${+r.boughtAdj.toFixed(4)} left` : ''}${r.div ? ` · div ${fmt$(r.div)}` : ''}`)
       : r.kind === 'SELL'
         ? card(r, `${r.date}${badge(r.acct)} <span class="m-lot-selltag">SELL</span>`, `${r.desc} · realized · proceeds ${fmt$(r.mv)}`)
@@ -10428,7 +10423,7 @@ window.ppAlignLotCols = function() {
   ths.forEach(th => { const c = document.createElement('col'); c.style.width = th.getBoundingClientRect().width + 'px'; cg.appendChild(c); });
   tbl.prepend(cg);
   tbl.style.width = ths.reduce((w, th) => w + th.getBoundingClientRect().width, 0) + 'px';
-  tbl.style.marginLeft = Math.max(0, left) + 'px';
+  tbl.style.marginLeft = left > 1 ? left + 'px' : '0';
 };
 window.addEventListener('resize', () => { if (window.ppAlignLotCols) ppAlignLotCols(); });
 

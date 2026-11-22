@@ -7,7 +7,7 @@ progression in F major, a soft bass, a light shaker pulse and a bell-like motif.
 Written as 24 kHz mono 48 kbps MP3 — the same format edge-tts produces — so the
 themes can be joined to the episode audio byte-for-byte.
 
-    python3 scripts/make_theme.py      # writes scripts/assets/theme_intro.mp3, theme_outro.mp3
+    python3 scripts/make_theme.py      # writes scripts/assets/theme_intro.mp3, theme_outro.mp3, theme_sting.mp3
 """
 from pathlib import Path
 
@@ -138,6 +138,22 @@ def main():
                    tail=3.0, fade_in=True)
     write_mp3(intro, OUT / "theme_intro.mp3")
     write_mp3(outro, OUT / "theme_outro.mp3")
+    write_mp3(sting(), OUT / "theme_sting.mp3")
+
+
+def sting() -> np.ndarray:
+    """A 1.6 s segment marker: a soft F-major chord and a three-note bell figure, mixed
+    well below the voices (the episode is mastered to -16 LUFS; this sits around -26)."""
+    length = 1.6
+    buf = np.zeros(int(length * SR))
+    for k, note in enumerate(CHORDS["F9"]):
+        add(buf, epiano(note, length, 0.5), k * 0.01, 0.30)
+    for i, note in enumerate((72, 77, 81)):
+        add(buf, bell(note, 0.9, 1.0), i * 0.11, 0.24)
+    n = int(0.6 * SR)
+    buf[-n:] *= np.linspace(1, 0, n) ** 2
+    buf = np.tanh(buf * 1.2) / np.tanh(1.2)
+    return buf / (np.max(np.abs(buf)) + 1e-9) * 0.18
 
 
 if __name__ == "__main__":

@@ -253,6 +253,9 @@ def writer(drafts):
     return w
 
 
+# The lesson fact-check and the join editor call the model; tests/test_podcast_show.py
+# covers them with a fake model. Here they are switched off so the repair loop is tested alone.
+gp._check_lesson = gp._edit_seams = lambda *a, **k: None
 _real_write = gp.write_segment
 _saved_min = gp.MIN_SCRIPT_WORDS
 gp.MIN_SCRIPT_WORDS = 0

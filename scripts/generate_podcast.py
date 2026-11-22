@@ -59,9 +59,12 @@ CRON_SECRET   = os.environ.get("CRON_SECRET", "")
 VOICE_ALEX = "en-US-AndrewMultilingualNeural"   # Male — warm, analytical
 VOICE_SAM  = "en-US-AvaMultilingualNeural"      # Female — curious, challenges
 
-SPEECH_RATE_SHORT  = "+14%"   # Short reactions < 60 chars
-SPEECH_RATE_MEDIUM = "+8%"    # Normal turns 60-200 chars
-SPEECH_RATE_LONG   = "+3%"    # Detailed explanations > 200 chars
+SPEECH_RATE_SHORT  = "+14%"   # (no longer used: rate is per host, see VOICE_RATE)
+SPEECH_RATE_MEDIUM = "+8%"
+SPEECH_RATE_LONG   = "+3%"
+# One steady speed per host. Speed used to depend on the length of the line (+14% for a
+# short reply, +3% for a long one), so each host sped up and slowed down mid-conversation.
+VOICE_RATE = {"ALEX": "+3%", "SAM": "+6%"}
 
 DATA_DIR     = Path("data")
 PODCAST_META = DATA_DIR / "podcast_meta.json"
@@ -581,6 +584,7 @@ NUMBERS: at most 4 in any turn. Round them and write them as digits — "about $
 NEVER explain how leveraged or 3x funds work — no amplifying, no daily reset, no decay. The listener knows. Say what they did.
 A company is a holding only if it is in WHAT WE OWN, and it is described only as WHAT WE OWN describes it — never guess what a company does, where it is based, or confuse one holding with another.
 NO ADVICE: never tell Christopher to buy, sell, add, trim or hold anything. Give perspective, not instructions.
+THE HOUSE MONEY is ONLY the FHSA and the RRSP. The TFSA and the non-registered account are not the down payment.
 The portfolio is ONLY what WHAT WE OWN lists, at the weights shown: it holds no bonds, no cash plan and nothing else. Never call a small holding "core".
 {currency_rule}
 SAY IT ONCE: this segment covers only its own subject. Do not recap earlier segments or preview later ones (apart from a one-line handoff where asked), and never restate a point in new words. This week the other segments cover: {elsewhere}. Leave those alone.
@@ -1597,10 +1601,11 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
     score = _desk.score_last_week(rc["last"], sp_close) if rc["last"] else None
     if score and score.get("probability") is not None:
         verb = "rose" if score["move_pct"] > 0 else "fell"
+        honest = ("— our most likely call, so it went as expected" if score["probability"] >= 45 else
+                  "— a case we thought less likely, so the call was not right; own that with good humour")
         previously = (f"Last episode set three scenarios for the week. What happened: the S&P 500 {verb} about "
                       f"{_say_pct(abs(score['move_pct']))}, so the {score['label']} played out — we had given it "
-                      f"{score['probability']} percent. Give that verdict in one or two lines, honestly; if the call "
-                      f"was wrong, say so with good humour. ")
+                      f"{score['probability']} percent {honest}. One or two lines. ")
     elif rc["last"]:
         previously = "Do not score last week's scenarios (no data). "
     else:
@@ -1970,6 +1975,13 @@ _TRADE_CAUSE = re.compile(r"\b(?:trade|addition|purchase|buying|bought|added)\b[
                           r"shift|tilt|move|reduc|increas)\w*[^.?!]{0,50}\b(?:slice|share|weight|percent|exposure|mix)\b", re.I)
 _EMBELLISH = re.compile(r"\b(?:all year|this year|ever|record|biggest|largest|worst|best|since \w+|single[- ]day|"
                        r"in (?:months|years|a decade)|because|after the|thanks to|due to)\b", re.I)
+
+_HOUSE_WORDS = re.compile(r"\b(?:house|home|down[- ]?payment|gta)\b", re.I)
+_NOT_HOUSE = re.compile(r"\b(?:tfsa|non[- ]?registered|non[- ]?reg|investment account)\b", re.I)
+_RELATIVE_DAY = re.compile(r"\b(?:yesterday|tonight|this morning|last night|earlier today|later today|late today)\b", re.I)
+_NEGATED = re.compile(r"\b(?:not|isn't|aren't|outside|separate|apart from|excluding|only the fhsa)\b", re.I)
+_SCORE_BRAG = re.compile(r"\b(?:right on the money|nailed it|spot on|we called it|called it right|we were right|"
+                         r"got it right)\b", re.I)
 _WATCH = re.compile(r"\b(?:watch(?:ing)?|keep an eye|keep tabs|monitor(?:ing)?)\b", re.I)
 
 
@@ -2015,6 +2027,26 @@ def segment_problems(key: str, text: str, plan: dict) -> list:
         if cause:
             out.append(f"says a trade changed the sector mix — the shifts come from price moves and trades together: "
                        f"\"{cause[:100]}\"")
+    # In one sentence, or a "That's the house side" pointing back at the sentence before
+    # (episode 25, about the non-registered account).
+    pairs = [x for x in sents] + [a + " " + b for a, b in zip(sents, sents[1:])
+                                  if re.match(r"^(?:that|it|this)(?:'s| is)\b", b.replace("’", "'"), re.I)]
+    house = next((x for x in pairs if _HOUSE_WORDS.search(x) and _NOT_HOUSE.search(x)
+                  and not _NEGATED.search(x.replace("’", "'"))), None)
+    if house:
+        out.append(f"ties the TFSA or the non-registered account to the house — the down payment is only the "
+                   f"FHSA and the RRSP: \"{house[:100]}\"")
+    if key in ("desk", "main", "around"):
+        rel = next((x for x in sents if _RELATIVE_DAY.search(x)), None)
+        if rel:
+            out.append(f"says \"{_RELATIVE_DAY.search(rel).group(0)}\" — the news is from earlier days; name the day "
+                       f"of the week instead: \"{rel[:90]}\"")
+    if key == "opening":
+        sc = plan.get("score") or {}
+        brag = next((x for x in sents if _SCORE_BRAG.search(x)), None)
+        if brag and (sc.get("probability") or 0) < 45:
+            out.append(f"claims last week's call was right, but the case that happened was one we gave only "
+                       f"{sc.get('probability')} percent — say it honestly: \"{brag[:90]}\"")
     if key == "opening" and "[THEME]" in text:
         cold = " ".join(_turn_texts(text.split("[THEME]", 1)[0]))
         hook = plan.get("fields", {}).get("opening", {}).get("hook", "").lower()
@@ -2068,7 +2100,7 @@ def _locate(problem_msg: str, segs: dict):
     return None
 
 
-def assemble(segs: dict) -> str:
+def assemble(segs: dict, breaks: bool = False) -> str:
     """Join the segments, smoothing ONLY the seams: a sign-off or re-greeting at a join
     is dropped, and when one host would speak twice across a join the two lines become
     one turn. Turns inside a segment are never merged — merging them once glued three
@@ -2086,6 +2118,10 @@ def assemble(segs: dict) -> str:
         head, tail = _stitch_parts("\n".join(out), "\n".join(new)).split("\n\n", 1)
         out = [l for l in head.split("\n") if l.strip()]
         new = [l for l in tail.split("\n") if l.strip()]
+        if breaks:
+            out.append("[BREAK]")             # a sting separates the segments; no merging
+            out += new
+            continue
         first = turn.match(new[0]) if new else None
         last = turn.match(out[-1]) if out else None
         if (first and last and first.group(1) == last.group(1)
@@ -2166,11 +2202,113 @@ def produce_episode(api_key: str, plan: dict, history=None, log=print):
             else:
                 log(f"  ⚠ rewrite of {k} was worse ({new_score} vs {old_score}) — keeping the earlier draft")
 
-    script = assemble(segs)
+    _check_lesson(api_key, plan, segs, history, log)
+    _edit_seams(api_key, plan, segs, history, log)
+    script = assemble(segs, breaks=True)
     repaired = _final_repair(script, facts, history, log)
     if repaired is None:
         return None
     return repaired, facts, segs
+
+
+LESSON_CHECK = """You are the fact-checker for a personal-finance podcast. Below is its learning segment on "{topic}".
+List every statement that is factually wrong or misleading, and every worked example whose arithmetic or logic
+does not hold (each step must follow from the one before, with the numbers it states). Ignore style. Do not
+flag simplifications that are still true.
+SEGMENT:
+{text}
+Return only JSON: {{"problems": ["...", "..."]}} — an empty list if it is accurate."""
+
+
+def _check_lesson(api_key: str, plan: dict, segs: dict, history, log=print) -> None:
+    """Fact-check the lesson and rewrite it once if the checker finds errors. Episode 25's
+    lesson described the VIX as delta-weighted (it is not) and its worked example did not
+    add up; nothing checked a lesson's substance before. Best effort: any failure keeps
+    the lesson as written."""
+    if "learning" not in segs or not groq_budget_allows(2 * SEGMENT_COST_ESTIMATE):
+        return
+    try:
+        raw = _groq_call(api_key, LESSON_CHECK.format(topic=plan["topic"], text=segs["learning"]),
+                         "Lesson fact-check", max_tokens=900)
+        probs = [str(p) for p in (json.loads(raw[raw.find("{"):raw.rfind("}") + 1]) or {}).get("problems") or []
+                 if str(p).strip()]
+    except Exception as exc:  # noqa: BLE001
+        log(f"  ⚠ lesson fact-check skipped ({str(exc)[:80]})")
+        return
+    if not probs:
+        log("  ✓ Lesson fact-checked: no errors found")
+        return
+    log(f"  ⚠ Lesson fact-check found {len(probs)} problem(s) — rewriting it")
+    for p in probs[:5]:
+        log(f"      • {p[:150]}")
+    notes = ("EDITOR'S NOTES — a fact-checker found these errors in your lesson. Correct every one; if an "
+             "example cannot be made exact, use a simpler one:\n" + "\n".join(f"- {p}" for p in probs[:6]) + "\n")
+    try:
+        before = _segment_tail(segs[SEGMENT_KEYS[SEGMENT_KEYS.index("learning") - 1]])
+        new = write_segment(api_key, plan, "learning", notes, before)
+        if new.strip() and not segment_problems("learning", new, plan):
+            segs["learning"] = new
+    except Exception as exc:  # noqa: BLE001
+        log(f"  ⚠ lesson rewrite failed ({str(exc)[:80]}) — keeping the checked draft")
+
+
+SEAM_EDIT = """Two segments of a two-host podcast meet here: the last lines of one and the first lines of the
+next. The SEGMENTS ARE SEPARATED BY A SHORT MUSIC STING. Rewrite ONLY these lines so the handover sounds like
+two people talking: the first segment ends cleanly (no question left hanging, no sign-off), and the next opens
+by naturally introducing its subject (no greeting, no recap, no "welcome back"). Keep every fact; add no new
+numbers, names, dates or claims; keep the same speakers in the same order; keep it about as long.
+Never begin a line with "Exactly", "Absolutely", "Got it" or "So".
+END OF ONE SEGMENT:
+{a}
+--- sting ---
+START OF THE NEXT:
+{b}
+Return only the rewritten lines in the same format, with a line that is exactly "--- sting ---" between them."""
+
+
+def _edit_seams(api_key: str, plan: dict, segs: dict, history, log=print) -> None:
+    """Smooth each join between segments. Each segment is written by its own call, and
+    episode 25 showed it: the main story opened mid-thought, and a question was left
+    unanswered before the next segment began. Only the 2-3 lines either side of a join
+    are rewritten, and a rewrite is kept only if it passes every check."""
+    keys = [k for k in SEGMENT_KEYS if segs.get(k)]
+    fixed = 0
+    for a, b in zip(keys, keys[1:]):
+        if not groq_budget_allows(SEGMENT_COST_ESTIMATE):
+            log("  ⚠ Groq budget reserved — the remaining joins are left as written")
+            break
+        la, lb = segs[a].strip().split("\n"), segs[b].strip().split("\n")
+        ta = [i for i, l in enumerate(la) if re.match(r"^(ALEX|SAM):", l)][-3:]
+        tb = [i for i, l in enumerate(lb) if re.match(r"^(ALEX|SAM):", l)][:3]
+        if len(ta) < 2 or len(tb) < 2 or any(l.startswith("[") for l in la[ta[0]:] + lb[:tb[-1] + 1]):
+            continue
+        try:
+            raw = _groq_call(api_key, SEAM_EDIT.format(a="\n".join(la[ta[0]:]), b="\n".join(lb[:tb[-1] + 1])),
+                             f"Join {a}→{b}", max_tokens=1100)
+        except Exception as exc:  # noqa: BLE001
+            log(f"  ⚠ join {a}→{b} not edited ({str(exc)[:80]})")
+            continue
+        if "--- sting ---" not in raw:
+            continue
+        na, nb = (_trim_fillers(_normalize_script(x.strip())) for x in raw.split("--- sting ---", 1))
+        new_a = "\n".join(la[:ta[0]] + [na])
+        new_b = "\n".join([nb] + lb[tb[-1] + 1:])
+        trial = dict(segs, **{a: new_a, b: new_b})
+        ok = (len(_turn_texts(na)) >= 1 and len(_turn_texts(nb)) >= 1
+              and not segment_problems(a, new_a, plan) and not segment_problems(b, new_b, plan)
+              and len([p for p in collect_script_problems(assemble(trial), plan["facts"], history) if p["fatal"]])
+              <= len([p for p in collect_script_problems(assemble(segs), plan["facts"], history) if p["fatal"]])
+              and figure_stats(na + "\n" + nb)["total"]
+              <= figure_stats("\n".join(la[ta[0]:] + lb[:tb[-1] + 1]))["total"])
+        if ok:
+            segs[a], segs[b] = new_a, new_b
+            fixed += 1
+    if fixed:
+        log(f"  ✓ Smoothed {fixed} join(s) between segments")
+
+
+_HANDOVER = re.compile(r"^(?:next week|that's our|that's it|that's all|now|next up|let's turn|moving on|over to|"
+                       r"thanks for|see you|take care)\b", re.I)
 
 
 def drop_orphan_questions(script: str) -> tuple:
@@ -2181,7 +2319,10 @@ def drop_orphan_questions(script: str) -> tuple:
     for i, line in enumerate(lines):
         m = turn.match(line.strip())
         nxt = next((turn.match(l.strip()) for l in lines[i + 1:] if l.strip()), None)
-        if m and nxt and m.group(1) == nxt.group(1) and m.group(2).rstrip().endswith("?"):
+        # Unanswered: the same host speaks next, or the other host moves straight on
+        # (episode 25: "how should Christopher think about it?" — "Next week we'll...").
+        if m and nxt and m.group(2).rstrip().endswith("?") and (
+                m.group(1) == nxt.group(1) or _HANDOVER.match(nxt.group(2).replace("’", "'"))):
             removed.append(m.group(2))
             continue
         out.append(line)
@@ -2915,7 +3056,16 @@ _LEVERAGE_TALK = re.compile(
     r"|\b(?:three|3)[\s-]?(?:x|times)\b[^.?!]{0,50}\b(?:as\s+much|more\s+than|amplif\w*|multipl\w*|magnif\w*|swing\w*)"
     r"|\b(?:leverage|leveraged\s+(?:fund|etf)s?)\s+(?:amplif\w*|magnif\w*|multipl\w*|works?|means?)\b"
     r"|\bhow\s+(?:a\s+)?(?:3x|three[\s-]times|leveraged)\s+(?:fund|etf)s?\s+work"
-    r"|\bturn(?:s|ed)?\s+(?:a|an)\s+(?:\w+\s+){0,2}[\d.]+\s?%\s+(?:move|gain|drop|rally|dip)\b[^.?!]{0,50}\binto\b", re.I)
+    r"|\bturn(?:s|ed)?\s+(?:a|an)\s+(?:\w+\s+){0,2}[\d.]+\s?%\s+(?:move|gain|drop|rally|dip)\b[^.?!]{0,50}\binto\b"
+    # Episode 25 slipped these past: "leveraged exposure does amplify movements", "its
+    # leveraged nature means the percentage change is magnified", "the 3x funds could
+    # outpace the underlying index", "mirrors the daily percentage change of its benchmark".
+    r"|\bleverag\w*\s+(?:\w+\s+){0,3}(?:amplif\w*|magnif\w*|multipl\w*|exaggerat\w*|outpace\w*)"
+    r"|\b(?:amplif\w*|magnif\w*)\b[^.?!]{0,40}\bleverag\w*"
+    r"|\bleveraged\s+nature\b"
+    r"|\b(?:3x|three[\s-]times|leveraged)\s+(?:funds?|etfs?|products?|positions?|exposure)\b[^.?!]{0,60}\b(?:outpace|"
+    r"amplif\w*|magnif\w*|multipl\w*)"
+    r"|\bdaily\s+percentage\s+(?:change|move)", re.I)
 
 # Lines that legitimately recur every week, so repeating them is not a defect.
 _BOILERPLATE = re.compile(
@@ -3363,9 +3513,9 @@ def _pick_rate(text: str) -> str:
     return SPEECH_RATE_LONG
 
 
-async def _synthesize_one(text: str, voice: str, path: str, retries: int = 3) -> None:
+async def _synthesize_one(text: str, voice: str, path: str, retries: int = 3, rate: str = None) -> None:
     import edge_tts
-    rate = _pick_rate(text)
+    rate = rate or _pick_rate(text)
     for attempt in range(retries):
         try:
             comm = edge_tts.Communicate(text, voice, rate=rate)
@@ -3377,16 +3527,53 @@ async def _synthesize_one(text: str, voice: str, path: str, retries: int = 3) ->
             await asyncio.sleep(1.0 * (attempt + 1))
 
 
+def _pause_after(turn: tuple, nxt) -> float:
+    """Extra silence after a turn, on top of the voice's own ~0.35 s. Every gap used to be
+    the same length, which is what made the exchange sound machine-made: a quick reaction
+    follows at once, an answer to a question comes a beat later, and a long explanation
+    gets a breath before the reply."""
+    if nxt is None or nxt[0] == "BREAK":
+        return 0.0
+    words, nwords = len(turn[1].split()), len(nxt[1].split())
+    if nwords <= 6:
+        base = 0.02                       # "Hmm." / "Fair." comes straight in
+    elif turn[1].rstrip().endswith("?"):
+        base = 0.18                       # a beat to think
+    elif words > 45:
+        base = 0.32                       # after a long explanation
+    else:
+        base = 0.12
+    jitter = (sum(map(ord, turn[1][:24])) % 9 - 4) * 0.02     # deterministic, +/-0.08 s
+    return max(0.0, base + jitter)
+
+
+def _silence_file(tmp_dir: Path, secs: float) -> str:
+    path = tmp_dir / f"sil_{int(secs * 1000):04d}.mp3"
+    if not path.exists():
+        path.write_bytes(_encode_mp3(b"\x00\x00" * int(AUDIO_RATE * secs)))
+    return str(path)
+
+
 async def _generate_all_audio(turns: list[tuple[str, str]], tmp_dir: Path) -> list[str]:
-    """Synthesize all turns with edge-tts, return ordered list of mp3 paths."""
+    """Synthesize all turns with edge-tts, return ordered list of mp3 paths. A ("BREAK", "")
+    entry marks a segment change: a short sting with a pause either side."""
     paths, tasks = [], []
     for i, (speaker, text) in enumerate(turns):
+        if speaker == "BREAK":
+            if THEME_STING.exists():
+                paths += [_silence_file(tmp_dir, 0.45), str(THEME_STING), _silence_file(tmp_dir, 0.35)]
+            else:
+                paths.append(_silence_file(tmp_dir, 0.9))
+            continue
         voice  = VOICE_ALEX if speaker == "ALEX" else VOICE_SAM
         chunks = split_long_text(text)
         for j, chunk in enumerate(chunks):
             path = str(tmp_dir / f"seg_{i:04d}_{j:02d}.mp3")
             paths.append(path)
-            tasks.append(_synthesize_one(chunk, voice, path))
+            tasks.append(_synthesize_one(chunk, voice, path, rate=VOICE_RATE.get(speaker)))
+        gap = _pause_after((speaker, text), turns[i + 1] if i + 1 < len(turns) else None)
+        if gap >= 0.04:
+            paths.append(_silence_file(tmp_dir, round(gap, 2)))
 
     batch = 8
     for start in range(0, len(tasks), batch):
@@ -3579,6 +3766,10 @@ def synthesize_with_kokoro(turns: list, output: Path, tmp_dir: Path) -> None:
     print(f"  ✓ MP3 created: {output} (Kokoro)")
 
 
+def _voices_only(turns: list) -> list:
+    return [t for t in turns if t[0] != "BREAK"]
+
+
 def synthesize_episode(turns: list, output: Path, tmp_dir: Path) -> str:
     """The original Microsoft voices first, through each known host; then Kokoro;
     Piper only as the last resort. Returns the engine used; raises only if all fail."""
@@ -3600,7 +3791,7 @@ def synthesize_episode(turns: list, output: Path, tmp_dir: Path) -> str:
     for name, fn in (("kokoro", synthesize_with_kokoro), ("piper", synthesize_with_piper)):
         try:
             print(f"  → switching to {name}")
-            fn(turns, output, tmp_dir)
+            fn(_voices_only(turns), output, tmp_dir)
             return name
         except Exception as exc:  # noqa: BLE001
             print(f"  ⚠ {name} failed ({str(exc)[:120]})")
@@ -3629,12 +3820,99 @@ def _encode_mp3(pcm16: bytes) -> bytes:
     return enc.encode(pcm16) + enc.flush()
 
 
+def parse_with_breaks(script: str) -> list:
+    """parse_script, keeping each [BREAK] (a segment change) as ("BREAK", "")."""
+    out = []
+    for block in (script or "").split("[BREAK]"):
+        if out and out[-1][0] != "BREAK":
+            out.append(("BREAK", ""))
+        out += parse_script(block)
+    while out and out[-1][0] == "BREAK":
+        out.pop()
+    return out
+
+
 def split_at_theme(script: str) -> tuple:
     """(cold-open turns, the rest) — split at the [THEME] line, if there is one."""
     if "[THEME]" not in script:
-        return [], parse_script(script)
+        return [], parse_with_breaks(script)
     head, tail = script.split("[THEME]", 1)
-    return parse_script(head), parse_script(tail)
+    return parse_script(head), parse_with_breaks(tail)
+
+
+THEME_STING = THEME_DIR / "theme_sting.mp3"
+TARGET_LUFS = -16.0           # where Apple / Spotify podcasts sit
+THEME_GAIN_DB = -9.5          # the themes were mastered ~7 LU louder than the voices
+INTRO_OVERLAP = 1.8           # seconds of theme still fading under the first line
+
+
+def master_episode(cold, intro, main, outro, output: Path) -> bool:
+    """Mix and master: cold open, then the intro theme fading out under the first line of
+    the episode, the episode, then the outro theme fading in — the whole programme
+    normalised to TARGET_LUFS. Measured on episode 25: themes at -14.5 LUFS against
+    voices at -21, so the music jumped out at both ends, and the episode as a whole sat
+    at -20.8 LUFS, quieter than other podcasts. Returns False (and writes nothing) if
+    ffmpeg is unavailable or fails, so the caller can fall back to plain joining."""
+    import subprocess
+    try:
+        ff = _ffmpeg_exe()
+        from mutagen.mp3 import MP3
+        ti = MP3(str(intro)).info.length if intro else 0.0
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ⚠ mastering skipped ({str(exc)[:80]})")
+        return False
+    args, f, n = [ff, "-y", "-loglevel", "error"], [], 0
+    labels = []
+    if cold:
+        args += ["-i", str(cold)]
+        f.append(f"[{n}:a]aresample=48000,aformat=channel_layouts=mono[c]")
+        labels.append("[c]")
+        n += 1
+    if intro:
+        args += ["-i", str(intro), "-i", str(main)]
+        delay = int(max(0.0, ti - INTRO_OVERLAP) * 1000)
+        f.append(f"[{n}:a]aresample=48000,aformat=channel_layouts=mono,volume={THEME_GAIN_DB}dB,"
+                 f"afade=t=out:st={max(0.0, ti - 2.6):.2f}:d=2.6[ti]")
+        f.append(f"[{n + 1}:a]aresample=48000,aformat=channel_layouts=mono,adelay={delay}:all=1[md]")
+        f.append("[ti][md]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[b]")
+        n += 2
+    else:
+        args += ["-i", str(main)]
+        f.append(f"[{n}:a]aresample=48000,aformat=channel_layouts=mono[b]")
+        n += 1
+    labels.append("[b]")
+    if outro:
+        args += ["-i", str(outro)]
+        f.append(f"[{n}:a]aresample=48000,aformat=channel_layouts=mono,volume={THEME_GAIN_DB}dB,"
+                 f"afade=t=in:d=0.8[o]")
+        labels.append("[o]")
+        n += 1
+    f.append("".join(labels) + f"concat=n={len(labels)}:v=0:a=1[p]")
+    tmp = Path(str(output) + ".mastered.mp3")
+    norm = f"loudnorm=I={TARGET_LUFS}:TP=-1.5:LRA=11"
+    try:
+        # Two passes: measure the programme, then normalise it linearly to the target.
+        # One pass adapts as it goes and landed a short test at -17.3 instead of -16.
+        probe = subprocess.run(args + ["-filter_complex", ";".join(f + [f"[p]{norm}:print_format=json[out]"]),
+                                       "-map", "[out]", "-f", "null", "-"],
+                               capture_output=True, text=True, timeout=600)
+        m = json.loads(probe.stderr[probe.stderr.rfind("{"):probe.stderr.rfind("}") + 1])
+        norm += (f":measured_I={m['input_i']}:measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}"
+                 f":measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true")
+    except Exception:  # noqa: BLE001  fall back to one adaptive pass
+        pass
+    f.append(f"[p]{norm},aresample={AUDIO_RATE}[out]")
+    args += ["-filter_complex", ";".join(f), "-map", "[out]", "-ac", "1",
+             "-codec:a", "libmp3lame", "-b:a", "64k", str(tmp)]
+    try:
+        subprocess.run(args, check=True, capture_output=True, timeout=600)
+        tmp.replace(output)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        err = getattr(exc, "stderr", b"") or b""
+        print(f"  ⚠ mastering failed ({(err.decode(errors='ignore') or str(exc))[:160]}) — joining unmastered")
+        tmp.unlink(missing_ok=True)
+        return False
 
 
 def synthesize_with_theme(script: str, output: Path, tmp_dir: Path) -> str:
@@ -3656,6 +3934,12 @@ def synthesize_with_theme(script: str, output: Path, tmp_dir: Path) -> str:
     parts.append(d / "main.mp3")
     if THEME_OUTRO.exists():
         parts.append(THEME_OUTRO)
+    if master_episode(tmp_dir / "cold" / "cold.mp3" if cold else None,
+                      THEME_INTRO if THEME_INTRO.exists() else None, d / "main.mp3",
+                      THEME_OUTRO if THEME_OUTRO.exists() else None, output):
+        print(f"  ✓ Mastered to {TARGET_LUFS:.0f} LUFS: {'cold open + ' if cold else ''}theme under the first line, "
+              f"episode, outro")
+        return engine
     with open(output, "wb") as out:
         for p in parts:
             out.write(Path(p).read_bytes())
@@ -3669,10 +3953,10 @@ def _same_engine(engine: str, turns: list, output: Path, tmp_dir: Path) -> str:
     change voice after the theme. Falls back through the chain only if that fails."""
     try:
         if engine == "kokoro":
-            synthesize_with_kokoro(turns, output, tmp_dir)
+            synthesize_with_kokoro(_voices_only(turns), output, tmp_dir)
             return engine
         if engine == "piper":
-            synthesize_with_piper(turns, output, tmp_dir)
+            synthesize_with_piper(_voices_only(turns), output, tmp_dir)
             return engine
     except Exception as exc:  # noqa: BLE001
         print(f"  ⚠ {engine} failed after the cold open ({str(exc)[:100]}) — trying the full chain")

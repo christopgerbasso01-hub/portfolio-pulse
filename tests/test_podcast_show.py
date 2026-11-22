@@ -123,5 +123,78 @@ ck("look back, big story, around, lesson, week ahead", [gp.SEGMENT_TITLES[k] for
 ck("the look back explains why", "WHY" in gp.SEG_DESK and "{why}" in gp.SEG_DESK, True)
 ck("the week ahead starts with what to watch", gp.SEG_SCENARIOS.index("{watch}") < gp.SEG_SCENARIOS.index("{frame}"), True)
 
+print("\n── professional finish: errors episode 25 let through ──")
+lev = lambda t: "leverage" in {u["kind"] for u in gp._scan_unwanted("ALEX: " + t)}
+for line in ("The SPXL fund will capture the aggregate market move, but its leveraged nature means the percentage change is magnified relative to the underlying index.",
+             "Leveraged exposure does amplify movements.",
+             "If the market reacts positively, the 3x funds could outpace the underlying index by a sizable margin.",
+             "The fund's performance mirrors the daily percentage change of its benchmark."):
+    ck(f"leverage explainer caught: {line[:45]}...", lev(line), True)
+for line in ("Our leveraged funds fell about 8% this week.", "The leveraged funds were the biggest drag on the portfolio."):
+    ck(f"a plain result is not: {line[:40]}", lev(line), False)
+P = {"fx_owner": None, "banned_analogies": [], "topic": "X", "facts": {}, "taught": [],
+     "fields": {"around": {"items": ""}, "opening": {"hook": ""}}, "score": {"probability": 30}}
+probs = lambda k, t: gp.segment_problems(k, t, P)
+ck("'that's the house side' about the non-registered account is caught",
+   any("down payment is only" in m for m in probs("desk", "SAM: The non-registered account moved most. That's the house side of things.")), True)
+ck("...but saying it is NOT house money is fine",
+   any("down payment is only" in m for m in probs("desk", "ALEX: The TFSA isn't part of the house money.")), False)
+ck("'late yesterday' from an old briefing is caught",
+   any("name the day" in m for m in probs("main", "ALEX: The bill cleared the Senate late yesterday.")), True)
+ck("claiming a 30% call was right is caught",
+   any("honestly" in m for m in probs("opening", "ALEX: The bull case played out. Looks like we were right on the money.\n[THEME]")), True)
+q = "SAM: If that happens, how should Christopher think about it?\nALEX: Next week we'll break down earnings revisions."
+ck("a question answered only by a sign-off is removed", gp.drop_orphan_questions(q)[1], ["If that happens, how should Christopher think about it?"])
+ck("...a real answer keeps it", gp.drop_orphan_questions("SAM: Why?\nALEX: Because rates rose.")[1], [])
+
+print("\n── professional finish: sound ──")
+ck("one speed per host", (gp.VOICE_RATE["ALEX"], gp.VOICE_RATE["SAM"]), ("+3%", "+6%"))
+gaps = [gp._pause_after(("ALEX", "A " * n + "?"), ("SAM", "B " * m)) for n, m in ((5, 3), (5, 20), (60, 20), (10, 20))]
+ck("pauses vary: a quick reaction comes in fast, an answer after a beat", gaps[0] < gaps[3] < gaps[1] and gaps[2] > 0, True)
+br = gp.assemble({"opening": "ALEX: Hi.\n[THEME]\nSAM: Hello.", "desk": "SAM: The week.\nALEX: Fell.", "main": "ALEX: Nvidia."}, breaks=True)
+ck("segments are separated by a sting marker", br.count("[BREAK]"), 2)
+ck("...which becomes a pause-and-sting in the audio",
+   [t[0] for t in gp.parse_with_breaks(br.split("[THEME]")[1])], ["SAM", "BREAK", "SAM", "ALEX", "BREAK", "ALEX"])
+ck("the transcript never shows the marker", "[BREAK]" in gp._clean_transcript(br), False)
+ck("the sting asset exists", gp.THEME_STING.exists(), True)
+ck("the episode is mastered to podcast loudness", (gp.TARGET_LUFS, gp.THEME_GAIN_DB < -6), (-16.0, True))
+
+print("\n── professional finish: lesson fact-check and joins ──")
+_rc, _rw = gp._groq_call, gp.write_segment
+PL = dict(P, topic="What VIX Actually Measures", fields=dict(P["fields"]))
+SEG = {"around": "ALEX: Tesla rose.\nSAM: Good for us.\nALEX: Now the lesson.",
+       "learning": "[EDUCATION_TOPIC: What VIX Actually Measures]\nALEX: The VIX is delta-weighted.\nSAM: Hm?\n"
+                   "ALEX: A $4 premium means 35.\nSAM: That's our learning segment for this week."}
+calls = []
+gp._groq_call = lambda k, prompt, label, max_tokens=0: (calls.append(label) or
+                '{"problems": ["The VIX is not delta-weighted.", "The $4 example does not add up."]}')
+gp.write_segment = lambda k, plan, key, notes, before: (calls.append("rewrite:" + key) or
+                   "[EDUCATION_TOPIC: What VIX Actually Measures]\nALEX: The VIX comes from option prices.\n"
+                   "SAM: That's our learning segment for this week.")
+try:
+    segs = dict(SEG)
+    gp._check_lesson("k", PL, segs, None, log=lambda *a: None)
+    ck("a lesson with factual errors is rewritten with the checker's notes", calls, ["Lesson fact-check", "rewrite:learning"])
+    ck("...and the corrected lesson is used", "delta-weighted" in segs["learning"], False)
+    calls.clear()
+    gp._groq_call = lambda *a, **k: '{"problems": []}'
+    segs = dict(SEG)
+    gp._check_lesson("k", PL, segs, None, log=lambda *a: None)
+    ck("an accurate lesson is left alone", segs["learning"], SEG["learning"])
+
+    J = {"desk": "ALEX: The market fell.\nSAM: Why?\nALEX: Rates.\nSAM: Over to Nvidia then.",
+         "main": "ALEX: The bill cleared late.\nSAM: And?\nALEX: Nvidia changed CEO.\nSAM: Wow."}
+    good = "ALEX: Rates did most of it.\nSAM: Which brings us to Nvidia.\n--- sting ---\nALEX: Nvidia had the bigger week of all.\nSAM: And?\nALEX: It changed chief executive."
+    gp._groq_call = lambda *a, **k: good
+    segs = dict(J)
+    gp._edit_seams("k", dict(P, facts={}), segs, None, log=lambda *a: None)
+    ck("a smoother join is kept", segs["main"].split("\n")[0], "ALEX: Nvidia had the bigger week of all.")
+    gp._groq_call = lambda *a, **k: good.replace("the bigger week of all", "a 12% drop and a $40,000 hit")
+    segs = dict(J)
+    gp._edit_seams("k", dict(P, facts={}), segs, None, log=lambda *a: None)
+    ck("a join rewrite that adds numbers is rejected", segs, J)
+finally:
+    gp._groq_call, gp.write_segment = _rc, _rw
+
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

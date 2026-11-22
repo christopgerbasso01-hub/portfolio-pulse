@@ -15,7 +15,10 @@ Method (Canadian average-cost):
   • a Sell reduces EVERY open lot by the same fraction, so remaining lot costs
     always sum to the position's ACB; realized = proceeds − average cost;
   • a Split multiplies the shares of every open lot;
-  • a Dividend is shared across open lots by shares held that day.
+  • a Dividend is shared across open lots by shares held that day;
+  • rows after the cutoff are ignored EXCEPT dividends whose Notes start with
+    "memo": those are already inside the stored totals but were never itemised,
+    so they are replayed here (display only) and flagged memo in the output.
 Finally each position is reconciled to _HOLDINGS_BASE: share counts must
 match, and lot costs and dividends are scaled so they sum exactly to the
 base ACB and dividends the dashboard already shows.
@@ -82,8 +85,9 @@ def main() -> int:
     num = lambda s: float(s) if s not in ("", None) else 0.0
     for r in rows:
         date = r["Transaction Date"][:10]
-        if date >= CUTOFF:
-            continue
+        memo = (r.get("Notes") or "").startswith("memo")
+        if date >= CUTOFF and not (memo and r["Type"] == "Dividend"):
+            continue          # after the log began, only 'memo' dividends (already in stored totals) are replayed
         sym, acct, typ, ccy = r["Symbol"], r["Portfolio"], r["Type"], r["Currency"]
         ticker = ALIASES.get((sym, acct), sym)
         p = pos.setdefault(f"{ticker}|{acct}", {"lots": [], "events": [], "div_unalloc": 0.0})
@@ -125,8 +129,11 @@ def main() -> int:
                     l["div"] += amt * l["shares"] / open_sh
             else:
                 p["div_unalloc"] += amt
-            p["events"].append({"date": date, "type": "DIVIDEND", "amount": sh, "ccy": ccy,
-                                "fx": round(fx, 6), "amount_cad": round(amt, 2)})
+            ev = {"date": date, "type": "DIVIDEND", "amount": sh, "ccy": ccy,
+                  "fx": round(fx, 6), "amount_cad": round(amt, 2)}
+            if memo:
+                ev["memo"] = True
+            p["events"].append(ev)
 
     out, problems = {}, []
     for key, b in base.items():

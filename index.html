@@ -10267,7 +10267,7 @@ window.ppTickerHistory = function(ticker, account) {
                  : e.type === 'SELL' ? `${+(+e.shares).toFixed(4)} × $${e.price} ${e.ccy}${fxs} · realized ${fmt$(e.realized)}`
                  : e.type === 'DIVIDEND' ? `+${e.amount} ${e.ccy}${e.ccy === 'USD' ? ` (${fmt$(e.amount_cad, 2)} CAD)` : ''}`
                  : `×${+(+e.ratio).toFixed(4)} split`;
-      out.push({ kind: e.type, date: e.date, label: e.type, desc, note: '', id: null, history: true });
+      out.push({ kind: e.type, date: e.date, label: e.type, desc, note: e.memo ? 'itemised from broker export · already in your totals' : '', id: null, history: true, memo: !!e.memo });
     });
   } else if (base) {
     const acbCAD = base.ccy === 'USD' ? base.cost_total * (base.book_rate || 1) : base.cost_total;

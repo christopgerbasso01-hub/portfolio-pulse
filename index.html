@@ -10153,12 +10153,6 @@ function ppHoldingDetail(ticker, accts, data) {
   if (Math.abs(other) >= 1) rows.push({ kind: 'OTHER', date: null, acct: accts.length > 1 ? null : accts[0],
     desc: 'Other realized — the holdings table’s figure minus what is itemised above. For a sale this is mostly currency treatment (the table values the USD gain at the sale-day rate; the sale line uses the CAD actually paid).',
     shares: null, cost: null, mv: null, day: null, dayPct: null, div: null, total: other, ret: null, weight: null });
-  const _divAll = rows.filter(r => r.kind === 'LOT').reduce((a, r) => a + (r.div || 0), 0) + unalloc;
-  if (_divAll >= 0.5) {
-    rows.push({ kind: 'DIVTOTAL', date: null, acct: null, desc: 'Total dividends received (already counted in the P/L above and the line below)',
-      shares: null, cost: null, mv: null, day: null, dayPct: null, div: _divAll, total: null, ret: null, weight: null });
-    rows.sort((a, b) => _rank(a) - _rank(b) || (b.date || '').localeCompare(a.date || ''));
-  }
   const lotRows = rows.filter(r => r.kind === 'LOT');
   const lotSum = k => lotRows.reduce((s, r) => s + (r[k] || 0), 0);
   const cost = lotSum('cost'), mv = lotSum('mv'), day = lotSum('day');

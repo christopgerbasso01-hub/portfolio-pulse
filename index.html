@@ -10305,8 +10305,7 @@ window.ppTxEntriesHtml = function(ticker, acct) {
         ? ` onclick="ppTxRowClick(this,'${e.id}','${ticker}','${e.acct}','desk')" title="Click to edit"` : ''}>
       <span class="pp-tx-date">${e.date || '—'}</span>
       <span class="pp-tx-tag pp-tag-${e.kind}">${e.label}</span>
-      ${acct === 'ALL' ? `<span class="badge ${acctBadgeClass(e.acct)}" style="font-size:8px;padding:1px 4px">${_ppAcctLabel(e.acct)}</span>` : ''}
-      <span class="pp-tx-desc">${e.desc}${e.history ? '<span class="pp-tx-note">from history file · read-only</span>' : ''}${e.note ? `<span class="pp-tx-note">${e.note}</span>` : ''}</span>
+      <span class="pp-tx-desc">${acct === 'ALL' ? `<span class="badge ${acctBadgeClass(e.acct)}" style="font-size:8px;padding:1px 4px;margin-right:6px;vertical-align:1px">${_ppAcctLabel(e.acct)}</span>` : ''}${e.desc}${e.history ? '<span class="pp-tx-note">from history file · read-only</span>' : ''}${e.note ? `<span class="pp-tx-note">${e.note}</span>` : ''}</span>
     </div>`).join('');
 };
 

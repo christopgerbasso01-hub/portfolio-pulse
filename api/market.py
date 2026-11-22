@@ -291,18 +291,22 @@ def fetch_prices(extra_tickers: set = None) -> dict:
 # =============================================================================
 BENCH_FUNDS = {"sp500": "SPY", "tsx": "XIC.TO", "nasdaq": "QQQ"}
 
-# Contributions made before the transaction log began (2026-06-04), by month,
-# from the dashboard's contribution history. Dated the 15th; anything before
-# Jan 2021 is booked to Jan 2021, the earliest month on record. Everything
-# after comes from CONTRIBUTION transactions in KV with exact dates.
+# Net deposits made before the transaction log began (2026-06-04): every
+# month-to-month change in the dashboard's contribution history through
+# 2026-05, INCLUDING withdrawals (negative — e.g. the $9,026 moved out of the
+# non-registered account in Aug 2024). Dated the 15th; anything before Jan 2021
+# is booked to Jan 2021, the earliest month on record. Everything after comes
+# from CONTRIBUTION transactions in KV with exact dates. A withdrawal sells
+# benchmark units at that day's price, exactly as a deposit buys them.
 PRELOG_CONTRIBUTIONS = [
     ("2021-01", "TFSA", 15000), ("2021-02", "TFSA", 1000), ("2021-03", "TFSA", 1000),
     ("2021-04", "TFSA", 1000), ("2021-08", "Investment", 15000), ("2022-01", "TFSA", 3000),
     ("2023-01", "TFSA", 2000), ("2023-07", "FHSA", 8000), ("2024-01", "FHSA", 8000),
-    ("2024-04", "TFSA", 7000), ("2024-06", "TFSA", 7500), ("2024-10", "RRSP", 9026),
-    ("2024-12", "FHSA", 8000), ("2024-12", "TFSA", 7000), ("2025-05", "Investment", 8368),
-    ("2025-05", "RRSP", 7106), ("2025-06", "Investment", 4000), ("2025-10", "Investment", 16000),
-    ("2026-03", "Investment", 15000), ("2026-04", "Investment", 6632),
+    ("2024-04", "TFSA", 7000), ("2024-06", "TFSA", 7500), ("2024-08", "Investment", -9026),
+    ("2024-10", "RRSP", 9026), ("2024-12", "FHSA", 8000), ("2024-12", "TFSA", 7000),
+    ("2025-05", "Investment", 17394), ("2025-05", "RRSP", 7106), ("2025-06", "Investment", 4000),
+    ("2025-09", "Investment", -8000), ("2025-10", "Investment", 24000), ("2026-03", "Investment", 15000),
+    ("2026-04", "Investment", 6632),
 ]
 
 

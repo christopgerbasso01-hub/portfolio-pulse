@@ -10097,7 +10097,8 @@ function ppLotModel(ticker, account, lotsBase, txs) {
         events.push({ date: t.date, type: 'SPLIT', ratio: t.ratio, src: 'log', id: t.id });
       }
     });
-  return { lots: lots.filter(l => l.shares > 1e-6), events, hasHistory: !!b, divUnalloc };
+  const _gone = lots.filter(l => l.shares <= 1e-6).reduce((a, l) => a + (l.div || 0), 0);   // paid on shares since sold in full
+  return { lots: lots.filter(l => l.shares > 1e-6), events, hasHistory: !!b, divUnalloc: divUnalloc + _gone };
 }
 
 // Rows for the detail table: one per open purchase lot, one per sale, a
@@ -10143,10 +10144,13 @@ function ppHoldingDetail(ticker, accts, data) {
     }
   });
   const _rank = r => r.kind === 'OTHER' ? 2 : r.kind === 'DIVTOTAL' ? 1 : 0;
+  if (unalloc >= 0.005) rows.push({ kind: 'DIVSOLD', date: null, acct: accts.length === 1 ? accts[0] : null,
+    desc: 'Dividends received on shares since sold (counted in realized)',
+    shares: null, cost: null, mv: null, day: null, dayPct: null, div: unalloc, total: unalloc, ret: null, weight: null });
   rows.sort((a, b) => _rank(a) - _rank(b) || (b.date || '').localeCompare(a.date || ''));   // newest first, then dividends, 'other' last
   const sum = k => rows.reduce((s, r) => s + (r[k] || 0), 0);
   const other = mainTotal - sum('total');
-  if (Math.abs(other) >= 1 || unalloc >= 1) rows.push({ kind: 'OTHER', date: null, acct: accts.length > 1 ? null : accts[0],
+  if (Math.abs(other) >= 1) rows.push({ kind: 'OTHER', date: null, acct: accts.length > 1 ? null : accts[0],
     desc: 'Other realized — the holdings table’s figure minus what is itemised above. For a sale this is mostly currency treatment (the table values the USD gain at the sale-day rate; the sale line uses the CAD actually paid).',
     shares: null, cost: null, mv: null, day: null, dayPct: null, div: null, total: other, ret: null, weight: null });
   const _divAll = rows.filter(r => r.kind === 'LOT').reduce((a, r) => a + (r.div || 0), 0) + unalloc;
@@ -10222,7 +10226,7 @@ function ppLotCardsHtml(ticker, accts, data) {
         ? card(r, `${r.date}${badge(r.acct)} <span class="m-lot-selltag">SELL</span>`, `${r.desc} · realized · proceeds ${fmt$(r.mv)}`)
         : r.kind === 'DIVTOTAL'
           ? `<div class="m-card m-card-tight m-lot-card"><div class="m-c-r1"><div class="m-c-sym">Total dividends</div><div class="m-c-mv">${fmt$(r.div)}</div></div><div class="m-c-r2"><div class="m-c-name"><span class="m-c-nm">Already counted in the P&amp;L above and the line below</span></div></div></div>`
-          : card(r, 'Other realized', r.desc))
+          : card(r, r.kind === 'DIVSOLD' ? 'Dividends on sold shares' : 'Other realized', r.desc))
     .join('')
     + '<div class="m-tx-note" style="margin:6px 2px 12px">Sales reduce every purchase by the same proportion (average cost), so purchases add up to the holding.</div>';
 }

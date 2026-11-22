@@ -172,6 +172,15 @@ ck('realized = proceeds − average cost (5 × 300 × 1.4 − 5 × 4200/20)', +s
 ck('dividend shared by shares held that day', lm.lots.map(l => +l.div.toFixed(2)), [15, 15]);
 ck('pre-log history is flagged', lm.hasHistory, true);
 
+console.log('\nDividends on shares that were later sold stay itemised');
+const sold = ctx.ppLotModel('SLD', 'Investment', null, [
+  { type: 'BUY', date: '2026-06-04', account: 'Investment', ticker: 'SLD', shares: 22, price: 100, ccy: 'USD', rate: 1.4, id: 'a' },
+  { type: 'DIVIDEND', date: '2026-06-30', account: 'Investment', ticker: 'SLD', amount: 12, ccy: 'USD', rate: 1.4, id: 'b' },
+  { type: 'SELL', date: '2026-11-09', account: 'Investment', ticker: 'SLD', shares: 22, price: 90, ccy: 'USD', rate: 1.4, id: 'c' },
+]);
+ck('a fully sold position has no open purchases', sold.lots.length, 0);
+ck('...but its 12 USD dividend (16.80 CAD) is kept, not lost', +sold.divUnalloc.toFixed(2), 16.8);
+
 console.log('\nHolding-detail table is not touched by the holdings-table loops');
 // The detail panel nests a <table> inside #holdingsBody. Any loop that selects
 // "#holdingsBody tr" (descendants) also reaches its rows — filterTable() hid

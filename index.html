@@ -230,7 +230,7 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .pp-lot-tbl td:nth-child(2){white-space:normal;overflow:visible}
 .pp-lot-tbl th{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
 .pp-lot-tbl td{padding:6px;border-bottom:1px solid var(--border);vertical-align:top}
-.pp-lot-tbl tfoot td{font-weight:700;border-top:1px solid var(--border2);border-bottom:none}
+.pp-lot-tbl .pp-lot-totalrow td{font-weight:700;background:rgba(0,212,255,.06);border-bottom:1px solid var(--border2)}
 .pp-lot-tbl .pp-lot-other td{font-style:italic;opacity:.85}
 .pp-lot-sub{font-size:9px;color:var(--text3);font-weight:400}
 .pp-lot-src{font-family:var(--mono);font-size:8px;padding:0 4px;border:1px solid var(--border);border-radius:3px;color:var(--text3)}
@@ -1631,7 +1631,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   [data-theme="light"] .pp-mode-btn.active{background:rgba(8,145,178,.14);color:#0e7490;}
 
   /* — period row, right-aligned under the mode toggle — */
-  .pp-range-row{display:flex;justify-content:flex-end;margin:-4px 0 8px;}
+  .pp-range-row{display:flex;justify-content:flex-end;margin:12px 0 8px;padding-right:24px;}
   .pp-range{display:flex;gap:2px;padding:3px;border-radius:999px;
     background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);}
   .pp-range-btn{font-family:var(--mono);font-size:10px;letter-spacing:.05em;padding:5px 11px;
@@ -10127,7 +10127,7 @@ function ppHoldingDetail(ticker, accts, data) {
       if (c) mainTotal += (c.total_pnl ?? c.realized ?? 0) * (c.ccy === 'USD' ? (c.book_rate || USD_BOOK_RATE) : 1);
     }
   });
-  rows.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  rows.sort((a, b) => (a.kind === 'OTHER') - (b.kind === 'OTHER') || (b.date || '').localeCompare(a.date || ''));   // newest first, 'other' last
   const sum = k => rows.reduce((s, r) => s + (r[k] || 0), 0);
   const other = mainTotal - sum('total');
   if (Math.abs(other) >= 1 || unalloc >= 1) rows.push({ kind: 'OTHER', date: null, acct: accts.length > 1 ? null : accts[0],
@@ -10169,13 +10169,13 @@ function ppLotTableHtml(ticker, accts, data) {
   return `<div class="pp-lot-wrap"><table class="pp-lot-tbl">
     <thead><tr><th>Date</th><th>Transaction</th><th>Account</th><th>Weight</th><th>Shares</th><th>Live Price</th><th>Cost Base</th>
       <th>Market Value</th><th>Day Gain $</th><th>Day Gain %</th><th>Dividends</th><th>Total P/L $</th><th>Total Return %</th></tr></thead>
-    <tbody>${rows.map(tr).join('')}</tbody>
-    <tfoot><tr><td>TOTAL</td><td class="text2">${rows.filter(r => r.kind === 'LOT').length} open purchase${rows.filter(r => r.kind === 'LOT').length === 1 ? '' : 's'}${rows.some(r => r.kind === 'SELL') ? ` · ${rows.filter(r => r.kind === 'SELL').length} sale(s)` : ''}</td><td></td>
+    <tbody><tr class="pp-lot-totalrow"><td>TOTAL</td><td class="text2">${rows.filter(r => r.kind === 'LOT').length} open purchase${rows.filter(r => r.kind === 'LOT').length === 1 ? '' : 's'}${rows.some(r => r.kind === 'SELL') ? ` · ${rows.filter(r => r.kind === 'SELL').length} sale(s)` : ''}</td><td></td>
       <td class="mono small">${s.weight.toFixed(1)}%</td><td class="mono">${+s.shares.toFixed(4)}</td><td class="mono small">${live}</td>
       <td class="mono">${fmt$(s.cost)}</td><td class="mono">${fmt$(s.mv)}</td>
       <td class="mono small ${_ppCls(s.day)}">${_ppSigned(s.day)}</td><td class="mono small ${_ppCls(s.dayPct)}">${_ppPct(s.dayPct)}</td>
       <td class="mono small">${s.div ? fmt$(s.div) : '—'}</td><td class="mono ${_ppCls(s.total)}">${_ppSigned(s.total)}</td>
-      <td class="mono ${_ppCls(s.ret)}">${_ppPct(s.ret)}</td></tr></tfoot>
+      <td class="mono ${_ppCls(s.ret)}">${_ppPct(s.ret)}</td></tr>${rows.map(tr).join('')}</tbody>
+
   </table></div>
   <div class="pp-lot-note">Each purchase is shown with what it cost, what it's worth now and its share of dividends. Sales reduce every open purchase by the same proportion (Canada's average-cost rule), so the purchases always add up to the holding; a sale's realized gain uses that average cost. Totals match the holdings table.</div>`;
 }
@@ -10192,14 +10192,14 @@ function ppLotCardsHtml(ticker, accts, data) {
         <div class="m-c-at ${r.total >= 0 ? 'up' : 'dn'}">${_ppSigned(r.total)} · ${_ppPct(r.ret)}</div>
         <div class="m-c-cost">${r.cost != null ? fmt$(r.cost) : ''}</div></div></div>`;
   const badge = a => a && accts.length > 1 ? ` <span class="m-lot-acct">${_ppAcctLabel(a)}</span>` : '';
-  return rows.map(r => r.kind === 'LOT'
+  return card({ kind: 'total', day: s.day, dayPct: s.dayPct, mv: s.mv, total: s.total, ret: s.ret, cost: s.cost },
+           'Total', `${+s.shares.toFixed(4)} shares · matches the holdings list`)
+    + rows.map(r => r.kind === 'LOT'
       ? card(r, `${r.date}${badge(r.acct)}`, `${r.desc}${r.partial ? ` · ${+r.shares.toFixed(4)} of ${+r.boughtAdj.toFixed(4)} left` : ''}${r.div ? ` · div ${fmt$(r.div)}` : ''}`)
       : r.kind === 'SELL'
         ? card(r, `${r.date}${badge(r.acct)} <span class="m-lot-selltag">SELL</span>`, `${r.desc} · realized · proceeds ${fmt$(r.mv)}`)
         : card(r, 'Other realized', r.desc))
     .join('')
-    + card({ kind: 'total', day: s.day, dayPct: s.dayPct, mv: s.mv, total: s.total, ret: s.ret, cost: s.cost },
-           'Total', `${+s.shares.toFixed(4)} shares · matches the holdings list`)
     + '<div class="m-tx-note" style="margin:6px 2px 12px">Sales reduce every purchase by the same proportion (average cost), so purchases add up to the holding.</div>';
 }
 

@@ -43,7 +43,7 @@ const ctx = { console };
 vm.createContext(ctx);
 const fns = ['_bracketTax', '_ontarioHealthPremium', 'ontarioIncomeTax', 'ontarioMarginalRate',
              'superficialLossCheck', 'nonRegTaxYear', 'hbpUsable', 'xirr', 'monthlyReturns',
-             'riskStats', 'forwardDividends', '_divNetFactor'];
+             'riskStats', 'calendarYearReturns', 'forwardDividends', '_divNetFactor'];
 vm.runInContext(`
   const USD_BOOK_RATE = 1.3925;
   ${extractConst('TAX_PARAMS')}
@@ -135,6 +135,11 @@ const rk = ctx.riskStats(series, bench);
 ck('max drawdown chains −10%, +2%, −20%', rk.maxDd, 0.9 * 1.02 * 0.8 - 1, 1e-9);
 ck('beta = 2 when portfolio moves twice the benchmark', rk.beta, 2, 1e-9);
 ck('correlation 1', rk.corr, 1, 1e-9);
+ck('S&P time-weighted uses the same months', rk.benchTwrAnn,
+   Math.pow(series.reduce((x, p) => x * (1 + p.r / 2), 1), 12 / series.length) - 1, 1e-12);
+const yrs = ctx.calendarYearReturns([{ x: '2025-11', r: 0.1 }, { x: '2025-12', r: -0.1 }, { x: '2026-01', r: 0.05 }]);
+ck('calendar years chain their own months', yrs.map(y => [y.year, +y.r.toFixed(4), y.partial]),
+   [['2025', -0.01, true], ['2026', 0.05, true]]);
 
 console.log('\nDividend forecast');
 const monthly = ['2025-12-23', '2026-03-25', '2026-04-24', '2026-05-22', '2026-06-24', '2026-07-27',

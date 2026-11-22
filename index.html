@@ -1225,6 +1225,29 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 
 /* Tax section */
 .m-sec-hdr{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);font-weight:700;margin-bottom:7px;}
+.m-kpi-card{background:var(--surf);border:1px solid var(--bd);border-radius:11px;padding:11px 12px;margin-bottom:8px;}
+.m-kpi-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.m-kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);font-weight:700;}
+.m-kpi-v{font-family:var(--mono);font-size:20px;font-weight:700;}
+.m-kpi-sp{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:3px;}
+.m-kpi-note{font-size:10px;color:var(--t3);line-height:1.45;margin-top:6px;}
+.m-kpi-years{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:7px;font-family:var(--mono);font-size:10px;color:var(--t2);}
+.m-kpi-years i{font-style:normal;}
+.m-dp-chart{display:flex;align-items:flex-end;gap:2px;height:100px;margin-bottom:6px;}
+.m-dp-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;}
+.m-dp-v{font-family:var(--mono);font-size:7px;color:var(--t3);white-space:nowrap;}
+.m-dp-fill{width:72%;background:var(--green);border-radius:3px 3px 0 0;opacity:.85;}
+.m-dp-m{font-family:var(--mono);font-size:9px;color:var(--t3);}
+.m-dp-details{background:var(--surf);border:1px solid var(--bd);border-radius:11px;padding:10px 12px;margin-bottom:14px;}
+.m-dp-details summary{cursor:pointer;font-size:11px;font-weight:700;color:var(--t1);display:flex;justify-content:space-between;list-style:none;}
+.m-dp-details summary::-webkit-details-marker{display:none;}
+.m-dp-details summary::after{content:'▾';margin-left:6px;color:var(--t3);}
+.m-dp-details[open] summary::after{content:'▴';}
+.m-dp-details summary span{margin-left:auto;font-weight:400;color:var(--t3);font-size:10px;}
+.m-dp-row{display:grid;grid-template-columns:1fr auto 48px;gap:8px;font-family:var(--mono);font-size:11px;padding:6px 0;border-top:1px solid var(--bd);}
+.m-dp-row span:nth-child(2),.m-dp-row span:nth-child(3){text-align:right;}
+.m-dp-row span:nth-child(3){color:var(--t3);}
+#m-earn-upcoming .earn-up-h{display:none;}
 .m-tax-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;}
 .m-tax-mini{background:var(--surf);border:1px solid var(--bd);border-radius:11px;padding:10px 11px;border-top:3px solid;}
 .m-tax-mini-l{font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);font-weight:700;margin-bottom:3px;}
@@ -3636,6 +3659,17 @@ function monthlyReturns(mv, contrib) {
   return out;
 }
 
+// Chain monthly returns into calendar-year returns. partial = fewer than 12 months.
+function calendarYearReturns(rets) {
+  const by = {};
+  (rets || []).forEach(p => {
+    const y = p.x.slice(0, 4);
+    const e = by[y] || (by[y] = { year: y, idx: 1, months: 0 });
+    e.idx *= 1 + p.r; e.months++;
+  });
+  return Object.values(by).map(e => ({ year: e.year, r: e.idx - 1, partial: e.months < 12 }));
+}
+
 // Risk statistics from monthly returns; bench: {YYYY-MM: month-end price} for beta.
 function riskStats(rets, benchMonthly) {
   if (!rets || rets.length < 6) return null;
@@ -3650,7 +3684,7 @@ function riskStats(rets, benchMonthly) {
     if (dd < maxDd) { maxDd = dd; ddStart = peakX; ddWorst = p.x; }
   });
   const twrAnn = Math.pow(idx, 12 / rs.length) - 1;
-  let beta = null, corr = null, n = 0;
+  let beta = null, corr = null, n = 0, benchTwrAnn = null;
   if (benchMonthly) {
     const pairs = [];
     rets.forEach(p => {
@@ -3660,6 +3694,7 @@ function riskStats(rets, benchMonthly) {
       if (b1 && b0) pairs.push([p.r, b1 / b0 - 1]);
     });
     n = pairs.length;
+    if (n) benchTwrAnn = Math.pow(pairs.reduce((x, q) => x * (1 + q[1]), 1), 12 / n) - 1;
     if (n >= 6) {
       const mp = pairs.reduce((s, q) => s + q[0], 0) / n, mb = pairs.reduce((s, q) => s + q[1], 0) / n;
       let cov = 0, vb = 0, vp = 0;
@@ -3672,7 +3707,7 @@ function riskStats(rets, benchMonthly) {
     months: rs.length, from: rets[0].x, to: rets[rets.length - 1].x,
     volAnn: sd * Math.sqrt(12), twrAnn, maxDd, ddStart, ddWorst,
     bestMonth: rets.reduce((a, b) => (b.r > a.r ? b : a)), worstMonth: rets.reduce((a, b) => (b.r < a.r ? b : a)),
-    beta, corr, betaMonths: n,
+    beta, corr, betaMonths: n, benchTwrAnn,
   };
 }
 
@@ -3817,11 +3852,10 @@ function _divNetFactor(h) {
   return 0.85;                                          // TFSA/FHSA: lost; non-reg: claimable as a foreign tax credit
 }
 
-function renderIncomePanel(data) {
-  const el = document.getElementById('incomePanel');
-  if (!el || !data) return;
-  const dm = data.dividend_model;
-  if (!dm || !dm.history) { el.innerHTML = '<div style="font-size:12px;color:var(--text3)">Dividend history is loading…</div>'; return; }
+// One income model for the desktop panel and the phone's Insights tab.
+function computeIncome(data) {
+  const dm = data && data.dividend_model;
+  if (!dm || !dm.history) return null;
   const usdcad = data.usdcad || _liveUsdcad;
   const prices = data.holdings || {};
   const today = new Date().toISOString().slice(0, 10);
@@ -3829,53 +3863,130 @@ function renderIncomePanel(data) {
   for (let i = 0; i < 12; i++) { const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + i); months.push(d.toISOString().slice(0, 7)); }
   const byMonth = Object.fromEntries(months.map(m => [m, 0]));
   const byAcct = {}, byTicker = {};
-  let gross = 0, net = 0, mvPaying = 0;
+  let gross = 0, net = 0, nonRegWh = 0;
   HOLDINGS_STATIC.filter(h => h.ticker && !h.ticker.startsWith('CASH') && h.shares > 0).forEach(h => {
     const fx = h.ccy === 'USD' ? usdcad : 1;
     const pays = forwardDividends(dm.history[h.ticker], today);
     if (!pays.length) return;
+    const nf = _divNetFactor(h);
     const g = pays.reduce((s, p) => s + p.amount, 0) * h.shares * fx;
-    const n = g * _divNetFactor(h);
-    gross += g; net += n;
-    pays.forEach(p => { const m = p.date.slice(0, 7); if (m in byMonth) byMonth[m] += p.amount * h.shares * fx * _divNetFactor(h); });
-    byAcct[h.account] = (byAcct[h.account] || 0) + n;
+    gross += g; net += g * nf;
+    if (h.account === 'Investment' && nf < 1) nonRegWh += g * (1 - nf);
+    pays.forEach(p => { const m = p.date.slice(0, 7); if (m in byMonth) byMonth[m] += p.amount * h.shares * fx * nf; });
+    byAcct[h.account] = (byAcct[h.account] || 0) + g * nf;
     const t = byTicker[h.ticker] || (byTicker[h.ticker] = { g: 0, n: 0, mv: 0 });
-    t.g += g; t.n += n;
-    const mv = (prices[h.ticker]?.price || 0) * h.shares * fx;
-    t.mv += mv; mvPaying += mv;
+    t.g += g; t.n += g * nf;
+    t.mv += (prices[h.ticker]?.price || 0) * h.shares * fx;
   });
-  const totalMv = _heroScopedStats(data, null).mktVal;
-  const maxM = Math.max(1, ...Object.values(byMonth));
-  const bars = months.map(m => `
+  return {
+    gross, net, months, byMonth, byAcct, usdcad, nonRegWh,
+    lostForGood: (gross - net) - nonRegWh,
+    tickers: Object.entries(byTicker).sort((a, b) => b[1].n - a[1].n),
+    totalMv: _heroScopedStats(data, null).mktVal,
+    failed: dm.failed || [],
+  };
+}
+
+function renderIncomePanel(data) {
+  const el = document.getElementById('incomePanel');
+  if (!el || !data) return;
+  const I = computeIncome(data);
+  if (!I) { el.innerHTML = '<div style="font-size:12px;color:var(--text3)">Dividend history is loading…</div>'; return; }
+  const maxM = Math.max(1, ...Object.values(I.byMonth));
+  const bars = I.months.map(m => `
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--text3)">${byMonth[m] >= 1 ? '$' + Math.round(byMonth[m]) : ''}</div>
-      <div style="width:70%;height:${Math.max(2, byMonth[m] / maxM * 90)}px;background:var(--green);border-radius:3px 3px 0 0;opacity:.8"></div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3)">${I.byMonth[m] >= 1 ? '$' + Math.round(I.byMonth[m]) : ''}</div>
+      <div style="width:70%;height:${Math.max(2, I.byMonth[m] / maxM * 90)}px;background:var(--green);border-radius:3px 3px 0 0;opacity:.8"></div>
       <div style="font-family:var(--mono);font-size:9px;color:var(--text3)">${new Date(m + '-15').toLocaleDateString('en-CA', { month: 'short' })}</div>
     </div>`).join('');
-  const top = Object.entries(byTicker).sort((a, b) => b[1].n - a[1].n).slice(0, 8);
-  const nonRegWh = HOLDINGS_STATIC.filter(h => h.account === 'Investment' && _divNetFactor(h) < 1)
-    .reduce((s, h) => s + forwardDividends(dm.history[h.ticker], today).reduce((a, p) => a + p.amount, 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1) * 0.15, 0);
-  const lostForGood = (gross - net) - nonRegWh;
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">
       <div class="card" style="padding:12px"><div style="font-family:var(--mono);font-size:10px;color:var(--text3)">NEXT 12 MONTHS (NET)</div>
-        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--green);margin-top:4px">${fmt$(Math.round(net))}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:3px">${fmt$(Math.round(net / 12))}/month on average · ${fmt$(Math.round(gross))} before US withholding</div></div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--green);margin-top:4px">${fmt$(Math.round(I.net))}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${fmt$(Math.round(I.net / 12))}/month on average · ${fmt$(Math.round(I.gross))} before US withholding</div></div>
       <div class="card" style="padding:12px"><div style="font-family:var(--mono);font-size:10px;color:var(--text3)">PORTFOLIO YIELD</div>
-        <div style="font-family:var(--mono);font-size:20px;font-weight:700;margin-top:4px">${totalMv > 0 ? (net / totalMv * 100).toFixed(2) : '—'}%</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;margin-top:4px">${I.totalMv > 0 ? (I.net / I.totalMv * 100).toFixed(2) : '—'}%</div>
         <div style="font-size:10px;color:var(--text3);margin-top:3px">net income ÷ total value</div></div>
       <div class="card" style="padding:12px"><div style="font-family:var(--mono);font-size:10px;color:var(--text3)">US WITHHOLDING LOST</div>
-        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--red);margin-top:4px">${fmt$(Math.round(lostForGood))}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:3px">15% on US-listed dividends in the TFSA/FHSA — not recoverable${nonRegWh >= 1 ? ` (non-reg's ${fmt$(Math.round(nonRegWh))} is claimable as a foreign tax credit)` : ''}</div></div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--red);margin-top:4px">${fmt$(Math.round(I.lostForGood))}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">15% on US-listed dividends in the TFSA/FHSA — not recoverable${I.nonRegWh >= 1 ? ` (non-reg's ${fmt$(Math.round(I.nonRegWh))} is claimable as a foreign tax credit)` : ''}</div></div>
       <div class="card" style="padding:12px"><div style="font-family:var(--mono);font-size:10px;color:var(--text3)">BY ACCOUNT (NET)</div>
-        <div style="font-size:11px;margin-top:6px;line-height:1.7;font-family:var(--mono)">${_PANEL_ACCTS.map(a => `${_PANEL_LABEL[a]} <b>${fmt$(Math.round(byAcct[a] || 0))}</b>`).join('<br>')}</div></div>
+        <div style="font-size:11px;margin-top:6px;line-height:1.7;font-family:var(--mono)">${_PANEL_ACCTS.map(a => `${_PANEL_LABEL[a]} <b>${fmt$(Math.round(I.byAcct[a] || 0))}</b>`).join('<br>')}</div></div>
     </div>
     <div style="display:flex;align-items:flex-end;gap:2px;height:130px;margin-bottom:6px">${bars}</div>
     <div style="font-size:10px;color:var(--text3);margin-bottom:12px">Net CAD by expected ex-dividend month (payment usually follows within ~2–4 weeks).</div>
-    <div style="font-family:var(--mono);font-size:11px;line-height:1.8">${top.map(([t, v]) =>
+    <div style="font-family:var(--mono);font-size:11px;line-height:1.8">${I.tickers.slice(0, 8).map(([t, v]) =>
       `<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border)"><span>${t}</span><span>${fmt$(Math.round(v.n))}/yr · yield ${v.mv > 0 ? (v.g / v.mv * 100).toFixed(1) : '—'}%</span></div>`).join('')}</div>
-    <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5">Projected from each holding's last 12 months of payouts at today's share count and USD/CAD ${usdcad.toFixed(4)}; the latest payout rate is repeated at its usual frequency. Special one-off dividends are not predicted. Dividends paid by leveraged ETFs are small and irregular.
-      ${dm.failed && dm.failed.length ? `<br><span style="color:var(--amber)">No dividend data for: ${dm.failed.join(', ')}</span>` : ''}</div>`;
+    <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5">Projected from each holding's last 12 months of payouts at today's share count and USD/CAD ${I.usdcad.toFixed(4)}; the latest payout rate is repeated at its usual frequency. Special one-off dividends are not predicted. Dividends paid by leveraged ETFs are small and irregular.
+      ${I.failed.length ? `<br><span style="color:var(--amber)">No dividend data for: ${I.failed.join(', ')}</span>` : ''}</div>`;
+}
+
+// ── Phone: Insights → Dividend Income Projection ─────────────────────────────
+function mRenderIncome(data) {
+  const el = document.getElementById('m-div-proj');
+  if (!el || !data) return;
+  const I = computeIncome(data);
+  if (!I) { el.innerHTML = '<div class="m-kpi-note">Dividend history is loading…</div>'; return; }
+  const sig = [Math.round(I.net), Math.round(I.totalMv / 100), I.tickers.length].join('|');
+  if (el.dataset.sig === sig) return;          // keeps the ticker dropdown open across refreshes
+  el.dataset.sig = sig;
+  const maxM = Math.max(1, ...Object.values(I.byMonth));
+  const bars = I.months.map(m => `
+    <div class="m-dp-bar">
+      <div class="m-dp-v">${I.byMonth[m] >= 1 ? '$' + Math.round(I.byMonth[m]) : ''}</div>
+      <div class="m-dp-fill" style="height:${Math.max(2, I.byMonth[m] / maxM * 70)}px"></div>
+      <div class="m-dp-m">${new Date(m + '-15').toLocaleDateString('en-CA', { month: 'narrow' })}</div>
+    </div>`).join('');
+  const kpi = (l, v, sub, cls) => `<div class="m-tax-mini" style="border-top-color:${cls}"><div class="m-tax-mini-l">${l}</div>
+    <div class="m-tax-mini-v">${v}</div><div class="m-tax-mini-sub">${sub}</div></div>`;
+  el.innerHTML = `
+    <div class="m-dp-chart">${bars}</div>
+    <div class="m-kpi-note" style="margin:-2px 0 10px">Net CAD by expected ex-dividend month, next 12 months</div>
+    <div class="m-tax-grid">
+      ${kpi('Next 12 Months', fmt$(Math.round(I.net)), `${fmt$(Math.round(I.net / 12))}/mo · net of US tax`, 'var(--green)')}
+      ${kpi('Portfolio Yield', `${I.totalMv > 0 ? (I.net / I.totalMv * 100).toFixed(2) : '—'}%`, 'net income ÷ value', '#4a9eff')}
+      ${kpi('US Tax Lost', fmt$(Math.round(I.lostForGood)), '15% in TFSA/FHSA, not recoverable', 'var(--red)')}
+      ${kpi('Top Account', (() => { const [a, v] = Object.entries(I.byAcct).sort((x, y) => y[1] - x[1])[0] || ['—', 0]; return `${_PANEL_LABEL[a] || a}`; })(),
+            (() => { const [, v] = Object.entries(I.byAcct).sort((x, y) => y[1] - x[1])[0] || [0, 0]; return `${fmt$(Math.round(v))}/yr of ${fmt$(Math.round(I.net))}`; })(), 'var(--amber)')}
+    </div>
+    <details class="m-dp-details">
+      <summary>Breakdown by ticker <span>${I.tickers.length} paying</span></summary>
+      ${I.tickers.map(([t, v]) => `<div class="m-dp-row"><span>${t}</span><span>${fmt$(Math.round(v.n))}/yr</span><span>${v.mv > 0 ? (v.g / v.mv * 100).toFixed(1) : '—'}%</span></div>`).join('')}
+      <div class="m-kpi-note" style="margin-top:6px">Each holding's last 12 months of payouts, repeated at its usual frequency. Yield is before US withholding.</div>
+    </details>`;
+}
+
+// ── Phone: Portfolio → three performance KPIs, scoped to the selected account ──
+function mRenderPerfKpis(data, acctKey) {
+  const el = document.getElementById('m-perf-kpis');
+  if (!el || !data) return;
+  const st = _heroScopedStats(data, acctKey);
+  const bm = benchmarkValues(acctKey, data) || {};
+  const irr = portfolioIrr(acctKey, st.mktVal, data);
+  const spIrr = bm.sp500 != null ? portfolioIrr(acctKey, bm.sp500, data) : null;
+  const model = data.benchmark_model;
+  const rets = _consecutiveReturns(monthlySeries(acctKey, data));
+  const rk = riskStats(rets, model && model.monthly && model.monthly.sp500);
+  const years = calendarYearReturns(rets);
+  const name = acctKey ? _PANEL_LABEL[acctKey] : 'your portfolio';
+  const pts = (a, b) => (a == null || b == null) ? '—' : `${a - b >= 0 ? '+' : '−'}${Math.abs((a - b) * 100).toFixed(1)} pts`;
+  const card = (label, val, valTone, spTxt, deltaTxt, deltaTone, note, extra) => `
+    <div class="m-kpi-card">
+      <div class="m-kpi-top"><span class="m-kpi-l">${label}</span><span class="m-kpi-v" style="color:${valTone}">${val}</span></div>
+      <div class="m-kpi-sp"><span>S&amp;P 500 ${spTxt}</span><span style="color:${deltaTone}">${deltaTxt}</span></div>
+      ${extra || ''}
+      <div class="m-kpi-note">${note}</div>
+    </div>`;
+  const yearChips = years.length ? `<div class="m-kpi-years">${years.map(y =>
+      `<span><b>${y.year}${y.partial ? '*' : ''}</b> <i style="color:${_tone(y.r)}">${_pct1(y.r)}</i></span>`).join('')}</div>` : '';
+  el.innerHTML =
+    card('Annualized XIRR', _pct1(irr), _tone(irr), _pct1(spIrr), pts(irr, spIrr), _tone(irr != null && spIrr != null ? irr - spIrr : null),
+         `What ${name}'s actual dollars have earned per year, counting when each contribution went in.`) +
+    card('Annual Ticker Return', rk ? _pct1(rk.twrAnn) : '—', _tone(rk && rk.twrAnn), rk ? _pct1(rk.benchTwrAnn) : '—',
+         rk ? pts(rk.twrAnn, rk.benchTwrAnn) : '—', _tone(rk && rk.benchTwrAnn != null ? rk.twrAnn - rk.benchTwrAnn : null),
+         `The simple return each year from the holdings alone, excluding the impact of when you added money${years.some(y => y.partial) ? ' (* = part year)' : ''}.`, yearChips) +
+    card('Beta', rk && rk.beta != null ? rk.beta.toFixed(2) : '—', 'var(--t1)', '1.00', rk && rk.beta != null ? `${rk.beta - 1 >= 0 ? '+' : '−'}${Math.abs(rk.beta - 1).toFixed(2)}` : '—', 'var(--t2)',
+         rk && rk.beta != null ? `How much ${name} swings with the market: a 1% S&amp;P month has meant about ${rk.beta.toFixed(2)}% here.` : 'Not enough monthly history yet.');
 }
 
 // ── Data health ────────────────────────────────────────────────────────────
@@ -11030,6 +11141,7 @@ window.mSelectAcct=function(key,clickedBtn){
      stats all repaint from _heroScopedStats for the selected key. */
   mHeroAcct=(M_ACCT_KEYS[key]!==undefined)?M_ACCT_KEYS[key]:null;
   mUpdateHeroStats();
+  try{ if(window.mRenderPerfKpis&&_lastLiveData)mRenderPerfKpis(_lastLiveData,mHeroAcct); }catch(e){}
 
   /* Rendered for every selection now, All included. #m-acct-all was referenced
      here but never existed in the markup, so the All view simply had nothing. */
@@ -11902,13 +12014,16 @@ function syncMobile(){
   safeCarousel('newsSector','m-news-carousel','m-news-carousel-dots');
   (function(){
     var panel=document.getElementById('earningsPanel'),wrap=document.getElementById('m-earn-wrap');
+    var upWrap=document.getElementById('m-earn-up-wrap');
     if(!panel||!wrap)return;
     var on=panel.style.display!=='none';
-    wrap.style.display=on?'':'none';
-    if(!on)return;
-    safeCarousel('earningsCards','m-earn-carousel','m-earn-carousel-dots');
+    var cards=document.getElementById('earningsCards');
+    wrap.style.display=(on&&cards&&cards.children.length)?'':'none';
+    if(on)safeCarousel('earningsCards','m-earn-carousel','m-earn-carousel-dots');
     var up=document.getElementById('earningsUpcoming'),dst=document.getElementById('m-earn-upcoming');
-    if(up&&dst&&dst.innerHTML!==up.innerHTML)dst.innerHTML=up.innerHTML;
+    var hasUp=on&&up&&up.innerHTML.trim();
+    if(upWrap)upWrap.style.display=hasUp?'':'none';
+    if(hasUp&&dst&&dst.innerHTML!==up.innerHTML)dst.innerHTML=up.innerHTML;
   })();
 
   // Picks: research tab — carousel (one card visible, swipe for others)
@@ -12069,6 +12184,10 @@ function syncMobile(){
 
   /* Holdings glance (refreshes gainer/loser on every data refresh) */
   updateHoldingsGlance(window._holdGlanceAcct||'_summary');
+
+  /* Performance KPIs (Portfolio) and dividend projection (Insights) */
+  try{ if(window.mRenderPerfKpis)mRenderPerfKpis(_lastLiveData,mHeroAcct); }catch(e){console.warn('m perf kpis',e);}
+  try{ if(window.mRenderIncome)mRenderIncome(_lastLiveData); }catch(e){console.warn('m income',e);}
 
   /* Hero stats grid — overwrites the sub line above on success, so if
      _heroScopedStats is ever unavailable the older ROI text survives. */
@@ -13256,6 +13375,12 @@ document.addEventListener('DOMContentLoaded',function(){
         <div class="m-chart-lbl" style="margin-bottom:8px">Contribution-Weighted Benchmark</div>
         <div id="m-benchmark-content"></div>
       </div>
+
+      <!-- Performance KPIs — follow the account selected in the strip above -->
+      <div class="m-chart-wrap" id="m-perf-wrap" style="padding-bottom:12px">
+        <div class="m-chart-lbl" style="margin-bottom:8px">Performance vs S&amp;P 500</div>
+        <div id="m-perf-kpis"></div>
+      </div>
     </div>
   </div>
 
@@ -13324,37 +13449,42 @@ document.addEventListener('DOMContentLoaded',function(){
   <div class="m-pane" id="m-pane-insights">
     <div style="padding:10px 14px 6px;font-size:13px;font-weight:700;flex-shrink:0">Today's Intelligence</div>
     <div class="m-scroll">
-      <!-- Macro carousel -->
+      <!-- Order: Global News · Market News · Risk Factors · Earnings News · Reporting Soon · Dividend Projection · Tax & Accounts -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <div class="m-sec-hdr" style="margin-bottom:0">Global Macro</div>
+        <div class="m-sec-hdr" style="margin-bottom:0">Global News</div>
         <div style="font-size:9px;color:var(--t3)">swipe ›</div>
       </div>
       <div class="m-carousel" id="m-macro-carousel"></div>
       <div class="m-carousel-dots" id="m-macro-carousel-dots"></div>
-      <!-- Risk carousel -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <div class="m-sec-hdr" style="margin-bottom:0">Risk Factors</div>
-        <div style="font-size:9px;color:var(--t3)">swipe ›</div>
-      </div>
-      <div class="m-carousel" id="m-risk-carousel"></div>
-      <div class="m-carousel-dots" id="m-risk-carousel-dots"></div>
-      <!-- Earnings on holdings (mirrors #earningsPanel) -->
-      <div id="m-earn-wrap" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <div class="m-sec-hdr" style="margin-bottom:0">Earnings — Your Holdings</div>
-          <div style="font-size:9px;color:var(--t3)">swipe ›</div>
-        </div>
-        <div class="m-carousel" id="m-earn-carousel"></div>
-        <div class="m-carousel-dots" id="m-earn-carousel-dots"></div>
-        <div id="m-earn-upcoming" style="margin-bottom:14px"></div>
-      </div>
-      <!-- News -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div class="m-sec-hdr" style="margin-bottom:0">Market News</div>
         <div style="font-size:9px;color:var(--t3)">swipe ›</div>
       </div>
       <div class="m-carousel" id="m-news-carousel"></div>
       <div class="m-carousel-dots" id="m-news-carousel-dots"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="m-sec-hdr" style="margin-bottom:0">Risk Factors</div>
+        <div style="font-size:9px;color:var(--t3)">swipe ›</div>
+      </div>
+      <div class="m-carousel" id="m-risk-carousel"></div>
+      <div class="m-carousel-dots" id="m-risk-carousel-dots"></div>
+      <!-- Earnings on holdings (mirrors #earningsCards) -->
+      <div id="m-earn-wrap" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div class="m-sec-hdr" style="margin-bottom:0">Earnings News</div>
+          <div style="font-size:9px;color:var(--t3)">swipe ›</div>
+        </div>
+        <div class="m-carousel" id="m-earn-carousel"></div>
+        <div class="m-carousel-dots" id="m-earn-carousel-dots"></div>
+      </div>
+      <!-- Upcoming reports on holdings (mirrors #earningsUpcoming) -->
+      <div id="m-earn-up-wrap" style="display:none">
+        <div class="m-sec-hdr">Reporting Soon</div>
+        <div id="m-earn-upcoming" style="margin-bottom:14px"></div>
+      </div>
+      <!-- Dividend income projection -->
+      <div class="m-sec-hdr" style="margin-top:4px">Dividend Income Projection</div>
+      <div id="m-div-proj"></div>
       <!-- Tax & Accounts section -->
       <div class="m-sec-hdr" style="margin-top:12px">Tax &amp; Accounts</div>
       <div class="m-tax-grid" id="m-tax-mini-grid">

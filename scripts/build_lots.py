@@ -38,7 +38,7 @@ import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 CUTOFF = "2026-06-04"            # first day of the dashboard's transaction log
-ALIASES = {("BMO", "TFSA"): "BMO.TO"}   # bought as NYSE:BMO, held as BMO.TO
+ALIASES = {}   # BMO is held as the NYSE listing (USD) — no alias needed
 _UA = {"User-Agent": "Mozilla/5.0 (Macintosh) PortfolioPulse/1.0"}
 
 

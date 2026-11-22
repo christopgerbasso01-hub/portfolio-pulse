@@ -104,7 +104,7 @@ _SECTORS = {
     "Leveraged 3x": {"FNGU", "SPXL", "UDOW", "TQQQ", "SOXL"},
     "Tech":         {"NVDA", "AVGO", "TSM", "MSFT", "AAPL", "QCOM", "TXF.TO",
                      "NFLX", "MSTR", "BYDDF"},
-    "Financials":   {"CM.TO", "RY.TO", "BMO.TO", "IBKR", "V"},
+    "Financials":   {"CM.TO", "RY.TO", "BMO.TO", "BMO", "IBKR", "V"},
     "Energy":       {"ENB.TO", "ET", "SHEL", "CNQ.TO", "KGS"},
 }
 
@@ -511,7 +511,7 @@ COMPANY_NAMES = {
     "NVDA": "Nvidia", "AVGO": "Broadcom", "TSM": "Taiwan Semiconductor",
     "TXF.TO": "CI Tech Giants ETF", "MSFT": "Microsoft", "AAPL": "Apple",
     "QCOM": "Qualcomm", "TSLA": "Tesla", "IBKR": "Interactive Brokers",
-    "CM.TO": "CIBC", "RY.TO": "Royal Bank", "BMO.TO": "Bank of Montreal",
+    "CM.TO": "CIBC", "RY.TO": "Royal Bank", "BMO.TO": "Bank of Montreal", "BMO": "Bank of Montreal",
     "ENB.TO": "Enbridge", "ET": "Energy Transfer", "SHEL": "Shell",
     "MSTR": "MicroStrategy", "GBTC": "Grayscale Bitcoin Trust",
     "BYDDF": "BYD", "V": "Visa", "LYV": "Live Nation",
@@ -534,7 +534,7 @@ HOLDING_PROFILES = {
     "NFLX": "US streaming", "LYV": "US live concerts and ticketing",
     "COST": "US membership warehouse retailer",
     "CM.TO": "Canadian bank (CIBC)", "RY.TO": "Canadian bank (Royal Bank of Canada)",
-    "BMO.TO": "Canadian bank (Bank of Montreal)", "IBKR": "US online brokerage",
+    "BMO.TO": "Canadian bank (Bank of Montreal)", "BMO": "Canadian bank (Bank of Montreal)", "IBKR": "US online brokerage",
     "V": "US card-payments network",
     "ENB.TO": "Canadian oil and gas pipelines and gas utility", "ET": "US pipelines and storage partnership",
     "SHEL": "British integrated oil and gas major", "KGS": "US natural-gas compression services",

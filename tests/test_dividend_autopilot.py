@@ -55,8 +55,8 @@ LEDGER = [
  {"type":"DIVIDEND","ticker":"UDOW","account":"TFSA","date":"2026-09-29","amount":10.47},
  {"type":"DIVIDEND","ticker":"UDOW","account":"FHSA","date":"2026-10-14","amount":10.71},
  {"type":"DIVIDEND","ticker":"TXF.TO","account":"FHSA","date":"2026-08-31","amount":206.19},
- {"type":"DIVIDEND","ticker":"TXF.TO","account":"FHSA","date":"2026-09-30","amount":124.04,"source":"autopilot"},
- {"type":"DIVIDEND","ticker":"TXF.TO","account":"FHSA","date":"2026-08-17","amount":185.88,"source":"autopilot"},
+ {"type":"DIVIDEND","ticker":"TXF.TO","account":"FHSA","date":"2026-09-30","amount":124.04,"source":"autopilot","date_estimated":False},
+ {"type":"DIVIDEND","ticker":"TXF.TO","account":"FHSA","date":"2026-08-17","amount":185.88,"source":"autopilot","date_estimated":False},
 ]
 ck("UDOW RRSP ex 9/23 matches the 9/29 booking",
    (booked_dividend_for("UDOW","RRSP","2026-09-23","2026-12-23",LEDGER) or {}).get("amount"), 5.27)
@@ -98,6 +98,38 @@ found, diag = notify.detect(SET, {"start_date":"2026-09-01"})
 ck("booked UDOW RRSP is skipped; unbooked Investment is queued", [f["account"] for f in found], ["Investment"])
 ck("...dated about a week after the ex-date, not three weeks", found[0]["pay_date"] if found else None, "2026-09-29")
 ck("...and diagnostics count the skip", diag.get("already_booked"), 1)
+
+print("\n── estimates no longer learn from themselves ──")
+from notify import date_is_real, record_pay_lag, reestimate_pending
+ck("an unedited Autopilot booking is NOT a real date", date_is_real({"source":"autopilot","date":"2026-08-20"}), False)
+ck("...an estimate that was flagged as such is not either", date_is_real({"source":"autopilot","date_estimated":True}), False)
+ck("...once you edited it, it is", date_is_real({"source":"autopilot","edited_at":"2026-11-22T00:00:00Z"}), True)
+ck("...an Adjust-ed one (date typed by you) is", date_is_real({"source":"autopilot","date_estimated":False}), True)
+ck("...and hand-entered bookings always are", date_is_real({"source":None}), True)
+
+# BMO: ex 30 Jul, booked by Autopilot on its own 20 Aug guess; the broker paid 26 Aug.
+BMO_EX = ["2026-07-30", "2026-10-29"]
+GUESS  = [{"type":"DIVIDEND","ticker":"BMO","account":"TFSA","date":"2026-08-20","source":"autopilot"}]
+REAL   = [{"type":"DIVIDEND","ticker":"BMO","account":"TFSA","date":"2026-08-26","source":"autopilot","edited_at":"2026-11-22T00:00:00Z"}]
+ck("BMO: the 20 Aug guess teaches nothing", learned_pay_lag("BMO", BMO_EX, GUESS), None)
+ck("BMO: the corrected 26 Aug booking teaches 27 days", learned_pay_lag("BMO", BMO_EX, REAL), 27)
+lags = record_pay_lag({}, "BMO", "2026-07-30", "2026-08-26")
+ck("Adjust records the lag", lags, {"BMO": [27]})
+ck("...and it is used even with an empty ledger", learned_pay_lag("BMO", BMO_EX, [], lags), 27)
+ck("a nonsense lag is ignored", record_pay_lag({}, "X", "2026-01-01", "2026-06-01"), {})
+ck("the window is capped", len(record_pay_lag({"X": list(range(8))}, "X", "2026-01-01", "2026-01-05")["X"]), notify.MAX_SAMPLES)
+
+print("\n── queued estimates are refreshed, and dropped until they are due ──")
+PENDING = {"pending":[
+  {"id":"BMO|TFSA|2026-10-29","ticker":"BMO","account":"TFSA","ex_date":"2026-10-29","pay_date":"2026-11-05","estimated_pay":True},
+  {"id":"AAPL|TFSA|2026-11-12","ticker":"AAPL","account":"TFSA","ex_date":"2026-11-12","pay_date":"2026-11-16","estimated_pay":False},
+  {"id":"BMO.TO|TFSA|2026-10-29","ticker":"BMO.TO","account":"TFSA","ex_date":"2026-10-29","pay_date":"2026-11-05","estimated_pay":True},
+  {"id":"OLD|TFSA|2026-09-01","ticker":"OLD","account":"TFSA","ex_date":"2026-09-01","pay_date":"2026-09-08","estimated_pay":True}]}
+res = reestimate_pending(PENDING, REAL, "2026-11-22", lambda t: [{"ex_date": e} for e in BMO_EX])
+ck("BMO (27-day lag -> 25 Nov) is not due on 22 Nov, so it leaves the queue", "BMO|TFSA|2026-10-29" in res["dropped"], True)
+ck("the old BMO.TO symbol is dropped", "BMO.TO|TFSA|2026-10-29" in res["dropped"], True)
+ck("a dated (non-estimated) entry is left alone", [p["id"] for p in PENDING["pending"] if p["ticker"]=="AAPL"], ["AAPL|TFSA|2026-11-12"])
+ck("an overdue estimate stays, with its date refreshed", [p["pay_date"] for p in PENDING["pending"] if p["ticker"]=="OLD"], ["2026-09-08"])
 
 print(f"\n{'ALL PASS' if not fails else 'FAILURES: '+', '.join(fails)}")
 sys.exit(1 if fails else 0)

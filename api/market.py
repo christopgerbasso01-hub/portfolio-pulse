@@ -39,7 +39,7 @@ _FALLBACK_HOLDINGS = [
     {"ticker": "QCOM",    "account": "TFSA",        "shares": 5, "cost_total": 467.1, "ccy": "USD"},
     {"ticker": "SHEL",    "account": "TFSA",        "shares": 22, "cost_total": 1018.21, "ccy": "USD"},
     {"ticker": "ET",      "account": "TFSA",        "shares": 60, "cost_total": 803.28, "ccy": "USD"},
-    {"ticker": "BMO.TO",  "account": "TFSA",        "shares": 15, "cost_total": 1661.44, "ccy": "CAD"},
+    {"ticker": "BMO",    "account": "TFSA",        "shares": 15, "cost_total": 1269.88, "ccy": "USD"},
     # Investment
     {"ticker": "SPXL",    "account": "Investment",  "shares": 75, "cost_total": 9785.05, "ccy": "USD"},
     {"ticker": "FNGU",    "account": "Investment",  "shares": 665, "cost_total": 13266.68, "ccy": "USD"},

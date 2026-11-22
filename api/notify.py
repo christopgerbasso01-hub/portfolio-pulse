@@ -522,16 +522,36 @@ def booked_dividend_for(ticker: str, account: str, ex_date: str, next_ex: str, t
     return None
 
 
-def learned_pay_lag(ticker: str, ex_dates: list, txs: list):
-    """Median days from ex-date to the date dividends were actually booked, or None.
+def date_is_real(tx: dict) -> bool:
+    """Was this booking's date a real payment date, rather than Autopilot's own guess?
 
-    Learned from the ledger: each booked dividend is matched to the latest ex-date
-    on or before it. Bookings sitting exactly on Autopilot's old 21-day guess are
-    skipped — that is the estimate echoed back, not a real payment date.
+    An estimated date booked by Confirm used to be learned from as if it were real, so
+    each guess taught the estimator to repeat itself (BMO.TO, SHEL and RY.TO were all
+    queued 3-4 weeks early that way). Trusted: hand-entered transactions, anything the
+    user edited afterwards, and Autopilot bookings whose date was checked or came from
+    a feed (date_estimated is False). Not trusted: unedited Autopilot bookings with an
+    estimated, or unknown, date.
+    """
+    if tx.get("edited_at"):
+        return True
+    if tx.get("source") == "autopilot":
+        return tx.get("date_estimated") is False
+    return True
+
+
+def learned_pay_lag(ticker: str, ex_dates: list, txs: list, learned_lags: dict = None):
+    """Median days from ex-date to the date dividends were actually paid, or None.
+
+    Two sources: the ledger (bookings whose date is real — see date_is_real) and
+    state["lags"], the lags recorded each time a payment date was confirmed or
+    corrected through Adjust. Each booking is matched to the latest ex-date on or
+    before it. Bookings sitting exactly on Autopilot's old 21-day guess are skipped.
     """
     exs, lags = sorted(ex_dates), []
     for tx in txs:
         if tx.get("type") != "DIVIDEND" or tx.get("ticker") != ticker or not tx.get("date"):
+            continue
+        if not date_is_real(tx):
             continue
         prior = [e for e in exs if e <= tx["date"]]
         if not prior:
@@ -541,10 +561,62 @@ def learned_pay_lag(ticker: str, ex_dates: list, txs: list):
             continue
         if 0 <= lag <= MAX_LEARNED_LAG_DAYS:
             lags.append(lag)
+    for lag in (learned_lags or {}).get(ticker, []):
+        if 0 <= lag <= MAX_LEARNED_LAG_DAYS:
+            lags.append(lag)
     if not lags:
         return None
     lags.sort()
     return lags[len(lags) // 2]
+
+
+def record_pay_lag(lags: dict, ticker: str, ex_date: str, pay_date: str) -> dict:
+    """Remember how long this ticker really took to pay (rolling window)."""
+    try:
+        lag = (datetime.strptime(pay_date, "%Y-%m-%d") - datetime.strptime(ex_date, "%Y-%m-%d")).days
+    except (TypeError, ValueError):
+        return lags
+    if not (0 <= lag <= MAX_LEARNED_LAG_DAYS):
+        return lags
+    cur = list(lags.get(ticker) or [])
+    cur.append(lag)
+    lags[ticker] = cur[-MAX_SAMPLES:]
+    return lags
+
+
+# A ticker that changed (BMO.TO -> BMO, the US listing actually held): pending entries
+# queued under the old symbol are dropped; the new symbol is detected afresh.
+TICKER_RENAMES = {"BMO.TO": "BMO"}
+
+
+def reestimate_pending(state: dict, txs: list, today: str, events_for) -> dict:
+    """Refresh queued entries whose payment date was only an estimate.
+
+    Re-runs the estimate with everything learned since (the ledger and recorded lags),
+    updating pay_date, and drops entries that are not due yet — they return on their own
+    once the date arrives, instead of asking about money that has not landed.
+    events_for(ticker) -> [{"ex_date":..}, ...]. Returns {"updated": n, "dropped": [ids]}.
+    """
+    keep, dropped, updated = [], [], 0
+    lag_cache = {}
+    for p in state.get("pending") or []:
+        if p.get("ticker") in TICKER_RENAMES:
+            dropped.append(p["id"]); continue
+        if not p.get("estimated_pay"):
+            keep.append(p); continue
+        t = p["ticker"]
+        if t not in lag_cache:
+            exs = [e["ex_date"] for e in events_for(t)] or [p.get("ex_date")]
+            lag_cache[t] = learned_pay_lag(t, exs, txs, state.get("lags")) 
+        lag = lag_cache[t] if lag_cache[t] is not None else ASSUMED_PAY_LAG_DAYS
+        new_pay = (datetime.strptime(p["ex_date"], "%Y-%m-%d") + timedelta(days=lag)).strftime("%Y-%m-%d")
+        if new_pay > today:
+            dropped.append(p["id"]); continue
+        if new_pay != p.get("pay_date"):
+            p = dict(p, pay_date=new_pay); updated += 1
+        keep.append(p)
+    state["pending"] = keep
+    return {"updated": updated, "dropped": dropped}
 
 
 def shares_at_ex_date(ticker: str, account: str, ex_date: str,
@@ -683,7 +755,7 @@ def detect(settings: dict, state: dict) -> tuple:
             if estimated_pay:
                 if ticker not in lag_cache:
                     lag_cache[ticker] = learned_pay_lag(
-                        ticker, [e["ex_date"] for e in div_cache[ticker]], txs)
+                        ticker, [e["ex_date"] for e in div_cache[ticker]], txs, state.get("lags"))
                 lag = lag_cache[ticker] if lag_cache[ticker] is not None else ASSUMED_PAY_LAG_DAYS
                 pay_date = (datetime.strptime(ex_date, "%Y-%m-%d")
                             + timedelta(days=lag)).strftime("%Y-%m-%d")
@@ -918,7 +990,17 @@ class handler(BaseHTTPRequestHandler):
             if body.get("start_date"):
                 state["start_date"] = body["start_date"]
             state.setdefault("seen", {})
+            state.setdefault("lags", {})
+            ev_cache = {}
+            def _events(t):
+                if t not in ev_cache:
+                    ev_cache[t] = fetch_dividend_events(t)
+                return ev_cache[t]
+            rp = reestimate_pending(state, settings.get("transactions") or [],
+                                    datetime.now(timezone.utc).strftime("%Y-%m-%d"), _events)
             found, diag = detect(settings, state)
+            diag["pending_reestimated"] = rp["updated"]
+            diag["pending_dropped_not_due"] = len(rp["dropped"])
             purged = purge_booked(state, settings.get("transactions") or [])
             diag["purged_pending"] = len(purged)
 
@@ -975,6 +1057,12 @@ class handler(BaseHTTPRequestHandler):
                 # estimated date the user just corrected away.
                 actual_date = body.get("actual_date") or entry.get("pay_date")
                 rates = record_learned_rate(rates, entry, actual)
+                # Learn the payment lag whenever the date is trustworthy: the user
+                # typed it (Adjust), or it came from a feed rather than an estimate.
+                if action == "adjust" or not entry.get("estimated_pay"):
+                    lags = state.get("lags") or {}
+                    state["lags"] = record_pay_lag(lags, entry.get("ticker"),
+                                                   entry.get("ex_date"), actual_date)
                 seen[entry_id] = {"resolved_at": now, "action": action,
                                   "amount": actual, "ccy": entry.get("ccy"),
                                   "pay_date": actual_date}

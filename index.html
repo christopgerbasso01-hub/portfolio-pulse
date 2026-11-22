@@ -10144,7 +10144,13 @@ function ppHoldingDetail(ticker, accts, data) {
     }
   });
   const _rank = r => r.kind === 'OTHER' ? 2 : r.kind === 'DIVTOTAL' ? 1 : 0;
-  if (unalloc >= 0.005) rows.push({ kind: 'DIVSOLD', date: null, acct: accts.length === 1 ? accts[0] : null,
+  const _sells = rows.filter(r => r.kind === 'SELL').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (unalloc >= 0.005 && _sells.length) {
+    // Dividends paid on shares since sold ride on the sale itself (newest one): its P/L = realized gain + those dividends.
+    const sl = _sells[0];
+    sl.div = (sl.div || 0) + unalloc; sl.total += unalloc; sl.withDiv = true;
+    sl.ret = sl.cost > 0 ? sl.total / sl.cost * 100 : null;
+  } else if (unalloc >= 0.005) rows.push({ kind: 'DIVSOLD', date: null, acct: accts.length === 1 ? accts[0] : null,
     desc: 'Dividends received on shares since sold (counted in realized)',
     shares: null, cost: null, mv: null, day: null, dayPct: null, div: unalloc, total: unalloc, ret: null, weight: null });
   rows.sort((a, b) => _rank(a) - _rank(b) || (b.date || '').localeCompare(a.date || ''));   // newest first, then dividends, 'other' last
@@ -10183,7 +10189,7 @@ function ppLotTableHtml(ticker, accts, data) {
       <td class="mono small ${_ppCls(r.day)}">${r.day != null ? _ppSigned(r.day) : ''}</td>
       <td class="mono small ${_ppCls(r.dayPct)}">${r.dayPct != null ? _ppPct(r.dayPct) : ''}</td>
       <td class="mono small ${r.kind === 'DIVTOTAL' ? '' : 'text2'}">${r.div ? fmt$(r.div) : r.kind === 'LOT' ? '—' : ''}</td>
-      <td class="mono ${_ppCls(r.total)}">${r.total == null ? '' : _ppSigned(r.total)}${r.kind === 'SELL' ? '<div class="pp-lot-sub">realized</div>' : ''}</td>
+      <td class="mono ${_ppCls(r.total)}">${r.total == null ? '' : _ppSigned(r.total)}${r.kind === 'SELL' ? `<div class="pp-lot-sub">realized${r.withDiv ? ' + dividends' : ''}</div>` : ''}</td>
       <td class="mono ${_ppCls(r.ret)}">${r.ret == null ? '' : _ppPct(r.ret)}</td>
     </tr>`;
   return `<div class="pp-lot-wrap"><table class="pp-lot-tbl">
@@ -10217,7 +10223,7 @@ function ppLotCardsHtml(ticker, accts, data) {
     + rows.map(r => r.kind === 'LOT'
       ? card(r, `${r.date}${badge(r.acct)}`, `${r.desc}${r.partial ? ` · ${+r.shares.toFixed(4)} of ${+r.boughtAdj.toFixed(4)} left` : ''}${r.div ? ` · div ${fmt$(r.div)}` : ''}`)
       : r.kind === 'SELL'
-        ? card(r, `${r.date}${badge(r.acct)} <span class="m-lot-selltag">SELL</span>`, `${r.desc} · realized · proceeds ${fmt$(r.mv)}`)
+        ? card(r, `${r.date}${badge(r.acct)} <span class="m-lot-selltag">SELL</span>`, `${r.desc} · realized${r.withDiv ? ' + ' + fmt$(r.div) + ' dividends' : ''} · proceeds ${fmt$(r.mv)}`)
         : r.kind === 'DIVTOTAL'
           ? `<div class="m-card m-card-tight m-lot-card"><div class="m-c-r1"><div class="m-c-sym">Total dividends</div><div class="m-c-mv">${fmt$(r.div)}</div></div><div class="m-c-r2"><div class="m-c-name"><span class="m-c-nm">Already counted in the P&amp;L above and the line below</span></div></div></div>`
           : card(r, r.kind === 'DIVSOLD' ? 'Dividends on sold shares' : 'Other realized', r.desc))

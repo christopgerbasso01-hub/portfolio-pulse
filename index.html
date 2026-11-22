@@ -1464,7 +1464,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .pp-tx-empty{font-family:var(--mono);font-size:11px;color:var(--text3);padding:10px 8px}
 .pp-tx-editable{cursor:pointer;transition:background .12s}
 .pp-tx-editing{background:rgba(59,130,246,.08)!important}
-.holdings-table #ppTxDetailRow tr:hover td,.holdings-table #ppTxDetailRow tr:hover{background:transparent!important}
+.holdings-table #ppTxDetailRow .pp-lot-tbl td,.holdings-table #ppTxDetailRow tr:hover{background:transparent!important}
 .holdings-table #ppTxDetailRow .pp-lot-tbl tbody tr:hover td,.holdings-table #ppTxDetailRow .pp-tx-row:hover{background:var(--blue-glow)!important}
 .holdings-table #ppTxDetailRow:hover > td.pp-tx-cell{background:rgba(0,212,255,.03)}
 [data-theme="light"] .holdings-table #ppTxDetailRow:hover > td.pp-tx-cell{background:rgba(8,145,178,.04)}
@@ -10141,7 +10141,7 @@ function ppHoldingDetail(ticker, accts, data) {
   const sum = k => rows.reduce((s, r) => s + (r[k] || 0), 0);
   const other = mainTotal - sum('total');
   if (Math.abs(other) >= 1 || unalloc >= 1) rows.push({ kind: 'OTHER', date: null, acct: accts.length > 1 ? null : accts[0],
-    desc: 'Earlier gains and dividends not tied to a purchase below (shares sold before, dividends paid while none were held, rounding)',
+    desc: 'Other realized — the holdings table’s realized figure minus the sales shown. Mostly currency treatment (the table values a USD gain at the sale-day rate; the sale line uses the CAD actually paid), plus dividends received while no shares were held.',
     shares: null, cost: null, mv: null, day: null, dayPct: null, div: unalloc >= 0.5 ? unalloc : null, total: other, ret: null, weight: null });
   const lotRows = rows.filter(r => r.kind === 'LOT');
   const lotSum = k => lotRows.reduce((s, r) => s + (r[k] || 0), 0);
@@ -10163,7 +10163,7 @@ function ppLotTableHtml(ticker, accts, data) {
   const live = p.price ? `$${p.price.toFixed(2)} ${h ? h.ccy : ''}` : '—';
   const tr = r => `<tr class="pp-lot-${r.kind.toLowerCase()}">
       <td class="mono">${r.date || '—'}</td>
-      <td class="text2" title="${String(r.desc).replace(/"/g, '&quot;')}">${r.kind === 'SELL' ? '<b class="red">SELL</b> ' : r.kind === 'LOT' ? '<b class="blue">BUY</b> ' : ''}${r.desc}${r.src === 'history' && r.kind !== 'OTHER' ? ' <span class="pp-lot-src" title="From data/transactions.csv, before the transaction log began">history</span>' : ''}</td>
+      <td class="text2" title="${((r.kind === 'SELL' ? 'SELL ' : r.kind === 'LOT' ? 'BUY ' : '') + r.desc).replace(/"/g, '&quot;')}">${r.kind === 'SELL' ? '<b class="red">SELL</b> ' : r.kind === 'LOT' ? '<b class="blue">BUY</b> ' : ''}${r.desc}${r.src === 'history' && r.kind !== 'OTHER' ? ' <span class="pp-lot-src" title="From data/transactions.csv, before the transaction log began">history</span>' : ''}</td>
       <td>${r.acct ? `<span class="badge ${acctBadgeClass(r.acct)}">${_ppAcctLabel(r.acct)}</span>` : ''}</td>
       <td class="mono small">${r.weight != null ? r.weight.toFixed(1) + '%' : ''}</td>
       <td class="mono">${r.shares == null ? '' : +r.shares.toFixed(4)}${r.partial ? `<div class="pp-lot-sub">of ${+r.boughtAdj.toFixed(4)}</div>` : ''}</td>

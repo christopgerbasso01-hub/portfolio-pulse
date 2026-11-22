@@ -1246,7 +1246,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 /* Tax section */
 .m-sec-hdr{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);font-weight:700;margin-bottom:7px;}
 .m-lot-card{margin-bottom:6px;}
-.m-lot-card.m-lot-total{border-color:var(--cyan);}
+.m-lot-card.m-lot-total{border-color:var(--cyan);background:var(--blue-glow);}
 .m-lot-card.m-lot-other{opacity:.85;}
 .m-lot-acct{font-size:8px;font-weight:700;padding:1px 4px;border-radius:4px;border:1px solid var(--bd);color:var(--t2);margin-left:4px;}
 .m-lot-selltag{font-size:8px;font-weight:700;color:var(--red);margin-left:4px;}
@@ -1468,6 +1468,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .pp-tx-editable{cursor:pointer;transition:background .12s}
 .pp-tx-editing{background:rgba(59,130,246,.08)!important}
 .holdings-table #ppTxDetailRow .pp-lot-tbl td,.holdings-table #ppTxDetailRow tr:hover{background:transparent!important}
+.holdings-table #ppTxDetailRow .pp-lot-tbl .pp-lot-totalrow td{background:var(--blue-glow)!important}   /* subtotal: always the light blue, so it stands apart */
 .holdings-table #ppTxDetailRow .pp-lot-tbl tbody tr:hover td,.holdings-table #ppTxDetailRow .pp-tx-row:hover{background:var(--blue-glow)!important}
 .holdings-table #ppTxDetailRow:hover > td.pp-tx-cell{background:rgba(0,212,255,.03)}
 [data-theme="light"] .holdings-table #ppTxDetailRow:hover > td.pp-tx-cell{background:rgba(8,145,178,.04)}

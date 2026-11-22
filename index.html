@@ -1429,7 +1429,9 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
    PER-TICKER TRANSACTION HISTORY — desktop expanding row
    ============================================================================ */
 .pp-tx-cell{padding:0 !important;background:rgba(0,212,255,.03);border-bottom:1px solid var(--border)}
-.pp-tx-panel{padding:14px 16px 16px}
+/* width:0 + min-width:100%: the panel takes the table's width but contributes none to
+   the column-width calculation, so opening a holding never resizes the table. */
+.pp-tx-panel{padding:14px 16px 16px;width:0;min-width:100%;box-sizing:border-box}
 .pp-tx-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .pp-tx-title{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--cyan)}
 .pp-tx-accts{display:flex;gap:6px;flex-wrap:wrap}

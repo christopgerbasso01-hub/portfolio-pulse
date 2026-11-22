@@ -224,8 +224,10 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .bm-bar-bg{background:var(--surface);border-radius:4px;height:24px;overflow:hidden}
 .pp-tx-sub{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.06em;margin:12px 0 6px}
 .pp-tx-sub span{letter-spacing:0;margin-left:6px;opacity:.8}
-.pp-lot-wrap{overflow-x:auto}
-.pp-lot-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.pp-lot-wrap{margin:0 -16px;overflow:hidden}
+.pp-lot-tbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.pp-lot-tbl td,.pp-lot-tbl th{overflow:hidden;text-overflow:ellipsis}
+.pp-lot-tbl td:nth-child(2){white-space:normal;overflow:visible}
 .pp-lot-tbl th{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
 .pp-lot-tbl td{padding:6px;border-bottom:1px solid var(--border);vertical-align:top}
 .pp-lot-tbl tfoot td{font-weight:700;border-top:1px solid var(--border2);border-bottom:none}
@@ -10408,6 +10410,26 @@ window.ppSelectTxAccount = function(ticker, acct) {
     .forEach(b => b.classList.toggle('active', b.dataset.acct === acct));
 };
 
+// Give the detail table the SAME column widths as the holdings table above it
+// (detail column i ↔ main column i, skipping the hidden Sector column), so the
+// two line up and the detail never outgrows the screen.
+window.ppAlignLotCols = function() {
+  const tbl = document.querySelector('#ppTxDetailRow .pp-lot-tbl');
+  const main = document.getElementById('holdingsTable');
+  if (!tbl || !main) return;
+  const ths = [...main.querySelectorAll(':scope > thead th')].filter(th => th.offsetWidth > 0);
+  if (ths.length !== 13) return;
+  const wrap = tbl.parentElement;
+  const left = ths[0].getBoundingClientRect().left - wrap.getBoundingClientRect().left;
+  tbl.querySelector('colgroup')?.remove();
+  const cg = document.createElement('colgroup');
+  ths.forEach(th => { const c = document.createElement('col'); c.style.width = th.getBoundingClientRect().width + 'px'; cg.appendChild(c); });
+  tbl.prepend(cg);
+  tbl.style.width = ths.reduce((w, th) => w + th.getBoundingClientRect().width, 0) + 'px';
+  tbl.style.marginLeft = Math.max(0, left) + 'px';
+};
+window.addEventListener('resize', () => { if (window.ppAlignLotCols) ppAlignLotCols(); });
+
 // Re-render the open panel's P&L table (new prices, or the lot file just loaded).
 window.ppRefreshLotTable = function() {
   const row = document.getElementById('ppTxDetailRow');
@@ -10416,6 +10438,7 @@ window.ppRefreshLotTable = function() {
   const ticker = row.dataset.ticker, scope = row.dataset.scope;
   const accts = scope === 'ALL' ? ppTickerAccounts(ticker) : [scope];
   el.innerHTML = ppLotTableHtml(ticker, accts, _lastLiveData || {});
+  ppAlignLotCols();
 };
 
 window.ppTxPanelHtml = function(ticker, acct, accts) {
@@ -10465,6 +10488,7 @@ window.ppToggleTxRow = function(ticker, account, el) {
   row.dataset.scope = acct;
   row.innerHTML = `<td colspan="16" class="pp-tx-cell">${ppTxPanelHtml(ticker, acct, accts)}</td>`;
   tr.parentNode.insertBefore(row, tr.nextSibling);
+  ppAlignLotCols();
   if (!_LOTS_BASE) _ppLoadLots().then(() => {
     const list = document.getElementById('ppTxList');
     if (list) list.innerHTML = ppTxEntriesHtml(ticker, row.dataset.scope);

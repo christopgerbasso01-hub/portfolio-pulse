@@ -172,5 +172,11 @@ ck('realized = proceeds − average cost (5 × 300 × 1.4 − 5 × 4200/20)', +s
 ck('dividend shared by shares held that day', lm.lots.map(l => +l.div.toFixed(2)), [15, 15]);
 ck('pre-log history is flagged', lm.hasHistory, true);
 
+console.log('\nHolding-detail table is not touched by the holdings-table loops');
+// The detail panel nests a <table> inside #holdingsBody. Any loop that selects
+// "#holdingsBody tr" (descendants) also reaches its rows — filterTable() hid
+// them all on the first price refresh after the panel opened (Nov 2026).
+ck('no descendant "#holdingsBody tr" selectors remain', (html.match(/#holdingsBody tr/g) || []).length, 0);
+
 console.log(fails.length ? `\n${fails.length} FAILED` : '\nALL PASS');
 process.exit(fails.length ? 1 : 0);

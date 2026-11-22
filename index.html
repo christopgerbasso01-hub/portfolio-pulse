@@ -5276,7 +5276,7 @@ function filterTable() {
   const sector = document.getElementById('sectorFilter').value;
   const pnl = document.getElementById('pnlFilter').value;
   const isSummaryMode = acct === '_summary';
-  const rows = document.querySelectorAll('#holdingsBody tr');
+  const rows = document.querySelectorAll('#holdingsBody > tr');
   rows.forEach(r => {
     const rowType = r.getAttribute('data-rowtype') || 'normal';
     // The transaction-detail row is not a holding — it has no data-* figures and
@@ -5326,16 +5326,16 @@ function toggleClosedPositions() {
 function updateRowCount() {
   const acct = document.getElementById('acctFilter').value;
   if (acct === '_summary') {
-    const vis = document.querySelectorAll('#holdingsBody tr[data-rowtype="summary"]:not([style*="display: none"]):not([style*="display:none"])').length;
-    const tot = document.querySelectorAll('#holdingsBody tr[data-rowtype="summary"]').length;
+    const vis = document.querySelectorAll('#holdingsBody > tr[data-rowtype="summary"]:not([style*="display: none"]):not([style*="display:none"])').length;
+    const tot = document.querySelectorAll('#holdingsBody > tr[data-rowtype="summary"]').length;
     document.getElementById('rowCount').textContent = `${vis} / ${tot} tickers`;
     return;
   }
-  const openTotal   = document.querySelectorAll('#holdingsBody tr[data-rowtype="normal"],#holdingsBody tr[data-rowtype="cash"]').length;
-  const openVisible = document.querySelectorAll('#holdingsBody tr[data-rowtype="normal"]:not([style*="display: none"]):not([style*="display:none"]),#holdingsBody tr[data-rowtype="cash"]:not([style*="display: none"]):not([style*="display:none"])').length;
+  const openTotal   = document.querySelectorAll('#holdingsBody > tr[data-rowtype="normal"],#holdingsBody > tr[data-rowtype="cash"]').length;
+  const openVisible = document.querySelectorAll('#holdingsBody > tr[data-rowtype="normal"]:not([style*="display: none"]):not([style*="display:none"]),#holdingsBody > tr[data-rowtype="cash"]:not([style*="display: none"]):not([style*="display:none"])').length;
   let text = `${openVisible} / ${openTotal} holdings`;
   if (showClosedPositions) {
-    const closedVisible = document.querySelectorAll('#holdingsBody tr[data-rowtype="closed"]:not([style*="display: none"]):not([style*="display:none"])').length;
+    const closedVisible = document.querySelectorAll('#holdingsBody > tr[data-rowtype="closed"]:not([style*="display: none"]):not([style*="display:none"])').length;
     const closedTotal = CLOSED_POSITIONS_STATIC.length;
     text += ` + ${closedVisible} / ${closedTotal} closed`;
   }
@@ -5343,7 +5343,7 @@ function updateRowCount() {
 }
 
 function updateSubtotals() {
-  const rows = document.querySelectorAll('#holdingsBody tr');
+  const rows = document.querySelectorAll('#holdingsBody > tr');
   let mv = 0, cb = 0, unreal = 0, div = 0, real = 0, pnl = 0, daychg = 0, count = 0;
   rows.forEach(r => {
     if (r.style.display === 'none') return;
@@ -5399,7 +5399,7 @@ function sortTable(col) {
   // An open transaction-detail row would be sorted away from the holding it
   // belongs to, so close it before reordering.
   if (typeof ppCloseTxRow === 'function') ppCloseTxRow();
-  const rows = [...tbody.querySelectorAll('tr')];
+  const rows = [...tbody.querySelectorAll(':scope > tr')];   // not the rows of a nested holding-detail table
   sortDir[col] = !sortDir[col];
   rows.sort((a, b) => {
     const av = a.cells[col]?.textContent.replace(/[$,+%]/g, '') || '';
@@ -12508,7 +12508,7 @@ function updateHoldingsGlance(acctKey){
   portSubEl.textContent=dayPctTxt;portSubEl.className='m-hold-glance-sub '+(isPos?'up':'dn');
 
   /* Find top gainer and loser */
-  var rows=Array.from(document.querySelectorAll('#holdingsBody tr'));
+  var rows=Array.from(document.querySelectorAll('#holdingsBody > tr'));
   var filtered=rows.filter(function(r){
     if(r.style.display==='none')return false;
     var rt=r.getAttribute('data-rowtype');
@@ -12603,7 +12603,7 @@ window.mToggleTranscript=function(){
 function buildCards(){
   var dst=document.getElementById('m-hold-cards');
   if(!dst)return;
-  var rows=Array.from(document.querySelectorAll('#holdingsBody tr'));
+  var rows=Array.from(document.querySelectorAll('#holdingsBody > tr'));
   /* Check if we are in summary mode (one row per ticker across all accounts) */
   var acctF=document.getElementById('acctFilter');
   var isSumMode=acctF&&acctF.value==='_summary';

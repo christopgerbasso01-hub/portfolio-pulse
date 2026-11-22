@@ -222,6 +222,17 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .bm-bar-wrap{margin-bottom:12px}
 .bm-bar-label{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px}
 .bm-bar-bg{background:var(--surface);border-radius:4px;height:24px;overflow:hidden}
+.pp-tx-sub{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.06em;margin:12px 0 6px}
+.pp-tx-sub span{letter-spacing:0;margin-left:6px;opacity:.8}
+.pp-lot-wrap{overflow-x:auto}
+.pp-lot-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.pp-lot-tbl th{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
+.pp-lot-tbl td{padding:6px;border-bottom:1px solid var(--border);vertical-align:top}
+.pp-lot-tbl tfoot td{font-weight:700;border-top:1px solid var(--border2);border-bottom:none}
+.pp-lot-tbl .pp-lot-other td{font-style:italic;opacity:.85}
+.pp-lot-sub{font-size:9px;color:var(--text3);font-weight:400}
+.pp-lot-src{font-family:var(--mono);font-size:8px;padding:0 4px;border:1px solid var(--border);border-radius:3px;color:var(--text3)}
+.pp-lot-note{font-size:10px;color:var(--text3);margin-top:6px;line-height:1.5}
 .bm-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-family:var(--mono);font-size:11px;transition:width .5s ease}
 
 .macro-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px}
@@ -1225,6 +1236,14 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 
 /* Tax section */
 .m-sec-hdr{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);font-weight:700;margin-bottom:7px;}
+.m-lot-card{margin-bottom:6px;}
+.m-lot-card.m-lot-total{border-color:var(--cyan);}
+.m-lot-card.m-lot-other{opacity:.85;}
+.m-lot-acct{font-size:8px;font-weight:700;padding:1px 4px;border-radius:4px;border:1px solid var(--bd);color:var(--t2);margin-left:4px;}
+.m-lot-selltag{font-size:8px;font-weight:700;color:var(--red);margin-left:4px;}
+.m-lot-card .m-c-r2{align-items:start;}
+.m-lot-card .m-c-name{min-width:0;}
+.m-lot-card .m-c-nm{white-space:normal;overflow:visible;text-overflow:clip;display:block;line-height:1.35;}
 .m-kpi-card{background:var(--surf);border:1px solid var(--bd);border-radius:11px;padding:11px 12px;margin-bottom:8px;}
 .m-kpi-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
 .m-kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);font-weight:700;}
@@ -2142,6 +2161,19 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   </div>
 </div>
 
+<!-- ================================================================  DIVIDEND AUTOPILOT -->
+<!-- Detected dividends awaiting confirmation. Nothing is booked until the user
+     taps Confirm — Adjust records the true amount and teaches the estimator. -->
+<div id="divAutopilot" style="display:none">
+  <div class="dv-banner">
+    <div class="dv-banner-hdr">
+      <span class="dv-banner-title">◆ Autopilot — dividends to confirm</span>
+      <span class="dv-banner-count" id="dvCount">0</span>
+    </div>
+    <div id="dvList"></div>
+  </div>
+</div>
+
 <!-- ================================================================  04: HOLDINGS TABLE -->
 <div class="section" id="sec04" data-tab="holdings">
   <div class="section-header">
@@ -2253,21 +2285,10 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
   <div class="intel-banner-outlook" id="intelOutlook"></div>
 </div>
 
-<!-- ================================================================  DIVIDEND AUTOPILOT -->
-<!-- Detected dividends awaiting confirmation. Nothing is booked until the user
-     taps Confirm — Adjust records the true amount and teaches the estimator. -->
-<div id="divAutopilot" style="display:none">
-  <div class="dv-banner">
-    <div class="dv-banner-hdr">
-      <span class="dv-banner-title">◆ Autopilot — dividends to confirm</span>
-      <span class="dv-banner-count" id="dvCount">0</span>
-    </div>
-    <div id="dvList"></div>
-  </div>
-</div>
-
 <!-- ================================================================  TODAY AT A GLANCE -->
-<div class="section" id="secGlance" data-tab="insights">
+<!-- Hidden on the computer view (Nov 2026). Kept in the DOM: updateTodayGlance()
+     still fills it, and the phone app may mirror it. -->
+<div class="section" id="secGlance" data-tab="insights" style="display:none !important">
   <div class="section-header">
     <span class="section-num">⚡</span>
     <span class="section-title">TODAY AT A GLANCE</span>
@@ -7165,6 +7186,7 @@ async function fetchMarketData() {
     renderTaxSection(data);
     renderTaxProjection(data);
     try { renderPerfPanel(data); }   catch (e) { console.warn('perf panel', e); }
+    try { if (window.ppRefreshLotTable) ppRefreshLotTable(); } catch (e) { console.warn('lot table', e); }
     try { renderIncomePanel(data); } catch (e) { console.warn('income panel', e); }
     try { renderDataHealth(data); }  catch (e) { console.warn('data health', e); }
     if (data.holdings) {
@@ -9997,6 +10019,200 @@ window.ppIntradaySeries = async function (range) {
   return data;
 };
 
+
+// ============================================================
+// HOLDING DETAIL — P&L BY PURCHASE
+// Pre-log lots come from data/lots_base.json (scripts/build_lots.py replays
+// data/transactions.csv up to the log start); logged trades are replayed on
+// top here. Sales reduce every open lot by the same fraction (Canadian
+// average cost), so lot costs always add up to the position's ACB and the
+// subtotal matches the main table row.
+// ============================================================
+var _LOTS_BASE = null;   // var: the phone script (a separate <script>) reads it too
+function _ppLoadLots() {
+  if (_LOTS_BASE) return Promise.resolve(_LOTS_BASE);
+  return fetch(`data/lots_base.json?d=${new Date().toISOString().slice(0, 10)}`)
+    .then(r => r.ok ? r.json() : { positions: {} })
+    .catch(() => ({ positions: {} }))
+    .then(d => (_LOTS_BASE = d));
+}
+_ppLoadLots();
+
+// Lots and events for one ticker in one account. Pure apart from reading the
+// transaction log, the lot base and the live holding (for a sell's fallback FX).
+function ppLotModel(ticker, account, lotsBase, txs) {
+  const b = ((lotsBase || {}).positions || {})[ticker + '|' + account] || null;
+  const lots = b ? b.lots.map(l => ({ ...l, src: 'history' })) : [];
+  const events = b ? b.events.map(e => ({ ...e, src: 'history' })) : [];
+  const open = () => lots.reduce((s, l) => s + l.shares, 0);
+  let divUnalloc = b ? (b.div_unalloc || 0) : 0;   // dividends received while no shares were open
+  const h = (typeof HOLDINGS_STATIC !== 'undefined' ? HOLDINGS_STATIC : []).find(x => x.ticker === ticker && x.account === account);
+  (txs || []).filter(t => t.ticker === ticker && (t.account === account || (t.type === 'SPLIT' && !t.account)))
+    .sort((x, y) => (x.date || '').localeCompare(y.date || ''))
+    .forEach(t => {
+      const usd = (t.ccy || 'USD') === 'USD';
+      if (t.type === 'BUY') {
+        const fx = usd ? (t.rate || 1.38) : 1;
+        const cost = t.price * t.shares * fx + (t.commission || 0);
+        lots.push({ date: t.date, bought: t.shares, shares: t.shares, price: t.price, ccy: t.ccy || 'USD', fx,
+                    split: 1, cost, orig_cost: cost, div: 0, src: 'log', id: t.id });
+        events.push({ date: t.date, type: 'BUY', shares: t.shares, price: t.price, ccy: t.ccy || 'USD', fx,
+                      commission: t.commission || 0, src: 'log', id: t.id });
+      } else if (t.type === 'SELL') {
+        const have = open();
+        const qty = Math.min(t.shares, have);
+        if (!(qty > 0)) return;
+        const acbSold = lots.reduce((s, l) => s + l.cost, 0) * qty / have;
+        const fx = usd ? (t.rate || (h && h.book_rate) || 1.38) : 1;
+        const proceeds = t.price * qty * fx - (t.commission || 0);
+        const f = qty / have;
+        lots.forEach(l => { l.shares *= 1 - f; l.cost *= 1 - f; });
+        events.push({ date: t.date, type: 'SELL', shares: qty, price: t.price, ccy: t.ccy || 'USD', fx,
+                      commission: t.commission || 0, acb: acbSold, proceeds, realized: proceeds - acbSold, src: 'log', id: t.id });
+      } else if (t.type === 'DIVIDEND') {
+        const cad = usd ? t.amount * (t.rate || 1.38) : t.amount;
+        const have = open();
+        if (have > 0) lots.forEach(l => { l.div += cad * l.shares / have; });
+        else divUnalloc += cad;
+        events.push({ date: t.date, type: 'DIVIDEND', amount: t.amount, ccy: t.ccy || 'CAD', amount_cad: cad, src: 'log', id: t.id });
+      } else if (t.type === 'SPLIT') {
+        lots.forEach(l => { l.shares *= t.ratio; l.split *= t.ratio; });
+        events.push({ date: t.date, type: 'SPLIT', ratio: t.ratio, src: 'log', id: t.id });
+      }
+    });
+  return { lots: lots.filter(l => l.shares > 1e-6), events, hasHistory: !!b, divUnalloc };
+}
+
+// Rows for the detail table: one per open purchase lot, one per sale, a
+// reconciling line, and a subtotal equal to the main table's figures.
+function ppHoldingDetail(ticker, accts, data) {
+  const prices = (data && data.holdings) || {};
+  const usdcad = (data && data.usdcad) || _liveUsdcad;
+  const p = prices[ticker] || {};
+  const totalMv = _heroScopedStats(data || {}, null).mktVal || 1;
+  const rows = [];
+  let mainTotal = 0, unalloc = 0;
+  accts.forEach(acct => {
+    const m = ppLotModel(ticker, acct, _LOTS_BASE, getTransactions());
+    unalloc += m.divUnalloc;
+    const h = HOLDINGS_STATIC.find(x => x.ticker === ticker && x.account === acct);
+    const ccy = h ? h.ccy : (m.lots[0] && m.lots[0].ccy) || 'USD';
+    const fxLive = ccy === 'USD' ? usdcad : 1;
+    m.lots.forEach(l => {
+      const mv = p.price ? l.shares * p.price * fxLive : null;
+      const unreal = mv != null ? mv - l.cost : 0;
+      const day = p.price ? l.shares * (p.price - (p.prev ?? p.price)) * fxLive : null;
+      rows.push({ kind: 'LOT', date: l.date, acct, src: l.src,
+        desc: `Bought ${+l.bought.toFixed(4)} @ $${l.price.toFixed(2)} ${l.ccy}` + (l.split !== 1 ? ` · ×${+l.split.toFixed(4)} split` : '')
+            + (l.ccy === 'USD' ? ` · FX ${(+l.fx).toFixed(4)}` : ''),
+        shares: l.shares, partial: Math.abs(l.shares - l.bought * l.split) > 1e-4, boughtAdj: l.bought * l.split,
+        cost: l.cost, mv, day, dayPct: p.prev ? (p.price / p.prev - 1) * 100 : null,
+        div: l.div, total: unreal + l.div, ret: l.cost > 0 ? (unreal + l.div) / l.cost * 100 : null,
+        weight: mv != null ? mv / totalMv * 100 : null });
+    });
+    m.events.filter(e => e.type === 'SELL').forEach(e => rows.push({
+      kind: 'SELL', date: e.date, acct, src: e.src,
+      desc: `Sold ${+e.shares.toFixed(4)} @ $${(+e.price).toFixed(2)} ${e.ccy}`,
+      shares: -e.shares, cost: e.acb, mv: e.proceeds, day: null, dayPct: null, div: null,
+      total: e.realized, ret: e.acb > 0 ? e.realized / e.acb * 100 : null, weight: null }));
+    // What the main table shows for this ticker+account
+    if (h) {
+      const cb = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
+      const mv = p.price ? p.price * h.shares * fxLive : cb + (h.unrealized || 0);
+      mainTotal += mv - cb + (h.realized || 0);
+    } else {
+      const c = CLOSED_POSITIONS_STATIC.find(x => x.ticker === ticker && x.account === acct);
+      if (c) mainTotal += (c.total_pnl ?? c.realized ?? 0) * (c.ccy === 'USD' ? (c.book_rate || USD_BOOK_RATE) : 1);
+    }
+  });
+  rows.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sum = k => rows.reduce((s, r) => s + (r[k] || 0), 0);
+  const other = mainTotal - sum('total');
+  if (Math.abs(other) >= 1 || unalloc >= 1) rows.push({ kind: 'OTHER', date: null, acct: accts.length > 1 ? null : accts[0],
+    desc: 'Earlier gains and dividends not tied to a purchase below (shares sold before, dividends paid while none were held, rounding)',
+    shares: null, cost: null, mv: null, day: null, dayPct: null, div: unalloc >= 0.5 ? unalloc : null, total: other, ret: null, weight: null });
+  const lotRows = rows.filter(r => r.kind === 'LOT');
+  const lotSum = k => lotRows.reduce((s, r) => s + (r[k] || 0), 0);
+  const cost = lotSum('cost'), mv = lotSum('mv'), day = lotSum('day');
+  return { rows, subtotal: { shares: lotSum('shares'), cost, mv, day, dayPct: mv - day > 0 ? day / (mv - day) * 100 : null,
+    div: lotSum('div') + unalloc, total: mainTotal, ret: cost > 0 ? mainTotal / cost * 100 : null, weight: mv / totalMv * 100 } };
+}
+
+const _ppSigned = v => v == null ? '—' : (v >= 0 ? '+' : '−') + fmt$(Math.abs(Math.round(v)));
+const _ppPct = v => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+const _ppCls = v => v == null ? 'text2' : v >= 0 ? 'green' : 'red';
+
+// Desktop: same 13 columns as the holdings table.
+function ppLotTableHtml(ticker, accts, data) {
+  if (!_LOTS_BASE) return `<div class="pp-tx-empty">Loading purchase history…</div>`;
+  const { rows, subtotal: s } = ppHoldingDetail(ticker, accts, data);
+  const p = (data && data.holdings || {})[ticker] || {};
+  const h = HOLDINGS_STATIC.find(x => x.ticker === ticker);
+  const live = p.price ? `$${p.price.toFixed(2)} ${h ? h.ccy : ''}` : '—';
+  const tr = r => `<tr class="pp-lot-${r.kind.toLowerCase()}">
+      <td class="mono">${r.date || '—'}</td>
+      <td class="text2">${r.kind === 'SELL' ? '<b class="red">SELL</b> ' : r.kind === 'LOT' ? '<b class="blue">BUY</b> ' : ''}${r.desc}${r.src === 'history' && r.kind !== 'OTHER' ? ' <span class="pp-lot-src" title="From data/transactions.csv, before the transaction log began">history</span>' : ''}</td>
+      <td>${r.acct ? `<span class="badge ${acctBadgeClass(r.acct)}">${_ppAcctLabel(r.acct)}</span>` : ''}</td>
+      <td class="mono small">${r.weight != null ? r.weight.toFixed(1) + '%' : ''}</td>
+      <td class="mono">${r.shares == null ? '' : +r.shares.toFixed(4)}${r.partial ? `<div class="pp-lot-sub">of ${+r.boughtAdj.toFixed(4)}</div>` : ''}</td>
+      <td class="mono small">${r.kind === 'LOT' ? live : ''}</td>
+      <td class="mono text2">${r.cost != null ? fmt$(r.cost) : ''}</td>
+      <td class="mono">${r.mv != null ? fmt$(r.mv) : ''}${r.kind === 'SELL' ? '<div class="pp-lot-sub">proceeds</div>' : ''}</td>
+      <td class="mono small ${_ppCls(r.day)}">${r.day != null ? _ppSigned(r.day) : ''}</td>
+      <td class="mono small ${_ppCls(r.dayPct)}">${r.dayPct != null ? _ppPct(r.dayPct) : ''}</td>
+      <td class="mono small text2">${r.div ? fmt$(r.div) : r.kind === 'LOT' ? '—' : ''}${r.kind === 'OTHER' && r.div ? '<div class="pp-lot-sub">included in P/L</div>' : ''}</td>
+      <td class="mono ${_ppCls(r.total)}">${_ppSigned(r.total)}${r.kind === 'SELL' ? '<div class="pp-lot-sub">realized</div>' : ''}</td>
+      <td class="mono ${_ppCls(r.ret)}">${_ppPct(r.ret)}</td>
+    </tr>`;
+  return `<div class="pp-lot-wrap"><table class="pp-lot-tbl">
+    <thead><tr><th>Date</th><th>Transaction</th><th>Account</th><th>Weight</th><th>Shares</th><th>Live Price</th><th>Cost Base</th>
+      <th>Market Value</th><th>Day Gain $</th><th>Day Gain %</th><th>Dividends</th><th>Total P/L $</th><th>Total Return %</th></tr></thead>
+    <tbody>${rows.map(tr).join('')}</tbody>
+    <tfoot><tr><td>TOTAL</td><td class="text2">${rows.filter(r => r.kind === 'LOT').length} open purchase${rows.filter(r => r.kind === 'LOT').length === 1 ? '' : 's'}${rows.some(r => r.kind === 'SELL') ? ` · ${rows.filter(r => r.kind === 'SELL').length} sale(s)` : ''}</td><td></td>
+      <td class="mono small">${s.weight.toFixed(1)}%</td><td class="mono">${+s.shares.toFixed(4)}</td><td class="mono small">${live}</td>
+      <td class="mono">${fmt$(s.cost)}</td><td class="mono">${fmt$(s.mv)}</td>
+      <td class="mono small ${_ppCls(s.day)}">${_ppSigned(s.day)}</td><td class="mono small ${_ppCls(s.dayPct)}">${_ppPct(s.dayPct)}</td>
+      <td class="mono small">${s.div ? fmt$(s.div) : '—'}</td><td class="mono ${_ppCls(s.total)}">${_ppSigned(s.total)}</td>
+      <td class="mono ${_ppCls(s.ret)}">${_ppPct(s.ret)}</td></tr></tfoot>
+  </table></div>
+  <div class="pp-lot-note">Each purchase is shown with what it cost, what it's worth now and its share of dividends. Sales reduce every open purchase by the same proportion (Canada's average-cost rule), so the purchases always add up to the holding; a sale's realized gain uses that average cost. Totals match the holdings table.</div>`;
+}
+
+// Phone: same card layout as the holdings list (value, day, total, cost).
+function ppLotCardsHtml(ticker, accts, data) {
+  if (!_LOTS_BASE) return '<div class="m-tx-empty">Loading purchase history…</div>';
+  const { rows, subtotal: s } = ppHoldingDetail(ticker, accts, data);
+  const card = (r, top, sub) => `<div class="m-card m-card-tight m-lot-card m-lot-${r.kind.toLowerCase()}">
+      <div class="m-c-r1"><div class="m-c-sym">${top}</div>
+        <div class="m-c-day ${r.day > 0 ? 'up' : r.day < 0 ? 'dn' : ''}">${r.day != null ? _ppSigned(r.day) + ' · ' + _ppPct(r.dayPct) : ''}</div>
+        <div class="m-c-mv">${r.mv != null ? fmt$(r.mv) : ''}</div></div>
+      <div class="m-c-r2"><div class="m-c-name"><span class="m-c-nm">${sub}</span></div>
+        <div class="m-c-at ${r.total >= 0 ? 'up' : 'dn'}">${_ppSigned(r.total)} · ${_ppPct(r.ret)}</div>
+        <div class="m-c-cost">${r.cost != null ? fmt$(r.cost) : ''}</div></div></div>`;
+  const badge = a => a && accts.length > 1 ? ` <span class="m-lot-acct">${_ppAcctLabel(a)}</span>` : '';
+  return rows.map(r => r.kind === 'LOT'
+      ? card(r, `${r.date}${badge(r.acct)}`, `${r.desc}${r.partial ? ` · ${+r.shares.toFixed(4)} of ${+r.boughtAdj.toFixed(4)} left` : ''}${r.div ? ` · div ${fmt$(r.div)}` : ''}`)
+      : r.kind === 'SELL'
+        ? card(r, `${r.date}${badge(r.acct)} <span class="m-lot-selltag">SELL</span>`, `${r.desc} · realized · proceeds ${fmt$(r.mv)}`)
+        : card(r, 'Other realized', r.desc))
+    .join('')
+    + card({ kind: 'total', day: s.day, dayPct: s.dayPct, mv: s.mv, total: s.total, ret: s.ret, cost: s.cost },
+           'Total', `${+s.shares.toFixed(4)} shares · matches the holdings list`)
+    + '<div class="m-tx-note" style="margin:6px 2px 12px">Sales reduce every purchase by the same proportion (average cost), so purchases add up to the holding.</div>';
+}
+
+// Default sub-filter: All when the table is in Summary or All Accounts view,
+// otherwise the account being viewed.
+function _ppDefaultScope(account, accts) {
+  let view = null;
+  const sel = document.getElementById('acctFilter');
+  const mChip = document.querySelector('.m-hold-acct.on');
+  if (window.innerWidth <= 768 && mChip) view = mChip.dataset.acct;
+  else if (sel) view = sel.value;
+  if (accts.length > 1 && (view === '_summary' || view === '' || view == null || account === 'ALL')) return 'ALL';
+  return accts.includes(account) ? account : (accts[0] || account);
+}
+
 window.ppTickerAccounts = function(ticker) {
   const held = HOLDINGS_STATIC.filter(h => h.ticker === ticker).map(h => h.account);
   const traded = getTransactions()
@@ -10018,8 +10234,19 @@ window.ppTickerAccounts = function(ticker) {
 window.ppTickerHistory = function(ticker, account) {
   const out = [];
 
+  const lotPos = _LOTS_BASE && _LOTS_BASE.positions && _LOTS_BASE.positions[ticker + '|' + account];
   const base = _HOLDINGS_BASE.find(h => h.ticker === ticker && h.account === account);
-  if (base) {
+  if (lotPos) {
+    // Every transaction before the log began, from data/transactions.csv (read-only)
+    lotPos.events.forEach(e => {
+      const fxs = e.ccy === 'USD' && e.fx ? ` · FX ${(+e.fx).toFixed(4)}` : '';
+      const desc = e.type === 'BUY'  ? `${e.shares} × $${e.price} ${e.ccy}${fxs}${e.commission ? ` · ${fmt$(e.commission, 2)} comm` : ''}`
+                 : e.type === 'SELL' ? `${+(+e.shares).toFixed(4)} × $${e.price} ${e.ccy}${fxs} · realized ${fmt$(e.realized)}`
+                 : e.type === 'DIVIDEND' ? `+${e.amount} ${e.ccy}${e.ccy === 'USD' ? ` (${fmt$(e.amount_cad, 2)} CAD)` : ''}`
+                 : `×${+(+e.ratio).toFixed(4)} split`;
+      out.push({ kind: e.type, date: e.date, label: e.type, desc, note: '', id: null, history: true });
+    });
+  } else if (base) {
     const acbCAD = base.ccy === 'USD' ? base.cost_total * (base.book_rate || 1) : base.cost_total;
     out.push({
       kind: 'OPEN',
@@ -10063,15 +10290,23 @@ window.ppTickerHistory = function(ticker, account) {
 
 const _ppAcctLabel = a => a === 'Investment' ? 'NON-REG' : a;
 
+// Entries for one account, or for every account when acct is 'ALL' (each tagged).
+window.ppTxEntriesFor = function(ticker, acct) {
+  const accts = acct === 'ALL' ? ppTickerAccounts(ticker) : [acct];
+  return accts.flatMap(a => ppTickerHistory(ticker, a).map(e => ({ ...e, acct: a })))
+    .sort((x, y) => (x.kind === 'OPEN') - (y.kind === 'OPEN') || (y.date || '').localeCompare(x.date || ''));
+};
+
 window.ppTxEntriesHtml = function(ticker, acct) {
-  const entries = ppTickerHistory(ticker, acct);
+  const entries = ppTxEntriesFor(ticker, acct);
   if (!entries.length)
-    return `<div class="pp-tx-empty">No transactions logged for ${ticker} in ${_ppAcctLabel(acct)}.</div>`;
+    return `<div class="pp-tx-empty">No transactions logged for ${ticker} in ${acct === 'ALL' ? 'any account' : _ppAcctLabel(acct)}.</div>`;
   return entries.map(e => `<div class="pp-tx-row${e.id ? ' pp-tx-editable' : ''}"${e.id
-        ? ` onclick="ppTxRowClick(this,'${e.id}','${ticker}','${acct}','desk')" title="Click to edit"` : ''}>
+        ? ` onclick="ppTxRowClick(this,'${e.id}','${ticker}','${e.acct}','desk')" title="Click to edit"` : ''}>
       <span class="pp-tx-date">${e.date || '—'}</span>
       <span class="pp-tx-tag pp-tag-${e.kind}">${e.label}</span>
-      <span class="pp-tx-desc">${e.desc}${e.note ? `<span class="pp-tx-note">${e.note}</span>` : ''}</span>
+      ${acct === 'ALL' ? `<span class="badge ${acctBadgeClass(e.acct)}" style="font-size:8px;padding:1px 4px">${_ppAcctLabel(e.acct)}</span>` : ''}
+      <span class="pp-tx-desc">${e.desc}${e.history ? '<span class="pp-tx-note">from history file · read-only</span>' : ''}${e.note ? `<span class="pp-tx-note">${e.note}</span>` : ''}</span>
     </div>`).join('');
 };
 
@@ -10165,23 +10400,41 @@ window.ppDeleteTxEdit = async function(id, ticker, acct, surface) {
 };
 
 window.ppSelectTxAccount = function(ticker, acct) {
+  const row = document.getElementById('ppTxDetailRow');
+  if (row) row.dataset.scope = acct;
   const list = document.getElementById('ppTxList');
   if (list) list.innerHTML = ppTxEntriesHtml(ticker, acct);
+  ppRefreshLotTable();
   document.querySelectorAll('#ppTxDetailRow .pp-tx-acct')
     .forEach(b => b.classList.toggle('active', b.dataset.acct === acct));
 };
 
+// Re-render the open panel's P&L table (new prices, or the lot file just loaded).
+window.ppRefreshLotTable = function() {
+  const row = document.getElementById('ppTxDetailRow');
+  const el = document.getElementById('ppLotSection');
+  if (!row || !el) return;
+  const ticker = row.dataset.ticker, scope = row.dataset.scope;
+  const accts = scope === 'ALL' ? ppTickerAccounts(ticker) : [scope];
+  el.innerHTML = ppLotTableHtml(ticker, accts, _lastLiveData || {});
+};
+
 window.ppTxPanelHtml = function(ticker, acct, accts) {
-  const btns = accts.map(a =>
+  const opts = (accts.length > 1 ? ['ALL'] : []).concat(accts);
+  const btns = opts.map(a =>
     `<button class="pp-tx-acct${a === acct ? ' active' : ''}" data-acct="${a}"
-             onclick="ppSelectTxAccount('${ticker}','${a}')">${_ppAcctLabel(a)}</button>`).join('');
+             onclick="ppSelectTxAccount('${ticker}','${a}')">${a === 'ALL' ? 'ALL ACCOUNTS' : _ppAcctLabel(a)}</button>`).join('');
+  const scopeAccts = acct === 'ALL' ? accts : [acct];
   return `<div class="pp-tx-panel">
     <div class="pp-tx-head">
-      <span class="pp-tx-title">${ticker} · TRANSACTION HISTORY</span>
+      <span class="pp-tx-title">${ticker} · HOLDING DETAIL</span>
       <div class="pp-tx-accts">${btns}</div>
-      <button class="pp-tx-btn" onclick="deepDiveHolding('${ticker}','${acct}')" title="Open research">RESEARCH ↗</button>
+      <button class="pp-tx-btn" onclick="deepDiveHolding('${ticker}','${acct === 'ALL' ? accts[0] : acct}')" title="Open research">RESEARCH ↗</button>
       <button class="pp-tx-btn" onclick="ppCloseTxRow()" title="Close">✕</button>
     </div>
+    <div class="pp-tx-sub">P&amp;L BY PURCHASE</div>
+    <div id="ppLotSection">${ppLotTableHtml(ticker, scopeAccts, _lastLiveData || {})}</div>
+    <div class="pp-tx-sub">TRANSACTIONS <span>newest first · logged trades can be edited</span></div>
     <div class="pp-tx-list" id="ppTxList">${ppTxEntriesHtml(ticker, acct)}</div>
   </div>`;
 };
@@ -10204,13 +10457,20 @@ window.ppToggleTxRow = function(ticker, account, el) {
   if (sameRow) return;                       // clicking the open row closes it
 
   const accts = ppTickerAccounts(ticker);
-  const acct  = accts.includes(account) ? account : (accts[0] || account);
+  const acct  = _ppDefaultScope(tr.dataset.rowtype === 'summary' ? 'ALL' : account, accts);
   const row   = document.createElement('tr');
   row.id = 'ppTxDetailRow';
   row.setAttribute('data-rowtype', 'txdetail');
   row.dataset.key = key;
+  row.dataset.ticker = ticker;
+  row.dataset.scope = acct;
   row.innerHTML = `<td colspan="16" class="pp-tx-cell">${ppTxPanelHtml(ticker, acct, accts)}</td>`;
   tr.parentNode.insertBefore(row, tr.nextSibling);
+  if (!_LOTS_BASE) _ppLoadLots().then(() => {
+    const list = document.getElementById('ppTxList');
+    if (list) list.innerHTML = ppTxEntriesHtml(ticker, row.dataset.scope);
+    ppRefreshLotTable();
+  });
 };
 </script>
 
@@ -12420,37 +12680,46 @@ window.mOpenTxSheet=function(ticker,account){
   if(!ticker||typeof window.ppTickerAccounts!=='function')return;
   _mTxTicker=ticker;
   var accts=window.ppTickerAccounts(ticker);
-  var acct=accts.indexOf(account)>=0?account:(accts[0]||account);
+  var acct=_ppDefaultScope(account,accts);
   var sym=document.getElementById('m-tx-sym');
   if(sym)sym.textContent=ticker;
   var ab=document.getElementById('m-tx-accts');
   if(ab){
-    ab.innerHTML=accts.map(function(a){
-      var lbl=a==='Investment'?'NON-REG':a;
+    ab.innerHTML=(accts.length>1?['ALL']:[]).concat(accts).map(function(a){
+      var lbl=a==='ALL'?'ALL':(a==='Investment'?'NON-REG':a);
       return'<button class="m-tx-acct'+(a===acct?' on':'')+'" data-acct="'+a+'" onclick="mTxSelectAcct(\''+ticker+'\',\''+a+'\')">'+lbl+'</button>';
     }).join('');
   }
   mTxSelectAcct(ticker,acct);
+  if(!_LOTS_BASE)_ppLoadLots().then(function(){
+    var on=document.querySelector('#m-tx-accts .m-tx-acct.on');
+    if(_mTxTicker===ticker)mTxSelectAcct(ticker,on?on.dataset.acct:acct);
+  });
   document.getElementById('m-tx-backdrop').classList.add('on');
   document.getElementById('m-tx-sheet').classList.add('on');
 };
 window.mTxSelectAcct=function(ticker,acct){
   var body=document.getElementById('m-tx-body');
-  if(body&&typeof window.ppTickerHistory==='function'){
-    var entries=window.ppTickerHistory(ticker,acct);
-    if(!entries.length){
-      body.innerHTML='<div class="m-tx-empty">No transactions logged for '+ticker+' in '+(acct==='Investment'?'Non-Reg':acct)+'.</div>';
-    } else {
-      body.innerHTML=entries.map(function(e){
-        return'<div class="m-tx-item'+(e.id?' pp-tx-editable':'')+'"'
-          +(e.id?' onclick="ppTxRowClick(this,\''+e.id+'\',\''+ticker+'\',\''+acct+'\',\'mobile\')"':'')+'>'
-          +'<div class="m-tx-item-top"><span class="m-tx-tag t-'+e.kind+'">'+e.label+'</span>'
-          +'<span class="m-tx-date">'+(e.date||'—')+'</span></div>'
-          +'<div class="m-tx-desc">'+e.desc+'</div>'
-          +(e.note?'<div class="m-tx-note">'+e.note+'</div>':'')
-          +'</div>';
-      }).join('');
-    }
+  if(body&&typeof window.ppTxEntriesFor==='function'){
+    var scope=acct==='ALL'?window.ppTickerAccounts(ticker):[acct];
+    var entries=window.ppTxEntriesFor(ticker,acct);
+    var hist=!entries.length
+      ? '<div class="m-tx-empty">No transactions logged for '+ticker+' in '+(acct==='ALL'?'any account':(acct==='Investment'?'Non-Reg':acct))+'.</div>'
+      : entries.map(function(e){
+          var lbl=e.acct==='Investment'?'NON-REG':e.acct;
+          return'<div class="m-tx-item'+(e.id?' pp-tx-editable':'')+'"'
+            +(e.id?' onclick="ppTxRowClick(this,\''+e.id+'\',\''+ticker+'\',\''+e.acct+'\',\'mobile\')"':'')+'>'
+            +'<div class="m-tx-item-top"><span class="m-tx-tag t-'+e.kind+'">'+e.label+'</span>'
+            +(acct==='ALL'?'<span class="m-lot-acct">'+lbl+'</span>':'')
+            +'<span class="m-tx-date">'+(e.date||'—')+'</span></div>'
+            +'<div class="m-tx-desc">'+e.desc+'</div>'
+            +(e.history?'<div class="m-tx-note">from history file · read-only</div>':'')
+            +(e.note?'<div class="m-tx-note">'+e.note+'</div>':'')
+            +'</div>';
+        }).join('');
+    body.innerHTML='<div class="m-sec-hdr" style="margin:2px 2px 6px">P&amp;L by purchase</div>'
+      +window.ppLotCardsHtml(ticker,scope,_lastLiveData||{})
+      +'<div class="m-sec-hdr" style="margin:4px 2px 6px">Transactions · newest first</div>'+hist;
   }
   var btns=document.querySelectorAll('#m-tx-accts .m-tx-acct');
   Array.prototype.forEach.call(btns,function(b){b.classList.toggle('on',b.dataset.acct===acct);});

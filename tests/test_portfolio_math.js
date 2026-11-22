@@ -43,7 +43,7 @@ const ctx = { console };
 vm.createContext(ctx);
 const fns = ['_bracketTax', '_ontarioHealthPremium', 'ontarioIncomeTax', 'ontarioMarginalRate',
              'superficialLossCheck', 'nonRegTaxYear', 'hbpUsable', 'xirr', 'monthlyReturns',
-             'riskStats', 'calendarYearReturns', 'forwardDividends', '_divNetFactor'];
+             'riskStats', 'calendarYearReturns', 'forwardDividends', '_divNetFactor', 'ppLotModel'];
 vm.runInContext(`
   const USD_BOOK_RATE = 1.3925;
   ${extractConst('TAX_PARAMS')}
@@ -152,6 +152,25 @@ ck('no history → nothing', ctx.forwardDividends([], '2026-11-22').length, 0);
 ck('US-listed in TFSA keeps 85%', ctx._divNetFactor({ ticker: 'SHEL', ccy: 'USD', account: 'TFSA' }), 0.85);
 ck('US-listed in RRSP keeps 100% (treaty)', ctx._divNetFactor({ ticker: 'SPXL', ccy: 'USD', account: 'RRSP' }), 1);
 ck('Canadian-listed keeps 100%', ctx._divNetFactor({ ticker: 'RY.TO', ccy: 'CAD', account: 'TFSA' }), 1);
+
+console.log('\nP&L by purchase (average cost)');
+const lb = { positions: { 'XYZ|TFSA': { lots: [
+  { date: '2025-01-02', bought: 10, shares: 10, price: 100, ccy: 'USD', fx: 1.4, split: 1, cost: 1400, orig_cost: 1400, div: 0 }],
+  events: [{ date: '2025-01-02', type: 'BUY', shares: 10, price: 100, ccy: 'USD', fx: 1.4 }] } } };
+const lm = ctx.ppLotModel('XYZ', 'TFSA', lb, [
+  { type: 'BUY', date: '2026-07-01', account: 'TFSA', ticker: 'XYZ', shares: 10, price: 200, ccy: 'USD', rate: 1.4, commission: 0, id: 'b' },
+  { type: 'DIVIDEND', date: '2026-08-01', account: 'TFSA', ticker: 'XYZ', amount: 20, ccy: 'USD', rate: 1.5, id: 'd' },
+  { type: 'SELL', date: '2026-09-01', account: 'TFSA', ticker: 'XYZ', shares: 5, price: 300, ccy: 'USD', rate: 1.4, commission: 0, id: 's' },
+  { type: 'SPLIT', date: '2026-10-01', account: 'TFSA', ticker: 'XYZ', ratio: 2, id: 'x' },
+  { type: 'BUY', date: '2026-10-01', account: 'RRSP', ticker: 'XYZ', shares: 99, price: 1, ccy: 'USD', rate: 1.4, id: 'other' },
+]);
+ck('two purchases, other account ignored', lm.lots.length, 2);
+ck('a sale of 5 of 20 trims each purchase by a quarter, then ×2 split', lm.lots.map(l => +l.shares.toFixed(6)), [15, 15]);
+ck('remaining cost = 3/4 of each purchase', lm.lots.map(l => +l.cost.toFixed(2)), [1050, 2100]);
+const sale = lm.events.find(e => e.type === 'SELL');
+ck('realized = proceeds − average cost (5 × 300 × 1.4 − 5 × 4200/20)', +sale.realized.toFixed(2), 2100 - 1050);
+ck('dividend shared by shares held that day', lm.lots.map(l => +l.div.toFixed(2)), [15, 15]);
+ck('pre-log history is flagged', lm.hasHistory, true);
 
 console.log(fails.length ? `\n${fails.length} FAILED` : '\nALL PASS');
 process.exit(fails.length ? 1 : 0);

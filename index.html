@@ -224,6 +224,10 @@ body::before{content:'';position:fixed;inset:0;background-image:repeating-linear
 .bm-bar-bg{background:var(--surface);border-radius:4px;height:24px;overflow:hidden}
 .pp-tx-sub{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.06em;margin:12px 0 6px}
 .pp-tx-sub span{letter-spacing:0;margin-left:6px;opacity:.8}
+.pp-tx-det>summary{cursor:pointer;list-style:none;user-select:none}
+.pp-tx-det>summary::-webkit-details-marker{display:none}
+.pp-tx-det>summary::before{content:'▸ '}
+.pp-tx-det[open]>summary::before{content:'▾ '}
 .pp-lot-wrap{margin:0 -16px;overflow:hidden}
 .pp-lot-tbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
 .pp-lot-tbl td,.pp-lot-tbl th{overflow:hidden;text-overflow:ellipsis}
@@ -10453,8 +10457,10 @@ window.ppTxPanelHtml = function(ticker, acct, accts) {
     </div>
     <div class="pp-tx-sub">P&amp;L BY PURCHASE</div>
     <div id="ppLotSection">${ppLotTableHtml(ticker, scopeAccts, _lastLiveData || {})}</div>
-    <div class="pp-tx-sub">TRANSACTIONS <span>newest first · logged trades can be edited</span></div>
-    <div class="pp-tx-list" id="ppTxList">${ppTxEntriesHtml(ticker, acct)}</div>
+    <details class="pp-tx-det"${window._ppTxOpen ? ' open' : ''} ontoggle="window._ppTxOpen=this.open">
+      <summary class="pp-tx-sub">TRANSACTIONS <span>newest first · logged trades can be edited</span></summary>
+      <div class="pp-tx-list" id="ppTxList">${ppTxEntriesHtml(ticker, acct)}</div>
+    </details>
   </div>`;
 };
 
@@ -12739,7 +12745,8 @@ window.mTxSelectAcct=function(ticker,acct){
         }).join('');
     body.innerHTML='<div class="m-sec-hdr" style="margin:2px 2px 6px">P&amp;L by purchase</div>'
       +window.ppLotCardsHtml(ticker,scope,_lastLiveData||{})
-      +'<div class="m-sec-hdr" style="margin:4px 2px 6px">Transactions · newest first</div>'+hist;
+      +'<details class="pp-tx-det"'+(window._mTxOpen?' open':'')+' ontoggle="window._mTxOpen=this.open">'
+      +'<summary class="m-sec-hdr" style="margin:4px 2px 6px">Transactions · newest first</summary>'+hist+'</details>';
   }
   var btns=document.querySelectorAll('#m-tx-accts .m-tx-acct');
   Array.prototype.forEach.call(btns,function(b){b.classList.toggle('on',b.dataset.acct===acct);});

@@ -39,13 +39,14 @@ SNAPSHOT_TTL = 95 * 86400   # 95 days (~3 months of daily history)
 # Update CONTRIBUTIONS_CAD when adding fresh capital to any account.
 # Update REALIZED_GAINS_CAD when closing a position.
 # Update USD_BOOK_RATE only after a major rebalancing at a significantly different rate.
+# Fallbacks only (KV wins whenever it has values). Last synced with the dashboard 2026-11-22.
 CONTRIBUTIONS_CAD = {
     "TFSA":       44500.0,
-    "Investment": 85000.0,
+    "Investment": 106000.0,
     "FHSA":       24000.0,
-    "RRSP":       16132.0,
+    "RRSP":       18763.0,
 }
-REALIZED_GAINS_CAD = 22193
+REALIZED_GAINS_CAD = 18982
 USD_BOOK_RATE      = 1.3925
 
 # Fallback cash positions — used only if dashboard has never saved cash_positions to KV.
@@ -330,6 +331,13 @@ def take_snapshot() -> dict:
     kv_set(f"snapshot:{today}", snapshot)
     kv_set("snapshot:latest", {"date": today}, ttl_seconds=2 * 86400)
 
+    # Permanent month-end point (overwritten each weekday, so the month's last
+    # close wins). Daily keys expire after 95 days; charts and risk stats need
+    # the whole history.
+    kv_set(f"snapshot:month:{today[:7]}", {
+        k: snapshot.get(k) for k in ("date", "total_value", "roi_pct", "daily_change", "accounts", "account_cost")
+    }, ttl_seconds=10 * 365 * 86400)
+
     # Fridays: permanent weekly rollup (survives beyond 95-day daily TTL)
     dt = datetime.now(timezone.utc)
     if dt.weekday() == 4:
@@ -379,6 +387,41 @@ def compute_live() -> dict:
         "usdcad":           usdcad,
         "source":           source,
     }
+
+
+def get_long_history(start=(2026, 6)) -> dict:
+    """Points older than the daily window, from the permanent keys.
+
+    Month-end keys (written since Nov 2026) plus the Friday weekly rollups,
+    which go back further. The dashboard keeps the last weekday of each month,
+    so a Friday rollup stands in for a month whose month-end key predates the
+    feature. Starts at June 2026, where the hard-coded monthly history ends.
+    """
+    now = datetime.now(timezone.utc).date()
+    keys, (y, m) = [], start
+    while (y, m) <= (now.year, now.month):
+        keys.append(f"snapshot:month:{y}-{m:02d}")
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    d, weeks = datetime(start[0], start[1], 1).date(), []
+    while d <= now:
+        iy, iw, _ = d.isocalendar()
+        k = f"snapshot:weekly:{iy}-W{iw:02d}"
+        if k not in weeks:
+            weeks.append(k)
+        d += timedelta(days=7)
+    out = {}
+    try:
+        res = _kv(["MGET", *keys, *weeks]).get("result") or []
+    except Exception as exc:
+        print(f"  [snapshot] long history unavailable: {exc}")
+        return out
+    for raw in res:
+        if not raw:
+            continue
+        snap = json.loads(raw) if isinstance(raw, str) else raw
+        if isinstance(snap, dict) and snap.get("date"):
+            out[snap["date"]] = snap
+    return out
 
 
 def get_recent_snapshots(days: int = 8) -> dict:
@@ -583,16 +626,17 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             summary = compute_weekly_summary(snaps)
+            chart_snaps = {**get_long_history(), **snaps}   # daily wins where both exist
             chart_points = [
                 {
                     "date":         d,
-                    "total_value":  snaps[d].get("total_value"),
-                    "roi_pct":      snaps[d].get("roi_pct"),
-                    "daily_change": snaps[d].get("daily_change"),
-                    "accounts":     snaps[d].get("accounts", {}),
-                    "account_cost": snaps[d].get("account_cost", {}),
+                    "total_value":  chart_snaps[d].get("total_value"),
+                    "roi_pct":      chart_snaps[d].get("roi_pct"),
+                    "daily_change": chart_snaps[d].get("daily_change"),
+                    "accounts":     chart_snaps[d].get("accounts", {}),
+                    "account_cost": chart_snaps[d].get("account_cost", {}),
                 }
-                for d in sorted(snaps.keys())
+                for d in sorted(chart_snaps.keys())
             ]
             self._respond(200, {
                 "snapshots":      snaps,

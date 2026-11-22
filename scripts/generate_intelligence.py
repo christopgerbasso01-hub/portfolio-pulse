@@ -7,6 +7,7 @@ Output is consumed by index.html to populate sections 05-10.
 """
 
 import json
+import re
 import os
 import sys
 import time
@@ -61,10 +62,9 @@ GTA home purchase planned: FHSA + RRSP HBP fund the down payment.
 Non-resident 2026 (abroad) → returns Canada March 2027.
 ACCOUNT RULE: All new BUY picks → RRSP or Investment ONLY. NEVER TFSA/FHSA (room suspended 2026).
 
-HOLDINGS SHAPE (names only — exact sizes are in the LIVE POSITIONS table below):
-  Leveraged 3x ETFs (FNGU/SPXL/UDOW/SOXL), Tech (NVDA — NEVER SELL, TXF.TO, AVGO,
-  TSM, MSFT, AAPL, QCOM, MSTR), CDN Financials (CM.TO, RY.TO, BMO.TO),
-  Other (ENB.TO, ET, SHEL, TSLA, IBKR, V, LYV, GBTC, BYDDF).
+HOLDINGS: the LIVE POSITIONS table below is the complete, current list. A ticker that is
+  not in that table is NOT held — never describe it as held, never estimate its value, and
+  never recommend selling or trimming it. NVDA in the TFSA is a never-sell position.
 
 SENSITIVITIES: 3x leverage amplifies S&P/NASDAQ/Dow both ways. VIX>22 = decay risk.
 
@@ -267,34 +267,74 @@ def fetch_fmp_market_movers(fmp_key: str) -> dict:
 
 
 def _fetch_tax_context() -> str:
-    """Fetch the user's live tax situation from KV settings (RRSP limit).
-    Returns a formatted string to inject into the LLM tax prompt."""
-    rrsp_limit = 0
+    """Tax facts for the prompt, from live settings — no hand-typed balances."""
     try:
-        r = requests.get("https://portfolio-pulse-dun.vercel.app/api/settings", timeout=8)
-        if r.ok:
-            rrsp_limit = float(r.json().get("rrsp_limit") or 0)
+        settings = requests.get(SETTINGS_API, timeout=10).json()
     except Exception:
-        pass
-
-    rrsp_contributions = 16132  # Current contributions from _CONTRIB_BASE
-    rrsp_room     = max(0, rrsp_limit - rrsp_contributions) if rrsp_limit > 0 else None
-    tax_saving    = round(rrsp_room * 0.43) if rrsp_room else None  # ~43% marginal rate
-
-    rrsp_str = (f"${rrsp_room:,.0f} room left, saves ~${tax_saving:,.0f} in tax. Oct bonus = deploy window."
-                if rrsp_limit > 0 and rrsp_room else
-                "Enter NOA limit to see exact room." if rrsp_limit == 0 else "Room fully used.")
-    return (f"TAX: TFSA/FHSA maxed+non-resident 2026 (no new contributions). "
-            f"RRSP: {rrsp_str} Cash ~$7,685 USD idle—deploy to BMO S&P500 ETF. "
-            f"Non-Reg: harvest MSTR/GBTC/BYD losses before Dec 31. "
-            f"FHSA($55K)+HBP($35K)=~$90K down payment. Jan 2027: $7K TFSA room opens.")
+        settings = {}
+    rrsp_limit = float(settings.get("rrsp_limit") or 0)
+    rrsp_in    = float((settings.get("contributions_cad") or {}).get("RRSP") or 0)
+    rrsp_room  = max(0.0, rrsp_limit - rrsp_in) if rrsp_limit > 0 else None
+    rrsp_str = (f"${rrsp_room:,.0f} RRSP room left." if rrsp_room else
+                "Enter NOA limit to see exact room." if rrsp_limit == 0 else "RRSP room fully used.")
+    return ("TAX (Ontario resident for tax purposes): TFSA/FHSA contributions suspended for 2026 (non-resident). "
+            f"{rrsp_str} "
+            "Home Buyers' Plan: up to $60,000, but never more than the RRSP balance (see LIVE POSITIONS). "
+            "Capital losses only offset capital gains — never say harvesting reduces salary/income tax. "
+            "Superficial loss rule covers ALL accounts: buying the same security in a TFSA/RRSP/FHSA within "
+            "30 days of a loss sale denies the loss. Canadian-listed US-equity ETFs still lose 15% US "
+            "withholding inside an RRSP; only US-listed funds held directly in the RRSP avoid it.")
 
 
 # US tickers to pull company-specific news for (Finnhub free tier, no .TO support)
-COMPANY_NEWS_TICKERS = [
+_FALLBACK_NEWS_TICKERS = [
     "NVDA", "TSLA", "AVGO", "COST", "MSFT", "AAPL", "QCOM",
-    "TSM", "IBKR", "V", "LYV", "MSTR", "SHEL", "SPXL", "FNGU", "UDOW",
+    "TSM", "IBKR", "V", "LYV", "SHEL", "SPXL", "FNGU", "UDOW",
 ]
+
+
+def _held_tickers() -> set:
+    """Tickers currently held, from the dashboard's computed holdings. Empty on failure."""
+    try:
+        settings = requests.get(SETTINGS_API, timeout=10).json()
+        return {h["ticker"] for h in settings.get("computed_holdings", [])
+                if h.get("ticker") and not h["ticker"].startswith("CASH") and float(h.get("shares") or 0) > 0}
+    except Exception:
+        return set()
+
+
+# Replaced in main() by the live US holdings (Finnhub's free tier has no .TO coverage).
+COMPANY_NEWS_TICKERS = list(_FALLBACK_NEWS_TICKERS)
+
+
+_EXPOSURE_TICKER = re.compile(r"\b([A-Z][A-Z0-9]{0,5}(?:\.TO)?)\s+\$")
+
+
+def _scrub_unheld(intel: dict, held: set, removed: list) -> dict:
+    """Drop items that put a dollar figure on a ticker you don't own, or tell you to sell one."""
+    if not held:
+        return intel
+    def unheld(text):
+        return [t for t in _EXPOSURE_TICKER.findall(text or "") if t not in held]
+    for key, field in (("news", "exposure"), ("risks", "context")):
+        keep = []
+        for item in intel.get(key) or []:
+            bad = unheld(item.get(field, "")) if isinstance(item, dict) else []
+            if bad:
+                removed.append(f"{key}: {item.get('headline') or item.get('title')} (not held: {', '.join(bad)})")
+            else:
+                keep.append(item)
+        if key in intel:
+            intel[key] = keep
+    picks = []
+    for p in intel.get("picks") or []:
+        if isinstance(p, dict) and str(p.get("action", "")).upper() in ("SELL", "TRIM") and p.get("ticker") not in held:
+            removed.append(f"picks: {p.get('action')} {p.get('ticker')} (not held)")
+        else:
+            picks.append(p)
+    if "picks" in intel:
+        intel["picks"] = picks
+    return intel
 
 # ============================================================
 # OUTPUT SCHEMA — must match renderAISection() in index.html
@@ -1029,6 +1069,10 @@ def main() -> int:
 
     # 2. Fetch company-specific news (rate-limited)
     print("2/3  Fetching holdings news...")
+    global COMPANY_NEWS_TICKERS
+    held_now = _held_tickers()
+    if held_now:
+        COMPANY_NEWS_TICKERS = sorted(t for t in held_now if "." not in t)
     company_news: dict[str, list[dict]] = {}
     for ticker in COMPANY_NEWS_TICKERS:
         company_news[ticker] = fetch_company_news(finnhub_key, ticker)
@@ -1094,6 +1138,11 @@ def main() -> int:
         portfolio_block=portfolio_block,
     ))
     intelligence.update(part_b)
+
+    removed_unheld: list = []
+    intelligence = _scrub_unheld(intelligence, _held_tickers(), removed_unheld)
+    for msg in removed_unheld:
+        print(f"  ✓ Removed — {msg}")
 
     removed_fx: list = []
     intelligence = _scrub_fx_in(intelligence, removed_fx)

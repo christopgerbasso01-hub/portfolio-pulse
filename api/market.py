@@ -20,64 +20,66 @@ _YF_HEADERS = {
 # To add a new position: log it via the dashboard — no code change needed.
 # =============================================================================
 _FALLBACK_HOLDINGS = [
+    # Snapshot of the dashboard's computed holdings on 2026-11-22. Used ONLY when KV is
+    # unreachable; responses then carry portfolio.source = "fallback" so the dashboard
+    # can say its figures are not live.
     # TFSA
-    {"ticker": "FNGU",   "account": "TFSA",       "shares": 495,  "cost_total": 13070.64, "ccy": "USD"},
-    {"ticker": "NVDA",   "account": "TFSA",        "shares": 40,   "cost_total": 645.60,   "ccy": "USD"},
-    {"ticker": "TXF.TO", "account": "TFSA",        "shares": 320,  "cost_total": 7033.29,  "ccy": "CAD"},
-    {"ticker": "SPXL",   "account": "TFSA",        "shares": 23,   "cost_total": 5573.74,  "ccy": "USD"},
-    {"ticker": "TSLA",   "account": "TFSA",        "shares": 14,   "cost_total": 4768.11,  "ccy": "USD"},
-    {"ticker": "UDOW",   "account": "TFSA",        "shares": 84,   "cost_total": 4245.40,  "ccy": "USD"},
-    {"ticker": "CM.TO",  "account": "TFSA",        "shares": 45,   "cost_total": 2957.00,  "ccy": "CAD"},
-    {"ticker": "AVGO",   "account": "TFSA",        "shares": 8,    "cost_total": 4376.37,  "ccy": "USD"},
-    {"ticker": "COST",   "account": "TFSA",        "shares": 3,    "cost_total": 1237.40,  "ccy": "USD"},
-    {"ticker": "NFLX",   "account": "TFSA",        "shares": 20,   "cost_total": 1448.10,  "ccy": "USD"},
-    {"ticker": "MSFT",   "account": "TFSA",        "shares": 2,    "cost_total": 489.94,   "ccy": "USD"},
-    {"ticker": "AAPL",   "account": "TFSA",        "shares": 4,    "cost_total": 642.26,   "ccy": "USD"},
-    {"ticker": "QCOM",   "account": "TFSA",        "shares": 5,    "cost_total": 640.05,   "ccy": "USD"},
-    {"ticker": "SHEL",   "account": "TFSA",        "shares": 22,   "cost_total": 1018.21,  "ccy": "USD"},
-    {"ticker": "ET",     "account": "TFSA",        "shares": 60,   "cost_total": 1067.57,  "ccy": "USD"},
-    {"ticker": "BMO.TO", "account": "TFSA",        "shares": 15,   "cost_total": 1767.36,  "ccy": "CAD"},
-    # Non-Reg Investment
-    {"ticker": "SPXL",   "account": "Investment",  "shares": 75,   "cost_total": 13363.23, "ccy": "USD"},
-    {"ticker": "FNGU",   "account": "Investment",  "shares": 665,  "cost_total": 18137.79, "ccy": "USD"},
-    {"ticker": "CM.TO",  "account": "Investment",  "shares": 50,   "cost_total": 6674.45,  "ccy": "CAD"},
-    {"ticker": "TXF.TO", "account": "Investment",  "shares": 221,  "cost_total": 4955.93,  "ccy": "CAD"},
-    {"ticker": "TSM",    "account": "Investment",  "shares": 9,    "cost_total": 3697.84,  "ccy": "USD"},
-    {"ticker": "RY.TO",  "account": "Investment",  "shares": 19,   "cost_total": 3895.45,  "ccy": "CAD"},
-    {"ticker": "IBKR",   "account": "Investment",  "shares": 40,   "cost_total": 3195.14,  "ccy": "USD"},
-    {"ticker": "V",      "account": "Investment",  "shares": 4,    "cost_total": 1250.66,  "ccy": "USD"},
-    {"ticker": "LYV",    "account": "Investment",  "shares": 11,   "cost_total": 1307.80,  "ccy": "USD"},
-    {"ticker": "MSTR",   "account": "Investment",  "shares": 4,    "cost_total": 1780.74,  "ccy": "USD"},
-    {"ticker": "GBTC",   "account": "Investment",  "shares": 25,   "cost_total": 2608.25,  "ccy": "USD"},
-    {"ticker": "BYDDF",  "account": "Investment",  "shares": 3,    "cost_total": 74.00,    "ccy": "USD"},
-    {"ticker": "AVGO",   "account": "Investment",  "shares": 22,   "cost_total": 9071.04,  "ccy": "USD"},
+    {"ticker": "FNGU",    "account": "TFSA",        "shares": 495, "cost_total": 9435.62, "ccy": "USD"},
+    {"ticker": "NVDA",    "account": "TFSA",        "shares": 40, "cost_total": 471.15, "ccy": "USD"},
+    {"ticker": "TXF.TO",  "account": "TFSA",        "shares": 320, "cost_total": 7033.29, "ccy": "CAD"},
+    {"ticker": "SPXL",    "account": "TFSA",        "shares": 23, "cost_total": 4067.61, "ccy": "USD"},
+    {"ticker": "TSLA",    "account": "TFSA",        "shares": 14, "cost_total": 3479.76, "ccy": "USD"},
+    {"ticker": "UDOW",    "account": "TFSA",        "shares": 84, "cost_total": 3098.21, "ccy": "USD"},
+    {"ticker": "CM.TO",   "account": "TFSA",        "shares": 54, "cost_total": 4378.96, "ccy": "CAD"},
+    {"ticker": "AVGO",    "account": "TFSA",        "shares": 8, "cost_total": 3223.61, "ccy": "USD"},
+    {"ticker": "COST",    "account": "TFSA",        "shares": 3, "cost_total": 903.03, "ccy": "USD"},
+    {"ticker": "NFLX",    "account": "TFSA",        "shares": 20, "cost_total": 1056.79, "ccy": "USD"},
+    {"ticker": "MSFT",    "account": "TFSA",        "shares": 2, "cost_total": 357.55, "ccy": "USD"},
+    {"ticker": "AAPL",    "account": "TFSA",        "shares": 4, "cost_total": 468.71, "ccy": "USD"},
+    {"ticker": "QCOM",    "account": "TFSA",        "shares": 5, "cost_total": 467.1, "ccy": "USD"},
+    {"ticker": "SHEL",    "account": "TFSA",        "shares": 22, "cost_total": 1018.21, "ccy": "USD"},
+    {"ticker": "ET",      "account": "TFSA",        "shares": 60, "cost_total": 803.28, "ccy": "USD"},
+    {"ticker": "BMO.TO",  "account": "TFSA",        "shares": 15, "cost_total": 1661.44, "ccy": "CAD"},
+    # Investment
+    {"ticker": "SPXL",    "account": "Investment",  "shares": 75, "cost_total": 9785.05, "ccy": "USD"},
+    {"ticker": "FNGU",    "account": "Investment",  "shares": 665, "cost_total": 13266.68, "ccy": "USD"},
+    {"ticker": "CM.TO",   "account": "Investment",  "shares": 50, "cost_total": 6674.45, "ccy": "CAD"},
+    {"ticker": "TXF.TO",  "account": "Investment",  "shares": 415, "cost_total": 10287.3, "ccy": "CAD"},
+    {"ticker": "RY.TO",   "account": "Investment",  "shares": 19, "cost_total": 3895.45, "ccy": "CAD"},
+    {"ticker": "IBKR",    "account": "Investment",  "shares": 40, "cost_total": 2331.75, "ccy": "USD"},
+    {"ticker": "TSM",     "account": "Investment",  "shares": 9, "cost_total": 2652.27, "ccy": "USD"},
+    {"ticker": "LYV",     "account": "Investment",  "shares": 11, "cost_total": 954.41, "ccy": "USD"},
+    {"ticker": "V",       "account": "Investment",  "shares": 4, "cost_total": 912.71, "ccy": "USD"},
+    {"ticker": "SOXL",    "account": "Investment",  "shares": 245, "cost_total": 18196.84, "ccy": "USD"},
+    {"ticker": "ZWB.TO",  "account": "Investment",  "shares": 237, "cost_total": 7345.1, "ccy": "CAD"},
     # FHSA
-    {"ticker": "SPXL",   "account": "FHSA",        "shares": 53,   "cost_total": 7096.23,  "ccy": "USD"},
-    {"ticker": "TXF.TO", "account": "FHSA",        "shares": 434,  "cost_total": 11411.13, "ccy": "CAD"},
-    {"ticker": "UDOW",   "account": "FHSA",        "shares": 86,   "cost_total": 5329.56,  "ccy": "USD"},
-    {"ticker": "FNGU",   "account": "FHSA",        "shares": 157,  "cost_total": 4159.25,  "ccy": "USD"},
-    {"ticker": "ENB.TO", "account": "FHSA",        "shares": 82,   "cost_total": 4499.84,  "ccy": "CAD"},
+    {"ticker": "SPXL",    "account": "FHSA",        "shares": 53, "cost_total": 5180.21, "ccy": "USD"},
+    {"ticker": "TXF.TO",  "account": "FHSA",        "shares": 434, "cost_total": 11411.13, "ccy": "CAD"},
+    {"ticker": "UDOW",    "account": "FHSA",        "shares": 86, "cost_total": 3889.41, "ccy": "USD"},
+    {"ticker": "FNGU",    "account": "FHSA",        "shares": 157, "cost_total": 2995.88, "ccy": "USD"},
+    {"ticker": "ENB.TO",  "account": "FHSA",        "shares": 82, "cost_total": 4499.84, "ccy": "CAD"},
     # RRSP
-    {"ticker": "TXF.TO", "account": "RRSP",        "shares": 284,  "cost_total": 6184.11,  "ccy": "CAD"},
-    {"ticker": "TSM",    "account": "RRSP",         "shares": 6,    "cost_total": 3232.08,  "ccy": "USD"},
-    {"ticker": "UDOW",   "account": "RRSP",         "shares": 36,   "cost_total": 2554.37,  "ccy": "USD"},
-    {"ticker": "FNGU",   "account": "RRSP",         "shares": 56,   "cost_total": 1491.56,  "ccy": "USD"},
-    {"ticker": "MU",     "account": "RRSP",         "shares": 7,    "cost_total": 7025.06,  "ccy": "USD"},
-    # Fallback cash — these are the base values before any dashboard transactions
-    {"ticker": "_CASH_USD", "account": "TFSA",       "shares": 1, "cost_total": 344.41,  "ccy": "USD", "cash": True},
-    {"ticker": "_CASH_CAD", "account": "FHSA",       "shares": 1, "cost_total": 24.34,   "ccy": "CAD", "cash": True},
-    {"ticker": "_CASH_USD", "account": "Investment", "shares": 1, "cost_total": 301.38,  "ccy": "USD", "cash": True},
-    {"ticker": "_CASH_USD", "account": "RRSP",       "shares": 1, "cost_total": 653.26,  "ccy": "USD", "cash": True},
+    {"ticker": "TXF.TO",  "account": "RRSP",        "shares": 395, "cost_total": 9121.13, "ccy": "CAD"},
+    {"ticker": "TSM",     "account": "RRSP",        "shares": 6, "cost_total": 2390.38, "ccy": "USD"},
+    {"ticker": "UDOW",    "account": "RRSP",        "shares": 36, "cost_total": 1807.06, "ccy": "USD"},
+    {"ticker": "FNGU",    "account": "RRSP",        "shares": 56, "cost_total": 1068.64, "ccy": "USD"},
+    {"ticker": "SOXL",    "account": "RRSP",        "shares": 63, "cost_total": 7570.08, "ccy": "USD"},
+    # Cash
+    {"ticker": "_CASH_USD", "account": "TFSA", "shares": 1, "cost_total": 15.56, "ccy": "USD", "cash": True},
+    {"ticker": "_CASH_CAD", "account": "FHSA", "shares": 1, "cost_total": 1198.67, "ccy": "CAD", "cash": True},
+    {"ticker": "_CASH_CAD", "account": "Investment", "shares": 1, "cost_total": 25.0, "ccy": "CAD", "cash": True},
+    {"ticker": "_CASH_CAD", "account": "TFSA", "shares": 1, "cost_total": 146.15, "ccy": "CAD", "cash": True},
+    {"ticker": "_CASH_CAD", "account": "RRSP", "shares": 1, "cost_total": 112.36, "ccy": "CAD", "cash": True},
 ]
 
 # Fallback constants — used only when KV is unavailable
 _FALLBACK_CONTRIBUTIONS_CAD = {
-    "TFSA":       44500.0,
-    "Investment": 85000.0,
-    "FHSA":       24000.0,
-    "RRSP":       16132.0,
+    "TFSA": 44500.0,
+    "Investment": 106000.0,
+    "FHSA": 24000.0,
+    "RRSP": 18763.0,
 }
-_FALLBACK_REALIZED_GAINS_CAD = 22193
+_FALLBACK_REALIZED_GAINS_CAD = 18982
 _FALLBACK_USD_BOOK_RATE      = 1.3925
 
 BENCHMARKS = {
@@ -204,6 +206,7 @@ def _fetch_one(session, ticker):
             _fetch_errors[ticker] = "no price in response"
             return ticker, None
         prev = prev or curr
+        session_date, last_prev = None, None
         # If the last trade timestamp is not from today (holiday / weekend),
         # no trading has occurred today — zero out the daily change.
         last_trade_ts = meta.get("regularMarketTime")
@@ -217,8 +220,12 @@ def _fetch_one(session, ticker):
                 et_offset = -4 if 3 <= now_utc.month <= 11 else -5
                 today_et = (now_utc + timedelta(hours=et_offset)).date()
                 trade_dt_et = (datetime.fromtimestamp(last_trade_ts, tz=timezone.utc) + timedelta(hours=et_offset)).date()
+                session_date = trade_dt_et.isoformat()
                 if trade_dt_et != today_et:
-                    prev = curr   # market hasn't traded today — show 0 change
+                    # Market hasn't traded today: keep the last session's move
+                    # (shown as e.g. "Fri") but report 0 for *today*.
+                    last_prev = prev
+                    prev = curr
             except Exception:
                 pass
         is_fx = ticker.endswith('=X') or ticker.endswith('-CAD') or ticker.endswith('-USD')
@@ -228,6 +235,8 @@ def _fetch_one(session, ticker):
             "prev":       round(prev, decimals),
             "change":     round(curr - prev, decimals),
             "change_pct": round((curr - prev) / prev * 100, 2),
+            "session":    session_date,
+            "last_change_pct": round((curr - last_prev) / last_prev * 100, 2) if last_prev else None,
         }
     except Exception as e:
         _fetch_errors[ticker] = str(e)
@@ -246,7 +255,7 @@ def fetch_prices(extra_tickers: set = None) -> dict:
         return _price_cache
 
     base_tickers  = {h["ticker"] for h in _FALLBACK_HOLDINGS if not h.get("cash")}
-    bench_tickers = set(BENCHMARKS.values())
+    bench_tickers = set(BENCHMARKS.values()) | set(BENCH_FUNDS.values())
     all_tickers   = base_tickers | bench_tickers | (extra_tickers or set())
 
     _fetch_errors.clear()
@@ -263,6 +272,203 @@ def fetch_prices(extra_tickers: set = None) -> dict:
     _price_cache_ts = now
     return prices
 
+
+# =============================================================================
+# Contribution-weighted benchmark
+# -----------------------------------------------------------------------------
+# Every contribution "buys" each benchmark on its own date, at that day's
+# dividend-adjusted close, so the benchmark is a true like-for-like: same
+# dollars, same dates, dividends reinvested. Value today = Σ amount × P_now / P_then.
+#
+# Amounts are CAD and are applied to each fund's own-currency return, which is
+# the same as converting at one rate (today's) on both ends — FX is left out
+# by design. Funds track the indexes the dashboard names:
+#   S&P 500 → SPY · S&P/TSX Composite → XIC.TO · NASDAQ-100 → QQQ
+#
+# Units (CAD per adjusted price point) are recomputed once a day, because
+# Yahoo rescales adjusted history after every distribution; between those
+# recomputes the live value is units × live price, with no compounding drift.
+# =============================================================================
+BENCH_FUNDS = {"sp500": "SPY", "tsx": "XIC.TO", "nasdaq": "QQQ"}
+
+# Contributions made before the transaction log began (2026-06-04), by month,
+# from the dashboard's contribution history. Dated the 15th; anything before
+# Jan 2021 is booked to Jan 2021, the earliest month on record. Everything
+# after comes from CONTRIBUTION transactions in KV with exact dates.
+PRELOG_CONTRIBUTIONS = [
+    ("2021-01", "TFSA", 15000), ("2021-02", "TFSA", 1000), ("2021-03", "TFSA", 1000),
+    ("2021-04", "TFSA", 1000), ("2021-08", "Investment", 15000), ("2022-01", "TFSA", 3000),
+    ("2023-01", "TFSA", 2000), ("2023-07", "FHSA", 8000), ("2024-01", "FHSA", 8000),
+    ("2024-04", "TFSA", 7000), ("2024-06", "TFSA", 7500), ("2024-10", "RRSP", 9026),
+    ("2024-12", "FHSA", 8000), ("2024-12", "TFSA", 7000), ("2025-05", "Investment", 8368),
+    ("2025-05", "RRSP", 7106), ("2025-06", "Investment", 4000), ("2025-10", "Investment", 16000),
+    ("2026-03", "Investment", 15000), ("2026-04", "Investment", 6632),
+]
+
+
+def contribution_events(transactions: list) -> list:
+    """Dated contributions: the pre-log history plus every logged CONTRIBUTION."""
+    ev = [{"date": f"{m}-15", "account": a, "amount": float(x)} for m, a, x in PRELOG_CONTRIBUTIONS]
+    for t in transactions or []:
+        if t.get("type") == "CONTRIBUTION" and t.get("date") and t.get("amount"):
+            ev.append({"date": t["date"][:10], "account": t.get("account", ""), "amount": float(t["amount"])})
+    ev.sort(key=lambda e: e["date"])
+    return ev
+
+
+def _adj_history(session, ticker: str) -> list:
+    """[(YYYY-MM-DD, adjusted close)] daily since 2020, oldest first."""
+    url = (f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}"
+           f"?period1=1577836800&period2={int(time.time())}&interval=1d&events=div")
+    r = session.get(url, headers=_YF_HEADERS, timeout=10)
+    r.raise_for_status()
+    res = r.json()["chart"]["result"][0]
+    ts  = res.get("timestamp") or []
+    ind = res.get("indicators", {})
+    adj = (ind.get("adjclose") or [{}])[0].get("adjclose") or (ind.get("quote") or [{}])[0].get("close") or []
+    out = []
+    for t, a in zip(ts, adj):
+        if a is None:
+            continue
+        out.append((datetime.fromtimestamp(t, tz=timezone.utc).strftime("%Y-%m-%d"), float(a)))
+    return out
+
+
+def benchmark_units(events: list, histories: dict) -> dict:
+    """{account: {bench: units}} — units = CAD amount / adjusted close on (or after) the date."""
+    import bisect
+    units = {}
+    for bench, hist in histories.items():
+        if not hist:
+            continue
+        dates = [d for d, _ in hist]
+        for e in events:
+            i = bisect.bisect_left(dates, e["date"])
+            if i >= len(hist):
+                i = len(hist) - 1          # contribution after the last close → today's price
+            px = hist[i][1]
+            if px > 0:
+                units.setdefault(e["account"], {}).setdefault(bench, 0.0)
+                units[e["account"]][bench] += e["amount"] / px
+    return units
+
+
+def month_end_closes(hist: list) -> dict:
+    """{YYYY-MM: last adjusted close of that month}."""
+    out = {}
+    for d, a in hist:
+        out[d[:7]] = a
+    return out
+
+
+_units_cache = {}
+
+
+def get_benchmark_model(settings: dict):
+    """Units per account and month-end closes, cached in memory and in KV for the day."""
+    global _units_cache
+    events = contribution_events(settings.get("transactions") or [])
+    key = datetime.now(timezone.utc).strftime("%Y-%m-%d") + "|" + str(round(sum(e["amount"] for e in events))) + "|" + str(len(events))
+    if _units_cache.get("key") == key:
+        return _units_cache
+    try:
+        cached = _kv_cmd(["GET", "benchmark:model"])
+        if cached and cached.get("key") == key:
+            _units_cache = cached
+            return cached
+    except Exception:
+        pass
+    try:
+        session = requests.Session()
+        with ThreadPoolExecutor(max_workers=3) as ex:
+            futs = {b: ex.submit(_adj_history, session, t) for b, t in BENCH_FUNDS.items()}
+            hists = {b: f.result() for b, f in futs.items()}
+    except Exception as exc:
+        _fetch_errors["benchmark_history"] = str(exc)
+        return _units_cache or None
+    model = {
+        "key":     key,
+        "as_of":   max((h[-1][0] for h in hists.values() if h), default=None),
+        "funds":   BENCH_FUNDS,
+        "units":   benchmark_units(events, hists),
+        "monthly": {b: month_end_closes(h) for b, h in hists.items()},
+        "events":  events,
+    }
+    _units_cache = model
+    try:
+        _kv_cmd(["SET", "benchmark:model", json.dumps(model), "EX", 3 * 86400])
+    except Exception:
+        pass
+    return model
+
+
+def _kv_cmd(cmd: list):
+    if not KV_URL or not KV_TOKEN:
+        return None
+    r = requests.post(KV_URL, headers={"Authorization": f"Bearer {KV_TOKEN}",
+                                       "Content-Type": "application/json"},
+                      json=cmd, timeout=5)
+    r.raise_for_status()
+    raw = r.json().get("result")
+    if isinstance(raw, str) and raw[:1] in "{[":
+        return json.loads(raw)
+    return raw
+
+
+
+
+# =============================================================================
+# Dividend history — trailing 12 months per held ticker, for the income forecast.
+# Cached for the day in memory and KV (one Yahoo call per ticker per day).
+# =============================================================================
+_div_cache = {}
+
+
+def _div_events(session, ticker: str) -> list:
+    url = (f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}"
+           f"?range=1y&interval=1d&events=div")
+    r = session.get(url, headers=_YF_HEADERS, timeout=8)
+    r.raise_for_status()
+    res = r.json()["chart"]["result"][0]
+    divs = ((res.get("events") or {}).get("dividends") or {}).values()
+    cutoff = time.time() - 365 * 86400
+    out = [{"date": datetime.fromtimestamp(d["date"], tz=timezone.utc).strftime("%Y-%m-%d"),
+            "amount": round(float(d["amount"]), 6)}
+           for d in divs if d.get("date", 0) >= cutoff and d.get("amount")]
+    return sorted(out, key=lambda x: x["date"])
+
+
+def get_dividend_model(tickers: set):
+    global _div_cache
+    tickers = sorted(t for t in tickers if t and not t.upper().startswith("CASH"))
+    key = datetime.now(timezone.utc).strftime("%Y-%m-%d") + "|" + ",".join(tickers)
+    if _div_cache.get("key") == key:
+        return _div_cache
+    try:
+        cached = _kv_cmd(["GET", "dividend:model"])
+        if cached and cached.get("key") == key:
+            _div_cache = cached
+            return cached
+    except Exception:
+        pass
+    session, hist, failed = requests.Session(), {}, []
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futs = {ex.submit(_div_events, session, t): t for t in tickers}
+        for f in as_completed(futs):
+            t = futs[f]
+            try:
+                hist[t] = f.result()
+            except Exception:
+                failed.append(t)
+    model = {"key": key, "as_of": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+             "history": hist, "failed": sorted(failed)}
+    if not failed:   # don't pin a partial result for the whole day
+        try:
+            _kv_cmd(["SET", "dividend:model", json.dumps(model), "EX", 2 * 86400])
+        except Exception:
+            pass
+    _div_cache = model
+    return model
 
 # =============================================================================
 # Portfolio computation
@@ -329,6 +535,7 @@ def _compute_from_kv(equity: list, cash: list, prices: dict, usdcad: float,
         "daily_change_pct":  round(daily_change / base_val * 100, 2) if base_val else 0,
         "accounts":          {k: round(v) for k, v in accounts.items()},
         "account_cost":      {k: round(v) for k, v in contributions.items()},
+        "source":            "kv",
     }
 
 
@@ -388,6 +595,7 @@ def _compute_from_fallback(prices: dict, usdcad: float) -> dict:
         "daily_change_pct":  round(daily_change / base_val * 100, 2) if base_val else 0,
         "accounts":          {k: round(v) for k, v in accounts.items()},
         "account_cost":      {k: round(v) for k, v in _FALLBACK_CONTRIBUTIONS_CAD.items()},
+        "source":            "fallback",
     }
 
 
@@ -459,8 +667,22 @@ class handler(BaseHTTPRequestHandler):
         # live-compounded values instead of frozen hardcoded constants.
         benchmark_state = _kv_get_benchmark_state() or None
 
+        # ── Contribution-weighted benchmark model (units per account) ────────
+        try:
+            benchmark_model = get_benchmark_model(_kv_get_settings())
+        except Exception as exc:
+            _fetch_errors["benchmark_model"] = str(exc)
+            benchmark_model = None
+        benchmark_funds = {b: prices[t] for b, t in BENCH_FUNDS.items() if t in prices}
+        try:
+            dividend_model = get_dividend_model({h.get("ticker", "") for h in
+                                                 (_kv_get_settings().get("computed_holdings") or [])})
+        except Exception as exc:
+            _fetch_errors["dividend_model"] = str(exc)
+            dividend_model = None
+
         # ── Holdings prices — all fetched tickers except benchmarks ──────────
-        bench_set      = set(BENCHMARKS.values())
+        bench_set      = set(BENCHMARKS.values()) | set(BENCH_FUNDS.values())
         holdings_prices = {
             t: p for t, p in prices.items()
             if t not in bench_set
@@ -471,6 +693,9 @@ class handler(BaseHTTPRequestHandler):
             "usdcad":         _safe_float(prices.get("USDCAD=X", {}).get("price")) or 1.37,
             "benchmarks":     benchmarks,
             "benchmark_state": benchmark_state,
+            "benchmark_model": benchmark_model,
+            "benchmark_funds": benchmark_funds,
+            "dividend_model":  dividend_model,
             "holdings":       holdings_prices,
             "portfolio":      portfolio,
             "_debug_errors":  dict(_fetch_errors) if _fetch_errors else None,

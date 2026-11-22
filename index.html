@@ -1794,7 +1794,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
           <div class="pp-hero-figure">
             <div class="pp-hero-value" id="heroMV">—</div>
             <div class="pp-hero-day">
-              <span class="pp-hero-day-abs" id="heroDayChg">—</span><span class="pp-hero-sep">·</span><span class="pp-hero-day-pct" id="heroDayPct">—</span><span class="pp-hero-day-suffix">today</span>
+              <span class="pp-hero-day-abs" id="heroDayChg">—</span><span class="pp-hero-sep">·</span><span class="pp-hero-day-pct" id="heroDayPct">—</span><span class="pp-hero-day-suffix" id="heroDaySuffix">today</span>
             </div>
           </div>
         </div>
@@ -1809,8 +1809,8 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       <div class="pp-hero-stats">
         <div class="pp-stat"><div class="pp-stat-label">Total Contributions</div><div class="pp-stat-val" id="heroContrib">—</div></div>
         <div class="pp-stat"><div class="pp-stat-label">Unrealized P&amp;L</div><div class="pp-stat-val" id="heroUnrealized">—</div></div>
-        <div class="pp-stat"><div class="pp-stat-label">Realized P&amp;L</div><div class="pp-stat-val" id="heroRealized">—</div></div>
-        <div class="pp-stat"><div class="pp-stat-label">Total Dividends</div><div class="pp-stat-val" id="heroDividends">—</div></div>
+        <div class="pp-stat"><div class="pp-stat-label">Realized P&amp;L <span style="text-transform:none;opacity:.7">(incl. dividends)</span></div><div class="pp-stat-val" id="heroRealized">—</div></div>
+        <div class="pp-stat"><div class="pp-stat-label">Dividends <span style="text-transform:none;opacity:.7">(part of realized)</span></div><div class="pp-stat-val" id="heroDividends">—</div></div>
         <div class="pp-stat"><div class="pp-stat-label">Cash on Hand</div><div class="pp-stat-val" id="heroCash">—</div></div>
         <div class="pp-stat"><div class="pp-stat-label">FX Conversion</div><div class="pp-stat-val" id="heroFX">—</div></div>
       </div>
@@ -2024,8 +2024,8 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       </div>
       <div style="margin-top:8px;font-size:11px;color:var(--green)" id="bmAlphaLine">✓ Portfolio ALPHA over S&amp;P 500: +64.3 percentage points</div>
       <div style="margin-top:10px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:6px;padding:8px 12px;font-size:10px;color:var(--text3);line-height:1.6" id="bmMethodology">
-        <b style="color:var(--text2)">How benchmarks are calculated:</b> Each index assumes your exact same dollar contributions (<span id="benchmarkContribDesc">$169,632 total</span>) were deposited into the index on the same dates as your portfolio — this is <em>contribution-weighted</em> benchmarking, not simple point-to-point returns.
-        <br><b style="color:var(--text2)">Example (S&P 500):</b> <span id="benchmarkContribDescEx">$169,632</span> contributed since Aug 2021, weighted by deposit timing → <span id="bmSP500ExampleVal" style="color:var(--blue-bright);font-family:var(--mono)">$191,800</span> if invested in SPY. Live daily index moves are applied on each refresh. Your portfolio's actual value vs this benchmark = your alpha.
+        <b style="color:var(--text2)">How benchmarks are calculated:</b> each of your contributions (<span id="benchmarkContribDesc">—</span>) is invested in the index fund on the date you made it — SPY for the S&amp;P 500, XIC.TO for the TSX, QQQ for the NASDAQ-100 — at that day's dividend-adjusted close, so dividends are reinvested just as yours are. Currency moves are left out (one exchange rate on both ends). Contributions from before 2021 are dated Jan 2021, the earliest month on record.
+        <br><b style="color:var(--text2)">Example (S&amp;P 500):</b> <span id="benchmarkContribDescEx">—</span> contributed on your dates → <span id="bmSP500ExampleVal" style="color:var(--blue-bright);font-family:var(--mono)">—</span> in SPY today. Annualized figures are money-weighted (XIRR), so they account for when each dollar went in.
       </div>
     </div>
     <!-- Right: contributions chart -->
@@ -2034,6 +2034,15 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       <div class="chart-container"><canvas id="contribChart"></canvas></div>
     </div>
   </div>
+</div>
+
+<!-- ================================================================  ANNUALIZED RETURN & RISK -->
+<div class="section" id="secPerf" data-tab="portfolio">
+  <div class="section-header">
+    <span class="section-num">%</span>
+    <span class="section-title">ANNUALIZED RETURN &amp; RISK</span>
+  </div>
+  <div id="perfPanel"><div style="font-size:12px;color:var(--text3)">Loading…</div></div>
 </div>
 
 <!-- ================================================================  03: ACCOUNTS -->
@@ -2165,8 +2174,8 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
           <th onclick="sortTable(9)">Day Gain $ ↕</th>
           <th onclick="sortTable(10)">Day Gain % ↕</th>
           <th onclick="sortTable(11)">Dividends ↕</th>
-          <th onclick="sortTable(12)">Total P/L $ ↕</th>
-          <th onclick="sortTable(13)">Total Return % ↕</th>
+          <th onclick="sortTable(12)" title="Unrealized + realized gains + dividends, in CAD">Total P/L $ ↕</th>
+          <th onclick="sortTable(13)" title="Total P/L $ (including past sales and dividends) ÷ the cost of the shares you still hold. Can differ from the account cards, which show unrealized return only.">Total Return % ↕</th>
           <th onclick="sortTable(14)" style="display:none">Unrealized ↕</th>
           <th onclick="sortTable(15)" style="display:none">Realized ↕</th>
         </tr>
@@ -2194,6 +2203,15 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
       </tfoot>
     </table>
   </div>
+</div>
+
+<!-- ================================================================  DIVIDEND INCOME -->
+<div class="section" id="secIncome" data-tab="holdings">
+  <div class="section-header">
+    <span class="section-num">$</span>
+    <span class="section-title">DIVIDEND INCOME — NEXT 12 MONTHS</span>
+  </div>
+  <div id="incomePanel"><div style="font-size:12px;color:var(--text3)">Loading…</div></div>
 </div>
 
 <!-- ================================================================  INTELLIGENCE BANNER -->
@@ -2590,6 +2608,7 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 
 <!-- ================================================================  FOOTER -->
 <div class="footer">
+  <details id="dataHealth" style="max-width:760px;margin:0 auto 12px"></details>
   <p style="font-size:10px;color:var(--text3)">Powered by Claude</p>
   <p id="footerTimestamp"></p>
 </div>
@@ -3074,53 +3093,56 @@ function updateHeaderKPIs(data) {
     : _totalContrib;
   const _filteredRoi    = _filteredContrib > 0 ? ((_filteredMV - _filteredContrib) / _filteredContrib * 100) : clientRoi || 0;
 
-  document.getElementById('bmPortfolioLabel').textContent = `${fmt$(_filteredMV)} · +${_filteredRoi.toFixed(1)}%`;
+  // ── Contribution-weighted benchmark (market.py → benchmark_model) ──────────
+  // Each contribution buys SPY / XIC.TO / QQQ on its own date at the dividend-
+  // adjusted close; value = units × live fund price. Per-account units come from
+  // that account's own contribution dates, so account views need no scaling.
+  const _bmVals  = benchmarkValues(_activeAcctKey, data);
+  const _sgn     = v => (v >= 0 ? '+' : '−');
+  const _pctStr  = v => `${_sgn(v)}${Math.abs(v).toFixed(1)}%`;
+  const _barMax  = Math.max(_filteredMV, ...Object.values(_bmVals || {}));
+  const _barW    = v => (_barMax > 0 ? Math.max(2, v / _barMax * 100) : 0).toFixed(1) + '%';
+
+  document.getElementById('bmPortfolioLabel').textContent = `${fmt$(_filteredMV)} · ${_pctStr(_filteredRoi)}`;
   document.getElementById('bmPortfolioBar').textContent   = fmt$(_filteredMV);
+  document.getElementById('bmPortfolioBar').style.width   = _barW(_filteredMV);
 
-  // Index bars: use contribution-weighted base values from KV (updated nightly by EOD snapshot).
-  // Falls back to seed values (scaled from original calibration) if KV not yet populated.
-  const _bmState = (data && data.benchmark_state) || {};
-  const _bmRef   = (_bmState.ref_contrib) || 162632;
-  /* Scale: filtered_contrib / ref_contrib gives the right proportion for any account view */
-  const _bmScale = _bmRef > 0 ? (_filteredContrib / _bmRef) : 1;
-  const _bmBases = {
-    sp500:  { val: (_bmState.sp500_val  || 208478) * _bmScale },
-    tsx:    { val: (_bmState.tsx_val    || 201435) * _bmScale },
-    nasdaq: { val: (_bmState.nasdaq_val || 213384) * _bmScale },
-  };
-  const _bmMap = [
-    ['bmSP500Label',  'bmSP500Bar',  bench.sp500,   _bmBases.sp500,  'var(--blue-bright)'],
-    ['bmTSXLabel',    'bmTSXBar',    bench.tsx,     _bmBases.tsx,    'var(--amber)'],
-    ['bmNASDAQLabel', 'bmNASDAQBar', bench.nasdaq,  _bmBases.nasdaq, 'var(--purple)'],
-  ];
-  _bmMap.forEach(([lblId, barId, bData, base, clr]) => {
-    const liveVal = bData?.change_pct != null
-      ? Math.round(base.val * (1 + bData.change_pct / 100))
-      : Math.round(base.val);
-    // Compute ROI from actual $ values vs. contribution — keeps % and $ consistent
-    const liveRoi = _filteredContrib > 0
-      ? ((liveVal - _filteredContrib) / _filteredContrib * 100).toFixed(1)
-      : base.roi.toFixed(1);
-    const roiSign = parseFloat(liveRoi) >= 0 ? '+' : '';
-    const lbl = document.getElementById(lblId);
-    const bar = document.getElementById(barId);
-    if (lbl) lbl.textContent = `${fmt$(liveVal)} · ${roiSign}${liveRoi}%`;
-    if (bar) {
-      bar.textContent = fmt$(liveVal);
-      bar.style.width = Math.min(99, _filteredMV > 0 ? (liveVal / _filteredMV * 100) : 0).toFixed(1) + '%';
-    }
-  });
+  [['bmSP500Label', 'bmSP500Bar', 'sp500'], ['bmTSXLabel', 'bmTSXBar', 'tsx'], ['bmNASDAQLabel', 'bmNASDAQBar', 'nasdaq']]
+    .forEach(([lblId, barId, key]) => {
+      const lbl = document.getElementById(lblId), bar = document.getElementById(barId);
+      const v = _bmVals && _bmVals[key];
+      if (v == null) {                       // model not loaded yet — never show a made-up number
+        if (lbl) lbl.textContent = 'calculating…';
+        if (bar) { bar.textContent = ''; bar.style.width = '0%'; }
+        return;
+      }
+      const roi = _filteredContrib > 0 ? (v - _filteredContrib) / _filteredContrib * 100 : 0;
+      if (lbl) lbl.textContent = `${fmt$(Math.round(v))} · ${_pctStr(roi)}`;
+      if (bar) { bar.textContent = fmt$(Math.round(v)); bar.style.width = _barW(v); }
+    });
 
-  // Alpha line + benchmark example value
-  const sp500LiveVal = _bmBases.sp500.val * (bench.sp500 ? (1 + bench.sp500.change_pct / 100) : 1);
+  // Alpha line + example value + annualized (money-weighted) returns
   const sp500ExEl = document.getElementById('bmSP500ExampleVal');
-  if (sp500ExEl) sp500ExEl.textContent = fmt$(Math.round(sp500LiveVal));
-  const spRoi = _filteredContrib > 0 ? ((sp500LiveVal - _filteredContrib) / _filteredContrib * 100) : 0;
+  if (sp500ExEl) sp500ExEl.textContent = _bmVals?.sp500 != null ? fmt$(Math.round(_bmVals.sp500)) : '—';
   const alphaEl = document.getElementById('bmAlphaLine');
   if (alphaEl) {
-    const alpha = (_filteredRoi - spRoi).toFixed(1);
-    const label = _activeAcctKey ? `${_activeAcctKey} ALPHA` : 'Portfolio ALPHA';
-    alphaEl.textContent = `✓ ${label} over S&P 500: +${parseFloat(alpha) > 0 ? alpha : '—'} percentage points`;
+    const label = _activeAcctKey ? `${_activeAcctKey}` : 'Portfolio';
+    if (_bmVals?.sp500 == null) {
+      alphaEl.textContent = 'Benchmark loading…';
+      alphaEl.style.color = 'var(--text3)';
+    } else {
+      const spRoi = _filteredContrib > 0 ? (_bmVals.sp500 - _filteredContrib) / _filteredContrib * 100 : 0;
+      const alpha = _filteredRoi - spRoi;
+      const gap   = _filteredMV - _bmVals.sp500;
+      const irr   = portfolioIrr(_activeAcctKey, _filteredMV, data);
+      const spIrr = portfolioIrr(_activeAcctKey, _bmVals.sp500, data);
+      const irrTxt = irr != null && spIrr != null
+        ? ` · ${_pctStr(irr * 100)}/yr vs ${_pctStr(spIrr * 100)}/yr annualized` : '';
+      alphaEl.textContent = alpha >= 0
+        ? `✓ ${label} AHEAD of the S&P 500 by ${alpha.toFixed(1)} percentage points (${fmt$(Math.round(gap))})${irrTxt}`
+        : `✗ ${label} BEHIND the S&P 500 by ${Math.abs(alpha).toFixed(1)} percentage points (−${fmt$(Math.round(-gap))})${irrTxt}`;
+      alphaEl.style.color = alpha >= 0 ? 'var(--green)' : 'var(--red)';
+    }
   }
 
   // ── Sync today's live values directly into charts + save to KV ─────────
@@ -3324,7 +3346,7 @@ function updateHoldingsCells(hPrices, usdcad) {
 
     el.innerHTML = `<table style="width:100%;border-collapse:collapse">`
       + `<tr><th style="${th}">TICKER</th><th style="${th}">SHS</th>`
-      + `<th style="${th}">VALUE</th><th style="${th}">RTN</th></tr>${body}</table>${more}`;
+      + `<th style="${th}">VALUE</th><th style="${th}" title="Unrealized return on the shares held in this account (price vs cost)">UNRL</th></tr>${body}</table>${more}`;
   });
 }
 
@@ -3543,134 +3565,651 @@ function _marginalRate(taxableIncome, province) {
 function _ontarioMarginalRate(taxableIncome) { return _marginalRate(taxableIncome, 'Ontario'); }
 
 // ============================================================
+// PERFORMANCE MATH — pure functions, tested in tests/test_portfolio_math.js
+// ============================================================
+
+// Annualized money-weighted return (XIRR). flows: [{date:'YYYY-MM-DD', amount}],
+// money in negative, value out positive. Returns a decimal (0.12 = 12%/yr) or null.
+function xirr(flows) {
+  const f = (flows || []).filter(x => x && x.date && isFinite(x.amount) && x.amount !== 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (f.length < 2 || !f.some(x => x.amount < 0) || !f.some(x => x.amount > 0)) return null;
+  const t0 = Date.parse(f[0].date + 'T00:00:00Z');
+  const yrs = f.map(x => (Date.parse(x.date + 'T00:00:00Z') - t0) / (365.25 * 86400000));
+  const npv = r => f.reduce((s, x, i) => s + x.amount / Math.pow(1 + r, yrs[i]), 0);
+  let lo = -0.9999, hi = 10, flo = npv(lo), fhi = npv(hi);
+  if (!(flo * fhi < 0)) return null;
+  for (let i = 0; i < 300; i++) {
+    const mid = (lo + hi) / 2, fm = npv(mid);
+    if (Math.abs(fm) < 1e-7 || hi - lo < 1e-10) return mid;
+    if (flo * fm < 0) { hi = mid; fhi = fm; } else { lo = mid; flo = fm; }
+  }
+  return (lo + hi) / 2;
+}
+
+// Contribution events for one account (or all) from the server's benchmark model.
+function contributionEventsFor(acctKey, data) {
+  const ev = (data && data.benchmark_model && data.benchmark_model.events) || [];
+  return acctKey ? ev.filter(e => e.account === acctKey) : ev;
+}
+
+// Annualized return of `valueNow` given the account's dated contributions.
+function portfolioIrr(acctKey, valueNow, data) {
+  const ev = contributionEventsFor(acctKey, data);
+  if (!ev.length || !(valueNow > 0)) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  return xirr(ev.map(e => ({ date: e.date, amount: -e.amount })).concat([{ date: today, amount: valueNow }]));
+}
+
+// Contribution-weighted benchmark values (CAD) for one account or all: units × live price.
+function benchmarkValues(acctKey, data) {
+  const model = data && data.benchmark_model;
+  const funds = (data && data.benchmark_funds) || {};
+  if (!model || !model.units) return null;
+  const accts = acctKey ? [acctKey] : Object.keys(model.units);
+  const out = {};
+  ['sp500', 'tsx', 'nasdaq'].forEach(b => {
+    const px = funds[b] && funds[b].price;
+    if (!px) return;
+    out[b] = accts.reduce((s, a) => s + (((model.units[a] || {})[b]) || 0) * px, 0);
+  });
+  return Object.keys(out).length ? out : null;
+}
+
+// Monthly time-weighted returns from month-end values and cumulative contributions.
+// Modified Dietz with mid-month flows: r = (V1 − V0 − C) / (V0 + C/2).
+// mv, contrib: [{x:'YYYY-MM', y}]. Returns [{x, r}].
+function monthlyReturns(mv, contrib) {
+  const cMap = {};
+  (contrib || []).forEach(p => { cMap[p.x] = p.y; });
+  let lastC = 0;
+  const pts = (mv || []).filter(p => p && p.y > 0).map(p => {
+    if (cMap[p.x] != null) lastC = cMap[p.x];
+    return { x: p.x, v: p.y, c: lastC };
+  });
+  const out = [];
+  for (let i = 1; i < pts.length; i++) {
+    const flow = pts[i].c - pts[i - 1].c;
+    const denom = pts[i - 1].v + flow / 2;
+    if (denom > 0) out.push({ x: pts[i].x, r: (pts[i].v - pts[i - 1].v - flow) / denom });
+  }
+  return out;
+}
+
+// Risk statistics from monthly returns; bench: {YYYY-MM: month-end price} for beta.
+function riskStats(rets, benchMonthly) {
+  if (!rets || rets.length < 6) return null;
+  const rs = rets.map(p => p.r);
+  const mean = rs.reduce((a, b) => a + b, 0) / rs.length;
+  const sd = Math.sqrt(rs.reduce((a, b) => a + (b - mean) ** 2, 0) / (rs.length - 1));
+  let idx = 1, peak = 1, maxDd = 0, ddStart = null, ddWorst = null, peakX = rets[0].x;
+  rets.forEach(p => {
+    idx *= 1 + p.r;
+    if (idx > peak) { peak = idx; peakX = p.x; }
+    const dd = idx / peak - 1;
+    if (dd < maxDd) { maxDd = dd; ddStart = peakX; ddWorst = p.x; }
+  });
+  const twrAnn = Math.pow(idx, 12 / rs.length) - 1;
+  let beta = null, corr = null, n = 0;
+  if (benchMonthly) {
+    const pairs = [];
+    rets.forEach(p => {
+      const [y, m] = p.x.split('-').map(Number);
+      const prev = `${m === 1 ? y - 1 : y}-${String(m === 1 ? 12 : m - 1).padStart(2, '0')}`;
+      const b1 = benchMonthly[p.x], b0 = benchMonthly[prev];
+      if (b1 && b0) pairs.push([p.r, b1 / b0 - 1]);
+    });
+    n = pairs.length;
+    if (n >= 6) {
+      const mp = pairs.reduce((s, q) => s + q[0], 0) / n, mb = pairs.reduce((s, q) => s + q[1], 0) / n;
+      let cov = 0, vb = 0, vp = 0;
+      pairs.forEach(([p, b]) => { cov += (p - mp) * (b - mb); vb += (b - mb) ** 2; vp += (p - mp) ** 2; });
+      beta = vb > 0 ? cov / vb : null;
+      corr = vb > 0 && vp > 0 ? cov / Math.sqrt(vb * vp) : null;
+    }
+  }
+  return {
+    months: rs.length, from: rets[0].x, to: rets[rets.length - 1].x,
+    volAnn: sd * Math.sqrt(12), twrAnn, maxDd, ddStart, ddWorst,
+    bestMonth: rets.reduce((a, b) => (b.r > a.r ? b : a)), worstMonth: rets.reduce((a, b) => (b.r < a.r ? b : a)),
+    beta, corr, betaMonths: n,
+  };
+}
+
+// ============================================================
+// ANNUALIZED RETURN & RISK · DIVIDEND INCOME · DATA HEALTH
+// ============================================================
+const _PANEL_ACCTS = ['TFSA', 'Investment', 'FHSA', 'RRSP'];
+const _PANEL_LABEL = { TFSA: 'TFSA', Investment: 'Non-Reg', FHSA: 'FHSA', RRSP: 'RRSP' };
+const _pct1 = v => (v == null || !isFinite(v)) ? '—' : `${v >= 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(1)}%`;
+const _tone = v => (v == null ? 'var(--text3)' : v >= 0 ? 'var(--green)' : 'var(--red)');
+
+// Month-end value + cumulative contributions for one account or all, oldest first.
+// Hard-coded monthly history to 2026-06, then permanent KV month-ends, then today.
+function monthlySeries(acctKey, data) {
+  const STATIC = { TFSA: [mvTFSA, cTFSA], Investment: [mvInv, cInv], FHSA: [mvFHSA, cFHSA], RRSP: [mvRRSP, cRRSP] };
+  const accts = acctKey ? [acctKey] : _PANEL_ACCTS;
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const per = {};
+  accts.forEach(a => {
+    const [mvArr, cArr] = STATIC[a];
+    const m = {};
+    let lastC = 0;
+    const cMap = {};
+    cArr.forEach(p => { cMap[p.x] = p.y; });
+    mvArr.forEach(p => { if (cMap[p.x] != null) lastC = cMap[p.x]; m[p.x] = { v: p.y, c: lastC }; });
+    Object.keys(_KV_MONTH_END || {}).sort().forEach(mk => {
+      const pt = _KV_MONTH_END[mk];
+      const v = (pt.accounts || {})[a];
+      if (!v) return;
+      const c = (pt.account_cost || {})[a] || (m[mk] && m[mk].c) || CONTRIB_STATE[a];
+      m[mk] = { v, c };
+    });
+    const live = _heroScopedStats(data, a).mktVal;
+    if (live > 0) m[thisMonth] = { v: live, c: CONTRIB_STATE[a] || 0 };
+    per[a] = m;
+  });
+  const months = [...new Set(accts.flatMap(a => Object.keys(per[a])))].sort();
+  const firstOf = a => Object.keys(per[a]).sort()[0];
+  const out = [];
+  months.forEach(mk => {
+    const active = accts.filter(a => firstOf(a) <= mk);
+    if (active.some(a => !per[a][mk])) return;           // incomplete month → skip
+    out.push({ x: mk, v: active.reduce((s, a) => s + per[a][mk].v, 0), c: active.reduce((s, a) => s + per[a][mk].c, 0) });
+  });
+  return out;
+}
+
+function _consecutiveReturns(series) {
+  const next = m => { const [y, mo] = m.split('-').map(Number); return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`; };
+  const rets = monthlyReturns(series.map(p => ({ x: p.x, y: p.v })), series.map(p => ({ x: p.x, y: p.c })));
+  // drop returns that span a missing month
+  return rets.filter(r => { const i = series.findIndex(p => p.x === r.x); return i > 0 && next(series[i - 1].x) === r.x; });
+}
+
+function renderPerfPanel(data) {
+  const el = document.getElementById('perfPanel');
+  if (!el || !data) return;
+  const model = data.benchmark_model;
+  const rows = [null, ..._PANEL_ACCTS].map(a => {
+    const st = _heroScopedStats(data, a);
+    const contrib = a ? (CONTRIB_STATE[a] || 0) : CONTRIB_TOTAL();
+    const bm = benchmarkValues(a, data) || {};
+    const irr = portfolioIrr(a, st.mktVal, data);
+    const spIrr = bm.sp500 != null ? portfolioIrr(a, bm.sp500, data) : null;
+    const ev = contributionEventsFor(a, data);
+    return { a, label: a ? _PANEL_LABEL[a] : 'All accounts', contrib, mv: st.mktVal,
+             roi: contrib > 0 ? (st.mktVal - contrib) / contrib : null, irr, spIrr,
+             since: ev.length ? ev[0].date.slice(0, 7) : null };
+  });
+  const th = 'style="text-align:right;padding:6px 8px;font-size:10px;color:var(--text3);font-family:var(--mono);font-weight:600"';
+  const td = 'style="text-align:right;padding:7px 8px;font-family:var(--mono);font-size:12px;border-top:1px solid var(--border)"';
+  const table = `
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:520px">
+      <tr><th ${th.replace('right', 'left')}>ACCOUNT</th><th ${th}>SINCE</th><th ${th}>CONTRIBUTED</th><th ${th}>VALUE</th>
+          <th ${th}>TOTAL ROI</th><th ${th}>ANNUALIZED</th><th ${th}>S&amp;P 500 SAME DATES</th><th ${th}>GAP / YR</th></tr>
+      ${rows.map(r => `<tr${r.a ? '' : ' style="font-weight:700"'}>
+        <td ${td.replace('right', 'left')}>${r.label}</td><td ${td}>${r.since || '—'}</td>
+        <td ${td}>${fmt$(Math.round(r.contrib))}</td><td ${td}>${fmt$(Math.round(r.mv))}</td>
+        <td ${td}><span style="color:${_tone(r.roi)}">${_pct1(r.roi)}</span></td>
+        <td ${td}><span style="color:${_tone(r.irr)}">${_pct1(r.irr)}</span></td>
+        <td ${td}>${_pct1(r.spIrr)}</td>
+        <td ${td}><span style="color:${_tone(r.irr != null && r.spIrr != null ? r.irr - r.spIrr : null)}">${r.irr != null && r.spIrr != null ? `${r.irr - r.spIrr >= 0 ? '+' : '−'}${Math.abs((r.irr - r.spIrr) * 100).toFixed(1)} pts` : '—'}</span></td>
+      </tr>`).join('')}
+    </table></div>`;
+
+  // Risk for the active chart filter
+  const acctKey = { all: null, tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' }[currentFilter] ?? null;
+  const rets = _consecutiveReturns(monthlySeries(acctKey, data));
+  const rk = riskStats(rets, model && model.monthly && model.monthly.sp500);
+  const _mLabel = m => m === new Date().toISOString().slice(0, 7) ? `${m} (month to date)` : m;
+  const card = (label, val, sub, color) => `
+    <div class="card" style="padding:12px">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase">${label}</div>
+      <div style="font-family:var(--mono);font-size:18px;font-weight:700;margin-top:4px;color:${color || 'var(--text1)'}">${val}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;line-height:1.4">${sub}</div>
+    </div>`;
+  const risk = !rk ? '<div style="font-size:12px;color:var(--text3)">Not enough monthly history for risk figures.</div>' : `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+      ${card('Time-weighted / yr', _pct1(rk.twrAnn), 'growth per year, ignoring when you added money', _tone(rk.twrAnn))}
+      ${card('Volatility', `${(rk.volAnn * 100).toFixed(1)}%`, 'annualized std. dev. of monthly returns (S&amp;P 500 is typically ~15%)')}
+      ${card('Max drawdown', _pct1(rk.maxDd), `worst peak-to-trough: ${rk.ddStart} → ${_mLabel(rk.ddWorst)}`, 'var(--red)')}
+      ${card('Beta vs S&amp;P 500', rk.beta != null ? rk.beta.toFixed(2) : '—', rk.beta != null ? `a 1% S&amp;P month ≈ ${rk.beta.toFixed(1)}% for you · correlation ${rk.corr.toFixed(2)} · ${rk.betaMonths} months` : 'needs benchmark history')}
+      ${card('Best month', _pct1(rk.bestMonth.r), _mLabel(rk.bestMonth.x), 'var(--green)')}
+      ${card('Worst month', _pct1(rk.worstMonth.r), _mLabel(rk.worstMonth.x), 'var(--red)')}
+    </div>`;
+  el.innerHTML = `
+    ${model ? '' : '<div style="font-size:11px;color:var(--amber);margin-bottom:8px">Benchmark history is loading — annualized figures appear once it arrives.</div>'}
+    ${table}
+    <div style="font-size:10px;color:var(--text3);margin:8px 0 16px;line-height:1.5">
+      <b>Annualized</b> is money-weighted (XIRR): it accounts for when each contribution went in, so recent deposits don't drag the figure down the way simple ROI does.
+      The S&amp;P column puts the same dollars into SPY on the same dates, dividends reinvested.</div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:8px">RISK · ${acctKey ? _PANEL_LABEL[acctKey] : 'ALL ACCOUNTS'}${rk ? ` · ${rk.months} months, ${rk.from} → ${rk.to}` : ''}</div>
+    ${risk}
+    <div style="font-size:10px;color:var(--text3);margin-top:8px">From month-end values (modified Dietz, contributions mid-month). Use the account buttons above the chart to change scope. Portfolio is in CAD, the S&amp;P in USD, so currency moves add some noise to beta.</div>`;
+}
+
+// ── Dividend income: next 12 months, projected from each holding's last 12 months ──
+// Frequency is inferred from the gap between payments, so a missing month in
+// the price feed doesn't shrink a monthly payer's forecast.
+function forwardDividends(history, today) {
+  const h = (history || []).filter(x => x.amount > 0).sort((a, b) => a.date.localeCompare(b.date));
+  if (!h.length) return [];
+  const day = 86400000, t0 = Date.parse(today + 'T12:00:00Z'), end = t0 + 365 * day;
+  const last = h[h.length - 1];
+  let period = 365.25;
+  if (h.length >= 2) {
+    const gaps = h.slice(1).map((x, i) => (Date.parse(x.date) - Date.parse(h[i].date)) / day).sort((a, b) => a - b);
+    const med = gaps[Math.floor(gaps.length / 2)];
+    period = [30.44, 91.31, 182.63, 365.25].reduce((best, p) => Math.abs(p - med) < Math.abs(best - med) ? p : best);
+  }
+  const out = [];
+  for (let t = Date.parse(last.date + 'T12:00:00Z') + period * day; t <= end; t += period * day) {
+    if (t > t0) out.push({ date: new Date(t).toISOString().slice(0, 10), amount: last.amount });
+  }
+  return out;
+}
+
+// Share of a dividend that reaches the account after US withholding tax.
+function _divNetFactor(h) {
+  const usListed = h.ccy === 'USD' && !h.ticker.includes('.');
+  if (!usListed || h.account === 'RRSP') return 1;      // treaty exemption for US-listed in RRSP
+  return 0.85;                                          // TFSA/FHSA: lost; non-reg: claimable as a foreign tax credit
+}
+
+function renderIncomePanel(data) {
+  const el = document.getElementById('incomePanel');
+  if (!el || !data) return;
+  const dm = data.dividend_model;
+  if (!dm || !dm.history) { el.innerHTML = '<div style="font-size:12px;color:var(--text3)">Dividend history is loading…</div>'; return; }
+  const usdcad = data.usdcad || _liveUsdcad;
+  const prices = data.holdings || {};
+  const today = new Date().toISOString().slice(0, 10);
+  const months = [];
+  for (let i = 0; i < 12; i++) { const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + i); months.push(d.toISOString().slice(0, 7)); }
+  const byMonth = Object.fromEntries(months.map(m => [m, 0]));
+  const byAcct = {}, byTicker = {};
+  let gross = 0, net = 0, mvPaying = 0;
+  HOLDINGS_STATIC.filter(h => h.ticker && !h.ticker.startsWith('CASH') && h.shares > 0).forEach(h => {
+    const fx = h.ccy === 'USD' ? usdcad : 1;
+    const pays = forwardDividends(dm.history[h.ticker], today);
+    if (!pays.length) return;
+    const g = pays.reduce((s, p) => s + p.amount, 0) * h.shares * fx;
+    const n = g * _divNetFactor(h);
+    gross += g; net += n;
+    pays.forEach(p => { const m = p.date.slice(0, 7); if (m in byMonth) byMonth[m] += p.amount * h.shares * fx * _divNetFactor(h); });
+    byAcct[h.account] = (byAcct[h.account] || 0) + n;
+    const t = byTicker[h.ticker] || (byTicker[h.ticker] = { g: 0, n: 0, mv: 0 });
+    t.g += g; t.n += n;
+    const mv = (prices[h.ticker]?.price || 0) * h.shares * fx;
+    t.mv += mv; mvPaying += mv;
+  });
+  const totalMv = _heroScopedStats(data, null).mktVal;
+  const maxM = Math.max(1, ...Object.values(byMonth));
+  const bars = months.map(m => `
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3)">${byMonth[m] >= 1 ? '$' + Math.round(byMonth[m]) : ''}</div>
+      <div style="width:70%;height:${Math.max(2, byMonth[m] / maxM * 90)}px;background:var(--green);border-radius:3px 3px 0 0;opacity:.8"></div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3)">${new Date(m + '-15').toLocaleDateString('en-CA', { month: 'short' })}</div>
+    </div>`).join('');
+  const top = Object.entries(byTicker).sort((a, b) => b[1].n - a[1].n).slice(0, 8);
+  const nonRegWh = HOLDINGS_STATIC.filter(h => h.account === 'Investment' && _divNetFactor(h) < 1)
+    .reduce((s, h) => s + forwardDividends(dm.history[h.ticker], today).reduce((a, p) => a + p.amount, 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1) * 0.15, 0);
+  const lostForGood = (gross - net) - nonRegWh;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">
+      <div class="card" style="padding:12px"><div style="font-family:var(--mono);font-size:10px;color:var(--text3)">NEXT 12 MONTHS (NET)</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--green);margin-top:4px">${fmt$(Math.round(net))}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${fmt$(Math.round(net / 12))}/month on average · ${fmt$(Math.round(gross))} before US withholding</div></div>
+      <div class="card" style="padding:12px"><div style="font-family:var(--mono);font-size:10px;color:var(--text3)">PORTFOLIO YIELD</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;margin-top:4px">${totalMv > 0 ? (net / totalMv * 100).toFixed(2) : '—'}%</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">net income ÷ total value</div></div>
+      <div class="card" style="padding:12px"><div style="font-family:var(--mono);font-size:10px;color:var(--text3)">US WITHHOLDING LOST</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--red);margin-top:4px">${fmt$(Math.round(lostForGood))}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">15% on US-listed dividends in the TFSA/FHSA — not recoverable${nonRegWh >= 1 ? ` (non-reg's ${fmt$(Math.round(nonRegWh))} is claimable as a foreign tax credit)` : ''}</div></div>
+      <div class="card" style="padding:12px"><div style="font-family:var(--mono);font-size:10px;color:var(--text3)">BY ACCOUNT (NET)</div>
+        <div style="font-size:11px;margin-top:6px;line-height:1.7;font-family:var(--mono)">${_PANEL_ACCTS.map(a => `${_PANEL_LABEL[a]} <b>${fmt$(Math.round(byAcct[a] || 0))}</b>`).join('<br>')}</div></div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:2px;height:130px;margin-bottom:6px">${bars}</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:12px">Net CAD by expected ex-dividend month (payment usually follows within ~2–4 weeks).</div>
+    <div style="font-family:var(--mono);font-size:11px;line-height:1.8">${top.map(([t, v]) =>
+      `<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border)"><span>${t}</span><span>${fmt$(Math.round(v.n))}/yr · yield ${v.mv > 0 ? (v.g / v.mv * 100).toFixed(1) : '—'}%</span></div>`).join('')}</div>
+    <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5">Projected from each holding's last 12 months of payouts at today's share count and USD/CAD ${usdcad.toFixed(4)}; the latest payout rate is repeated at its usual frequency. Special one-off dividends are not predicted. Dividends paid by leveraged ETFs are small and irregular.
+      ${dm.failed && dm.failed.length ? `<br><span style="color:var(--amber)">No dividend data for: ${dm.failed.join(', ')}</span>` : ''}</div>`;
+}
+
+// ── Data health ────────────────────────────────────────────────────────────
+function renderDataHealth(data) {
+  const el = document.getElementById('dataHealth');
+  if (!el || !data) return;
+  const now = Date.now();
+  const age = iso => { if (!iso) return null; const h = (now - Date.parse(iso)) / 3600000; return h < 1 ? `${Math.round(h * 60)} min ago` : h < 48 ? `${Math.round(h)} h ago` : `${Math.round(h / 24)} days ago`; };
+  const held = HOLDINGS_STATIC.filter(h => h.ticker && !h.ticker.startsWith('CASH') && h.shares > 0);
+  const tickers = [...new Set(held.map(h => h.ticker))];
+  const unpriced = tickers.filter(t => !(data.holdings || {})[t]?.price);
+  const errs = Object.keys(data._debug_errors || {});
+  const lc = window._LEDGER_CHECK;
+  const intelAt = intelligenceData && intelligenceData.generated_at;
+  const intelHours = intelAt ? (now - Date.parse(intelAt)) / 3600000 : null;
+  const kvMonths = Object.keys(_KV_MONTH_END || {}).sort();
+  const txTs = parseInt(localStorage.getItem('pp_tx_ts') || '0', 10);
+  const rows = [
+    ['Live prices', unpriced.length ? 'warn' : 'ok', `${tickers.length - unpriced.length}/${tickers.length} holdings priced · fetched ${age(data.timestamp) || '—'}${unpriced.length ? ` · missing: ${unpriced.join(', ')}` : ''}`],
+    ['Portfolio source', data.portfolio?.source === 'fallback' ? 'bad' : 'ok', data.portfolio?.source === 'fallback' ? 'KV unreachable — server totals come from a hard-coded fallback and may be out of date' : 'live holdings from your transaction log'],
+    ['Price feed errors', errs.length ? 'warn' : 'ok', errs.length ? errs.join(', ') : 'none'],
+    ['Ledger check', !lc ? 'warn' : lc.problems.length ? 'bad' : lc.orphans.length ? 'warn' : 'ok', !lc ? 'not run' : lc.problems.length ? lc.problems.join(' · ') : lc.orphans.length ? `${lc.orphans.length} dividend(s) booked to an account that never held the stock` : 'realized P&L reconciles to logged dividends and sales'],
+    ['Benchmark model', data.benchmark_model ? 'ok' : 'warn', data.benchmark_model ? `prices as of ${data.benchmark_model.as_of} · ${data.benchmark_model.events.length} dated contributions` : 'not loaded'],
+    ['Dividend data', data.dividend_model ? (data.dividend_model.failed?.length ? 'warn' : 'ok') : 'warn', data.dividend_model ? `as of ${data.dividend_model.as_of}${data.dividend_model.failed?.length ? ` · failed: ${data.dividend_model.failed.join(', ')}` : ''}` : 'not loaded'],
+    ['AI briefing', intelHours == null ? 'warn' : intelHours > 84 ? 'warn' : 'ok', intelAt ? `generated ${age(intelAt)} — its dollar figures use prices from then` + (intelHours > 84 ? '; the daily run looks to have stopped' : '') : 'not loaded'],
+    ['Value history', kvMonths.length ? 'ok' : 'warn', kvMonths.length ? `hard-coded months to 2026-06, then ${kvMonths.length} stored month-ends (${kvMonths[0]} → ${kvMonths[kvMonths.length - 1]})` : 'no stored month-ends loaded'],
+    ['Transactions synced', txTs ? 'ok' : 'warn', txTs ? `last change ${age(new Date(txTs).toISOString())} · ${getTransactions().length} logged` : 'never'],
+  ];
+  const dot = s => ({ ok: 'var(--green)', warn: 'var(--amber)', bad: 'var(--red)' }[s]);
+  const worst = rows.some(r => r[1] === 'bad') ? 'bad' : rows.some(r => r[1] === 'warn') ? 'warn' : 'ok';
+  el.innerHTML = `
+    <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--text2);list-style:none">
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dot(worst)};margin-right:6px"></span>
+      DATA HEALTH — ${worst === 'ok' ? 'all checks pass' : rows.filter(r => r[1] !== 'ok').map(r => r[0]).join(', ')} ▾</summary>
+    <div style="margin-top:10px;text-align:left">${rows.map(([k, s, v]) => `
+      <div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--border);font-size:11px">
+        <span style="flex:0 0 8px;height:8px;margin-top:4px;border-radius:50%;background:${dot(s)}"></span>
+        <span style="flex:0 0 140px;font-family:var(--mono);color:var(--text2)">${k}</span>
+        <span style="color:var(--text3);line-height:1.4">${v}</span></div>`).join('')}</div>`;
+}
+
+// ============================================================
+// 2026 ONTARIO INCOME TAX — pure functions, no DOM.
+// Tested by tests/test_portfolio_math.js (extracted straight from this file).
+//
+// Federal and Ontario figures are the 2026 indexed amounts (federal +2.0%,
+// Ontario +1.9%; Ontario's $150K / $220K thresholds are not indexed). The
+// federal lowest rate is 14% for 2026. CPP/EI credits are included so the
+// total is close to a real return; other credits (tuition, medical, etc.) are
+// not, so treat the total as an estimate. Update TAX_PARAMS each January.
+// ============================================================
+const TAX_PARAMS = {
+  year: 2026,
+  fed: {
+    brackets: [[58523, 0.14], [117045, 0.205], [181440, 0.26], [258482, 0.29], [Infinity, 0.33]],
+    bpa: 16452, bpaMin: 14829,   // basic personal amount phases down between brackets 3 and 4
+    cea: 1501,                   // Canada employment amount
+  },
+  on: {
+    brackets: [[53891, 0.0505], [107785, 0.0915], [150000, 0.1116], [220000, 0.1216], [Infinity, 0.1316]],
+    bpa: 12989,
+    surtax: [[5818, 0.20], [7446, 0.36]],
+  },
+  cpp: { ympe: 74600, yampe: 85000, exemption: 3500, baseRate: 0.0495, enhRate: 0.01, cpp2Rate: 0.04 },
+  ei:  { mie: 68900, rate: 0.0163 },
+  div: { grossUp: 1.38, fedDtc: 0.150198, onDtc: 0.10 },   // eligible dividends
+  rrspDollarLimit: 33810,
+  hbpLimit: 60000,               // Home Buyers' Plan, per person, since Apr 16 2024
+  inclusion: 0.5,                // capital gains inclusion rate
+};
+
+function _bracketTax(income, brackets) {
+  let tax = 0, lo = 0;
+  for (const [hi, rate] of brackets) {
+    if (income <= lo) break;
+    tax += (Math.min(income, hi) - lo) * rate;
+    lo = hi;
+  }
+  return tax;
+}
+
+function _ontarioHealthPremium(income) {
+  if (income <= 20000)  return 0;
+  if (income <= 36000)  return Math.min(300, 0.06 * (income - 20000));
+  if (income <= 48000)  return Math.min(450, 300 + 0.06 * (income - 36000));
+  if (income <= 72000)  return Math.min(600, 450 + 0.25 * (income - 48000));
+  if (income <= 200000) return Math.min(750, 600 + 0.25 * (income - 72000));
+  return Math.min(900, 750 + 0.25 * (income - 200000));
+}
+
+// o = { salary, rrsp, taxableGains, otherIncome, eligDiv, foreignTaxPaid }
+//   taxableGains   — already multiplied by the inclusion rate
+//   otherIncome    — fully taxable (e.g. foreign dividends, grossed up for withholding)
+//   eligDiv        — eligible Canadian dividends actually received (gross-up applied here)
+//   foreignTaxPaid — US tax withheld on non-registered dividends (foreign tax credit)
+function ontarioIncomeTax(o) {
+  const P = TAX_PARAMS;
+  const salary = Math.max(0, o.salary || 0);
+  const cppBase   = Math.max(0, Math.min(salary, P.cpp.ympe) - P.cpp.exemption);
+  const cppCredit = cppBase * P.cpp.baseRate;                                   // base CPP → credit
+  const cppDeduct = cppBase * P.cpp.enhRate
+                  + Math.max(0, Math.min(salary, P.cpp.yampe) - P.cpp.ympe) * P.cpp.cpp2Rate; // enhanced + CPP2 → deduction
+  const eiPrem    = Math.min(salary, P.ei.mie) * P.ei.rate;
+  const eligGross = (o.eligDiv || 0) * P.div.grossUp;
+  const taxable = Math.max(0, salary - (o.rrsp || 0) - cppDeduct
+                + (o.taxableGains || 0) + (o.otherIncome || 0) + eligGross);
+
+  const [, , b3, b4] = P.fed.brackets;
+  let fedBpa = P.fed.bpa;
+  if (taxable > b3[0]) fedBpa -= (P.fed.bpa - P.fed.bpaMin) * Math.min(1, (taxable - b3[0]) / (b4[0] - b3[0]));
+  const fedLow = P.fed.brackets[0][1];
+  const fed = Math.max(0, _bracketTax(taxable, P.fed.brackets)
+            - (fedBpa + Math.min(P.fed.cea, salary) + cppCredit + eiPrem) * fedLow
+            - eligGross * P.div.fedDtc);
+
+  const onLow = P.on.brackets[0][1];
+  const onBasic = Math.max(0, _bracketTax(taxable, P.on.brackets)
+                - (P.on.bpa + cppCredit + eiPrem) * onLow
+                - eligGross * P.div.onDtc);
+  const surtax = P.on.surtax.reduce((s, [thr, r]) => s + Math.max(0, onBasic - thr) * r, 0);
+  const ohp = _ontarioHealthPremium(taxable);
+  const ftc = Math.min(o.foreignTaxPaid || 0, fed + onBasic + surtax);
+  const total = Math.max(0, fed + onBasic + surtax + ohp - ftc);
+  return { taxable, fed, ontario: onBasic + surtax, ohp, ftc, total };
+}
+
+// Combined marginal rate on the next $100 of ordinary income.
+function ontarioMarginalRate(o) {
+  return (ontarioIncomeTax({ ...o, otherIncome: (o.otherIncome || 0) + 100 }).total
+        - ontarioIncomeTax(o).total) / 100;
+}
+
+// Superficial loss rule (ITA s.54): a loss is denied if you — in ANY account,
+// TFSA/RRSP/FHSA included — acquire the identical property in the 30 days
+// before or after the sale and still hold it 30 days after. A loss denied
+// because the buy was in a registered account is lost permanently.
+function superficialLossCheck(ticker, saleDate, txs) {
+  const day = 86400000;
+  const t0 = Date.parse(saleDate + 'T12:00:00Z');
+  const buys = (txs || []).filter(t => t.type === 'BUY' && t.ticker === ticker && t.date
+    && Math.abs(Date.parse(t.date + 'T12:00:00Z') - t0) <= 30 * day);
+  const clear = new Date(t0 + 31 * day).toISOString().slice(0, 10);
+  return { buys, clearDate: clear };
+}
+
+// Non-registered realized gains and dividends for a tax year, from the ledger.
+// sales: _LEDGER_SALES rows; txs: transaction log; base: pre-log amounts for the year.
+function nonRegTaxYear(year, sales, txs, base) {
+  const y = String(year);
+  const yearSales = (sales || []).filter(s => s.account === 'Investment' && (s.date || '').startsWith(y));
+  const gains  = yearSales.filter(s => s.realizedCAD > 0).reduce((a, s) => a + s.realizedCAD, 0) + (base.gains || 0);
+  const losses = yearSales.filter(s => s.realizedCAD < 0).reduce((a, s) => a - s.realizedCAD, 0) + (base.losses || 0);
+  let eligDiv = base.eligDiv || 0, foreignGross = 0, foreignTax = 0;
+  const addForeign = cadNet => { const g = cadNet / 0.85; foreignGross += g; foreignTax += g * 0.15; };
+  (base.foreignNetCAD || 0) && addForeign(base.foreignNetCAD);
+  (txs || []).filter(t => t.type === 'DIVIDEND' && t.account === 'Investment' && (t.date || '').startsWith(y))
+    .forEach(t => {
+      if (t.ccy === 'USD') addForeign(t.amount * (t.rate || USD_BOOK_RATE));
+      else eligDiv += t.amount;
+    });
+  return { sales: yearSales, gains, losses, net: gains - losses, eligDiv, foreignGross, foreignTax };
+}
+
+// Home Buyers' Plan room actually usable: the $60K cap, but never more than
+// the RRSP holds. (Contributions must also sit 90 days before an HBP withdrawal.)
+function hbpUsable(rrspValue) {
+  return Math.max(0, Math.min(TAX_PARAMS.hbpLimit, rrspValue || 0));
+}
+
+// Non-registered amounts for the current tax year that predate the transaction
+// log (Jan 1 → log start, 2026-06-04). From data/transactions.csv: no non-reg
+// sales; dividends V $2.28 + TSM $5.66 USD and RY.TO $26.49 CAD.
+const _NONREG_PRELOG = { 2026: { gains: 0, losses: 0, eligDiv: 26.49, foreignNetCAD: (2.28 + 5.66) * 1.39 } };
+
+// ============================================================
 // YEAR-END TAX PROJECTION
 // Entirely client-computed from live prices + holdings.
 // Province-aware. RRSP auto-computed from transaction log.
 // Updates every 5s. No external API needed.
 // ============================================================
+// One model for desktop and mobile, so the two can never disagree.
+function computeTaxProjection() {
+  const liveData = _lastLiveData || {};
+  const hPrices  = liveData.holdings || {};
+  const usdcad   = liveData.usdcad || _liveUsdcad || 1.38;
+  const taxYear  = new Date().getFullYear();
+  const salary   = parseInt(localStorage.getItem('pp_gross_salary') || '90000', 10);
+  const txs      = getTransactions();
+
+  // RRSP deduction: CRA window = Jan 1 of the tax year → Mar 1 of the next.
+  const rrsp = txs.filter(t => t.type === 'CONTRIBUTION' && t.account === 'RRSP'
+      && (t.date || '') >= taxYear + '-01-01' && (t.date || '') <= (taxYear + 1) + '-03-01')
+    .reduce((s, t) => s + (t.amount || 0), 0);
+
+  const yr = nonRegTaxYear(taxYear, _LEDGER_SALES, txs, _NONREG_PRELOG[taxYear] || {});
+  const taxableGains = Math.max(0, yr.net) * TAX_PARAMS.inclusion;
+  const carryforward = Math.max(0, -yr.net) * TAX_PARAMS.inclusion;   // net capital loss (taxable part)
+
+  const base    = { salary, rrsp };
+  const withInv = { salary, rrsp, taxableGains, otherIncome: yr.foreignGross,
+                    eligDiv: yr.eligDiv, foreignTaxPaid: yr.foreignTax };
+  const tBase = ontarioIncomeTax(base);
+  const tAll  = ontarioIncomeTax(withInv);
+  const marginal = ontarioMarginalRate(withInv);
+
+  // Unrealized losses in the non-registered account (needs live prices).
+  const pricesLoaded = Object.keys(hPrices).length > 0;
+  const candidates = !pricesLoaded ? [] : HOLDINGS_STATIC
+    .filter(h => h.account === 'Investment' && h.ticker && !h.ticker.startsWith('CASH'))
+    .map(h => {
+      const p = hPrices[h.ticker];
+      if (!p || !p.price) return null;
+      const mv  = p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1);
+      const acb = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
+      if (acb - mv < 200) return null;
+      const today = new Date().toISOString().slice(0, 10);
+      const sl = superficialLossCheck(h.ticker, today, txs);
+      return { ticker: h.ticker, loss: acb - mv, recentBuys: sl.buys, clearDate: sl.clearDate };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.loss - a.loss);
+
+  // What harvesting would actually save THIS year: losses only offset this
+  // year's net gains; anything beyond that becomes a carryforward.
+  const harvestable = candidates.filter(c => !c.recentBuys.length).reduce((s, c) => s + c.loss, 0);
+  const offsetNow   = Math.min(harvestable, Math.max(0, yr.net));
+  const saveNow     = offsetNow > 0
+    ? tAll.total - ontarioIncomeTax({ ...withInv, taxableGains: (yr.net - offsetNow) * TAX_PARAMS.inclusion }).total
+    : 0;
+
+  // Losses already realized this year that may be denied.
+  const deniedRisk = yr.sales.filter(s => s.realizedCAD < 0).map(s => {
+    const sl = superficialLossCheck(s.ticker, s.date, txs);
+    return { ...s, buys: sl.buys, clearDate: sl.clearDate };
+  });
+
+  return {
+    taxYear, salary, rrsp, yr, taxableGains, carryforward, tBase, tAll, marginal,
+    investTax: tAll.total - tBase.total, pricesLoaded, candidates, harvestable, saveNow, deniedRisk,
+    daysLeft: Math.ceil((new Date(taxYear, 11, 31) - new Date()) / 86400000),
+  };
+}
+
 function renderTaxProjection(data) {
   const el = document.getElementById('taxProjectionPanel');
   if (!el) return;
+  const m = computeTaxProjection();
+  const { taxYear, salary, rrsp, yr } = m;
 
-  // Always use the most-recent live data as the price source so desktop and
-  // mobile always compute from the same snapshot — fall back to passed data
-  // only if _lastLiveData hasn't been populated yet.
-  // NOTE: _lastLiveData is a `let` variable — NOT on window. Use directly.
-  const liveData = _lastLiveData || data;
-  const hPrices  = liveData.holdings || {};
-  const usdcad   = liveData.usdcad   || 1.38;
-
-  // ── Province (from settings, auto-synced across devices) ─────────────────
-  const province = localStorage.getItem('pp_province') || 'Ontario';
-
-  // ── Salary ────────────────────────────────────────────────────────────────
-  const grossSalary = parseInt(localStorage.getItem('pp_gross_salary') || '90000', 10);
-
-  // ── RRSP deduction: CRA eligible window = Jan 1 taxYear → Mar 1 (taxYear+1)
-  // The CRA deadline (first 60 days of the following year) auto-updates each year.
-  const taxYear        = new Date().getFullYear();
-  const rrspWinStart   = taxYear + '-01-01';
-  const rrspWinEnd     = (taxYear + 1) + '-03-01';
-  const rrspDeduction  = getTransactions()
-    .filter(t => t.type === 'CONTRIBUTION' && t.account === 'RRSP'
-      && (t.date || '') >= rrspWinStart && (t.date || '') <= rrspWinEnd)
-    .reduce((s, t) => s + (t.amount || 0), 0);
-  // ── Price guard: skip gains/losses if prices not yet loaded ─────────────
-  const pricesLoaded = Object.keys(hPrices).length > 0;
-
-  // ── Unrealized gains & losses — Investment account only ──────────────────
-  let invGains = 0, invLosses = 0;
-  if (pricesLoaded) {
-    HOLDINGS_STATIC
-      .filter(h => h.account === 'Investment' && h.ticker && !h.ticker.startsWith('CASH'))
-      .forEach(h => {
-        const p = hPrices[h.ticker];
-        if (!p || !p.price) return; // skip — no live price; never count as 0-mv loss
-        const mv  = p.price * h.shares * (h.ccy === 'USD' ? usdcad : 1);
-        const acb = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
-        const diff = mv - acb;
-        if (diff > 0) invGains  += diff;
-        else          invLosses += -diff;
-      });
-  }
-
-  // ── Tax projection rows (all pre-tax $) ──────────────────────────────────
-  const taxCapGains    = Math.round(invGains   * 0.5);  // 50% inclusion — matches Unrealized Gain card
-  const availCapLosses = Math.round(invLosses  * 0.5);  // 50% inclusion
-  // Taxable income = Employment − RRSP + Taxable cap gains − Available cap losses (all pre-tax $)
-  const taxableIncome  = Math.max(0, grossSalary - rrspDeduction + taxCapGains - availCapLosses);
-  const MAR_RATE       = _marginalRate(taxableIncome, province);
-  // Estimated bill = MAR_RATE × full taxable income (single multiply, all pre-tax $)
-  const estimatedBill  = Math.round(taxableIncome * MAR_RATE);
-
-  // ── Tax-loss harvest advisory (secondary) ────────────────────────────────
-  const harvestItems = HOLDINGS_STATIC
-    .filter(h => h.account === 'Investment' && !h.ticker?.startsWith('CASH'))
-    .map(h => {
-      const p    = hPrices[h.ticker];
-      const mv   = (p?.price || 0) * h.shares * (h.ccy === 'USD' ? usdcad : 1);
-      const acb  = h.ccy === 'USD' ? h.cost_total * (h.book_rate || 1) : h.cost_total;
-      return { ticker: h.ticker, loss: acb - mv };
-    })
-    .filter(h => h.loss > 200)
-    .sort((a, b) => b.loss - a.loss);
-  const totalHarvestLoss = harvestItems.reduce((s, h) => s + h.loss, 0);
-  const harvestSaving    = Math.round(totalHarvestLoss * 0.5 * MAR_RATE);
-
-  // ── Days remaining in tax year ────────────────────────────────────────────
-  const daysLeft = Math.ceil((new Date(taxYear, 11, 31) - new Date()) / 86400000);
-
-  const row = (label, val, color) => `
+  const row = (label, val, color, sub) => `
     <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--border)">
-      <div style="font-size:12px;color:var(--text2)">${label}</div>
+      <div style="font-size:12px;color:var(--text2)">${label}${sub ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">${sub}</div>` : ''}</div>
       <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${color};flex-shrink:0;padding-left:12px">${val}</div>
     </div>`;
+  const note = (tone, html) => {
+    const c = { amber: ['245,158,11', 'var(--amber)'], blue: ['59,130,246', 'var(--blue-bright)'],
+                green: ['16,185,129', 'var(--green)'], red: ['239,68,68', 'var(--red)'] }[tone];
+    return `<div style="margin-top:10px;background:rgba(${c[0]},.08);border:1px solid rgba(${c[0]},.25);border-radius:6px;padding:10px 12px;font-size:11px;color:${c[1]};line-height:1.5">${html}</div>`;
+  };
 
-  const harvestNote = harvestSaving > 500
-    ? `<div style="margin-top:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--amber)">⚡ ${fmt$(harvestSaving)} tax saving available — harvest ${harvestItems.slice(0,3).map(h=>h.ticker).join(', ')} before Dec 31. Re-enter after 30 days (superficial loss rule).</div>`
-    : invGains > 2000
-      ? `<div style="margin-top:10px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--blue-bright)">💡 Unrealized gains present in non-reg. Timing future dispositions toward lower-income years reduces overall tax.</div>`
-      : `<div style="margin-top:10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--green)">✅ TFSA/FHSA gains are permanently tax-free. RRSP gains are tax-deferred until withdrawal.</div>`;
+  const salesList = yr.sales.length
+    ? yr.sales.map(s => `${s.ticker} ${s.realizedCAD >= 0 ? '+' : '−'}${fmt$(Math.abs(Math.round(s.realizedCAD)))}`).join(' · ')
+    : 'no sales this year';
+
+  // ── Harvest / carryforward advice — only what is actually true ─────────────
+  let harvestNote = '';
+  if (yr.net <= 0) {
+    harvestNote = note('blue',
+      `💡 Your ${taxYear} non-registered sales net to a <b>${fmt$(Math.round(-yr.net))} capital loss</b>, so there are no gains to offset this year. `
+      + `Selling more losers before Dec 31 would <b>not lower your ${taxYear} tax</b> — capital losses can't reduce salary. `
+      + `The ${fmt$(Math.round(m.carryforward))} net capital loss carries back up to 3 years (if you reported gains in ${taxYear - 3}–${taxYear - 1}) or forward indefinitely.`);
+  } else if (m.saveNow > 50) {
+    harvestNote = note('amber',
+      `⚡ About <b>${fmt$(Math.round(m.saveNow))}</b> of ${taxYear} tax can be saved by realizing losses in `
+      + m.candidates.filter(c => !c.recentBuys.length).slice(0, 3).map(c => c.ticker).join(', ')
+      + ` before the Dec 31 settlement cut-off (trade by ~Dec 30, T+1).`);
+  }
+  const blocked = m.candidates.filter(c => c.recentBuys.length);
+  const slNote = m.candidates.length ? note('amber',
+      `⚠ <b>Superficial loss rule — applies across all your accounts.</b> If you sell a position at a loss, `
+      + `don't buy the same security in <b>any</b> account (TFSA, RRSP and FHSA included) for 30 days, and turn off dividend reinvestment for it. `
+      + `A loss blocked by a TFSA/RRSP/FHSA purchase is lost for good.`
+      + (blocked.length ? `<br>Right now: ${blocked.map(c => `${c.ticker} was bought ${c.recentBuys.map(b => `${b.date} (${b.account})`).join(', ')}`).join('; ')} — a loss on these sold today may be partly or fully denied if you still hold any in any account 30 days later.` : ''))
+    : '';
+  const denied = m.deniedRisk.filter(s => s.buys.length);
+  const deniedNote = denied.length ? note('red',
+      `⛔ Losses realized this year that may be denied: ${denied.map(s => `${s.ticker} sold ${s.date} — bought again ${s.buys.map(b => `${b.date} in ${b.account}`).join(', ')}`).join('; ')}.`)
+    : (m.deniedRisk.length ? note('green',
+      `✅ This year's realized losses (${m.deniedRisk.map(s => s.ticker).join(', ')}) have no repurchase in any account within 30 days. `
+      + `Keep it that way until ${m.deniedRisk.map(s => `${s.ticker} ${s.clearDate}`).join(', ')}.`) : '');
 
   el.innerHTML = `
     <!-- Salary slider -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase">Gross Salary</span>
-        <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text1)" id="taxSalaryDisplay">${fmt$(grossSalary)}</span>
+        <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text1)" id="taxSalaryDisplay">${fmt$(salary)}</span>
       </div>
-      <input type="range" min="30000" max="350000" step="5000" value="${grossSalary}"
+      <input type="range" min="30000" max="350000" step="5000" value="${salary}"
         style="width:100%;accent-color:var(--blue-bright);cursor:pointer"
         oninput="localStorage.setItem('pp_gross_salary',this.value); document.getElementById('taxSalaryDisplay').textContent='$'+parseInt(this.value).toLocaleString('en-CA'); renderTaxProjection(_lastLiveData||{}); (function(){var _ms=document.getElementById('m-in-salary');if(_ms)_ms.value=this.value;var _mtp=document.getElementById('m-tax-proj-content');if(_mtp)_mtp.dataset.sig='';}).call(this)"
         onchange="_syncTaxSettings()">
       <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:4px">
-        <span>$30K</span><span style="color:var(--amber)">$57K</span><span style="color:var(--amber)">$102K</span><span style="color:var(--amber)">$150K</span><span>$350K</span>
+        <span>$30K</span><span style="color:var(--amber)">$59K</span><span style="color:var(--amber)">$117K</span><span style="color:var(--amber)">$181K</span><span>$350K</span>
       </div>
       <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
         <div style="font-family:var(--mono);font-size:10px;color:var(--text3)">
           RRSP deduction (Jan ${taxYear} – Mar 1, ${taxYear+1}) · auto-synced from transaction log
         </div>
         <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text1);margin-top:3px">
-          ${rrspDeduction > 0 ? fmt$(rrspDeduction) + ' logged' : '— none logged yet'}
+          ${rrsp > 0 ? fmt$(rrsp) + ' logged' : '— none logged yet'}
         </div>
       </div>
     </div>
 
     <!-- Projection table -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">${taxYear} Tax Projection · ${province} · ${daysLeft} days until Dec 31</div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">${taxYear} Tax Projection · Ontario resident · ${m.daysLeft} days until Dec 31</div>
     </div>
-    ${row('Employment income', fmt$(grossSalary), 'var(--text1)')}
-    ${row('RRSP deduction', rrspDeduction > 0 ? '−' + fmt$(rrspDeduction) : '—', 'var(--red)')}
-    ${row('Taxable capital gains (50% of unrealized)', pricesLoaded && taxCapGains > 0 ? '+' + fmt$(taxCapGains) : '—', 'var(--amber)')}
-    ${row('Available taxable capital losses (50% of losses)', pricesLoaded && availCapLosses > 0 ? '−' + fmt$(availCapLosses) : '—', 'var(--green)')}
-    ${row('Taxable income', fmt$(taxableIncome), 'var(--text1)')}
-    ${row('Marginal rate (' + province + ')', (MAR_RATE * 100).toFixed(2) + '%', 'var(--blue-bright)')}
+    ${row('Employment income', fmt$(salary), 'var(--text1)')}
+    ${row('RRSP deduction', rrsp > 0 ? '−' + fmt$(rrsp) : '—', 'var(--red)')}
+    ${row('Realized capital gains (non-reg, ' + taxYear + ')', yr.net > 0 ? '+' + fmt$(Math.round(m.taxableGains)) : '$0', 'var(--amber)',
+          yr.net > 0 ? `50% of ${fmt$(Math.round(yr.net))} net gain · ${salesList}` : `net ${yr.net < 0 ? 'loss' : 'zero'} — ${salesList}`)}
+    ${row('Non-reg dividends', (yr.eligDiv + yr.foreignGross) > 0 ? '+' + fmt$(Math.round(yr.eligDiv * TAX_PARAMS.div.grossUp + yr.foreignGross)) : '—', 'var(--amber)',
+          'Canadian (grossed up 38%, dividend tax credit applied) + US (before 15% withholding, credited back)')}
+    ${row('Taxable income', fmt$(Math.round(m.tAll.taxable)), 'var(--text1)', 'after CPP enhanced/CPP2 deduction')}
+    ${row('Marginal rate', (m.marginal * 100).toFixed(2) + '%', 'var(--blue-bright)', `capital gains taxed at ${(m.marginal * 50).toFixed(2)}%`)}
+    ${row('Tax from your investments', fmt$(Math.round(m.investTax)), 'var(--amber)', 'extra tax vs. salary alone')}
     <div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0">
-      <div style="font-size:13px;font-weight:700;color:var(--text1)">Estimated tax bill</div>
-      <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:var(--red);flex-shrink:0;padding-left:12px">${fmt$(Math.max(0, estimatedBill))}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text1)">Estimated income tax
+        <div style="font-size:10px;font-weight:400;color:var(--text3);margin-top:2px">federal + Ontario + health premium · effective ${salary > 0 ? (m.tAll.total / salary * 100).toFixed(1) : '0'}% · estimate, before other credits and payroll withholding</div></div>
+      <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:var(--red);flex-shrink:0;padding-left:12px">${fmt$(Math.round(m.tAll.total))}</div>
     </div>
-    ${harvestNote}
+    ${harvestNote}${deniedNote}${slNote}
     <div style="margin-top:10px;font-size:10px;color:var(--text3)">
       <b style="color:var(--green)">TFSA</b> permanently tax-free &nbsp;·&nbsp;
       <b style="color:var(--green)">FHSA</b> tax-free on home purchase &nbsp;·&nbsp;
@@ -3848,7 +4387,7 @@ function updateRRSPRoom() {
   document.getElementById('rrspRoomNote').textContent =
     limit === 0 ? 'Enter your deduction limit from your latest NOA (CRA My Account)'
     : remaining === 0 ? 'RRSP room fully used for this year'
-    : `$${remaining.toLocaleString()} remaining · 18% of prior year earned income (max ~$32,490 for 2026)`;
+    : `$${remaining.toLocaleString()} remaining · 18% of prior year earned income (max ${fmt$(TAX_PARAMS.rrspDollarLimit)} for ${TAX_PARAMS.year})`;
 }
 
 // ============================================================================
@@ -3888,6 +4427,23 @@ function _heroScopedStats(data, acctKey) {
   });
   cash.forEach(c => { prevMV += c.ccy === 'USD' ? c.amount * usdcad : c.amount; });
   const dcp = prevMV > 0 ? dc / prevMV * 100 : 0;
+
+  // Last session's move (weekends, holidays, pre-open): market.py reports 0 for
+  // today plus the last session's % as last_change_pct.
+  let lastDc = 0, lastPrev = 0, lastSession = null;
+  holdings.forEach(h => {
+    const p = hPrices[h.ticker];
+    const fx = h.ccy === 'USD' ? usdcad : 1;
+    if (!p?.price) return;
+    const mv = p.price * h.shares * fx;
+    const lcp = p.last_change_pct;
+    const prevV = lcp != null ? mv / (1 + lcp / 100) : mv;
+    lastDc += mv - prevV;
+    lastPrev += prevV;
+    if (p.session && (!lastSession || p.session > lastSession)) lastSession = p.session;
+  });
+  cash.forEach(c => { lastPrev += c.ccy === 'USD' ? c.amount * usdcad : c.amount; });
+  const lastDcp = lastPrev > 0 ? lastDc / lastPrev * 100 : 0;
 
   // ── Per-position aggregates (ACB-based, mirrors holdings table rows) ──────
   let sumUnrealized = 0, sumRealized = 0, sumMktVal = 0, sumCash = 0;
@@ -3946,7 +4502,8 @@ function _heroScopedStats(data, acctKey) {
   const pnlPct   = costBase > 0 ? ((mktVal - costBase) / costBase * 100) : 0;
 
   return { mktVal, dc, dcp, pnl, pnlPct, contrib, fx, dividends,
-           cash: sumCash, unrealized: sumUnrealized, realized: sumRealized };
+           cash: sumCash, unrealized: sumUnrealized, realized: sumRealized,
+           lastDc, lastDcp, lastSession };
 }
 
 const _HERO_ACCT_MAP   = { all: null, tfsa: 'TFSA', inv: 'Investment', fhsa: 'FHSA', rrsp: 'RRSP' };
@@ -3973,9 +4530,17 @@ function updateHeroStats(data) {
 
   put('heroMV', fmt$(s.mktVal));
 
-  put('heroDayChg', signed(s.dc), tone(s.dc));
-  // "today" is a static suffix span in the markup, so it stays out of this string
-  put('heroDayPct', `${s.dcp >= 0 ? '+' : ''}${s.dcp.toFixed(2)}%`, tone(s.dc));
+  // No trading yet today → show the last session's move, labelled with its day.
+  const _today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const _useLast = s.dc === 0 && s.lastSession && s.lastSession !== _today && s.lastDc !== 0;
+  const _dc  = _useLast ? s.lastDc  : s.dc;
+  const _dcp = _useLast ? s.lastDcp : s.dcp;
+  put('heroDayChg', signed(_dc), tone(_dc));
+  put('heroDayPct', `${_dcp >= 0 ? '+' : ''}${_dcp.toFixed(2)}%`, tone(_dc));
+  const _sfx = document.getElementById('heroDaySuffix');
+  if (_sfx) _sfx.textContent = _useLast
+    ? new Date(s.lastSession + 'T12:00:00Z').toLocaleDateString('en-CA', { weekday: 'short', timeZone: 'UTC' }) + ' (last session)'
+    : 'today';
 
   put('heroPnl',    signed(s.pnl),                                        tone(s.pnl));
   put('heroPnlPct', `${s.pnlPct >= 0 ? '+' : ''}${s.pnlPct.toFixed(1)}%`, tone(s.pnl));
@@ -4094,13 +4659,14 @@ function updateAccountFooters(data) {
     const growthMult = (m.acctVal / (CONTRIB_STATE.FHSA || 24000)).toFixed(2);
     const spxl  = m.holdingStats.find(h => h.ticker === 'SPXL');
     const spxlPct = spxl ? (spxl.mv / m.acctVal * 100) : 0;
-    const downPayTarget = Math.round(m.acctVal + 35000); // FHSA + RRSP HBP estimate
+    const hbpNow = hbpUsable(metrics('RRSP').acctVal);   // HBP: $60K cap, limited to what the RRSP holds
+    const downPayTarget = Math.round(m.acctVal + hbpNow);
     const pool = [
       { cond: c => c.bigMover?.dayPct < -5  ? 100 : 0, msg: c => `▼ ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} today. Goal-based account — this directly impacts your GTA home down payment purchasing power.` },
       { cond: c => c.bigMover?.dayPct > 5   ? 90  : 0, msg: c => `▲ ${c.bigMover.ticker} ${s(c.bigMover.dayPct)} today (${fmt$(Math.round(c.bigMover.dayChg))}). 100% tax-free on home withdrawal — every dollar here is worth more than non-reg.` },
       { cond: c => c.dayChgPct < -3         ? 80  : 0, msg: c => `Tough day in FHSA — down ${s(c.dayChgPct)}. As your purchase horizon tightens, consider shifting toward lower-volatility assets to preserve the down payment.` },
       { cond: () => spxlPct > 40            ? 70  : 0, msg: () => `SPXL is ${spxlPct.toFixed(0)}% of your home fund. High leverage in a goal account — a 50% correction here cuts the fund by ${(spxlPct/2).toFixed(0)}%. Monitor as purchase approaches.` },
-      { cond: c => c.roi > 120              ? 60  : 0, msg: c => `${growthMult}× on $24K contributed. FHSA + RRSP HBP ($35K) = ~${fmt$(downPayTarget)} combined down payment power — strong position for GTA.` },
+      { cond: c => c.roi > 120              ? 60  : 0, msg: c => `${growthMult}× on $24K contributed. FHSA + RRSP HBP (${fmt$(hbpNow)}) = ~${fmt$(downPayTarget)} combined down payment power — strong position for GTA.` },
       { cond: c => c.roi > 80              ? 45  : 0, msg: c => `${growthMult}× on $24K. All gains withdrawn for a qualifying first home are 100% tax-free — structurally worth more than any other account dollar.` },
       { cond: c => c.dayChgPct > 2          ? 35  : 0, msg: c => `FHSA up ${s(c.dayChgPct)} today (${fmt$(Math.round(c.dayChgCAD))}). Growing toward your GTA down payment — every gain here is yours to keep, tax-free.` },
       { cond: () => 1, msg: c => `${growthMult}× growth on $24K. FHSA + RRSP HBP = ~${fmt$(downPayTarget)} potential down payment for GTA. No tax on withdrawal for qualifying home purchase.` },
@@ -5850,26 +6416,19 @@ function generateAnalysis(data) {
   // ── SELL CANDIDATES (dynamic, from current holdings) ─────────────────────
   const sellCandidates = [];
 
-  // Tax-loss harvest candidates (deeply underwater in Investment account)
-  const taxLossTargets = [
-    { ticker: 'MSTR',  account: 'Investment', lossEst: -43.2, shares: 5 },
-    { ticker: 'BYDDF', account: 'Investment', lossEst: -28.9, shares: 150 },
-    { ticker: 'GBTC',  account: 'Investment', lossEst: -17.5, shares: 20 },
-  ];
-  taxLossTargets.forEach(t => {
-    const liveP  = _lastLiveData?.holdings?.[t.ticker];
-    const pct    = liveP?.change_pct ?? t.lossEst;
-    const price  = liveP?.price;
-    const priceStr = price ? ` · Current $${price.toFixed(2)}` : '';
-    if (t.lossEst < -15) {
+  // Tax-loss harvest candidates — live non-registered positions below ACB, and only
+  // when realizing them lowers THIS year's tax (losses can only offset capital gains).
+  const _tlh = computeTaxProjection();
+  if (_tlh.saveNow > 50) {
+    _tlh.candidates.filter(c => !c.recentBuys.length).slice(0, 3).forEach(c => {
       sellCandidates.push({
-        ticker: t.ticker, action: 'SELL', account: t.account,
-        thesis: `Tax-loss harvest opportunity. Position is ${t.lossEst}% underwater in your non-registered account${priceStr}. Realizing this loss offsets capital gains elsewhere in the portfolio, reducing 2026 taxable income. Re-enter after 30 days to avoid the superficial loss rule.`,
-        entry:  `Sell all ${t.shares} shares. Harvest the loss before Dec 31. Save in cash or park in a similar-but-not-identical ETF during the 30-day waiting period.`,
-        _sellScore: Math.abs(t.lossEst), // higher loss = higher priority to harvest
+        ticker: c.ticker, action: 'SELL', account: 'Investment',
+        thesis: `Tax-loss harvest: ${c.ticker} is ${fmt$(Math.round(c.loss))} below its cost in your non-registered account. Your ${_tlh.taxYear} sales show ${fmt$(Math.round(_tlh.yr.net))} of net gains, so realizing losses now saves about ${fmt$(Math.round(_tlh.saveNow))} in total.`,
+        entry:  `Sell before the Dec 31 settlement cut-off. Don't buy ${c.ticker} in ANY account — TFSA, RRSP and FHSA included — until ${c.clearDate}, and switch off dividend reinvestment for it.`,
+        _sellScore: c.loss,
       });
-    }
-  });
+    });
+  }
 
   // Large-gain trim candidate (Investment account, taxable)
   const spxlLive = _lastLiveData?.holdings?.['SPXL']?.price;
@@ -5904,7 +6463,6 @@ function generateAnalysis(data) {
     { ticker: 'FNGU+SPXL+UDOW', text: `${levEtfPct}% concentration in 3x ETFs (~$${levEtfVal.toLocaleString()}). A -15% S&P correction = ~-45% on these = ~$57,000 lost. ${highVol ? `VIX at ${vixVal.toFixed(1)} increases decay risk today.` : 'Monitor VIX — above 22 is the danger threshold for decay.'}` },
     { ticker: 'Investment', text: `Non-reg SPXL (+104.7%) and FNGU (+44.9%) = ~$28,000 in taxable unrealized gains. At 50% inclusion + ~50% marginal rate = ~$7,000 deferred tax liability on these positions alone.` },
     ...(rrspHasIdleCash ? [{ ticker: 'RRSP', text: `${fmt$(rrspCashCAD)} RRSP idle cash = ${rrspCashPct}% of RRSP uninvested. Every month of delay = ~${fmt$(Math.round(rrspCashCAD*0.08/12))} foregone compounding. Deploy to ZSP.TO immediately.` }] : []),
-    { ticker: 'MSTR+GBTC+BYDDF', text: `Underwater positions: MSTR (-43.2%), GBTC (-17.5%), BYDDF (-28.9%). Combined unrealized loss ~$1,248. Tax-loss harvest before Dec 31 to offset capital gains.` },
     { ticker: 'AVGO', text: `AVGO under-allocation — only 8 shares = 1.8% of AUM despite being one of the highest-conviction AI infrastructure names available. If the thesis plays out, current weighting barely moves the portfolio.` },
   ];
 
@@ -5912,7 +6470,6 @@ function generateAnalysis(data) {
   const strategy_short = [
     ...(rrspHasIdleCash ? [{ num: 1, text: `Deploy ${fmt$(rrspCashCAD)} RRSP cash immediately into ZSP.TO. 0% US dividend withholding only in RRSP. Every week of delay = ~${fmt$(Math.round(rrspCashCAD*0.08/52))} foregone compounding.` }] : []),
     { num: 2, text: `Add Broadcom on next 5-8% pullback — target 5-8 additional RRSP shares. At $${(avgoP*0.93).toFixed(0)}–$${(avgoP*0.96).toFixed(0)} entry. TFSA maxed in 2026; RRSP captures tax-deferred growth on this high-conviction name.` },
-    { num: 3, text: `Tax-loss harvest MSTR (-43.2%), BYDDF (-28.9%), GBTC (-17.5%) in Investment account before Dec 31. Realized losses offset capital gains, reducing 2026 taxable income.` },
     { num: 4, text: `Verify 2026 FHSA contribution — $8,000 annual limit. $16,000 of $40,000 lifetime room remaining. Ensure this year's limit is fully used before Dec 31.` },
     { num: 5, text: `Initiate Micron position (10-15 shares in RRSP, $95-$115). No HBM memory exposure is a gap as the AI chip cycle enters its memory-intensive phase. RRSP for US growth names while TFSA room is suspended.` },
   ];
@@ -5926,7 +6483,7 @@ function generateAnalysis(data) {
   ];
 
   const strategy_long = [
-    { num: 1, text: `FHSA + RRSP HBP home purchase plan: FHSA ~$${(accts.FHSA||50577).toLocaleString('en-CA',{maximumFractionDigits:0})} (full withdrawal, tax-free) + RRSP HBP $35K (repay over 15 years) = ~$85K+ down payment. Protect FHSA capital as purchase approaches.` },
+    { num: 1, text: `FHSA + RRSP HBP home purchase plan: FHSA ~$${(accts.FHSA||50577).toLocaleString('en-CA',{maximumFractionDigits:0})} (full withdrawal, tax-free) + RRSP HBP up to ${fmt$(hbpUsable(accts.RRSP||0))} (repay over 15 years) = ~${fmt$(Math.round((accts.FHSA||0) + hbpUsable(accts.RRSP||0)))} down payment. Protect FHSA capital as purchase approaches.` },
     { num: 2, text: `Never sell NVDA, COST, or MSFT in TFSA. These are permanent compounders at 15-20%/year. NVDA is a generational hold — $645 cost basis compounding tax-free indefinitely.` },
     { num: 3, text: `Target core-satellite: 40% index (ZSP.TO, ZAG.TO) + 40% quality growth (NVDA, AVGO, COST, MSFT) + 15% leveraged/speculative + 5% crypto. Currently too concentrated in leveraged bucket.` },
     { num: 4, text: `DCA leveraged ETFs ONLY on -10%+ S&P corrections. Never chase strength. Current cost basis advantage was built during drawdowns — preserve that discipline forever.` },
@@ -5953,18 +6510,17 @@ function generateAnalysis(data) {
       { icon: '✅', text: `$${fhsaVal.toLocaleString()} withdrawal on qualifying home purchase = 100% tax-free, no repayment required (unlike RRSP HBP).` },
       { icon: '⚠️', text: `$16,000 lifetime room remaining ($40K limit - $24K contributed). Max the $8,000 annual limit ASAP.` },
       { icon: '⚠️', text: `Begin rotating SPXL/UDOW gains → ENB.TO + ZAG.TO as home purchase horizon tightens (est. 18-24 months).` },
-      { icon: '💡', text: `Combine FHSA ($${fhsaVal.toLocaleString()}) + RRSP HBP ($35K) = ~$85K down payment total. FHSA is superior — no repayment obligation.` },
+      { icon: '💡', text: `Combine FHSA ($${fhsaVal.toLocaleString()}) + RRSP HBP (${fmt$(hbpUsable(rrspVal))}) = ~${fmt$(Math.round(fhsaVal + hbpUsable(rrspVal)))} down payment total. FHSA is superior — no repayment obligation.` },
     ],
     rrsp: [
       { icon: '✅', text: `0% US dividend withholding under Canada-US treaty — unique advantage unavailable in TFSA/FHSA/non-reg.` },
       ...(rrspHasIdleCash ? [{ icon: '⚠️', text: `${fmt$(rrspCashCAD)} IDLE CASH (${rrspCashPct}% of RRSP) — TOP PRIORITY. Deploy into ZSP.TO immediately. Costs ~${fmt$(Math.round(rrspCashCAD*0.08))}/year in foregone returns at 8%.` }] : []),
       { icon: '⚠️', text: `TXF.TO (covered call ETF) not optimal here — US dividend ETFs (ZSP.TO, IVV, SCHD) benefit more from the 0% withholding advantage.` },
-      { icon: '💡', text: `HBP: Can withdraw up to $35K for qualifying home purchase and repay over 15 years.` },
+      { icon: '💡', text: `HBP: withdraw up to $60K (limited to what the RRSP holds — ${fmt$(Math.round(rrspVal))} today) for a qualifying first home, repaid over 15 years. Contributions must sit 90 days first.` },
       { icon: '💡', text: `After ZSP.TO deployment, add SCHD or VYM for dividend growth. Build RRSP into the primary dividend income engine.` },
     ],
     investment: [
       { icon: '⚠️', text: `SPXL (+104.7%) and FNGU (+44.9%) carry ~$28,000+ unrealized taxable gains. At 50% inclusion + ~50% marginal rate ≈ $7,000 deferred tax. Plan dispositions carefully.` },
-      { icon: '⚠️', text: `Harvest MSTR (-43.2%), GBTC (-17.5%), BYDDF (-28.9%) before Dec 31. Realized losses offset 2026 gains and reduce taxable income.` },
       { icon: '✅', text: `Canadian eligible dividends (CM.TO, RY.TO) qualify for the dividend tax credit — most tax-efficient income type in non-registered accounts.` },
       { icon: '💡', text: `Long-term: migrate taxable SPXL/FNGU gains into TFSA over annual contribution cycles ($7K/year room). Move growth/leveraged positions to sheltered accounts as room opens.` },
       { icon: '💡', text: `Only hold tax-efficient names in non-reg: eligible Canadian dividends, return-of-capital ETFs. Use this account for dividend income, not growth/speculation.` },
@@ -6101,8 +6657,9 @@ function renderTaxSection(data, llmTax) {
   // RRSP NOA deduction limit — from the Contribution Room Tracker
   const rrspNOALimit  = parseFloat(localStorage.getItem('pp_rrsp_limit') || '0');
   const rrspRoom      = rrspNOALimit > 0 ? Math.max(0, rrspNOALimit - rrspC) : null;
-  // Tax savings estimate: RRSP contribution deduction at ~43% marginal rate (~$90K income)
-  const rrspTaxSaving = rrspRoom ? Math.round(rrspRoom * 0.43) : null;
+  // Tax savings estimate: RRSP deduction at your actual Ontario marginal rate
+  const _taxM = computeTaxProjection();
+  const rrspTaxSaving = rrspRoom ? Math.round(rrspRoom * _taxM.marginal) : null;
 
   // Top holdings per account for context
   const topInAcct = key => HOLDINGS_STATIC
@@ -6114,7 +6671,7 @@ function renderTaxSection(data, llmTax) {
   const invUnrealized = HOLDINGS_STATIC
     .filter(h => h.account === 'Investment')
     .reduce((s,h) => { const mv=(hPrices[h.ticker]?.price||0)*h.shares*(h.ccy==='USD'?usdcad:1); const acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total; return s+(mv-acb); }, 0);
-  const deferredTax = Math.max(0, Math.round(invUnrealized * 0.5 * 0.43)); // 50% inclusion × ~43% marginal
+  const deferredTax = Math.max(0, Math.round(invUnrealized * 0.5 * _taxM.marginal)); // 50% inclusion × your marginal rate
 
   // ── TFSA ─────────────────────────────────────────────────────────────────
   const tfsaTop = topInAcct('TFSA');
@@ -6134,17 +6691,18 @@ function renderTaxSection(data, llmTax) {
 
   // ── FHSA ─────────────────────────────────────────────────────────────────
   const fhsaTop = topInAcct('FHSA');
-  const downPayEst = Math.round(fhsaV + 35000); // FHSA + RRSP HBP
+  const hbpNow = hbpUsable(rrspV);                 // HBP: $60K cap, limited to the RRSP's value
+  const downPayEst = Math.round(fhsaV + hbpNow);
   const fhsaItems = [
     taxItem('⚠️', `Non-resident 2026 — contributions suspended. $16,000 lifetime room remaining ($8,000/yr) resumes when Canadian resident (target: March 2027).`),
     fhsaROI != null
-      ? taxItem('✅', `+${fhsaROI.toFixed(1)}% ROI on ${fmt$(fhsaC)} contributed. Combined with RRSP HBP ($35K) = ~${fmt$(downPayEst)} total down payment power for GTA.`)
+      ? taxItem('✅', `+${fhsaROI.toFixed(1)}% ROI on ${fmt$(fhsaC)} contributed. Combined with RRSP HBP (up to ${fmt$(hbpNow)}) = ~${fmt$(downPayEst)} total down payment power for GTA.`)
       : taxItem('✅', `FHSA + RRSP HBP = strong GTA down payment foundation. All FHSA gains withdrawn for qualifying home are 100% tax-free.`),
     fhsaTop.length ? taxItem('⚠️', `Current holdings: ${fhsaTop.map(h=>h.ticker).join(', ')}. As purchase horizon tightens, shift toward lower-volatility positions to preserve the down payment.`)
       : null,
     taxItem('💡', `No FHSA repayment obligation on home purchase (unlike RRSP HBP which requires 15-year repayment). FHSA withdrawal is structurally superior — use it first.`),
     // Live: Home purchase progress with actual live FHSA value
-    (() => { const combinedDown = Math.round(fhsaV + 35000); const pct = Math.min(100, (combinedDown / 150000 * 100)).toFixed(0); return taxItem('🏠', `GTA down payment progress: FHSA ${fmt$(Math.round(fhsaV))} + RRSP HBP $35K = ${fmt$(combinedDown)} (${pct}% of a $150K target). Returns to Canada March 2027 — timeline aligns well.`); })(),
+    (() => { const combinedDown = downPayEst; const pct = Math.min(100, (combinedDown / 150000 * 100)).toFixed(0); return taxItem('🏠', `GTA down payment progress: FHSA ${fmt$(Math.round(fhsaV))} + RRSP HBP ${fmt$(hbpNow)} = ${fmt$(combinedDown)} (${pct}% of a $150K target). Returns to Canada March 2027 — timeline aligns well.`); })(),
   ].filter(Boolean);
 
   // ── RRSP ─────────────────────────────────────────────────────────────────
@@ -6159,7 +6717,7 @@ function renderTaxSection(data, llmTax) {
     rrspRoom === null
       ? taxItem('📋', `Enter your RRSP deduction limit from your most recent NOA in the Contribution Room Tracker below — it unlocks your exact remaining room and projected tax savings.`)
       : rrspRoom === 0
-        ? taxItem('✅', `RRSP contribution room fully used for this year. Focus on growing existing positions. New room accumulates at 18% of earned income annually (max ~$32,490 in 2026).`)
+        ? taxItem('✅', `RRSP contribution room fully used for this year. Focus on growing existing positions. New room accumulates at 18% of earned income annually (max ${fmt$(TAX_PARAMS.rrspDollarLimit)} in ${TAX_PARAMS.year}).`)
         : taxItem('💰', `${fmt$(rrspRoom)} remaining RRSP room (from your NOA deduction limit of ${fmt$(rrspNOALimit)}). A full contribution saves ~${fmt$(rrspTaxSaving)} in 2026 taxes at your income bracket. Use the October bonus as the natural deployment window.`),
 
     // 3. ROI + treaty advantage
@@ -6168,23 +6726,25 @@ function renderTaxSection(data, llmTax) {
       : taxItem('✅', `RRSP defers all taxes until withdrawal — compound in full, pay tax only when you take money out. Best structural home for US-dividend payers.`),
 
     // 4. HBP planning
-    taxItem('💡', `HBP: Can withdraw up to $35K for first home purchase with 15-year repayment. Combined with FHSA (~${fmt$(Math.round(fhsaV))}) = ~${fmt$(downPayEst)} down payment. FHSA has no repayment obligation — use it before HBP.`),
+    taxItem('💡', `HBP: withdraw up to $60K, but only what the RRSP holds (${fmt$(Math.round(rrspV))} today), with 15-year repayment. Combined with FHSA (~${fmt$(Math.round(fhsaV))}) = ~${fmt$(downPayEst)} down payment. FHSA has no repayment obligation — use it before HBP.`),
   ];
 
   // ── Non-Reg ───────────────────────────────────────────────────────────────
   const invItems = [
     invUnrealized > 5000
-      ? taxItem('⚠️', `~${fmt$(Math.round(invUnrealized))} unrealized gains. At 50% inclusion + ~43% marginal rate = ~${fmt$(deferredTax)} deferred tax liability. Plan dispositions around lower-income years to minimize.`)
-      : taxItem('⚠️', `50% inclusion rate applies to all capital gains here. Every dollar of gain will cost ~21.5¢ in tax at disposition. Factor this into position sizing vs sheltered accounts.`),
+      ? taxItem('⚠️', `~${fmt$(Math.round(invUnrealized))} unrealized gains. At 50% inclusion × your ${(_taxM.marginal*100).toFixed(1)}% marginal rate = ~${fmt$(deferredTax)} tax if sold today. Plan dispositions around lower-income years to minimize.`)
+      : taxItem('⚠️', `50% inclusion rate applies to all capital gains here. Every dollar of gain will cost ~${(_taxM.marginal*50).toFixed(1)}¢ in tax at disposition. Factor this into position sizing vs sheltered accounts.`),
     harvestCandidates.length
-      ? taxItem('⚠️', `Tax-loss harvest candidates: ${harvestCandidates.slice(0,3).map(h=>`${h.ticker} (-${fmt$(h.loss)})`).join(', ')}. Realize losses before Dec 31 to offset other gains. Re-enter after 30 days (superficial loss rule).`)
+      ? taxItem('⚠️', _taxM.yr.net > 0
+          ? `Tax-loss harvest candidates: ${harvestCandidates.slice(0,3).map(h=>`${h.ticker} (-${fmt$(h.loss)})`).join(', ')}. Realizing them before Dec 31 offsets your ${fmt$(Math.round(_taxM.yr.net))} of ${_taxM.taxYear} gains. Don't rebuy in ANY account (TFSA/RRSP/FHSA included) for 30 days.`
+          : `Unrealized losses: ${harvestCandidates.slice(0,3).map(h=>`${h.ticker} (-${fmt$(h.loss)})`).join(', ')}. Your ${_taxM.taxYear} sales already net to a loss, so harvesting now only grows the carryforward — it won't cut this year's tax.`)
       : taxItem('✅', `No significant harvest candidates today. Monitor for positions falling more than $500 below ACB as the year progresses.`),
     invROI != null
       ? taxItem('💡', `+${invROI.toFixed(1)}% ROI on ${fmt$(invC)} contributed. Eligible Canadian dividends (CM.TO, ENB.TO) qualify for the dividend tax credit — most tax-efficient income type in non-reg.`)
       : taxItem('💡', `Eligible Canadian dividends get the dividend tax credit — structurally more tax-efficient than interest income or foreign dividends in non-reg.`),
     taxItem('💡', `Long-term plan: migrate high-growth positions to TFSA/RRSP as room opens ($7K TFSA in Jan 2027). Hold only tax-efficient names (eligible CDN dividends, return-of-capital ETFs) here long-term.`),
     // Live: Running deferred tax meter updated with live prices
-    (() => { const grossSalary = parseInt(localStorage.getItem('pp_gross_salary')||'90000'); const taxableInc = Math.max(0,grossSalary-(parseFloat(localStorage.getItem('pp_rrsp_this_year')||'0'))); const marginal = _ontarioMarginalRate(taxableInc); const effRate = marginal * 0.5; const liveUnreal = HOLDINGS_STATIC.filter(h=>h.account==='Investment').reduce((s,h)=>{const p=data.holdings?.[h.ticker];const mv=(p?.price||0)*h.shares*(h.ccy==='USD'?usdcad:1);const acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;return s+Math.max(0,mv-acb);},0); const deferred=Math.round(liveUnreal*effRate); return liveUnreal > 2000 ? taxItem('📊', `Live deferred tax meter: ${fmt$(Math.round(liveUnreal))} unrealized gains × ${(effRate*100).toFixed(1)}% (50% inclusion × ${(marginal*100).toFixed(1)}% marginal) = ~${fmt$(deferred)} owed if fully realized today. Updates every 5s.`) : null; })(),
+    (() => { const marginal = _taxM.marginal; const effRate = marginal * 0.5; const liveUnreal = HOLDINGS_STATIC.filter(h=>h.account==='Investment').reduce((s,h)=>{const p=data.holdings?.[h.ticker];const mv=(p?.price||0)*h.shares*(h.ccy==='USD'?usdcad:1);const acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;return s+Math.max(0,mv-acb);},0); const deferred=Math.round(liveUnreal*effRate); return liveUnreal > 2000 ? taxItem('📊', `Live deferred tax meter: ${fmt$(Math.round(liveUnreal))} unrealized gains × ${(effRate*100).toFixed(1)}% (50% inclusion × ${(marginal*100).toFixed(1)}% marginal) = ~${fmt$(deferred)} owed if fully realized today. Updates every 5s.`) : null; })(),
   ].filter(Boolean);
 
   // Render: client facts first, then LLM narrative supplement (if available and non-generic)
@@ -6493,6 +7053,9 @@ async function fetchMarketData() {
     updateTodayGlance(data);
     renderTaxSection(data);
     renderTaxProjection(data);
+    try { renderPerfPanel(data); }   catch (e) { console.warn('perf panel', e); }
+    try { renderIncomePanel(data); } catch (e) { console.warn('income panel', e); }
+    try { renderDataHealth(data); }  catch (e) { console.warn('data health', e); }
     if (data.holdings) {
       updateHoldingsCells(data.holdings, data.usdcad || 1.38);
       buildTickerStrip(data.holdings);
@@ -8441,6 +9004,9 @@ function applyOneTx(holdings, closed, contribs, cash, tx) {
       // Realized gain/loss
       const realizedCAD = proceedsCAD - acbPerShare_CAD * sellShares;
       _LEDGER_SELL_CAD += realizedCAD;          // for checkLedgerIntegrity()
+      if (typeof _LEDGER_SALES !== 'undefined')   // per-sale record for the tax projection
+        _LEDGER_SALES.push({ date: tx.date, account: tx.account, ticker: tx.ticker,
+                             shares: sellShares, proceedsCAD, realizedCAD });
 
       // Reduce position proportionally (book_rate stays the same)
       const fraction = sellShares / old.shares;
@@ -8587,12 +9153,14 @@ function applyAllTransactions() {
   CLOSED_POSITIONS_STATIC = deepCopy(_CLOSED_BASE);
   CONTRIB_STATE           = { ..._CONTRIB_BASE };
   _LEDGER_SELL_CAD        = 0;
+  _LEDGER_SALES           = [];
   txs.forEach(tx => applyOneTx(HOLDINGS_STATIC, CLOSED_POSITIONS_STATIC, CONTRIB_STATE, CASH_POSITIONS, tx));
   _classifyLeveraged(HOLDINGS_STATIC);
   _classifyLeveraged(CLOSED_POSITIONS_STATIC);
   try {
-    _showLedgerProblems(checkLedgerIntegrity(_HOLDINGS_BASE, _CLOSED_BASE, HOLDINGS_STATIC,
-                                             CLOSED_POSITIONS_STATIC, txs, _LEDGER_SELL_CAD));
+    window._LEDGER_CHECK = checkLedgerIntegrity(_HOLDINGS_BASE, _CLOSED_BASE, HOLDINGS_STATIC,
+                                                CLOSED_POSITIONS_STATIC, txs, _LEDGER_SELL_CAD);
+    _showLedgerProblems(window._LEDGER_CHECK);
   } catch (e) { console.warn('ledger check could not run', e); }
 }
 
@@ -8603,6 +9171,7 @@ function applyAllTransactions() {
 // until Oct 2026, hiding $1,897 inside the FX residual) the two disagree and the
 // dashboard says so instead of quietly folding the gap into FX Impact.
 var _LEDGER_SELL_CAD = 0;   // var, not let: applyOneTx can run before this line does
+var _LEDGER_SALES = [];     // every logged SELL with its realized CAD gain — feeds computeTaxProjection()
 
 function checkLedgerIntegrity(baseHoldings, baseClosed, holdings, closed, txs, sellCAD) {
   const rateOf  = c => c.ccy === 'USD' ? (c.book_rate || USD_BOOK_RATE) : 1;
@@ -10309,7 +10878,7 @@ function syncBenchmark(){
   bars.forEach(function(b){html+='<div>'+b.innerHTML+'</div>';});
   html+='</div>';
   var alpha=src.querySelector('#bmAlphaLine');
-  if(alpha)html+='<div style="font-size:10px;color:var(--green);margin-top:6px">'+alpha.textContent+'</div>';
+  if(alpha)html+='<div style="font-size:10px;color:'+(alpha.style.color||'var(--text3)')+';margin-top:6px">'+alpha.textContent+'</div>';
   dst.innerHTML=html;
 }
 
@@ -10677,7 +11246,7 @@ window.generatePortfolioReport = async function() {
       {val:tfsaVal,gain:tfsaGain,roi:tfsaRoi,c:tfsaC,cls:'ta',badge:'ab-t',label:'TFSA',
        note:'100% permanently tax-free. All growth, dividends and capital gains sheltered — no CRA exposure on any dollar.'},
       {val:fhsaVal,gain:fhsaGain,roi:fhsaRoi,c:fhsaC,cls:'fh',badge:'ab-f',label:'FHSA',
-       note:'Tax-deductible contributions + tax-free home purchase withdrawal. FHSA + RRSP HBP $35K = GTA down payment. No repayment obligation.'},
+       note:'Tax-deductible contributions + tax-free home purchase withdrawal. FHSA + RRSP HBP (up to $60K, capped at the RRSP balance) = GTA down payment. No repayment obligation.'},
       {val:rrspVal,gain:rrspGain,roi:rrspRoi,c:rrspC,cls:'rs',badge:'ab-r',label:'RRSP',
        note:'Tax-deferred growth. 0% US dividend withholding under Canada-US treaty — unavailable in any other account. Deploy idle cash immediately.'},
       {val:invVal, gain:invGain, roi:invRoi, c:invC, cls:'iv',badge:'ab-n',label:'NON-REG',
@@ -10766,25 +11335,12 @@ window.generatePortfolioReport = async function() {
 
     /* ── Benchmark (contribution-weighted, live from KV via market.py) ──────── */
     var bench       = data.benchmarks || {};
-    var benchState  = data.benchmark_state || {};
-    /* ref_contrib: contribution level when benchmark values were last seeded/compounded */
-    var bmRefContrib = benchState.ref_contrib || 162632;
-    var bmContrib   = totalContrib || bmRefContrib;
-    /* scale benchmark values proportionally if contributions have grown since last update */
-    var bmScale     = bmContrib / bmRefContrib;
-    /* fallbacks are scaled from original hardcoded values — only used if KV benchmark:state
-       has never been written (i.e., before the first EOD snapshot after deployment) */
-    var bmBases     = {
-      sp500:  { val: (benchState.sp500_val  || 208478) * bmScale },
-      tsx:    { val: (benchState.tsx_val    || 201435) * bmScale },
-      nasdaq: { val: (benchState.nasdaq_val || 213384) * bmScale }
-    };
-    function bmLive(base, bData) {
-      return bData && bData.change_pct != null ? Math.round(base.val*(1+bData.change_pct/100)) : Math.round(base.val);
-    }
-    var sp500Val  = bmLive(bmBases.sp500,  bench.sp500);
-    var tsxVal    = bmLive(bmBases.tsx,    bench.tsx);
-    var nasdaqVal = bmLive(bmBases.nasdaq, bench.nasdaq);
+    /* Same contribution-weighted model as section 02 (benchmarkValues). */
+    var bmContrib   = totalContrib;
+    var _bmv        = benchmarkValues(null, data) || {};
+    var sp500Val  = _bmv.sp500  || 0;
+    var tsxVal    = _bmv.tsx    || 0;
+    var nasdaqVal = _bmv.nasdaq || 0;
     var sp500Roi  = bmContrib>0?(sp500Val-bmContrib)/bmContrib*100:0;
     var tsxRoi    = bmContrib>0?(tsxVal-bmContrib)/bmContrib*100:0;
     var nasdaqRoi = bmContrib>0?(nasdaqVal-bmContrib)/bmContrib*100:0;
@@ -10834,7 +11390,7 @@ window.generatePortfolioReport = async function() {
   '<div class="kpi c1"><div class="kpi-lbl">Total Portfolio Value</div><div class="kpi-val cy">'+fmt$(Math.round(totalVal))+'</div><div class="kpi-chg '+(totalDayChg>=0?'up':'dn')+'">'+fmtS$(totalDayChg)+' today ('+fmtP(totalDayChgPct)+')</div><div class="kpi-sub">CAD \xB7 All accounts combined</div></div>'+
   '<div class="kpi c2"><div class="kpi-lbl">All-Time Unrealized Gains</div><div class="kpi-val '+(totalGain>=0?'up':'dn')+'">'+fmtS$(totalGain)+'</div><div class="kpi-chg '+(roiPct>=0?'up':'dn')+'">'+fmtP(roiPct)+' ROI on '+fmt$(Math.round(totalContrib))+'</div><div class="kpi-sub">vs total contributions</div></div>'+
   '<div class="kpi c3"><div class="kpi-lbl">TFSA (Tax-Free)</div><div class="kpi-val up">'+fmt$(Math.round(tfsaVal))+'</div><div class="kpi-sub">'+fmt$(Math.round(tfsaC))+' contributed \xB7 '+fmtP(tfsaRoi)+' ROI</div><div class="kpi-chg up">100% permanently tax-free</div></div>'+
-  '<div class="kpi c4"><div class="kpi-lbl">Down Payment Fund</div><div class="kpi-val up">'+fmt$(Math.round(fhsaVal+35000))+'</div><div class="kpi-chg up">FHSA '+fmt$(Math.round(fhsaVal))+' + RRSP HBP $35K</div><div class="kpi-sub">GTA home purchase goal</div></div>'+
+  '<div class="kpi c4"><div class="kpi-lbl">Down Payment Fund</div><div class="kpi-val up">'+fmt$(Math.round(fhsaVal+hbpUsable(rrspVal)))+'</div><div class="kpi-chg up">FHSA '+fmt$(Math.round(fhsaVal))+' + RRSP HBP '+fmt$(hbpUsable(rrspVal))+'</div><div class="kpi-sub">GTA home purchase goal</div></div>'+
   '</div>'+
   '<div class="commentary">Portfolio stands at <span class="hl">'+fmt$(Math.round(totalVal))+' CAD</span> with an all-time return of <span class="hl">'+fmtP(roiPct)+'</span> on '+fmt$(Math.round(totalContrib))+' contributed. TFSA holds '+fmt$(Math.round(tfsaVal))+' permanently tax-free at '+fmtP(tfsaRoi)+' ROI. The FHSA + RRSP Home Buyers’ Plan down payment fund stands at approximately <span class="hl">'+fmt$(Math.round(fhsaVal+35000))+' CAD</span>, targeting the GTA home purchase on return in March 2027. Non-Reg at '+fmt$(Math.round(invVal))+' ('+fmtP(invRoi)+' ROI) is the primary tax-optimization opportunity — review for loss harvesting before Dec 31. USD/CAD: '+usdcad.toFixed(4)+'.</div>'+
   '</div>'+
@@ -10872,9 +11428,9 @@ window.generatePortfolioReport = async function() {
   '<div class="bench-row"><div class="bench-lbl"><b>Your Portfolio</b></div>'+
   '<div class="bench-bar-bg"><div class="bench-bar-fill" style="width:100%;background:#0066cc">'+fmt$(Math.round(totalVal))+'</div></div>'+
   '<div class="bench-val '+(roiPct>=0?'up':'dn')+'">'+fmtS$(Math.round(totalGain))+' \xB7 '+fmtP(roiPct)+'</div></div>'+
-  '<div class="bench-row"><div class="bench-lbl">S&P 500 (USD)</div>'+
+  '<div class="bench-row"><div class="bench-lbl">S&P 500</div>'+
   '<div class="bench-bar-bg"><div class="bench-bar-fill" style="width:'+(totalVal>0?Math.min(99,(sp500Val/totalVal*100)).toFixed(1):0)+'%;background:#f59e0b">'+fmt$(Math.round(sp500Val))+'</div></div>'+
-  '<div class="bench-val">'+fmt$(Math.round(sp500Val))+' \xB7 +'+sp500Roi.toFixed(1)+'%</div></div>'+
+  '<div class="bench-val">'+fmt$(Math.round(sp500Val))+' \xB7 '+fmtP(sp500Roi)+'</div></div>'+
   '<div class="bench-row"><div class="bench-lbl">TSX Composite</div>'+
   '<div class="bench-bar-bg"><div class="bench-bar-fill" style="width:'+(totalVal>0?Math.min(99,(tsxVal/totalVal*100)).toFixed(1):0)+'%;background:#059669">'+fmt$(Math.round(tsxVal))+'</div></div>'+
   '<div class="bench-val">'+fmt$(Math.round(tsxVal))+' \xB7 +'+tsxRoi.toFixed(1)+'%</div></div>'+
@@ -10894,7 +11450,7 @@ window.generatePortfolioReport = async function() {
   '<div class="sec"><div class="sec-header"><div class="sec-num">06</div><div class="sec-title">Tax & Account Optimization Summary</div></div>'+
   '<div class="tax-grid3" style="margin-bottom:10px">'+
   '<div class="titem"><div class="titem-lbl">TFSA Tax-Free Gains</div><div class="titem-val up">'+fmtS$(Math.round(tfsaGain))+'</div><div class="titem-note">Permanently sheltered — no CRA exposure ever. All growth, dividends and capital gains are 100% tax-free. Never sell highest-returning TFSA positions.</div></div>'+
-  '<div class="titem"><div class="titem-lbl">FHSA Down Payment Power</div><div class="titem-val" style="color:#059669">'+fmt$(Math.round(fhsaVal))+'</div><div class="titem-note">+ RRSP HBP $35K = ~'+fmt$(Math.round(fhsaVal+35000))+' combined. No FHSA repayment obligation. Use FHSA first on qualifying purchase. Returns to Canada March 2027.</div></div>'+
+  '<div class="titem"><div class="titem-lbl">FHSA Down Payment Power</div><div class="titem-val" style="color:#059669">'+fmt$(Math.round(fhsaVal))+'</div><div class="titem-note">+ RRSP HBP '+fmt$(hbpUsable(rrspVal))+' = ~'+fmt$(Math.round(fhsaVal+hbpUsable(rrspVal)))+' combined. No FHSA repayment obligation. Use FHSA first on qualifying purchase. Returns to Canada March 2027.</div></div>'+
   '<div class="titem"><div class="titem-lbl">RRSP Tax-Deferred Value</div><div class="titem-val am">'+fmt$(Math.round(rrspVal))+'</div><div class="titem-note">Tax-deferred (not tax-free). 0% US dividend withholding under Canada-US treaty. Best home for US dividend ETFs — unavailable in any other account type.</div></div>'+
   '<div class="titem"><div class="titem-lbl">Non-Reg Unrealized Gains</div><div class="titem-val '+(invGain>=0?'up':'dn')+'">'+fmtS$(Math.round(invGain))+'</div><div class="titem-note">50% capital gains inclusion rate. Deferred tax grows with portfolio. Harvest losses before Dec 31 to offset realized gains and reduce taxable income.</div></div>'+
   '<div class="titem"><div class="titem-lbl">Total Portfolio Gain</div><div class="titem-val '+(totalGain>=0?'up':'dn')+'">'+fmtS$(Math.round(totalGain))+'</div><div class="titem-note">All-time gain vs '+fmt$(Math.round(totalContrib))+' contributed. TFSA portion ('+fmtS$(Math.round(tfsaGain))+') is permanently tax-free. Non-reg portion carries deferred tax liability.</div></div>'+
@@ -11479,61 +12035,25 @@ function syncMobile(){
     var projDst=document.getElementById('m-tax-proj-content');
     if(projDst){
       try{
-        var _gross=parseInt(localStorage.getItem('pp_gross_salary')||'90000',10);
-        var _prov=localStorage.getItem('pp_province')||'Ontario';
-        var _taxYr=new Date().getFullYear();
-        /* RRSP: CRA eligible window = Jan 1 current year → Mar 1 next year (first 60 days rule) */
-        var _rrspWinStart=_taxYr+'-01-01';
-        var _rrspWinEnd=(_taxYr+1)+'-03-01';
-        var _rrspDed=(window.getTransactions?getTransactions():[])
-          .filter(function(t){
-            return t.type==='CONTRIBUTION'&&t.account==='RRSP'
-              &&(t.date||'')>=_rrspWinStart&&(t.date||'')<=_rrspWinEnd;
-          })
-          .reduce(function(s,t){return s+(t.amount||0);},0);
-        /* _lastLiveData is var (window property) — accessible from any script block */
-        var _hPx=(_lastLiveData&&_lastLiveData.holdings)||{};
-        var _fx=(_lastLiveData&&_lastLiveData.usdcad)||1.38;
-        var _priceCount=Object.keys(_hPx).length;
-        var _invGains=0,_invLosses=0;
-        if(_priceCount>0){
-          HOLDINGS_STATIC.filter(function(h){return h.account==='Investment'&&h.ticker&&!h.ticker.startsWith('CASH');})
-            .forEach(function(h){
-              var p=_hPx[h.ticker];
-              if(!p||!p.price)return; /* skip — no live price; never count as 0-mv loss */
-              var mv=p.price*h.shares*(h.ccy==='USD'?_fx:1);
-              var acb=h.ccy==='USD'?h.cost_total*(h.book_rate||1):h.cost_total;
-              var diff=mv-acb;
-              if(diff>0){_invGains+=diff;}else{_invLosses+=(-diff);}
-            });
-        }
-        var _taxCapGains=Math.round(_invGains*0.5);   /* 50% inclusion — matches Unrealized Gain card */
-        var _availCapLoss=Math.round(_invLosses*0.5); /* 50% inclusion of losses */
-        /* Taxable income = Employment − RRSP + Taxable cap gains − Available cap losses (all pre-tax) */
-        var _taxInc=Math.max(0,_gross-_rrspDed+_taxCapGains-_availCapLoss);
-        /* MAR_RATE based on full taxable income (includes capital gains component) */
-        var _marRate=window._marginalRate?_marginalRate(_taxInc,_prov):
-                     window._ontarioMarginalRate?_ontarioMarginalRate(_taxInc):0.3148;
-        /* Estimated tax bill = MAR_RATE × full taxable income */
-        var _taxBill=Math.round(_taxInc*_marRate);
-        var _fmtPct=function(v){return(v*100).toFixed(2)+'%';};
+        /* Same model as the desktop panel (computeTaxProjection) so the two never disagree. */
+        var _m=computeTaxProjection();
+        var _f=function(n){return '$'+Math.round(Math.abs(n)).toLocaleString('en-CA');};
         var _row=function(l,v,c){return'<div class="m-tax-proj-row"><span class="m-tax-proj-l">'+l+'</span><span class="m-tax-proj-v" style="color:'+c+'">'+v+'</span></div>';};
-        var _provShort=_prov.replace('British Columbia','BC').replace('Saskatchewan','SK')
-          .replace('Newfoundland','NL').replace('Nova Scotia','NS').replace('New Brunswick','NB');
-        var _capGainsFmt=(_priceCount>0&&_taxCapGains>0)?'+$'+_taxCapGains.toLocaleString('en-CA'):'—';
-        var _capLossFmt=(_priceCount>0&&_availCapLoss>0)?'−$'+_availCapLoss.toLocaleString('en-CA'):'—';
+        var _divT=_m.yr.eligDiv*TAX_PARAMS.div.grossUp+_m.yr.foreignGross;
         var _html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
           +'<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t2)">Year-End Tax Projection</span>'
-          +'<span style="font-size:9px;color:var(--t3)">'+_taxYr+' \xB7 '+_provShort+'</span></div>'
-          +_row('Employment income','$'+_gross.toLocaleString('en-CA'),'var(--t1)')
-          +_row('RRSP deduction',(_rrspDed>0?'−$'+_rrspDed.toLocaleString('en-CA'):'—'),'var(--red)')
-          +_row('Taxable capital gains',_capGainsFmt,'var(--amber)')
-          +_row('Available capital losses',_capLossFmt,'var(--green)')
-          +_row('Taxable income','$'+_taxInc.toLocaleString('en-CA'),'var(--t1)')
-          +_row('Marginal rate ('+_provShort+')',_fmtPct(_marRate),'var(--t2)')
-          +'<div class="m-tax-proj-row" style="border-bottom:none;margin-top:4px"><span class="m-tax-proj-l" style="font-weight:700;color:var(--t1)">Estimated tax bill</span><span class="m-tax-proj-v" style="color:var(--red);font-size:13px">$'+_taxBill.toLocaleString('en-CA')+'</span></div>';
-        /* priceCount in sig: forces re-render when prices load or change */
-        var _sig=_gross+'|'+_rrspDed+'|'+_taxCapGains+'|'+_availCapLoss+'|'+_prov+'|'+_priceCount;
+          +'<span style="font-size:9px;color:var(--t3)">'+_m.taxYear+' \xB7 ON</span></div>'
+          +_row('Employment income',_f(_m.salary),'var(--t1)')
+          +_row('RRSP deduction',(_m.rrsp>0?'−'+_f(_m.rrsp):'—'),'var(--red)')
+          +_row('Realized gains (taxable)',(_m.yr.net>0?'+'+_f(_m.taxableGains):'$0'),'var(--amber)')
+          +(_m.yr.net<0?_row('Net capital loss (carry fwd)',_f(_m.carryforward),'var(--green)'):'')
+          +_row('Non-reg dividends',(_divT>0?'+'+_f(_divT):'—'),'var(--amber)')
+          +_row('Taxable income',_f(_m.tAll.taxable),'var(--t1)')
+          +_row('Marginal rate',(_m.marginal*100).toFixed(2)+'%','var(--t2)')
+          +_row('Tax from investments',_f(_m.investTax),'var(--amber)')
+          +'<div class="m-tax-proj-row" style="border-bottom:none;margin-top:4px"><span class="m-tax-proj-l" style="font-weight:700;color:var(--t1)">Estimated income tax</span><span class="m-tax-proj-v" style="color:var(--red);font-size:13px">'+_f(_m.tAll.total)+'</span></div>'
+          +(_m.yr.net<=0&&_m.candidates.length?'<div style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.4">No '+_m.taxYear+' gains to offset — harvesting more losses only adds to the carryforward. Superficial-loss rule covers all accounts.</div>':'');
+        var _sig=[_m.salary,_m.rrsp,Math.round(_m.yr.net),Math.round(_divT),_m.candidates.length,_m.pricesLoaded].join('|');
         if(projDst.dataset.sig!==_sig){projDst.dataset.sig=_sig;projDst.innerHTML=_html;}
       }catch(e){/* silently skip if not ready */}
     }

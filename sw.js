@@ -11,8 +11,8 @@
  * next one, and a hard refresh does not bypass the service worker.
  */
 
-const CACHE     = 'portfolio-pulse-v86';
-const API_CACHE = 'portfolio-pulse-api-v27';
+const CACHE     = 'portfolio-pulse-v87';
+const API_CACHE = 'portfolio-pulse-api-v28';
 
 // Icon URLs carry the same ?v= as index.html/manifest.json reference, so the
 // precached entries actually match what the page asks for offline.

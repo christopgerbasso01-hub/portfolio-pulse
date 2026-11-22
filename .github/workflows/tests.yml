@@ -25,6 +25,8 @@ jobs:
         run: pip install requests
       - name: Ledger engine (index.html P&L code)
         run: node tests/test_ledger_engine.js
+      - name: Portfolio math (tax projection, XIRR, risk, dividends)
+        run: node tests/test_portfolio_math.js
       - name: Python suites
         run: |
           set -e

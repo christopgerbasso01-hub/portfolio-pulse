@@ -39,6 +39,8 @@ import requests
 # this runs as a script, from another directory, or under a test.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import podcast_desk as _desk                                  # noqa: E402
+import podcast_stories as _stories                            # noqa: E402
+import podcast_curriculum as _cur                             # noqa: E402
 from fx_guard import (classify as _fx_classify,            # noqa: E402
                       held_in_cad_reason as _fx_held_in_cad,
                       split_sentences as _split_sentences,
@@ -561,13 +563,20 @@ HOLDING_PROFILES = {
 #                  and what is coming next week
 # The intro theme plays at [THEME]; the outro theme plays after the last line.
 
-SHOW_BIBLE = """You are writing ONE segment of "Portfolio Pulse Weekly", a weekly podcast about one real portfolio, made for its owner.
+SHOW_BIBLE = """You are writing ONE segment of "Portfolio Pulse Weekly", a weekly show about one real portfolio, made for its owner.
 {editor_notes}
 THE LISTENER: Christopher, 24, Toronto. Base currency CAD. High risk tolerance. Saving for a GTA home: the FHSA and the RRSP are the down-payment money (target about $90,000). He has heard every episode — never re-explain a basic idea from scratch.
-THE HOSTS: ALEX is the analyst — calm, precise, explains cause and effect in plain words. SAM is the co-host — curious and practical, asks what a listener would ask, pushes back, sometimes disagrees, and ties things to Christopher's goals. They are friends: light, natural banter is fine; catchphrases are not.
-THE SOUND: a well-produced weekly show. Conversational and specific. Most turns are one to four sentences; about a quarter are under fifteen words. Vary how turns begin.
+THE HOSTS — two friends who know markets, talking, not reading a script:
+- ALEX, the analyst: precise, a little dry, always after the "why" behind a move. Happy to say "I don't know yet" or "I got that one wrong".
+- SAM, the co-host and the listener's voice: practical, quicker to an opinion, sometimes disagrees, keeps bringing it back to the house and the long run.
+Either can explain, ask or push back — it is a conversation, not an interview. Each reacts to what the other just said with substance: a follow-up, a doubt, a connection to something earlier.
+SOUND NATURAL:
+- Vary turn length: some turns are a few words, some four sentences. Now and then one host finishes or challenges the other's thought.
+- Never begin a turn with "Exactly", "Absolutely", "Precisely", "Correct", "Got it", "Right", "Great question", "Good point", "That's a great point" or "So" — begin with the substance.
+- No catchphrases and no stock transitions ("let's dive in", "moving on", "that brings us to", "let's jump into"). Hand over the way people actually do.
+- These have been used too often lately — do not use them: {stale_phrases}
 FORMAT: every line begins with "ALEX:" or "SAM:" — no headings, bullets, numbered lists, markdown or stage directions. The only exceptions are marker lines this segment asks for, written exactly as shown.
-FACTS: use only facts in this prompt. Never invent a number, price, date, event, cause, company announcement, earnings result or statistic. If no reason is given for a move, say it moved with the market.
+FACTS: use only facts in this prompt. Never invent a number, price, date, event, cause, company announcement, earnings result or statistic. If no reason is given for a move, say it moved with the market or its sector.
 NUMBERS: at most 4 in any turn. Round them and write them as digits — "about $14,000", "about 9.5%" — never "$14,386"; the voice reads digits aloud properly. No arithmetic out loud. Say each figure once. Never state a level for the S&P 500 or any index — you are not given one.
 NEVER explain how leveraged or 3x funds work — no amplifying, no daily reset, no decay. The listener knows. Say what they did.
 A company is a holding only if it is in WHAT WE OWN, and it is described only as WHAT WE OWN describes it — never guess what a company does, where it is based, or confuse one holding with another.
@@ -576,7 +585,7 @@ The portfolio is ONLY what WHAT WE OWN lists, at the weights shown: it holds no 
 {currency_rule}
 SAY IT ONCE: this segment covers only its own subject. Do not recap earlier segments or preview later ones (apart from a one-line handoff where asked), and never restate a point in new words. This week the other segments cover: {elsewhere}. Leave those alone.
 ANALOGIES: {analogy_rule}
-Never say: "it's worth noting", "going forward", "at the end of the day", "landscape", "navigate", "tailwinds", "headwinds", "buckle up", "let's dive in", "in today's market", "in my own words", "what does that actually mean".
+Never say: "it's worth noting", "going forward", "at the end of the day", "landscape", "navigate", "tailwinds", "headwinds", "buckle up", "in today's market", "in my own words", "what does that actually mean", "the portfolio sits at".
 DATE: this episode airs {today}. {briefing_note}
 WHAT WE OWN (and what each one is): {held_line}
 {continuity}
@@ -590,68 +599,63 @@ SEG_OPENING = """━━━ SEGMENT 1 of 6 — THE OPENING ━━━
 Write, in this order:
 1. COLD OPEN — two or three short lines between ALEX and SAM BEFORE the theme music, on this week's most interesting fact: {hook} Say that fact and react to it — add nothing to it: no reason, no comparison, no record, no "all year", no "biggest ever". No greeting yet.
 2. A line that is exactly: [THEME]
-3. WELCOME — ALEX welcomes everyone to Portfolio Pulse Weekly; SAM says hello. Two short turns.
+3. WELCOME — ALEX welcomes everyone to Portfolio Pulse Weekly; SAM says hello in his own words. Two short turns, worded differently from last week's.
 4. LAST TIME — {previously}
-5. RUN-DOWN — one ALEX turn naming today's segments in order, plainly, without explaining them: {rundown}.
-6. SAM hands over to the portfolio review in one line.
+5. RUN-DOWN — one turn naming today's segments in order, plainly and conversationally, without explaining them: {rundown}.
+6. A one-line handover into the look back at last week.
 LENGTH: 260 to 340 words. Write segment 1 now:"""
 
-SEG_DESK = """━━━ SEGMENT 2 of 6 — THE PORTFOLIO THIS WEEK ━━━
-A proper weekly portfolio review, the way a good adviser would walk a client through it. These are the facts, already rounded — the only portfolio numbers you may use:
+SEG_DESK = """━━━ SEGMENT 2 of 6 — THE WEEK THAT WAS ━━━
+Look back at last week: what happened to markets and to the portfolio, and WHY. These are the facts, already rounded — the only portfolio and market numbers you may use:
 {desk}
-NUMBERS IN THIS SEGMENT: at most TWO in any turn. Spread them across SAM's questions; never read a list of figures.
-Cover these, in order, each ONCE:
-1. The headline: start with what the portfolio is worth and how the week went. Then, in the next turns, how much of that change was new money Christopher put in versus what the market did, and total profit against everything he has contributed.
-2. What he did: trades (new positions, additions, sales) and dividends received. If there were none, one line and move on. For a trade, SAM asks what it does to the portfolio's risk or balance; ALEX answers from the sector mix.
-3. How the mix shifted: the sector changes listed — they come from price moves and trades together, so never say a trade caused a shift — and what they say about how concentrated the portfolio is.
-4. Movers: the one that rose most and the one that fell most, with a reason only if the news gives one.
-5. The accounts and the house: how the down-payment accounts are tracking against the target.
+THE WEEK'S BIGGEST STORIES, biggest first — use them to explain the moves:
+{why}
+NUMBERS IN THIS SEGMENT: at most TWO in any turn. Spread them through the conversation; never read a list of figures.
+Cover these, each ONCE, in whatever order flows best:
+1. How markets did and the main reason, tied to the week's biggest stories above. Be honest about cause: say a story "weighed on" or "helped" only where the news links them; otherwise say markets moved alongside it.
+2. How the portfolio did against that: the change, how much was new money Christopher put in versus what the market did, and total profit against everything he has contributed.
+3. Why the biggest movers moved — use the news listed beside each one; with none, say it moved with its sector or the market.
+4. What he did: trades and dividends. One line if there were none. For a trade, what it changes about the mix.
+5. How the mix shifted — the sector changes come from price moves and trades together, so never say a trade caused a shift — and how the down-payment accounts are tracking against the target.
 {fx_instruction}
-End with ALEX handing over to today's main story in one line.
-LENGTH: 560 to 700 words. Write segment 2 now:"""
+End with a natural one-line handover to this week's big story.
+LENGTH: 600 to 750 words. Write segment 2 now:"""
 
-SEG_MAIN = """━━━ SEGMENT 3 of 6 — THE MAIN STORY: {title} ━━━
-What the news says — your only facts about it:
+SEG_MAIN = """━━━ SEGMENT 3 of 6 — THE WEEK'S BIG STORY: {title} ━━━
+This was the biggest market story of the week. How it developed, day by day — your only facts about it:
 {brief}
-Keep its certainty: if it says something "may" happen or is being "evaluated", say exactly that — never that it happened. Add no details it does not give: who, how many, what kind, prices, or market reactions.
+{last_week_note}Keep its certainty: if it says something "may" happen or is being "evaluated", say exactly that — never that it happened. Add no details it does not give: who, how many, what kind, prices, or market reactions.
 What we own that it touches: {exposure}
-Structure:
-1. SAM sets up the question the story raises, in a line or two.
-2. ALEX explains what happened and why, one step at a time.
-3. What it means for THIS portfolio — name the holdings it touches and say how, in words.
-4. The other side: SAM makes the strongest case that it matters less (or more) than it seems; ALEX answers honestly, including what we do not know yet.
-5. One thing to watch next, said once — only an event named in the news, or the type of event with no invented date.
-End with SAM moving on to the rest of the week's news in one line.
+Tell it as a story, the way two people who follow markets would talk it through: what happened and in what order, why it matters to markets, what it means for THIS portfolio (name the holdings it touches and say how), the strongest case that it matters less — or more — than it looks, and what is still unknown. Let the conversation find its own order; SAM pushes on whatever a sharp listener would doubt.
+End with a natural one-line handover to the rest of the week's news.
 LENGTH: 750 to 920 words. Write segment 3 now:"""
 
 SEG_AROUND = """━━━ SEGMENT 4 of 6 — AROUND THE PORTFOLIO ━━━
-{count} short item{plural}, three to five turns each, each introduced so the listener knows a new item has started (vary how). None of them is the main story.
+{count} short item{plural}, three to five turns each, each introduced so the listener knows a new item has started — vary how. None of them is the big story.
 {items}
 For an EARNINGS item (always first): the scorecard — earnings per share against the estimate and revenue — then how the stock reacted and what that meant for us, what the company said (only from the summary given), and what it means for owning it.
 For a news item: what happened, then why it matters — or doesn't — for what we own.
 For the holding spotlight: what the business does, why it is in the portfolio, how big the position is, and the news if there is any.
-End with ALEX turning to the learning segment in one line.
+End with a natural one-line turn to the learning segment.
 LENGTH: 480 to 620 words. Write segment 4 now:"""
 
 SEG_LEARNING = """━━━ SEGMENT 5 of 6 — THE LEARNING SEGMENT: {topic} ━━━
 First line, exactly: [EDUCATION_TOPIC: {topic}]
-Then teach {topic} over several turns: what it is, how it works step by step, and how an investor actually uses it. One worked example with small round numbers (like $100) — say each example number once. Use no current market data. SAM asks the practical question, and ALEX ties the idea to THIS portfolio in words, with no new figures.
+This is a NEW lesson. Already taught in earlier episodes — do not re-teach, revisit or lean on any of these: {taught}.
+Teach {topic} over several turns: what it is, how it works step by step, and how an investor actually uses it. {link}One worked example with small round numbers (like $100) — say each example number once. Use no current market data. SAM asks the practical question, and ALEX ties the idea to THIS portfolio in words, with no new figures.
 The last line is SAM saying: "That's our learning segment for this week."
 LENGTH: 440 to 560 words. Write segment 5 now:"""
 
-SEG_SCENARIOS = """━━━ SEGMENT 6 of 6 — SCENARIOS AND THE CLOSE ━━━
-SCENARIOS for the coming week. The three cases below are fixed — do not change them. You choose the odds: they add up to 100, and the base case is between 45 and 55.
+SEG_SCENARIOS = """━━━ SEGMENT 6 of 6 — THE WEEK AHEAD AND THE CLOSE ━━━
+Now look forward.
+WHAT'S COMING UP (your only facts about the coming week — name a date only where one is given):
+{watch}
+1. What to watch this week and why each matters for this portfolio, most important first.
+2. Three ways the week could go, talked through as a conversation, not read as a list. The outcomes are fixed:
 {frame}
-For EACH case, two to four turns, in this order:
- a. ALEX opens it with a line beginning exactly "Base case — NN percent:" (or "Bull case — NN percent:", "Bear case — NN percent:") and says what would have to happen, using only these drivers from this week's news: {drivers}
- b. The signpost: the one thing during the week that would tell us it is happening.
- c. What it would mean for the portfolio, using the figure given for that case — said once.
- d. SAM asks how Christopher should think about it; ALEX gives perspective tied to his goals and time horizon — never "buy" or "sell".
-THE CLOSE:
- - One question for Christopher to think about this week — about investing itself, not about data.
- - NEXT WEEK: {next_week}
- - A warm, brief sign-off from both hosts.
-LENGTH: 540 to 680 words. Write segment 6 now:"""
+You choose the odds: they add up to 100, and the base case is between 45 and 55. Say "base case", "bull case" and "bear case" once each with its odds ("our base case, about 50 percent, is ..."), give the portfolio figure for each once, and the one sign during the week that would tell us it is happening. Draw only on these drivers: {drivers}. Perspective tied to his goals and time horizon — never "buy" or "sell".
+3. THE CLOSE: one question for Christopher to think about this week — about investing itself, not about data. Then NEXT WEEK: {next_week} Then a warm, brief sign-off from both hosts, worded differently from last week's.
+LENGTH: 560 to 700 words. Write segment 6 now:"""
 
 
 def _last_trading_day(ref: datetime) -> str:
@@ -1160,25 +1164,32 @@ MEMORY_FILE = DATA_DIR / "podcast_memory.json"
 # the answer while keeping each request well inside Groq's 8,000-token limit.
 SEGMENTS = (
     ("opening",   SEG_OPENING,   230, 1800),
-    ("desk",      SEG_DESK,      480, 2600),
+    ("desk",      SEG_DESK,      520, 2600),
     ("main",      SEG_MAIN,      650, 2800),
     ("around",    SEG_AROUND,    420, 2400),
     ("learning",  SEG_LEARNING,  380, 2200),
-    ("scenarios", SEG_SCENARIOS, 470, 2600),
+    ("scenarios", SEG_SCENARIOS, 480, 2600),
 )
 SEGMENT_KEYS = tuple(s[0] for s in SEGMENTS)
-SEGMENT_TITLES = {"opening": "the opening", "desk": "the portfolio this week",
-                  "main": "the main story", "around": "around the portfolio",
-                  "learning": "the learning segment", "scenarios": "scenarios and the close"}
-ANALOGY_SEGMENTS = ("main", "learning")      # the only places a comparison is allowed
+SEGMENT_TITLES = {"opening": "the opening", "desk": "the week that was",
+                  "main": "the week's big story", "around": "around the portfolio",
+                  "learning": "the learning segment", "scenarios": "the week ahead"}
+# One comparison per episode at most, in the lesson. Allowing one in the main story
+# too gave the listener a stream of pantries, toll roads and spare tyres.
+ANALOGY_SEGMENTS = ("learning",)
 REPAIR_ROUNDS    = 2
 SEGMENT_COST_ESTIMATE = 6_000                 # tokens for one segment call, measured high
 
 
 def _fetch_sp500() -> dict:
     """{YYYY-MM-DD: close} for the S&P 500 over the last two months, or {}."""
+    return _fetch_closes("^GSPC", "S&P 500")
+
+
+def _fetch_closes(symbol: str, label: str = "") -> dict:
+    """{YYYY-MM-DD: close} for a Yahoo symbol over the last two months, or {}."""
     try:
-        r = requests.get("https://query2.finance.yahoo.com/v8/finance/chart/%5EGSPC",
+        r = requests.get(f"https://query2.finance.yahoo.com/v8/finance/chart/{requests.utils.quote(symbol)}",
                          params={"interval": "1d", "range": "2mo"},
                          headers={"User-Agent": "Mozilla/5.0"}, timeout=12)
         r.raise_for_status()
@@ -1190,8 +1201,100 @@ def _fetch_sp500() -> dict:
                 out[datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")] = float(c)
         return out
     except Exception as exc:
-        print(f"  ⚠ S&P 500 history unavailable ({exc}) — no scorecard this week")
+        print(f"  ⚠ {label or symbol} history unavailable ({exc})")
         return {}
+
+
+def _week_pct(series: dict, start: str, end: str):
+    _, a = _close_on_or_before(series, start)
+    _, b = _close_on_or_before(series, end)
+    return round((b / a - 1) * 100, 2) if a and b else None
+
+
+def _briefings_week(end: datetime, days: int = 7) -> list:
+    """[(generated_at, briefing)] for every daily briefing committed in the week before
+    `end`, oldest first, from git history (fetched if the checkout is shallow)."""
+    import subprocess
+    root = Path(__file__).resolve().parent.parent
+    since = (end - timedelta(days=days)).isoformat()
+    try:
+        # The Actions checkout is one commit deep: deepen main back past the week first.
+        if (root / ".git" / "shallow").exists():
+            subprocess.run(["git", "fetch", "--quiet", f"--shallow-since={(end - timedelta(days=days + 3)):%Y-%m-%d}",
+                            "origin", "+refs/heads/main:refs/remotes/origin/main"],
+                           cwd=root, capture_output=True, timeout=180)
+        log = subprocess.run(["git", "log", f"--since={since}", f"--until={end.isoformat()}", "--format=%H %cI",
+                              "HEAD", "--", "data/intelligence.json"],
+                             cwd=root, capture_output=True, text=True, timeout=60).stdout
+        out = []
+        for line in reversed(log.strip().split("\n")):
+            if not line.strip():
+                continue
+            sha, when = line.split()
+            txt = subprocess.run(["git", "show", f"{sha}:data/intelligence.json"], cwd=root,
+                                 capture_output=True, text=True, timeout=60).stdout
+            try:
+                b = json.loads(txt)
+                out.append((b.get("generated_at") or when, b))
+            except ValueError:
+                continue
+        print(f"  ✓ {len(out)} briefings from the past week")
+        return out
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ⚠ could not read the week's briefings ({exc}) — using the latest only")
+        return []
+
+
+_STALE_ALWAYS = ["the portfolio sits at", "how should Christopher think about", "in that scenario",
+                 "that sounds like", "the bottom line", "a nice cushion", "slice of the portfolio"]
+
+
+def _stale_phrases(past_scripts: dict) -> str:
+    """Phrases the last few episodes leaned on — turn openers used three times or more."""
+    from collections import Counter
+    openers = Counter()
+    for n in sorted(past_scripts)[-4:]:
+        for kind, _, t in _iter_script(past_scripts[n]):
+            if kind != "turn":
+                continue
+            w = re.findall(r"[A-Za-z'’]+", t)[:3]
+            if len(w) >= 2 and not _BOILERPLATE.search(t):
+                openers[" ".join(w[:3]).lower().replace("’", "'")] += 1
+    common = [f'"{o}"' for o, c in openers.most_common(12) if c >= 3]
+    return ", ".join(common + [f'"{p}"' for p in _STALE_ALWAYS])
+
+
+_FILLER = re.compile(r"^(?:exactly|absolutely|precisely|correct|got it|right|great question|good point|"
+                     r"that's a great point|totally|definitely|sure|yeah)[.!,—–-]*\s*", re.I)
+
+
+def _trim_fillers(text: str, keep: int = 1) -> str:
+    """Strip one-word cue openers ("Exactly. …", "Got it. …") from turns — they made the
+    hosts sound scripted (13 "Exactly"s across four episodes). A turn that is nothing but
+    the cue is dropped after the first `keep`, and two turns by one host that end up
+    side by side are joined."""
+    out, kept = [], 0
+    for line in text.split("\n"):
+        m = re.match(r"^(ALEX|SAM):\s*(.*)$", line.strip())
+        if not m:
+            out.append(line)
+            continue
+        body = m.group(2).replace("’", "'")
+        stripped = _FILLER.sub("", body, count=1)
+        if stripped != body:
+            if stripped.strip():
+                body = stripped[0].upper() + stripped[1:]
+            elif kept < keep:
+                kept += 1
+            else:
+                continue
+        prev = re.match(r"^(ALEX|SAM):\s*(.*)$", out[-1].strip()) if out else None
+        if prev and prev.group(1) == m.group(1):
+            out[-1] = f"{m.group(1)}: {prev.group(2)} {body}"
+        else:
+            out.append(f"{m.group(1)}: {body}")
+    return "\n".join(out)
+
 
 
 def _close_on_or_before(series: dict, date: str):
@@ -1265,6 +1368,7 @@ def _recent_context(old_meta: dict, memory: dict, ep_num: int, past_scripts: dic
             for tkr, name in COMPANY_NAMES.items():
                 if (tkr in item or name.lower() in item.lower()) and tkr not in spotlit:
                     spotlit.append(tkr)
+    analogies += [a for a in ((memory or {}).get("analogies") or []) if a not in analogies]
     for e in mem_recent:
         analogies += [a for a in (e.get("analogies") or []) if a not in analogies]
     for n in sorted(past_scripts)[-4:]:
@@ -1281,7 +1385,7 @@ def _recent_context(old_meta: dict, memory: dict, ep_num: int, past_scripts: dic
         if len(words) >= 4 and any(sum(w in t for w in words) / len(words) >= 0.8 for t in recent_text):
             headlines.append(title)
     return {"education_used": edu, "themes": frozenset(themes), "headlines": [h for h in headlines if h],
-            "spotlit": spotlit, "analogies": analogies[:24], "last": last}
+            "spotlit": spotlit, "analogies": analogies[-60:], "last": last}
 
 
 def _pick_quick_hits(intel: dict, exclude_titles: list, avoid_themes: frozenset, clean, n: int = 2) -> list:
@@ -1312,7 +1416,8 @@ def _pick_quick_hits(intel: dict, exclude_titles: list, avoid_themes: frozenset,
     return picked
 
 
-def _desk_text(facts: dict, ch: dict, sp_week, fx_effect) -> str:
+def _desk_text(facts: dict, ch: dict, sp_week, fx_effect, index_weeks: dict = None, stories: list = None,
+               names: dict = None) -> str:
     """The portfolio segment's facts, rounded for speech."""
     def m(v):
         return _say_money(v)
@@ -1330,6 +1435,8 @@ def _desk_text(facts: dict, ch: dict, sp_week, fx_effect) -> str:
              f"that: about {m(ch['pnl_total'])}, about {ch['pnl_pct']:.0f} percent.")
     if sp_week is not None:
         L.append(f"The S&P 500 this week: {'up' if sp_week >= 0 else 'down'} about {_say_pct(sp_week)}.")
+    for label, v in (index_weeks or {}).items():
+        L.append(f"{label} this week: {'up' if v >= 0 else 'down'} about {_say_pct(v)}.")
     if ch["trades"]:
         for t in ch["trades"]:
             nm = _LEVERAGE_NAMES.get(t["ticker"]) or COMPANY_NAMES.get(t["ticker"], t["name"])
@@ -1356,10 +1463,16 @@ def _desk_text(facts: dict, ch: dict, sp_week, fx_effect) -> str:
     if mv:
         up, dn = mv[-1], mv[0]
         nm = lambda t: _LEVERAGE_NAMES.get(t) or COMPANY_NAMES.get(t, t)
+        def why(t):
+            hits = [st["title"] for st in (stories or []) if t in st["held"]][:2]
+            return (" News on it this week: " + "; ".join(f'"{h}"' for h in hits) + ".") if hits else \
+                " No news named it this week."
         if up["pct"] > 0:
-            L.append(f"Best mover: {nm(up['ticker'])}, up about {_say_pct(up['pct'])} (about {m(up['cad'])} for us).")
+            L.append(f"Best mover: {nm(up['ticker'])}, up about {_say_pct(up['pct'])} (about {m(up['cad'])} for us)."
+                     + why(up["ticker"]))
         if dn["pct"] < 0:
-            L.append(f"Worst mover: {nm(dn['ticker'])}, down about {_say_pct(dn['pct'])} (about {m(dn['cad'])} for us).")
+            L.append(f"Worst mover: {nm(dn['ticker'])}, down about {_say_pct(dn['pct'])} (about {m(dn['cad'])} for us)."
+                     + why(dn["ticker"]))
     acc = ch["accounts"]
     if acc:
         big = max(acc.items(), key=lambda kv: abs(kv[1]["change"]))
@@ -1387,7 +1500,7 @@ def _sector_name(s: str) -> str:
 
 
 def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts, ep_num, now=None,
-                       as_of: str = None) -> dict:
+                       as_of: str = None, briefings: list = None) -> dict:
     """Choose every subject and compute every number. The model only writes.
 
     as_of (YYYY-MM-DD): build the episode from the data as it stood before that day —
@@ -1404,14 +1517,9 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
     _, facts = _build_portfolio_context(holdings, snaps, settings.get("cash_positions") or [])
     rc = _recent_context(old_meta, memory, ep_num, past_scripts, intel)
 
-    # ── The learning topic: keep last week's promise if there was one ──
     promised = (rc["last"] or {}).get("next_learning_topic")
-    used = rc["education_used"]
-    if promised and not any(str(promised).lower() == str(u).lower() for u in used):
-        topic = promised
-    else:
-        topic = _choose_education_topic(used)
-    next_topic = _choose_education_topic(used + [topic])
+    taught = [t for t in dict.fromkeys(list((memory or {}).get("taught") or []) + list(rc["education_used"]))
+              if t not in _cur.HISTORY]
 
     # ── Subjects: one main story, a spotlight and two quick hits, all distinct ──
     # ── Earnings on what we hold take priority ──
@@ -1419,37 +1527,70 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
     # of 5%+ that moved 5%+ on the news — is the main story; otherwise the reports
     # lead "around the portfolio", biggest positions first.
     reported, big = _earnings_this_week(intel, facts, now)
+    earn_items = [c for c in reported if not (big and c is big[0])][:2]
+    # ── The week's biggest stories, ranked across every briefing of the week ──
+    # (not just Monday's six items, and not steered away from big recurring themes:
+    # that is how the midterms and Nvidia's CEO leaving went unmentioned).
+    positions = (facts or {}).get("positions") or {}
+    tot = float((facts or {}).get("total_value") or 0) or sum(float(v["cad"]) for v in positions.values()) or 1.0
+    weights = {t: float(v["cad"]) / tot * 100 for t, v in positions.items()}
+    names = {t: [n for n in {COMPANY_NAMES.get(t, ""), str(v.get("name") or "")} if n] for t, v in positions.items()}
+    last_main = ((rc["last"] or {}).get("main_story") or {}).get("title", "")
+    week = briefings if briefings else [(intel.get("generated_at") or now.isoformat(), intel)]
+    stories = _stories.rank(week, weights, names, last_main=last_main, same_story=_desk.same_story,
+                            exclude=lambda t: "currency" in _themes_of(t))
     if big:
         main = _earnings_story(big[0])
+    elif stories:
+        main = _story_subject(stories[0], clean, names)
+        if last_main and any(_desk.same_story(i["title"], last_main) for i in stories[0]["items"]):
+            main["last_week_note"] = ("Last week's episode already covered how this story began. Spend the time "
+                                      "on what is NEW this week; one line of reminder at most.\n")
     else:
-        # Currency is never the main story: the listener asked to hear less about the
-        # exchange rate, and the portfolio review covers it whenever it actually moves.
         main = _choose_deep_dive_1(intel, clean, rc["themes"] | {"currency"}, exclude_titles=rc["headlines"])
-    earn_items = [c for c in reported if not (big and c is big[0])][:2]
-    spot = _choose_deep_dive_2(intel, facts, rc["spotlit"] + [c["ticker"] for c in reported], clean,
-                               rc["themes"] | _themes_of(main["title"]),
-                               exclude_titles=[main["title"]] + rc["headlines"])
-    quick = _pick_quick_hits(intel, [main["title"]] + ([spot["headline"]] if spot and spot.get("headline") else [])
-                             + rc["headlines"], _themes_of(main["title"]) | rc["themes"], clean,
-                             n=1 if earn_items else 2)
+    main_story = next((st for st in stories if st["title"] == main.get("headline", main["title"])), None)
+    others = [st for st in stories if st is not main_story
+              and not any(_desk.same_story(i["title"], h) for i in st["items"] for h in rc["headlines"][:3])]
+    quick = [_story_subject(st, clean, names, lines=2) for st in others[:(1 if earn_items else 2)]]
+    if not stories:
+        quick = _pick_quick_hits(intel, [main["title"]] + rc["headlines"], _themes_of(main["title"]) | rc["themes"],
+                                 clean, n=1 if earn_items else 2)
+    if main_story and (main_story.get("anchor") or "").startswith("co:"):
+        co = main_story["anchor"][3:]
+        rep = next((c for c in reported if c["ticker"] == co), None)
+        if rep:
+            main["body"] += "\nTHE EARNINGS REPORT (part of this story — cover it here):\n" + _earnings_brief(rep)
+            earn_items = [c for c in earn_items if c["ticker"] != co]
+    in_stories = {t for st in ([main_story] if main_story else []) + others[:2] for t in st["held"]}
+    spot = _choose_deep_dive_2(intel, facts, rc["spotlit"] + [c["ticker"] for c in reported] + sorted(in_stories),
+                               clean, _themes_of(main["title"]),
+                               exclude_titles=[main["title"]] + [q["title"] for q in quick] + rc["headlines"])
+
+    # ── This week's lesson: never one taught before; tied to the big story when one fits ──
+    topic = _cur.choose(taught, _cur.themes_for(main["title"] + " " + main.get("body", ""),
+                                                _themes_of(main["title"])), promised)
+    next_topic = _cur.next_after(taught, topic)
 
     # ── The portfolio week ──
     dates = [d for d in sorted(snaps) if (snaps[d] or {}).get("holdings_prices")]
     ch = (_desk.portfolio_changes(settings, snaps, facts["baseline_date"], facts["latest_date"])
           if facts and len(dates) >= 2 else None)
     sp = _fetch_sp500()
-    sp_week = None
-    if sp and ch:
-        _, a = _close_on_or_before(sp, ch["baseline_date"])
-        _, b = _close_on_or_before(sp, ch["latest_date"])
-        sp_week = round((b / a - 1) * 100, 2) if a and b else None
+    sp_week = _week_pct(sp, ch["baseline_date"], ch["latest_date"]) if (sp and ch) else None
+    index_weeks = {}
+    if ch:
+        for sym, label in (("^IXIC", "The Nasdaq"), ("^GSPTSE", "Canada's TSX")):
+            ser = _fetch_closes(sym, label)
+            v = _week_pct(ser, ch["baseline_date"], ch["latest_date"]) if ser else None
+            if v is not None:
+                index_weeks[label] = v
     sp_date, sp_close = _close_on_or_before(sp, (ch or {}).get("latest_date") or now.strftime("%Y-%m-%d"))
     fx_on = bool(ch) and _desk.fx_is_newsworthy(ch)
     fx_effect = None
     if fx_on and facts.get("fx_table"):
         per_cent = float(facts["usd_notional"]) * 0.01
         fx_effect = round(per_cent * abs(ch["fx_cents"]))
-    main_is_fx = "currency" in _themes_of(main["title"] + " " + main["body"])
+    main_is_fx = "currency" in _themes_of(main["title"])     # the subject, not a passing mention
     fx_owner = "desk" if fx_on else ("main" if main_is_fx else None)
 
     # ── Last week, scored from data ──
@@ -1470,9 +1611,10 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
         previously += f"Then one line: last week we promised to explain {topic} — today we do."
 
     hook = _hook(ch, facts, main)
-    rundown = ", ".join(["the portfolio this week", f"the main story — {_short(main['title'])}",
+    rundown = ", ".join(["a look back at last week and why it went the way it did",
+                         f"the week's big story — {_short(main['title'])}",
                          "around the portfolio" + (f", with a spotlight on {spot['name']}" if spot else ""),
-                         f"the learning segment — {topic}", "and our scenarios for the week ahead"])
+                         f"the learning segment — {topic}", "and what to watch in the week ahead"])
     frame = _desk.scenario_frame(facts.get("index_table") or {})
     frame_text = "\n".join(
         f"- {f['label']}: {f['condition']}. Effect on Christopher's PORTFOLIO (not the index): about "
@@ -1482,9 +1624,13 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
     drivers = "; ".join([_short(main["title"])] + [_short(q["title"]) for q in quick]) or "the week's news"
     upcoming = _upcoming_event([main] + quick)
     reporting = _earnings_ahead(intel, facts, now)
-    next_week = (f"say in one or two lines what is coming next week: the learning segment will be on {next_topic}"
+    watch_lines = ([f"- Earnings from our holdings: {reporting}."] if reporting else [])
+    watch_lines += [f"- {x}" for x in _coming_up(week, clean)]
+    if main_story:
+        watch_lines.append(f"- How this week's big story develops: {_short(main['title'], 12)}")
+    watch = "\n".join(watch_lines[:6]) or "- No scheduled events were named in the news; say so briefly."
+    next_week = (f"say in one line that next week's learning segment is on {next_topic}"
                  + (f", and we will see how {upcoming} turned out" if upcoming else "")
-                 + (f". Also say which of our holdings report earnings: {reporting}" if reporting else "")
                  + ". Promise nothing else.")
     if reporting:
         drivers = drivers + "; earnings from " + reporting
@@ -1505,7 +1651,7 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
         items.append(f"{len(items) + 1}. HOLDING SPOTLIGHT — {spot['name']}: {size}. {news} "
                      f"Invent no announcement, buyback, number, date or earnings.")
 
-    desk = _desk_text(facts, ch, sp_week, fx_effect) if ch else (
+    desk = _desk_text(facts, ch, sp_week, fx_effect, index_weeks, stories, names) if ch else (
         "- Portfolio data is unavailable this week. Say so in one line and keep the review short; state no figures.")
 
     # Figures the checker must accept, because the prompt supplied them.
@@ -1525,7 +1671,7 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
             extra_pct.append(abs(score["move_pct"]))
         facts["extra_money"] = [abs(float(x)) for x in extra_money if x]
         facts["market_change"] = ch["market_change"]
-        facts["extra_pct"] = [abs(float(x)) for x in extra_pct if x]
+        facts["extra_pct"] = [abs(float(x)) for x in extra_pct if x] + [abs(v) for v in index_weeks.values()]
 
     try:
         bdate = datetime.fromisoformat(str(intel.get("generated_at")).replace("Z", "+00:00"))
@@ -1538,7 +1684,8 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
         "ep_num": ep_num, "today": now.strftime("%A, %B %d, %Y"), "briefing_note": briefing_note,
         "facts": facts, "changes": ch, "topic": topic, "next_topic": next_topic,
         "main": main, "spot": spot, "quick": quick, "fx_owner": fx_owner,
-        "banned_analogies": rc["analogies"], "score": score,
+        "banned_analogies": rc["analogies"], "score": score, "taught": taught, "stories": stories[:6],
+        "stale_phrases": _stale_phrases(past_scripts),
         "sp500": {"close": sp_close, "date": sp_date, "week_pct": sp_week},
         "held_line": "; ".join(
             f"{_LEVERAGE_NAMES.get(t) or COMPANY_NAMES.get(t, (facts['positions'][t].get('name') or t))}"
@@ -1549,18 +1696,23 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
                             key=lambda t: -facts["positions"][t]["cad"])) or "(unavailable)",
         "fields": {
             "opening":   {"hook": hook, "previously": previously, "rundown": rundown},
-            "desk":      {"desk": desk, "fx_instruction": (
+            "desk":      {"desk": desk, "why": _why_block(stories, names) if stories else
+                          "- (no story list this week — say markets moved without one clear driver)",
+                          "fx_instruction": (
                 "6. Currency — in no more than two sentences, from the Currency line above." if fx_owner == "desk" else "")},
             "main":      {"title": main["title"], "brief": main["body"] or "(no detail beyond the headline)",
-                          "exposure": exposure},
+                          "exposure": exposure, "last_week_note": main.get("last_week_note", "")},
             "around":    {"items": "\n".join(items) or "No other news this week: one short look at the biggest holding.",
                           "count": ["One", "One", "Two", "Three", "Four"][min(len(items), 4)],
                           "plural": "" if len(items) <= 1 else "s"},
-            "learning":  {"topic": topic},
-            "scenarios": {"frame": frame_text, "drivers": drivers, "next_week": next_week},
+            "learning":  {"topic": topic, "taught": "; ".join(list(_cur.HISTORY) + taught) or "nothing yet",
+                          "link": (f"If it fits naturally, connect it to this week's big story ({_short(main['title'], 8)}) "
+                                   f"in a sentence. ")},
+            "scenarios": {"frame": frame_text, "drivers": drivers, "next_week": next_week, "watch": watch},
         },
     }
-    shown = " ".join([desk, main["body"], exposure, plan["fields"]["around"]["items"], frame_text, hook])
+    shown = " ".join([desk, main["body"], exposure, plan["fields"]["around"]["items"], frame_text, hook,
+                      plan["fields"]["desk"]["why"], watch])
     shown = re.sub(r"(?<=\d),(?=\d{3})", "", shown)
     if facts:
         facts["allowed_numbers"] = sorted({float(x) for x in re.findall(r"\d+(?:\.\d+)?", shown)}
@@ -1657,6 +1809,59 @@ def _earnings_story(c: dict) -> dict:
             "earnings": c["ticker"]}
 
 
+_ANCHOR_LABELS = {"fed": "the Fed and interest rates", "election": "the US midterm elections",
+                  "boc": "the Bank of Canada", "tariff": "tariffs and trade", "hormuz": "the Strait of Hormuz",
+                  "debt-ceiling": "the US debt-ceiling fight", "opec": "OPEC and oil supply"}
+
+
+def _story_label(st: dict, names: dict) -> str:
+    """A short name for the story ("Nvidia", "the Fed and interest rates"), else its headline."""
+    a = st.get("anchor") or ""
+    if a.startswith("co:"):
+        t = a[3:]
+        return COMPANY_NAMES.get(t) or (names.get(t) or [t])[0]
+    return _ANCHOR_LABELS.get(a) or st["title"]
+
+
+def _story_subject(st: dict, clean, names: dict, lines: int = 5) -> dict:
+    """A ranked story as a segment subject: its headline, its day-by-day timeline as the
+    only facts, and the holdings it touches."""
+    held = [_LEVERAGE_NAMES.get(t) or COMPANY_NAMES.get(t) or (names.get(t) or [t])[0] for t in st["held"]]
+    return {"title": _story_label(st, names), "headline": st["title"],
+            "body": _stories.timeline(st, clean, limit=lines), "bull": "", "bear": "",
+            "exposure": ", ".join(held) or "nothing directly — say how it reaches the portfolio, or that it doesn't",
+            "themes": _themes_of(st["title"])}
+
+
+def _why_block(stories: list, names: dict) -> str:
+    out = []
+    for st in stories[:4]:
+        held = [_LEVERAGE_NAMES.get(t) or COMPANY_NAMES.get(t) or t for t in st["held"]][:5]
+        out.append(f"- {st['title']} (in the news on {st['days']} day{'s' if st['days'] != 1 else ''})"
+                   + (f" — touches: {', '.join(held)}" if held else ""))
+    return "\n".join(out)
+
+
+_COMING = re.compile(r"\b(?:next week|this week|upcoming|scheduled|due (?:on|out|next)|later this|ahead of|"
+                     r"meeting on|on (?:monday|tuesday|wednesday|thursday|friday)|will (?:report|release|"
+                     r"announce|meet|decide|publish|vote))\b", re.I)
+
+
+def _coming_up(week: list, clean, n: int = 3) -> list:
+    """Scheduled events the latest briefings say are coming — their words, not ours."""
+    out = []
+    for _, b in reversed(week[-3:]):
+        for src in ("macro", "news"):
+            for it in (b or {}).get(src) or []:
+                for sent in _split_sentences(clean(it.get("body", ""), 600)):
+                    if (_COMING.search(sent) and "currency" not in _themes_of(sent)
+                            and not any(_desk.same_story(sent, o) for o in out)):
+                        out.append(sent.strip())
+                    if len(out) >= n:
+                        return out
+    return out
+
+
 def _short(title: str, n: int = 9) -> str:
     words = re.sub(r"\s+", " ", str(title or "")).strip().split(" ")
     return " ".join(words[:n]) + ("…" if len(words) > n else "")
@@ -1716,24 +1921,25 @@ def _segment_prompt(plan: dict, key: str, notes: str, before_tail: str) -> str:
     template = dict((k, t) for k, t, _, _ in SEGMENTS)[key]
     elsewhere = []
     if key not in ("desk",):
-        elsewhere.append("the portfolio review (values, trades, sector mix, accounts)")
+        elsewhere.append("the look back at last week (markets, the portfolio, why things moved)")
     if key != "main":
-        elsewhere.append(f"the main story ({_short(plan['main']['title'], 7)})")
+        elsewhere.append(f"the week's big story ({_short(plan['main']['title'], 7)})")
     if key != "around":
-        elsewhere.append("the quick news items and the holding spotlight")
+        elsewhere.append("the other news items and the holding spotlight")
     if key != "learning":
         elsewhere.append(f"the learning segment ({plan['topic']})")
     if key != "scenarios":
-        elsewhere.append("the scenarios and what to watch")
+        elsewhere.append("the week ahead (what to watch and the scenarios)")
     if key == "opening":
         elsewhere = ["everything — the opening only names the segments"]
-    banned = ", ".join(plan["banned_analogies"][:16]) or "none yet"
-    analogy_rule = (f"at most ONE short everyday comparison in this segment. Do not reuse any used in recent "
-                    f"episodes: {banned}." if key in ANALOGY_SEGMENTS
+    banned = ", ".join(plan["banned_analogies"][:30]) or "none yet"
+    analogy_rule = (f"at most ONE short everyday comparison in this segment, and only if it truly helps. Never "
+                    f"one used in any earlier episode: {banned}." if key in ANALOGY_SEGMENTS
                     else "none in this segment — say things directly, with no metaphors or comparisons.")
     bible = SHOW_BIBLE.format(
         editor_notes=notes or "", currency_rule=CURRENCY_RULE_ON if plan["fx_owner"] == key else CURRENCY_RULE_OFF,
         elsewhere="; ".join(elsewhere), analogy_rule=analogy_rule, today=plan["today"],
+        stale_phrases=plan.get("stale_phrases") or "none",
         briefing_note=plan["briefing_note"], held_line=plan["held_line"],
         continuity=(f"THE PREVIOUS SEGMENT ENDED WITH: {before_tail}\nContinue straight on from it with a new "
                     f"line of your own — do not greet, recap, repeat it, or open with \"Exactly\" or \"Right\"."
@@ -1751,7 +1957,7 @@ def write_segment(api_key: str, plan: dict, key: str, notes: str, before_tail: s
     text = _groq_part(api_key, lambda n: _segment_prompt(plan, key, n, before_tail),
                       f"Segment {SEGMENT_KEYS.index(key) + 1} ({SEGMENT_TITLES[key]})", notes, min_words,
                       max_tokens=max_tokens)
-    return _normalize_script(text)
+    return _trim_fillers(_normalize_script(text))
 
 
 # ── Checking a segment on its own ────────────────────────────────────────────
@@ -1819,13 +2025,16 @@ def segment_problems(key: str, text: str, plan: dict) -> list:
         out.append("is missing the [THEME] line after the cold open")
     if key == "learning" and not re.search(r"\[EDUCATION_TOPIC:", text, re.I):
         out.append(f"is missing the first line [EDUCATION_TOPIC: {plan['topic']}]")
+    if key == "learning":
+        old = _cur.drifted_into(text, plan["topic"], plan.get("taught") or [])
+        if old:
+            out.append(f"drifts back into an earlier lesson ({', '.join(old)}) — teach only {plan['topic']}")
     if key == "scenarios":
-        opened = {m.group(1).lower() for t in turns
-                  for m in [re.match(r"^\W*(base|bull|bear)\s+case\b", t, re.I)] if m}
-        missing = [f"{c} case" for c in ("base", "bull", "bear") if c not in opened]
+        probs = _desk.scenario_probabilities(text)
+        missing = [f"{c} case" for c in ("base", "bull", "bear") if c not in probs]
         if missing:
-            out.append(f"is missing the {', '.join(missing)} — each case must open its own turn, spoken by "
-                       f"ALEX, starting \"Base case — NN percent:\" (or Bull / Bear)")
+            out.append(f"does not give the {', '.join(missing)} with its odds — say each one once, e.g. "
+                       f"\"our base case, about 50 percent, is ...\"")
         probs = _desk.scenario_probabilities(text)
         if len(probs) == 3 and sum(probs.values()) != 100:
             out.append(f"the scenario odds add up to {sum(probs.values())}, not 100")
@@ -2634,7 +2843,11 @@ def agenda_problems(script: str) -> list:
             turns.append(t)
     opening = " ".join(turns[:14]).lower().replace("\u2011", "-")
     hit = sum(1 for w in words if w in opening)
-    if hit < max(1, round(0.6 * len(words))):
+    # Curriculum titles are long ("Free Cash Flow, the Number Behind the Earnings"); a
+    # run-down that names the idea by its key words ("free cash flow") names it.
+    if any(k.lower() in opening for k in _cur.keywords_for(topic)):
+        return []
+    if hit < max(1, round(0.5 * len(words))):
         return [f'the opening agenda does not name the learning topic "{topic}" — the episode '
                 f"must announce what it goes on to deliver"]
     return []
@@ -2766,7 +2979,12 @@ def _scan_unwanted(script: str, history=None) -> list:
     past = _history_sentences(history)
     seen, figs, out, ti = [], {}, [], -1
     learning = _in_learning_flags(script)
+    # The cold open (before [THEME]) states one supplied fact in a set shape each week
+    # ("X dropped about N% in a week"); comparing it with past episodes cut it as a repeat.
+    cold = "[THEME]" in (script or "")
     for (kind, _, text), in_learning in zip(_iter_script(script), learning):
+        if kind == "other" and text.strip() == "[THEME]":
+            cold = False
         if kind != "turn":
             continue
         ti += 1
@@ -2780,7 +2998,7 @@ def _scan_unwanted(script: str, history=None) -> list:
                 if any(_similar(toks, t) for t in seen):
                     out.append({"turn": ti, "sent": si, "kind": "repeat", "sentence": sent,
                                 "reason": "repeats a sentence already said earlier in this episode"})
-                elif any(_similar(toks, t) for t in past):
+                elif not cold and any(_similar(toks, t) for t in past):
                     out.append({"turn": ti, "sent": si, "kind": "repeat", "sentence": sent,
                                 "reason": "repeats a sentence from a recent episode"})
             # Each scenario necessarily restates its threshold ("more than 1.5 percent");
@@ -3531,8 +3749,9 @@ def main() -> int:
 
     # 2. Plan the episode (every subject and number decided in code), then write it
     print("2/4  Planning and writing the episode...")
+    week = _briefings_week(run_time or datetime.now(timezone.utc))
     plan = build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts, ep_num,
-                              now=run_time, as_of=as_of)
+                              now=run_time, as_of=as_of, briefings=week)
     result = produce_episode(groq_key, plan, history=list(past_scripts.values()))
     if result is None:
         return 1

@@ -240,7 +240,8 @@ def score_last_week(prev: dict, sp_now: float):
             "probability": probs.get(case), "from_date": sc.get("sp500_date")}
 
 
-_PROB_LINE = re.compile(r"\b(Base|Bull|Bear)\s+case\b[^0-9\n]{0,30}?(\d{1,2})\s*(?:%|percent)", re.I)
+# "Base case — 50 percent:" and the natural "our base case, which I'd put at about 50 percent".
+_PROB_LINE = re.compile(r"\b(Base|Bull|Bear)\s+case\b[^0-9\n.?!]{0,60}?(\d{1,2})\s*(?:%|percent)", re.I)
 
 
 def scenario_probabilities(script: str) -> dict:
@@ -320,10 +321,17 @@ def load_memory(path: Path) -> dict:
 
 
 def save_memory(path: Path, memory: dict, entry: dict) -> dict:
+    """Episodes keep the last MEMORY_KEEP; "taught" and "analogies" are kept for good —
+    a lesson or a comparison is never fresh again just because it scrolled out of view."""
     eps = [e for e in memory.get("episodes", []) if e.get("episode") != entry.get("episode")]
     eps.append(entry)
     eps.sort(key=lambda e: e.get("episode", 0))
-    memory = {"episodes": eps[-MEMORY_KEEP:]}
+    taught = list(memory.get("taught") or [])
+    if entry.get("learning_topic") and entry["learning_topic"] not in taught:
+        taught.append(entry["learning_topic"])
+    analogies = list(memory.get("analogies") or [])
+    analogies += [a for a in (entry.get("analogies") or []) if a not in analogies]
+    memory = {"episodes": eps[-MEMORY_KEEP:], "taught": taught, "analogies": analogies[-150:]}
     Path(path).write_text(json.dumps(memory, indent=2))
     return memory
 

@@ -255,13 +255,13 @@ for label, h, s in [("no holdings", [], {"2026-09-14": {}}),
 # on the Monday. Nothing else in the suite would catch it.
 print("\n── prompt format contract ──")
 _BIBLE_KW = dict(editor_notes="", currency_rule="C", elsewhere="E", analogy_rule="A", today="T",
-                 briefing_note="B", held_line="H", continuity="")
+                 briefing_note="B", held_line="H", continuity="", stale_phrases="S")
 _FIELDS = {"SEG_OPENING": {"hook", "previously", "rundown"},
-           "SEG_DESK": {"desk", "fx_instruction"},
-           "SEG_MAIN": {"title", "brief", "exposure"},
+           "SEG_DESK": {"desk", "why", "fx_instruction"},
+           "SEG_MAIN": {"title", "brief", "exposure", "last_week_note"},
            "SEG_AROUND": {"items", "count", "plural"},
-           "SEG_LEARNING": {"topic"},
-           "SEG_SCENARIOS": {"frame", "drivers", "next_week"}}
+           "SEG_LEARNING": {"topic", "taught", "link"},
+           "SEG_SCENARIOS": {"frame", "drivers", "next_week", "watch"}}
 for _label, _kw in [("SHOW_BIBLE", set(_BIBLE_KW))] + list(_FIELDS.items()):
     _tpl = NS[_label]
     _ph = set(re.findall(r"\{(\w+)\}", _tpl))

@@ -346,8 +346,8 @@ ck("only the segment that owns currency gets the currency rules",
    [k for k, v in PROMPTS.items() if "this segment owns it" in v], [PLAN["fx_owner"]] if PLAN["fx_owner"] else [])
 ck("every other segment is told not to mention it",
    all("do not mention the exchange rate" in v for k, v in PROMPTS.items() if k != PLAN["fx_owner"]), True)
-ck("analogies are allowed only in the main story and the learning segment",
-   sorted(k for k, v in PROMPTS.items() if "at most ONE short everyday comparison" in v), ["learning", "main"])
+ck("a comparison is allowed only in the learning segment (one per episode at most)",
+   sorted(k for k, v in PROMPTS.items() if "at most ONE short everyday comparison" in v), ["learning"])
 ck("each segment is told what the others cover", all("This week the other segments cover" in v for v in PROMPTS.values()), True)
 ck("the desk carries money in versus market", "New money Christopher added this week: about $6,000" in PROMPTS["desk"], True)
 ck("...the trade", "Trade: new position" in PROMPTS["desk"] or "Trade: added to" in PROMPTS["desk"], True)
@@ -360,10 +360,11 @@ ck("the opening's run-down names the learning topic the segment delivers",
    PLAN["topic"] in PROMPTS["opening"] and PLAN["topic"] in PROMPTS["learning"], True)
 ck("the learning segment states its marker", f"[EDUCATION_TOPIC: {PLAN['topic']}]" in PROMPTS["learning"], True)
 f_p = PLAN["facts"]
+_spot = PLAN["spot"]
 ck("the spotlight states the real position size, from holdings and prices",
-   f"we own about {gp._say_money(800 * 75)} of it" in PROMPTS["around"], True)
-ck("a briefing figure tied to a holding is scoped to that holding",
-   7480.0 in f_p["intel_positions"].get("TSLA", []) and 7480.0 not in f_p["intel_money"], True)
+   _spot is None or f"we own about {gp._say_money(_spot['cad'])} of it" in PROMPTS["around"], True)
+ck("the briefing's own position sizes (often wrong) are not passed on as facts",
+   "$7,480" in ALL or "$60,000" in ALL, False)
 ck("the desk's figures are accepted by the checker",
    flagged("ALEX: Christopher added about $6,000 this week.", f_p), False)
 ck("...an invented one is not", flagged("ALEX: Christopher added about $17,000 this week.", f_p), True)

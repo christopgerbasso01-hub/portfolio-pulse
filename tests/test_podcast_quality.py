@@ -357,10 +357,10 @@ ck("...the trade", "Trade: new position" in PROMPTS["desk"] or "Trade: added to"
 ck("...the house goal", "against the $90,000 target" in PROMPTS["desk"], True)
 ck("the scenario cases are fixed, with figures from the table",
    PROMPTS["scenarios"].count("the S&P 500") >= 3 and "within 1.5 percent" in PROMPTS["scenarios"], True)
-ck("the close promises next week's learning topic", PLAN["next_topic"] in PROMPTS["scenarios"], True)
+ck("the close promises next week's learning topic", gp._cur.spoken(PLAN["next_topic"]) in PROMPTS["scenarios"], True)
 ck("the opening asks for the theme marker after a cold open", "[THEME]" in PROMPTS["opening"], True)
 ck("the opening's run-down names the learning topic the segment delivers",
-   PLAN["topic"] in PROMPTS["opening"] and PLAN["topic"] in PROMPTS["learning"], True)
+   gp._cur.spoken(PLAN["topic"]) in PROMPTS["opening"] and PLAN["topic"] in PROMPTS["learning"], True)
 ck("the learning segment states its marker", f"[EDUCATION_TOPIC: {PLAN['topic']}]" in PROMPTS["learning"], True)
 f_p = PLAN["facts"]
 _spot = PLAN["spot"]

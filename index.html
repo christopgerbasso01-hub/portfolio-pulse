@@ -549,6 +549,21 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 .pod-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
 /* Episode list inside player */
 .pod-ep-list{margin-top:10px;border-top:1px solid var(--border);padding-top:8px}
+.pod-chapters:empty{display:none}
+.pod-chapters{margin-top:10px;border-top:1px solid var(--border);padding-top:8px;display:grid;gap:10px}
+.pod-ch-label{font-family:var(--mono,monospace);font-size:10px;color:var(--text3,#7a8ba3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.pod-ch-list{display:flex;flex-direction:column;gap:1px}
+.pod-ch{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:baseline;padding:4px 8px;border-radius:5px;cursor:pointer;
+  font-size:12px;color:var(--text2,#b6c3d4);background:none;border:none;text-align:left;width:100%;font-family:inherit}
+.pod-ch:hover{background:rgba(255,255,255,.04)}
+.pod-ch:focus-visible{outline:2px solid var(--blue-bright,#3b82f6);outline-offset:1px}
+.pod-ch.on{color:var(--text,#e6edf6);background:rgba(59,130,246,.10)}
+.pod-ch-t{font-family:var(--mono,monospace);font-size:11px;color:var(--text3,#7a8ba3);font-variant-numeric:tabular-nums}
+.pod-notes{font-size:12px;color:var(--text2,#b6c3d4);line-height:1.5}
+.pod-notes p{margin:0 0 4px}.pod-notes b{color:var(--text,#e6edf6);font-weight:600}
+.pod-notes ul{margin:2px 0 4px;padding-left:16px}
+#m-pod-chapters .pod-chapters{margin:6px 0 10px}
+#m-pod-chapters .pod-ch{font-size:13px;padding:8px}
 .pod-ep-list-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
 .pod-ep-items{overflow-y:auto;max-height:130px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .pod-ep-items::-webkit-scrollbar{width:3px}
@@ -1937,6 +1952,8 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
           <span class="mono" style="font-size:10px;color:var(--text3)" id="podDateBadge"></span>
           <span class="badge badge-listened" id="podListenedBadge" style="display:none" onclick="podToggleListened()" title="Click to mark as unlistened">✓ LISTENED</span>
         </div>
+        <!-- Chapters (tap to jump) and show notes, written by the generator -->
+        <div id="podChapters" class="pod-chapters"></div>
       </div>
 
       <div id="podComingSoon" style="display:none;padding:12px 0;font-size:12px;color:var(--text3);font-family:var(--mono)">
@@ -6740,7 +6757,48 @@ async function refreshAll() {
   };
 
   // ── Brief cards ───────────────────────────────────────────────────────────
+  // ── Chapters & show notes ─────────────────────────────────────────────────
+  const fmtT = t => `${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+  const escH = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function renderChapters(ep) {
+    const el = document.getElementById('podChapters');
+    if (!el) return;
+    const d = epData.get(ep) || {};
+    const ch = d.chapters || [], n = d.show_notes || {};
+    let html = '';
+    if (ch.length) html += `<div><div class="pod-ch-label">Chapters</div><div class="pod-ch-list">${
+      ch.map(c => `<button class="pod-ch" data-t="${c.t}" onclick="podJump(${c.t})"><span class="pod-ch-t">${fmtT(c.t)}</span><span>${escH(c.title)}</span></button>`).join('')}</div></div>`;
+    const notes = [];
+    if (n.big_story) notes.push(`<p><b>Big story:</b> ${escH(n.big_story)}</p>`);
+    if ((n.also||[]).length) notes.push(`<p><b>Also:</b> ${n.also.map(escH).join('; ')}</p>`);
+    if (n.spotlight) notes.push(`<p><b>Spotlight:</b> ${escH(n.spotlight)}</p>`);
+    if (n.lesson) notes.push(`<p><b>Lesson:</b> ${escH(n.lesson)}</p>`);
+    if ((n.watch||[]).length) notes.push(`<p><b>This week, watch:</b></p><ul>${n.watch.map(w => `<li>${escH(w)}</li>`).join('')}</ul>`);
+    if (n.next_lesson) notes.push(`<p><b>Next week's lesson:</b> ${escH(n.next_lesson)}</p>`);
+    if (notes.length) html += `<div><div class="pod-ch-label">Show notes</div><div class="pod-notes">${notes.join('')}</div></div>`;
+    el.innerHTML = html;
+  }
+  window.podJump = function(t) {
+    const audio = document.getElementById('podAudio');
+    if (!audio) return;
+    const go = () => { audio.currentTime = t; audio.play().catch(() => {});
+      ['podPlayBtn', 'm-pod-playbtn'].forEach(id => { const b = document.getElementById(id); if (b) b.textContent = '⏸'; }); };
+    if (audio.readyState >= 1) go(); else { audio.addEventListener('loadedmetadata', go, { once: true }); audio.load(); }
+  };
+  (function watchChapters() {
+    const audio = document.getElementById('podAudio');
+    if (!audio) return;
+    audio.addEventListener('timeupdate', () => {
+      document.querySelectorAll('.pod-ch').forEach(b => {
+        const list = [...b.parentElement.children].map(x => +x.dataset.t);
+        const t = +b.dataset.t, next = list.find(v => v > t);
+        b.classList.toggle('on', audio.currentTime >= t && (next == null || audio.currentTime < next));
+      });
+    });
+  })();
+
   function renderBriefCards(ep) {
+    renderChapters(ep);
     const d = epData.get(ep) || {};
     const s = d.summary || {};
     const grid = document.getElementById('podBriefGrid');
@@ -6808,11 +6866,13 @@ async function refreshAll() {
     // Store per-episode data for on-demand card switching
     if (m.episode > 0) {
       epData.set(m.episode, { summary: m.summary, mood_summary: m.mood_summary, mood: m.mood,
-                              title: m.title, display_date: m.display_date });
+                              title: m.title, display_date: m.display_date,
+                              chapters: m.chapters || [], show_notes: m.show_notes || {} });
     }
     (m.archive || []).forEach(ep => {
       if (ep.summary) epData.set(ep.episode, { summary: ep.summary, mood_summary: ep.mood_summary||'',
-                                               mood: ep.mood||'neutral', title: ep.title, display_date: ep.display_date });
+                                               mood: ep.mood||'neutral', title: ep.title, display_date: ep.display_date,
+                                               chapters: ep.chapters || [], show_notes: ep.show_notes || {} });
     });
 
     // Title / badges
@@ -11319,6 +11379,12 @@ function syncMobile(){
         +'<div class="m-pod-title">'+ptxt+'</div>'
         +'</div>';
     }
+    // Sync chapters & show notes
+    var chSrc=document.getElementById('podChapters'),chDst=document.getElementById('m-pod-chapters');
+    if(chSrc&&chDst&&chDst.dataset.synced!==chSrc.innerHTML){
+      chDst.dataset.synced=chSrc.innerHTML;
+      chDst.innerHTML=chSrc.innerHTML?'<div class="pod-chapters">'+chSrc.innerHTML+'</div>':'';
+    }
     // Sync episode list
     var epSrc=document.getElementById('podEpList');
     var epDst=document.getElementById('m-pod-eps');
@@ -12819,6 +12885,7 @@ document.addEventListener('DOMContentLoaded',function(){
           </button>
         </div>
       </div>
+      <div id="m-pod-chapters"></div>
       <!-- Transcript. The .txt sits beside every MP3 and used to be reachable
            only by fetching it by hand. Speaker-only text since the episode-17
            cleanup, so it renders directly. -->

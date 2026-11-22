@@ -260,7 +260,7 @@ _FIELDS = {"SEG_OPENING": {"hook", "previously", "rundown"},
            "SEG_DESK": {"desk", "why", "fx_instruction"},
            "SEG_MAIN": {"title", "brief", "exposure", "last_week_note"},
            "SEG_AROUND": {"items", "count", "plural"},
-           "SEG_LEARNING": {"topic", "taught", "link"},
+           "SEG_LEARNING": {"topic", "spoken", "taught", "link"},
            "SEG_SCENARIOS": {"frame", "drivers", "next_week", "watch"}}
 for _label, _kw in [("SHOW_BIBLE", set(_BIBLE_KW))] + list(_FIELDS.items()):
     _tpl = NS[_label]

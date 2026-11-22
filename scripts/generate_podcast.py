@@ -572,7 +572,7 @@ THE LISTENER: Christopher, 24, Toronto. Base currency CAD. High risk tolerance. 
 THE HOSTS — two friends who know markets, talking, not reading a script:
 - ALEX, the analyst: precise, a little dry, always after the "why" behind a move. Happy to say "I don't know yet" or "I got that one wrong".
 - SAM, the co-host and the listener's voice: practical, quicker to an opinion, sometimes disagrees, keeps bringing it back to the house and the long run.
-Either can explain, ask or push back — it is a conversation, not an interview. Each reacts to what the other just said with substance: a follow-up, a doubt, a connection to something earlier.
+Either can explain, ask or push back — it is a conversation, not an interview. SAM explains things too: at least a third of what is said is SAM's, and most of SAM's turns are NOT questions. Each reacts to what the other just said with substance: a follow-up, a doubt, a connection to something earlier.
 SOUND NATURAL:
 - Vary turn length: some turns are a few words, some four sentences. Now and then one host finishes or challenges the other's thought.
 - Never begin a turn with "Exactly", "Absolutely", "Precisely", "Correct", "Got it", "Right", "Great question", "Good point", "That's a great point" or "So" — begin with the substance.
@@ -584,6 +584,8 @@ NUMBERS: at most 4 in any turn. Round them and write them as digits — "about $
 NEVER explain how leveraged or 3x funds work — no amplifying, no daily reset, no decay. The listener knows. Say what they did.
 A company is a holding only if it is in WHAT WE OWN, and it is described only as WHAT WE OWN describes it — never guess what a company does, where it is based, or confuse one holding with another.
 NO ADVICE: never tell Christopher to buy, sell, add, trim or hold anything. Give perspective, not instructions.
+THE MONEY IS CHRISTOPHER'S: trades and contributions are his — say "you bought", "you added", "your TFSA" (or "Christopher sold"), never "we bought", "we sold", "we added".
+SAY NAMES, NOT TICKERS: "Nvidia", "the S&P 500 3x fund" — never "NVDA", "SPXL" or "ZWB.TO".
 THE HOUSE MONEY is ONLY the FHSA and the RRSP. The TFSA and the non-registered account are not the down payment.
 The portfolio is ONLY what WHAT WE OWN lists, at the weights shown: it holds no bonds, no cash plan and nothing else. Never call a small holding "core".
 {currency_rule}
@@ -605,7 +607,7 @@ Write, in this order:
 2. A line that is exactly: [THEME]
 3. WELCOME — ALEX welcomes everyone to Portfolio Pulse Weekly; SAM says hello in his own words. Two short turns, worded differently from last week's.
 4. LAST TIME — {previously}
-5. RUN-DOWN — one turn naming today's segments in order, plainly and conversationally, without explaining them: {rundown}.
+5. PREVIEW — two or three conversational sentences, shared between the hosts, on what the listener will get today. Name the subjects, not segment names ("we'll get into why last week went the way it did, then ..."), never a list read out: {rundown}.
 6. A one-line handover into the look back at last week.
 LENGTH: 260 to 340 words. Write segment 1 now:"""
 
@@ -636,6 +638,7 @@ LENGTH: 750 to 920 words. Write segment 3 now:"""
 
 SEG_AROUND = """━━━ SEGMENT 4 of 6 — AROUND THE PORTFOLIO ━━━
 {count} short item{plural}, three to five turns each, each introduced so the listener knows a new item has started — vary how. None of them is the big story.
+SAM leads this segment: SAM introduces each item and explains at least half of them; ALEX reacts, adds and pushes back.
 {items}
 For an EARNINGS item (always first): the scorecard — earnings per share against the estimate and revenue — then how the stock reacted and what that meant for us, what the company said (only from the summary given), and what it means for owning it.
 For a news item: what happened, then why it matters — or doesn't — for what we own.
@@ -646,7 +649,8 @@ LENGTH: 480 to 620 words. Write segment 4 now:"""
 SEG_LEARNING = """━━━ SEGMENT 5 of 6 — THE LEARNING SEGMENT: {topic} ━━━
 First line, exactly: [EDUCATION_TOPIC: {topic}]
 This is a NEW lesson. Already taught in earlier episodes — do not re-teach, revisit or lean on any of these: {taught}.
-Teach {topic} over several turns: what it is, how it works step by step, and how an investor actually uses it. {link}One worked example with small round numbers (like $100) — say each example number once. Use no current market data. SAM asks the practical question, and ALEX ties the idea to THIS portfolio in words, with no new figures.
+Say the topic the way a person would ("{spoken}"), never as a title in capitals.
+Teach it over several turns: what it is, how it works step by step, and how an investor actually uses it. {link}One worked example with small round numbers (like $100) — say each example number once. Use no current market data. SAM asks the practical question, and ALEX ties the idea to THIS portfolio in words, with no new figures.
 The last line is SAM saying: "That's our learning segment for this week."
 LENGTH: 440 to 560 words. Write segment 5 now:"""
 
@@ -654,7 +658,7 @@ SEG_SCENARIOS = """━━━ SEGMENT 6 of 6 — THE WEEK AHEAD AND THE CLOSE ━
 Now look forward.
 WHAT'S COMING UP (your only facts about the coming week — name a date only where one is given):
 {watch}
-1. What to watch this week and why each matters for this portfolio, most important first.
+1. What to watch this week and why each matters for this portfolio, most important first — SAM leads this part.
 2. Three ways the week could go, talked through as a conversation, not read as a list. The outcomes are fixed:
 {frame}
 You choose the odds: they add up to 100, and the base case is between 45 and 55. Say "base case", "bull case" and "bear case" once each with its odds ("our base case, about 50 percent, is ..."), give the portfolio figure for each once, and the one sign during the week that would tell us it is happening. Draw only on these drivers: {drivers}. Perspective tied to his goals and time horizon — never "buy" or "sell".
@@ -1272,6 +1276,38 @@ _FILLER = re.compile(r"^(?:exactly|absolutely|precisely|correct|got it|right|gre
                      r"that's a great point|totally|definitely|sure|yeah)[.!,—–-]*\s*", re.I)
 
 
+SPOKEN_NAMES: dict = {}      # ticker -> name, filled from the holdings when the episode is planned
+_TICKER_SKIP = {"ET", "V", "AI", "US", "CEO", "IPO", "ETF", "GDP", "CPI", "FX", "TFSA", "RRSP", "FHSA", "RBC", "BMO",
+                "CAD", "USD", "EPS", "MER", "OPEC", "EV"}
+
+
+def _speakable(text: str) -> str:
+    """What the voice should say: names instead of tickers, "you" for Christopher's own
+    trades, and tidy figures. Episode 25 read out "ZWB.TO", said "we sold Broadcom"
+    beside "you've contributed", and showed "300,000,000,000" and "6.2 %"."""
+    names = dict(SPOKEN_NAMES)
+    for t, n in {**COMPANY_NAMES, **_LEVERAGE_NAMES}.items():
+        names.setdefault(t, n)
+    for tkr in sorted(names, key=len, reverse=True):
+        base = tkr.split(".")[0]
+        if base in _TICKER_SKIP or len(base) < 3:
+            continue
+        name = names[tkr]
+        if not name or name.upper() == base:
+            continue
+        if tkr in _LEVERAGE_NAMES:            # "the SPXL position" -> "the S&P 500 3x fund position"
+            text = re.sub(r"(?:\b([Tt])he\s+)?(?<![\w$])" + re.escape(base) + r"(?:\s+(?:fund|ETF|etf))?(?![\w])",
+                          lambda m: ("The " if (m.group(1) == "T" or not m.group(1) and
+                                                 m.string[:m.start()].rstrip()[-1:] in ("", ":", ".", "?", "!"))
+                                     else "the ") + name + " fund", text)
+            continue
+        text = re.sub(r"(?<![\w$])" + re.escape(base) + r"(?:\.TO)?(?![\w])", name, text)
+    text = re.sub(r"\b([Ww])e(?:'ve| have)?\s+(bought|sold|added|trimmed|exited|purchased|contributed|deposited)\b",
+                  lambda m: ("Y" if m.group(1) == "W" else "y") + "ou " + m.group(2), text)
+    text = re.sub(r"(\d) +%", r"\1%", text)
+    return text
+
+
 def _trim_fillers(text: str, keep: int = 1) -> str:
     """Strip one-word cue openers ("Exactly. …", "Got it. …") from turns — they made the
     hosts sound scripted (13 "Exactly"s across four episodes). A turn that is nothing but
@@ -1539,6 +1575,8 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
     tot = float((facts or {}).get("total_value") or 0) or sum(float(v["cad"]) for v in positions.values()) or 1.0
     weights = {t: float(v["cad"]) / tot * 100 for t, v in positions.items()}
     names = {t: [n for n in {COMPANY_NAMES.get(t, ""), str(v.get("name") or "")} if n] for t, v in positions.items()}
+    SPOKEN_NAMES.update({t: _LEVERAGE_NAMES.get(t) or COMPANY_NAMES.get(t) or str(v.get("name") or t)
+                         for t, v in positions.items()})
     last_main = ((rc["last"] or {}).get("main_story") or {}).get("title", "")
     week = briefings if briefings else [(intel.get("generated_at") or now.isoformat(), intel)]
     stories = _stories.rank(week, weights, names, last_main=last_main, same_story=_desk.same_story,
@@ -1613,13 +1651,13 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
                       "shape from this week: a proper look at the portfolio, one main story, quick hits from "
                       "around the portfolio, and scenarios that get scored the following week. ")
     if rc["last"] and rc["last"].get("next_learning_topic") == topic:
-        previously += f"Then one line: last week we promised to explain {topic} — today we do."
+        previously += f"Then one line, in your own words: last week we said we'd get to {_cur.spoken(topic)} — today we do."
 
     hook = _hook(ch, facts, main)
-    rundown = ", ".join(["a look back at last week and why it went the way it did",
-                         f"the week's big story — {_short(main['title'])}",
-                         "around the portfolio" + (f", with a spotlight on {spot['name']}" if spot else ""),
-                         f"the learning segment — {topic}", "and what to watch in the week ahead"])
+    # Subjects, not a menu of segment names read out every week.
+    rundown = "; ".join(["why last week went the way it did", main["title"],
+                         (f"a closer look at {spot['name']}" if spot else "the rest of the week's news"),
+                         _cur.spoken(topic), "and what to watch this week"])
     frame = _desk.scenario_frame(facts.get("index_table") or {})
     frame_text = "\n".join(
         f"- {f['label']}: {f['condition']}. Effect on Christopher's PORTFOLIO (not the index): about "
@@ -1634,7 +1672,7 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
     if main_story:
         watch_lines.append(f"- How this week's big story develops: {_short(main['title'], 12)}")
     watch = "\n".join(watch_lines[:6]) or "- No scheduled events were named in the news; say so briefly."
-    next_week = (f"say in one line that next week's learning segment is on {next_topic}"
+    next_week = (f"say in one line that next week's lesson is {_cur.spoken(next_topic)}"
                  + (f", and we will see how {upcoming} turned out" if upcoming else "")
                  + ". Promise nothing else.")
     if reporting:
@@ -1710,7 +1748,8 @@ def build_episode_plan(intel, snapshot, settings, old_meta, memory, past_scripts
             "around":    {"items": "\n".join(items) or "No other news this week: one short look at the biggest holding.",
                           "count": ["One", "One", "Two", "Three", "Four"][min(len(items), 4)],
                           "plural": "" if len(items) <= 1 else "s"},
-            "learning":  {"topic": topic, "taught": "; ".join(list(_cur.HISTORY) + taught) or "nothing yet",
+            "learning":  {"topic": topic, "spoken": _cur.spoken(topic),
+                          "taught": "; ".join(list(_cur.HISTORY) + taught) or "nothing yet",
                           "link": (f"If it fits naturally, connect it to this week's big story ({_short(main['title'], 8)}) "
                                    f"in a sentence. ")},
             "scenarios": {"frame": frame_text, "drivers": drivers, "next_week": next_week, "watch": watch},
@@ -1962,7 +2001,7 @@ def write_segment(api_key: str, plan: dict, key: str, notes: str, before_tail: s
     text = _groq_part(api_key, lambda n: _segment_prompt(plan, key, n, before_tail),
                       f"Segment {SEGMENT_KEYS.index(key) + 1} ({SEGMENT_TITLES[key]})", notes, min_words,
                       max_tokens=max_tokens)
-    return _trim_fillers(_normalize_script(text))
+    return _speakable(_trim_fillers(_normalize_script(text)))
 
 
 # ── Checking a segment on its own ────────────────────────────────────────────
@@ -2047,6 +2086,18 @@ def segment_problems(key: str, text: str, plan: dict) -> list:
         if brag and (sc.get("probability") or 0) < 45:
             out.append(f"claims last week's call was right, but the case that happened was one we gave only "
                        f"{sc.get('probability')} percent — say it honestly: \"{brag[:90]}\"")
+    if key in ("desk", "main", "around", "scenarios"):
+        spk = [(m.group(1), m.group(2)) for t in text.split("\n") for m in [re.match(r"^(ALEX|SAM):\s*(.*)$", t.strip())] if m]
+        sam = [b for a, b in spk if a == "SAM"]
+        total = sum(len(b.split()) for _, b in spk) or 1
+        share = sum(len(b.split()) for b in sam) / total
+        asks = sum(1 for b in sam if b.rstrip().endswith("?"))
+        if len(spk) >= 6 and share < 0.28:
+            out.append(f"SAM says only {share:.0%} of this segment — give SAM real explanations and opinions, "
+                       f"not just questions (aim for a third or more)")
+        elif len(sam) >= 4 and asks / len(sam) > 0.75:
+            out.append(f"{asks} of SAM's {len(sam)} turns are questions — it sounds like an interview; let SAM "
+                       f"explain, disagree or add, too")
     if key == "opening" and "[THEME]" in text:
         cold = " ".join(_turn_texts(text.split("[THEME]", 1)[0]))
         hook = plan.get("fields", {}).get("opening", {}).get("hook", "").lower()
@@ -2472,6 +2523,8 @@ def _money_words(match) -> str:
 
 def normalize_for_speech(text: str) -> str:
     """Rewrite symbols and figures the TTS engine mishandles into plain words."""
+    # Any ticker left over is spelled out rather than read as a word ("Z W B").
+    text = re.sub(r"\b([A-Z]{2,5})\.TO\b", lambda m: " ".join(m.group(1)), text)
     # Markdown emphasis is spoken aloud by the engine
     text = re.sub(r"\*{1,3}([^*]+)\*{1,3}", r"\1", text)
     text = re.sub(r"(?<!\w)_([^_]+)_(?!\w)", r"\1", text)
@@ -3363,6 +3416,11 @@ def _digitize(text: str) -> str:
         if v is None:
             return m.group(0)
         num = (f"{v:,.2f}".rstrip("0").rstrip(".") if isinstance(v, float) else f"{v:,}")
+        # "300 billion", not "300,000,000,000" (episode 25's transcript)
+        for size, word in ((1_000_000_000, "billion"), (1_000_000, "million")):
+            if v >= size and (v * 100) % size == 0:
+                num = f"{v / size:,.2f}".rstrip("0").rstrip(".") + " " + word
+                break
         if unit.startswith("per"):
             return f"{num}%"
         if unit == "dollars":
@@ -3575,6 +3633,7 @@ async def _generate_all_audio(turns: list[tuple[str, str]], tmp_dir: Path) -> li
         if gap >= 0.04:
             paths.append(_silence_file(tmp_dir, round(gap, 2)))
 
+    _BREAK_OFFSETS.clear()
     batch = 8
     for start in range(0, len(tasks), batch):
         await asyncio.gather(*tasks[start:start + batch])
@@ -3584,7 +3643,22 @@ async def _generate_all_audio(turns: list[tuple[str, str]], tmp_dir: Path) -> li
         if done % 40 == 0 or done == len(tasks):
             print(f"    Synthesized {done}/{len(tasks)} segments...")
 
+    # Where each segment starts within this file — the chapter marks.
+    try:
+        from mutagen.mp3 import MP3
+        t = 0.0
+        for path in paths:
+            if path == str(THEME_STING) or (not THEME_STING.exists() and "sil_0900" in path):
+                t += MP3(path).info.length
+                _BREAK_OFFSETS.append(round(t + 0.35, 2))
+                continue
+            t += MP3(path).info.length
+    except Exception:  # noqa: BLE001
+        _BREAK_OFFSETS.clear()
     return paths
+
+
+_BREAK_OFFSETS: list = []
 
 
 def merge_mp3s(segment_paths: list[str], output: Path) -> None:
@@ -3841,12 +3915,16 @@ def split_at_theme(script: str) -> tuple:
 
 
 THEME_STING = THEME_DIR / "theme_sting.mp3"
+SHOW_IDENT = "Portfolio Pulse Weekly. One portfolio, the week in markets, and what comes next."
+DISCLAIMER = ("Portfolio Pulse Weekly is a personal show about one portfolio. Nothing in it is financial advice, "
+              "and past performance is no guide to what comes next.")
+LAST_CHAPTERS: list = []      # seconds into the finished episode where each segment starts
 TARGET_LUFS = -16.0           # where Apple / Spotify podcasts sit
 THEME_GAIN_DB = -9.5          # the themes were mastered ~7 LU louder than the voices
 INTRO_OVERLAP = 1.8           # seconds of theme still fading under the first line
 
 
-def master_episode(cold, intro, main, outro, output: Path) -> bool:
+def master_episode(cold, intro, main, outro, output: Path, ident=None) -> bool:
     """Mix and master: cold open, then the intro theme fading out under the first line of
     the episode, the episode, then the outro theme fading in — the whole programme
     normalised to TARGET_LUFS. Measured on episode 25: themes at -14.5 LUFS against
@@ -3858,6 +3936,7 @@ def master_episode(cold, intro, main, outro, output: Path) -> bool:
         ff = _ffmpeg_exe()
         from mutagen.mp3 import MP3
         ti = MP3(str(intro)).info.length if intro else 0.0
+        td = MP3(str(ident)).info.length if (intro and ident) else 0.0
     except Exception as exc:  # noqa: BLE001
         print(f"  ⚠ mastering skipped ({str(exc)[:80]})")
         return False
@@ -3869,14 +3948,23 @@ def master_episode(cold, intro, main, outro, output: Path) -> bool:
         labels.append("[c]")
         n += 1
     if intro:
+        # The show's ident is spoken over the theme from 1 s in; the first line starts
+        # as the theme fades, or just after the ident, whichever is later.
+        start = max(ti - INTRO_OVERLAP, (1.0 + td + 0.5) if td else 0.0)
+        master_episode.main_offset = start
         args += ["-i", str(intro), "-i", str(main)]
-        delay = int(max(0.0, ti - INTRO_OVERLAP) * 1000)
         f.append(f"[{n}:a]aresample=48000,aformat=channel_layouts=mono,volume={THEME_GAIN_DB}dB,"
-                 f"afade=t=out:st={max(0.0, ti - 2.6):.2f}:d=2.6[ti]")
-        f.append(f"[{n + 1}:a]aresample=48000,aformat=channel_layouts=mono,adelay={delay}:all=1[md]")
-        f.append("[ti][md]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[b]")
-        n += 2
+                 f"afade=t=out:st={max(0.0, start + INTRO_OVERLAP - 2.6):.2f}:d=2.6[ti]")
+        f.append(f"[{n + 1}:a]aresample=48000,aformat=channel_layouts=mono,adelay={int(start * 1000)}:all=1[md]")
+        mix = ["[ti]", "[md]"]
+        if td:
+            args += ["-i", str(ident)]
+            f.append(f"[{n + 2}:a]aresample=48000,aformat=channel_layouts=mono,adelay=1000:all=1[id]")
+            mix.append("[id]")
+        f.append("".join(mix) + f"amix=inputs={len(mix)}:duration=longest:dropout_transition=0:normalize=0[b]")
+        n += 2 + (1 if td else 0)
     else:
+        master_episode.main_offset = 0.0
         args += ["-i", str(main)]
         f.append(f"[{n}:a]aresample=48000,aformat=channel_layouts=mono[b]")
         n += 1
@@ -3920,6 +4008,7 @@ def synthesize_with_theme(script: str, output: Path, tmp_dir: Path) -> str:
     theme file is missing the episode still airs, just without it."""
     cold, rest = split_at_theme(script)
     parts, engine = [], None
+    LAST_CHAPTERS.clear()
     if cold:
         d = tmp_dir / "cold"
         d.mkdir(exist_ok=True)
@@ -3934,15 +4023,37 @@ def synthesize_with_theme(script: str, output: Path, tmp_dir: Path) -> str:
     parts.append(d / "main.mp3")
     if THEME_OUTRO.exists():
         parts.append(THEME_OUTRO)
+    ident = None
+    if THEME_INTRO.exists() and engine == "edge-tts":
+        try:
+            di = tmp_dir / "ident"
+            di.mkdir(exist_ok=True)
+            asyncio.run(_synthesize_one(SHOW_IDENT, VOICE_SAM, str(di / "ident.mp3"), rate=VOICE_RATE["SAM"]))
+            ident = di / "ident.mp3"
+        except Exception as exc:  # noqa: BLE001
+            print(f"  ⚠ show ident skipped ({str(exc)[:80]})")
+    try:
+        from mutagen.mp3 import MP3
+        cold_len = MP3(str(tmp_dir / "cold" / "cold.mp3")).info.length if cold else 0.0
+    except Exception:  # noqa: BLE001
+        cold_len = 0.0
     if master_episode(tmp_dir / "cold" / "cold.mp3" if cold else None,
                       THEME_INTRO if THEME_INTRO.exists() else None, d / "main.mp3",
-                      THEME_OUTRO if THEME_OUTRO.exists() else None, output):
+                      THEME_OUTRO if THEME_OUTRO.exists() else None, output, ident=ident):
+        base = cold_len + getattr(master_episode, "main_offset", 0.0)
+        LAST_CHAPTERS.extend([0.0] + [round(base + t, 1) for t in _BREAK_OFFSETS])
         print(f"  ✓ Mastered to {TARGET_LUFS:.0f} LUFS: {'cold open + ' if cold else ''}theme under the first line, "
               f"episode, outro")
         return engine
     with open(output, "wb") as out:
         for p in parts:
             out.write(Path(p).read_bytes())
+    try:
+        from mutagen.mp3 import MP3
+        base = cold_len + (MP3(str(THEME_INTRO)).info.length if THEME_INTRO.exists() else 0.0)
+        LAST_CHAPTERS.extend([0.0] + [round(base + t, 1) for t in _BREAK_OFFSETS])
+    except Exception:  # noqa: BLE001
+        pass
     print(f"  ✓ Assembled: {'cold open + ' if cold else ''}{'theme + ' if THEME_INTRO.exists() else ''}"
           f"episode{' + outro' if THEME_OUTRO.exists() else ''}")
     return engine
@@ -3965,6 +4076,94 @@ def _same_engine(engine: str, turns: list, output: Path, tmp_dir: Path) -> str:
 # ============================================================
 # METADATA
 # ============================================================
+FEED_NAME = "podcast_feed.xml"
+SITE = "https://portfolio-pulse-dun.vercel.app"
+
+
+def _chapters(plan: dict, marks: list, total: int) -> list:
+    """[{t, title}] for the player: where each segment starts. Empty if unmeasured."""
+    titles = ["Intro", "The week that was", f"The big story: {plan['main']['title']}", "Around the portfolio",
+              f"Lesson: {_cur.spoken(plan['topic'])}", "The week ahead"]
+    marks = [m for m in marks if 0 <= m < (total or 10 ** 6)]
+    if len(marks) < 2 or len(marks) > len(titles):
+        return []
+    return [{"t": round(m), "title": titles[i]} for i, m in enumerate(marks)]
+
+
+def _show_notes(plan: dict) -> dict:
+    """What the episode covered, for the app and the feed."""
+    st = next((x for x in plan.get("stories") or [] if x["title"] == plan["main"].get("headline")), None)
+    watch = [w[2:].strip() for w in (plan["fields"]["scenarios"].get("watch") or "").split("\n")
+             if w.startswith("- ") and "No scheduled events" not in w]
+    return {
+        "big_story": plan["main"]["title"],
+        "headlines": [i["title"] for i in (st or {}).get("items", [])][-4:],
+        "also": [q["title"] for q in plan.get("quick") or []],
+        "spotlight": (plan.get("spot") or {}).get("name"),
+        "lesson": _cur.spoken(plan["topic"]),
+        "watch": watch[:5],
+        "next_lesson": _cur.spoken(plan["next_topic"]),
+    }
+
+
+def _hms(sec: int) -> str:
+    sec = int(sec or 0)
+    return f"{sec // 3600:02d}:{sec % 3600 // 60:02d}:{sec % 60:02d}"
+
+
+def write_feed(meta: dict) -> None:
+    """data/podcast_feed.xml — a podcast RSS feed of the episodes kept, so they can be
+    followed in Apple Podcasts ("Follow a Show by URL"), Overcast or Pocket Casts."""
+    from xml.sax.saxutils import escape as x
+    from email.utils import format_datetime
+    eps = [meta] + list(meta.get("archive") or [])
+    items = []
+    for e in eps:
+        if not e.get("file"):
+            continue
+        f = DATA_DIR / e["file"]
+        size = f.stat().st_size if f.exists() else 0
+        try:
+            when = datetime.fromisoformat(e.get("date", "")).replace(hour=6, tzinfo=timezone.utc)
+        except ValueError:
+            when = datetime.now(timezone.utc)
+        n = e.get("show_notes") or {}
+        lines = []
+        if n.get("big_story"):
+            lines.append(f"This week's big story: {n['big_story']}.")
+        if n.get("also"):
+            lines.append("Also: " + "; ".join(n["also"]) + ".")
+        if n.get("lesson"):
+            lines.append(f"Lesson: {n['lesson']}.")
+        for c in e.get("chapters") or []:
+            lines.append(f"{_hms(c['t'])[3:] if c['t'] < 3600 else _hms(c['t'])} {c['title']}")
+        desc = "\n".join(lines) or (e.get("mood_summary") or "")
+        items.append(f"""    <item>
+      <title>{x(f"Ep {e['episode']}: {e.get('title') or 'Portfolio Pulse Weekly'}")}</title>
+      <guid isPermaLink="false">portfolio-pulse-ep{e['episode']}</guid>
+      <pubDate>{format_datetime(when)}</pubDate>
+      <enclosure url="{SITE}/data/{x(e['file'])}" length="{size}" type="audio/mpeg"/>
+      <itunes:duration>{_hms(e.get('duration_seconds') or 0)}</itunes:duration>
+      <itunes:episode>{e['episode']}</itunes:episode>
+      <description>{x(desc)}</description>
+    </item>""")
+    (DATA_DIR / FEED_NAME).write_text(f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Portfolio Pulse Weekly</title>
+    <link>{SITE}</link>
+    <language>en-ca</language>
+    <description>A weekly look at one personal portfolio: last week and why, the big story, a lesson, and what's next.</description>
+    <itunes:author>Portfolio Pulse</itunes:author>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:block>Yes</itunes:block>
+{chr(10).join(items)}
+  </channel>
+</rss>
+""", encoding="utf-8")
+    print(f"  ✓ Podcast feed updated ({FEED_NAME}, {len(items)} episodes)")
+
+
 def load_meta() -> dict:
     try:
         if PODCAST_META.exists():
@@ -4045,6 +4244,11 @@ def main() -> int:
     # the wrong day. Episode 16 sent them to an EIA report on "Wednesday,
     # September 18" when the 18th was a Friday.
     script, weekday_fixes = _fix_weekday_claims(script, run_time or datetime.now(timezone.utc))
+    # The closing disclaimer professional finance shows carry — fixed wording, added
+    # after every check so nothing can trim it, read by whoever did not sign off last.
+    last_spk = next((l.split(":", 1)[0] for l in reversed(script.strip().split("\n"))
+                     if l.startswith(("ALEX:", "SAM:"))), "SAM")
+    script = script.rstrip() + f"\n{'ALEX' if last_spk == 'SAM' else 'SAM'}: {DISCLAIMER}\n"
     for fix in weekday_fixes:
         print(f"  ✓ Corrected weekday: {fix}")
     for warning in _speaker_run_warnings(script):
@@ -4081,6 +4285,7 @@ def main() -> int:
             return 1
 
     duration_str, duration_secs = audio_duration(mp3_path)
+    chapters = _chapters(plan, list(LAST_CHAPTERS), duration_secs)
     print(f"  ✓ Duration: {duration_str} ({mp3_path.stat().st_size / 1_048_576:.1f} MB)")
 
     # Save the cleaned script (used by future episodes for the deep topic
@@ -4117,6 +4322,9 @@ def main() -> int:
             "file":            old_meta.get("file", ""),
             "education_topic": old_meta.get("education_topic", ""),
             "summary":         old_meta.get("summary", {}),
+            "chapters":        old_meta.get("chapters", []),
+            "show_notes":      old_meta.get("show_notes", {}),
+            "duration_seconds": old_meta.get("duration_seconds", 0),
         }
         archive = [prev_entry] + (old_meta.get("archive", []))
     archive = archive[:MAX_EPISODES - 1]
@@ -4154,8 +4362,14 @@ def main() -> int:
         "education_topic":  education_topic,
         "archive":          archive,
         "summary":          summary,
+        "chapters":         chapters,
+        "show_notes":       _show_notes(plan),
     }
     PODCAST_META.write_text(json.dumps(meta, indent=2))
+    try:
+        write_feed(meta)
+    except Exception as exc:  # noqa: BLE001  the feed is a convenience, never a blocker
+        print(f"  ⚠ podcast feed not written ({exc})")
 
     # The show's memory: next week scores these scenarios, keeps the learning-topic
     # promise, and avoids these subjects and comparisons.

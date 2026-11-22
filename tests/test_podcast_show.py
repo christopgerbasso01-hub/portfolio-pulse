@@ -196,5 +196,57 @@ try:
 finally:
     gp._groq_call, gp.write_segment = _rc, _rw
 
+print("\n── what is read aloud, and who it belongs to ──")
+gp.SPOKEN_NAMES["ZWB.TO"] = "BMO's Canadian bank covered-call fund"
+ck("a ticker becomes a name", gp._speakable("ALEX: ZWB.TO just landed in the portfolio."),
+   "ALEX: BMO's Canadian bank covered-call fund just landed in the portfolio.")
+ck("a 3x ticker becomes 'the ... fund'", gp._speakable("ALEX: SPXL rose, the FNGU fund fell."),
+   "ALEX: The S&P 500 3x fund rose, the FANG+ 3x fund fell.")
+ck("short words are never taken for tickers", gp._speakable("SAM: The ET position and V are small; the CEO spoke."),
+   "SAM: The ET position and V are small; the CEO spoke.")
+ck("Christopher's trades are his", gp._speakable("ALEX: We sold Broadcom and we've added to Nvidia."),
+   "ALEX: You sold Broadcom and you added to Nvidia.")
+ck("billions are said as billions", gp._digitize("about three hundred billion dollars"), "about $300 billion")
+ck("'6.2 %' is tidied", gp._speakable("ALEX: up 6.2 % on the week"), "ALEX: up 6.2% on the week")
+ck("a leftover ticker is spelled, not read as a word", gp.normalize_for_speech("XYZ.TO moved"), "X Y Z moved")
+ck("a lesson title is said the way a person would", C.spoken("Free Cash Flow, the Number Behind the Earnings"),
+   "free cash flow, the number behind the earnings")
+ck("...keeping acronyms and names", C.spoken(C.CURRICULUM[0][0]), "how the FHSA and the RRSP Home Buyers' Plan work together")
+ck("the preview names subjects, not a menu of segments", "not segment names" in gp.SEG_OPENING, True)
+
+print("\n── the two hosts share the talking ──")
+lop = "\n".join(["ALEX: " + "word " * 40, "SAM: Why?"] * 4)
+ck("a segment where SAM only asks is sent back", any("SAM says only" in m for m in gp.segment_problems("main", lop, P)), True)
+q = "\n".join(["ALEX: " + "word " * 10, "SAM: But why " + "word " * 9 + "?"] * 4)
+ck("...and so is one where SAM's turns are nearly all questions", any("interview" in m for m in gp.segment_problems("main", q, P)), True)
+ok = "\n".join(["ALEX: " + "word " * 12, "SAM: I think " + "word " * 10 + "."] * 4)
+ck("a balanced exchange passes", [m for m in gp.segment_problems("main", ok, P) if "SAM" in m], [])
+ck("SAM leads the around-the-portfolio segment", "SAM leads this segment" in gp.SEG_AROUND, True)
+
+print("\n── packaging ──")
+plan = {"main": {"title": "Nvidia"}, "topic": "Share Buybacks"}
+ch = gp._chapters(plan, [0.0, 33.2, 120.5, 300.1, 420.0, 560.9], 900)
+ck("six chapters with their titles", [c["title"] for c in ch],
+   ["Intro", "The week that was", "The big story: Nvidia", "Around the portfolio", "Lesson: share buybacks", "The week ahead"])
+ck("...in whole seconds", ch[1]["t"], 33)
+ck("no measured breaks, no chapters (never wrong ones)", gp._chapters(plan, [0.0], 900), [])
+ck("the disclaimer is fixed wording", "not financial advice" in gp.DISCLAIMER.lower() or "nothing in it is financial advice" in gp.DISCLAIMER.lower(), True)
+with tempfile.TemporaryDirectory() as d:
+    real = gp.DATA_DIR
+    gp.DATA_DIR = Path(d)
+    try:
+        gp.write_feed({"episode": 2, "file": "podcast_ep002.mp3", "date": "2026-11-23", "title": "T & <x>",
+                       "duration_seconds": 1000, "chapters": [{"t": 0, "title": "Intro"}],
+                       "show_notes": {"big_story": "Nvidia"},
+                       "archive": [{"episode": 1, "file": "podcast_ep001.mp3", "date": "2026-11-16", "title": "Old"}]})
+        import xml.dom.minidom
+        feed = (Path(d) / "podcast_feed.xml").read_text()
+        doc = xml.dom.minidom.parseString(feed)
+        ck("the feed is valid XML with every kept episode", len(doc.getElementsByTagName("item")), 2)
+        ck("...titles are escaped", "T &amp; &lt;x&gt;" in feed, True)
+        ck("...and it is kept out of the public directories", "<itunes:block>Yes</itunes:block>" in feed, True)
+    finally:
+        gp.DATA_DIR = real
+
 print(f"\n{'ALL PASS' if not fails else str(len(fails)) + ' FAILED'}")
 sys.exit(1 if fails else 0)

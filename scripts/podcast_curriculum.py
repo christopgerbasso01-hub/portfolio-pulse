@@ -175,3 +175,23 @@ _EXTRA_THEMES = {
 def themes_for(text: str, base: frozenset = frozenset()) -> frozenset:
     """News themes plus the lesson-pairing ones the generic theme list lacks."""
     return frozenset(base) | {k for k, rx in _EXTRA_THEMES.items() if re.search(rx, text or "", re.I)}
+
+
+_KEEP_CAPS = {"FHSA", "RRSP", "TFSA", "CEO", "IPO", "CPI", "ETF", "ETFS", "MER", "GDP", "OPEC", "EV", "EBITDA", "AI",
+              "US", "ACB", "ROE", "P/E", "VIX", "OK"}
+_PROPER = {"canada", "canadian", "home", "buyers'"}
+
+
+def spoken(title: str) -> str:
+    """A curriculum title as a person would say it: "free cash flow, the number behind
+    the earnings", not "Free Cash Flow, The Number Behind The Earnings"."""
+    out = []
+    for w in str(title or "").split():
+        bare = w.strip(",.:;—-()").upper()
+        if bare in _KEEP_CAPS or (any(ch.isdigit() for ch in w) and w.upper() == w):
+            out.append(w)
+        elif w.lower().strip(",") in _PROPER and out and out[-1] in ("RRSP", "the"):
+            out.append(w)
+        else:
+            out.append(w.lower())
+    return " ".join(out).replace("Home buyers' plan", "Home Buyers' Plan")

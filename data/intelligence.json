@@ -1,269 +1,281 @@
 {
   "macro": [
     {
-      "title": "Fed Rate Hike Tightens Capital Costs",
-      "category": "monetary-policy",
-      "impact": "HIGH",
-      "confidence": 85,
-      "body": "The Fed’s 50‑bp increase lifts global funding rates, raising the cost of capital for US‑listed tech and leveraged ETFs held in the portfolio. Higher rates compress equity multiples, especially for growth‑oriented holdings priced in USD.",
-      "bull": "If the hike is a one‑off and markets price in a near‑term pause, equity valuations could stabilise.",
-      "bull_estimate": "SPXL $49,654 CAD (1% upside if S&P 500 rebounds)",
-      "bull_probability": 40,
-      "base": "Markets likely digest the hike and trade sideways, leaving leveraged exposure largely unchanged.",
-      "base_estimate": "FNGU $39,248 CAD (neutral impact)",
-      "base_probability": 40,
-      "bear": "Further tightening or a hawkish stance could trigger a sell‑off, magnified by 3x leverage.",
-      "bear_estimate": "SOXL $18,561 CAD (potential 5% loss)",
-      "bear_probability": 20
-    },
-    {
-      "title": "Elevated Oil Prices Sustain Canadian Energy Dividend Appeal",
-      "category": "commodities",
+      "title": "US Cyber Sanctions on Iran Shadow Banking Heighten Global Tech Risk",
+      "category": "geopolitical",
       "impact": "MED",
       "confidence": 70,
-      "body": "Ongoing Houthi disruptions keep Brent premiums high, supporting cash flow for Canadian energy firms. Higher oil prices benefit Enbridge’s dividend yield and the broader energy sector exposure in the portfolio.",
-      "bull": "Sustained premiums could lift ENB.TO’s dividend payout and price.",
-      "bull_estimate": "ENB.TO $5,369 CAD (1.5% gain)",
-      "bull_probability": 45,
-      "base": "Oil prices likely hover near current levels, providing modest support.",
-      "base_estimate": "ET $1,591 CAD (neutral)",
-      "base_probability": 35,
-      "bear": "A rapid de‑escalation in the Gulf could drop prices, pressuring energy stocks.",
-      "bear_estimate": "ENB.TO $5,369 CAD (2% loss)",
+      "body": "The US Treasury announced sanctions on dozens of entities linked to Iran's shadow banking networks, targeting firms that facilitate cyber‑attacks on maritime assets. This escalates geopolitical risk for technology and semiconductor exporters that could face secondary exposure or supply‑chain disruptions.",
+      "bull": "If sanctions remain targeted, US tech firms may benefit from heightened demand for security solutions.",
+      "bull_estimate": "Applied to QCOM ($1,170 CAD) assuming a 3% price lift.",
+      "bull_probability": 40,
+      "base": "Sanctions are likely to be enforced without broad spill‑over, keeping core US equity valuations stable.",
+      "base_estimate": "No material change to portfolio.",
+      "base_probability": 40,
+      "bear": "Escalation could trigger wider cyber‑conflict, hurting semiconductor supply chains and pulling down AI‑related stocks.",
+      "bear_estimate": "Applied to SOXL ($18,561 CAD) assuming a 5% decline.",
       "bear_probability": 20
     },
     {
-      "title": "Emerging AI Regulation May Trim Tech Margins",
-      "category": "regulatory",
-      "impact": "MED",
+      "title": "European Labor Unrest Pressures Energy Prices",
+      "category": "macro-economic",
+      "impact": "LOW",
       "confidence": 60,
-      "body": "New AI model‑intelligence limits under discussion in the US and EU could increase compliance costs for semiconductor and AI‑heavy firms, affecting the portfolio’s tech concentration.",
-      "bull": "If regulations are modest, firms like TSM and AVGO could benefit from early compliance advantage.",
-      "bull_estimate": "TSM $7,818 CAD (0.8% gain)",
+      "body": "Belgian workers have extended a national strike into December, pressuring the country's budget talks and raising concerns about downstream European energy demand. While Belgium is a small economy, the collective bargaining climate may signal broader EU labor friction that could modestly dampen industrial activity.",
+      "bull": "If the strike remains localized, European energy exporters could see a temporary price bump.",
+      "bull_estimate": "Applied to ENB.TO ($5,369 CAD) assuming a 2% price rise.",
+      "bull_probability": 30,
+      "base": "The strike is unlikely to materially affect global energy markets.",
+      "base_estimate": "No portfolio impact.",
+      "base_probability": 50,
+      "bear": "Wider EU labor unrest could depress industrial demand, hurting energy consumption.",
+      "bear_estimate": "Applied to ENB.TO ($5,369 CAD) assuming a 3% decline.",
+      "bear_probability": 20
+    },
+    {
+      "title": "US Fed Official Signals Prolonged Higher‑For‑Longer Rate Path",
+      "category": "inflation",
+      "impact": "MED",
+      "confidence": 75,
+      "body": "John Williams indicated that the Federal Reserve may keep rates elevated for an extended period to fully anchor inflation expectations. Persistently higher rates increase financing costs for growth‑oriented US equities, especially leveraged and AI‑centric names.",
+      "bull": "Higher rates could strengthen the CAD, modestly boosting the relative value of Canadian‑listed holdings.",
+      "bull_estimate": "Applied to RY.TO ($5,154 CAD) assuming a 1.5% price lift.",
       "bull_probability": 35,
-      "base": "Regulatory rollout is gradual; current earnings remain intact.",
-      "base_estimate": "AVGO $3,563 CAD (neutral)",
+      "base": "Rates likely stay near current levels, leaving most equities unchanged.",
+      "base_estimate": "No material portfolio shift.",
       "base_probability": 45,
-      "bear": "Stringent rules could curb R&D spend and compress margins.",
-      "bear_estimate": "QCOM $1,170 CAD (1.5% loss)",
+      "bear": "Sustained high rates may compress valuations of high‑growth tech ETFs and leveraged products.",
+      "bear_estimate": "Applied to SPXL ($49,654 CAD) assuming a 4% decline.",
       "bear_probability": 20
     }
   ],
   "risks": [
     {
-      "title": "Leverage Decay Volatility Regime Shift",
+      "title": "Leverage Decay in Triple‑Beta ETFs",
       "level": "HIGH",
-      "context": "3x leveraged ETFs (SPXL, FNGU, UDOW, SOXL, TXF.TO) represent $124,217 CAD (50% of portfolio) and VIX is >22, indicating heightened decay risk.",
-      "body": "With the VIX above 22, the time decay on leveraged ETFs accelerates, potentially eroding value even if the underlying indices hold steady. This risk is amplified by the portfolio's 50% exposure to 3x leveraged products."
+      "context": "3x leveraged ETFs represent $124,217 CAD (50% of portfolio) and VIX is >22, increasing decay risk.",
+      "body": "When volatility stays elevated, the daily rebalancing of SPXL, FNGU, UDOW, SOXL and UDOW can erode returns even if the underlying indices are flat. This decay can turn a neutral market into a drag on half the portfolio."
     },
     {
-      "title": "Concentration in AI‑Heavy Semiconductor Exposure",
+      "title": "USD/CAD Strengthening Drag",
       "level": "MED",
-      "context": "Combined CAD exposure to TSM ($7,818), SOXL ($18,561), and QCOM ($1,170) totals $27,549 CAD, all tied to the semiconductor supply chain.",
-      "body": "A sector‑specific downturn—such as a slowdown in AI hardware demand or supply constraints—could disproportionately impact these positions, increasing portfolio volatility."
+      "context": "USD exposure totals $126,273 USD (≈ $181,480 CAD). A 0.01 rise in USD/CAD changes portfolio value by $1,263 CAD.",
+      "body": "If the Canadian dollar strengthens against the US dollar, the CAD value of all US‑denominated holdings (e.g., SPXL $49,654 CAD, NVDA $9,476 CAD) will fall, reducing overall portfolio worth."
+    },
+    {
+      "title": "Tech Concentration – AI‑Heavy Semiconductor Overlap",
+      "level": "MED",
+      "context": "Combined CAD exposure to AI‑linked semiconductor names (SOXL $18,561 CAD, TSM $7,818 CAD, QCOM $1,170 CAD, AVGO $3,563 CAD) exceeds $30k CAD, ~12% of portfolio.",
+      "body": "A sector‑specific slowdown or regulatory clamp‑down on AI chips could disproportionately impact these positions, creating single‑stock tail risk."
     }
   ],
   "news": [
     {
-      "headline": "Nvidia CEO Jensen Huang Returns, Boosts AI Sentiment",
+      "headline": "Nvidia Sets Options‑Trading Record After CEO Return",
       "impact": "HIGH",
-      "confidence": 90,
+      "confidence": 80,
       "category": "Sector & Stock",
-      "body": "Huang’s reinstatement is energising AI hype, lifting demand for Nvidia‑related chips and semiconductor ETFs. This benefits SOXL, TSM and QCOM.",
-      "exposure": "SOXL $18,561 CAD, TSM $7,818 CAD, QCOM $1,170 CAD",
+      "body": "Nvidia's options volume surged to a new high following Jensen Huang's comeback, indicating heightened speculative interest and potential price volatility for the stock and related AI exposure.",
+      "exposure": "NVDA $9,476 CAD; SOXL $18,561 CAD; FNGU $39,248 CAD; SPXL $49,654 CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 45,
-          "scenario": "AI spend accelerates, semiconductor indices rally 8%, boosting SOXL.",
-          "estimate": "SOXL $18,561 CAD (8% gain)"
+          "scenario": "Continued enthusiasm lifts Nvidia and AI‑related ETFs, boosting portfolio value.",
+          "estimate": "Apply a 5% rise to NVDA ($9,476) ≈ +$474 CAD."
         },
         {
           "label": "Base",
           "probability": 40,
-          "scenario": "Market digests news, modest 3% uplift to semiconductor exposure.",
-          "estimate": "TSM $7,818 CAD (3% gain)"
+          "scenario": "Options activity stabilises; modest price movement leaves holdings largely unchanged.",
+          "estimate": "No material impact."
         },
         {
           "label": "Bear",
           "probability": 15,
-          "scenario": "Regulatory headwinds curb AI growth, semiconductor indices slip 5%.",
-          "estimate": "QCOM $1,170 CAD (5% loss)"
+          "scenario": "Volatility spikes trigger a pull‑back in AI stocks, hurting leveraged ETFs.",
+          "estimate": "Apply a 4% decline to SPXL ($49,654) ≈ -$1,986 CAD."
         }
       ]
     },
     {
-      "headline": "US Sanctions Target Iran‑Linked Shadow Banking",
+      "headline": "CrowdStrike Defends Zscaler Deal, Calls It a ‘Winning Combination’",
       "impact": "MED",
       "confidence": 70,
       "category": "Sector & Stock",
-      "body": "Sanctions could tighten global financing, raising risk premia for emerging market exposure. Canadian‑listed energy and financials may see modest pressure.",
-      "exposure": "ENB.TO $5,369 CAD, RY.TO $5,154 CAD, CM.TO $15,809 CAD",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 30,
-          "scenario": "Risk‑off flow into safe‑haven energy and banks lifts prices 2%.",
-          "estimate": "ENB.TO $5,369 CAD (2% gain)"
-        },
-        {
-          "label": "Base",
-          "probability": 55,
-          "scenario": "Markets absorb sanctions with little net impact.",
-          "estimate": "CM.TO $15,809 CAD (neutral)"
-        },
-        {
-          "label": "Bear",
-          "probability": 15,
-          "scenario": "Escalation spikes oil volatility, hurting energy stocks 3%.",
-          "estimate": "RY.TO $5,154 CAD (3% loss)"
-        }
-      ]
-    },
-    {
-      "headline": "Canada‑Qatar Investment Pact Signed",
-      "impact": "MED",
-      "confidence": 65,
-      "category": "Canadian Markets",
-      "body": "The agreement channels Qatari sovereign wealth into Canadian energy and infrastructure projects, potentially supporting dividend‑paying stocks like ENB and SHEL.",
-      "exposure": "ENB.TO $5,369 CAD, SHEL $2,944 CAD",
+      "body": "The announced acquisition of Zscaler by CrowdStrike signals consolidation in the cybersecurity space, potentially benefiting chip makers that supply security hardware and boosting demand for semiconductor components.",
+      "exposure": "QCOM $1,170 CAD; SOXL $18,561 CAD",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 35,
-          "scenario": "New capital inflows lift energy valuations 4%.",
-          "estimate": "ENB.TO $5,369 CAD (4% gain)"
+          "scenario": "Deal accelerates cybersecurity spending, lifting Qualcomm and related semiconductor exposure.",
+          "estimate": "Apply a 6% rise to QCOM ($1,170) ≈ +$70 CAD."
         },
         {
           "label": "Base",
           "probability": 50,
-          "scenario": "Deal proceeds gradually, modest 1% uplift.",
-          "estimate": "SHEL $2,944 CAD (1% gain)"
+          "scenario": "Deal integrates without major market reaction; holdings stay flat.",
+          "estimate": "No change."
         },
         {
           "label": "Bear",
           "probability": 15,
-          "scenario": "Implementation delays dampen sentiment, 2% dip.",
-          "estimate": "ENB.TO $5,369 CAD (2% loss)"
+          "scenario": "Regulatory hurdles delay the merger, causing a short‑term dip in cybersecurity stocks.",
+          "estimate": "Apply a 3% decline to SOXL ($18,561) ≈ -$557 CAD."
+        }
+      ]
+    },
+    {
+      "headline": "South Korea Scrambles Jets After Russian Aircraft Near Coast",
+      "impact": "MED",
+      "confidence": 65,
+      "category": "Sector & Stock",
+      "body": "Heightened military activity in the Korean Peninsula raises concerns for regional supply‑chain stability, particularly for semiconductor manufacturers reliant on East‑Asian fabs.",
+      "exposure": "TSM $7,818 CAD; SOXL $18,561 CAD",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 30,
+          "scenario": "Short‑term risk premium lifts defensive semiconductor stocks.",
+          "estimate": "Apply a 2% rise to TSM ($7,818) ≈ +$156 CAD."
+        },
+        {
+          "label": "Base",
+          "probability": 55,
+          "scenario": "Tensions remain limited; no material impact on Taiwan fabs.",
+          "estimate": "No change."
+        },
+        {
+          "label": "Bear",
+          "probability": 15,
+          "scenario": "Escalation disrupts chip shipments, pulling down Taiwan Semiconductor and related ETFs.",
+          "estimate": "Apply a 4% decline to SOXL ($18,561) ≈ -$742 CAD."
         }
       ]
     }
   ],
   "picks": [
     {
-      "ticker": "ENPH.TO",
+      "ticker": "AMD",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Enphase Energy (ENPH) is benefitting from the US solar tax credit extension and rising demand for residential inverter systems, offering a clean‑energy play that diversifies away from leveraged tech exposure.",
-      "entry": "Target entry around CAD 45–48 per share; monitor quarterly earnings for margin expansion."
+      "thesis": "AMD benefits from the renewed AI chip rally sparked by Nvidia's leadership return, while still trading at a discount to peers. Adding a modest position diversifies semiconductor exposure beyond the leveraged SOXL and TSM holdings.",
+      "entry": "Target entry around $115‑$120 USD per share; consider dollar‑cost averaging with the $112 CAD cash in the RRSP."
     },
     {
-      "ticker": "BCE.TO",
+      "ticker": "CNQ.TO",
       "action": "ADD",
       "account": "RRSP",
-      "thesis": "Bell Canada (BCE) provides a high‑yield dividend and stable cash flow, useful for offsetting the volatility of leveraged ETFs and adding Canadian‑currency exposure ahead of potential CAD appreciation.",
-      "entry": "Consider buying on pull‑backs near CAD 55; aim for a 4% dividend yield."
+      "thesis": "Canadian Natural Resources offers a stable dividend yield and exposure to energy cash flow, complementing the portfolio’s heavy tech bias and providing a hedge if USD weakens.",
+      "entry": "Watch for a pull‑back to the CAD 55‑57 range before allocating the remaining RRSP cash."
     }
   ],
   "strengths": [
     {
-      "ticker": "NVDA",
-      "text": "NVDA remains a core AI catalyst with strong earnings momentum; held in TFSA (non‑sell) protecting upside without tax drag."
-    },
-    {
       "ticker": "SPXL",
-      "text": "Large exposure to the S&P 500 via a 3x ETF gives amplified upside in a bullish equity market, currently valued at CAD 49,654."
+      "text": "Large notional exposure ($49,654 CAD) to the S&P 500 via a 3x ETF gives amplified upside in a bullish US equity environment."
     },
     {
-      "ticker": "TXF.TO",
-      "text": "CI Tech Giants CC provides diversified exposure to top Canadian tech names, contributing CAD 33,595 and balancing US‑heavy holdings."
+      "ticker": "USD Exposure",
+      "text": "Approximately $181,480 CAD of holdings are USD‑denominated, which currently benefits from a stronger US dollar relative to the CAD."
     },
     {
-      "ticker": "ENB.TO",
-      "text": "Enbridge’s regulated dividend stream adds stable cash flow in CAD, supporting the home‑purchase savings goal."
+      "ticker": "FHSA/ RRSP Tax Shelters",
+      "text": "Positions in TXF.TO, ENB.TO and other Canadian stocks sit inside FHSA and RRSP accounts, shielding future growth from Canadian income tax."
     },
     {
-      "ticker": null,
-      "text": "Low uninvested cash (CAD 1,504 total) limits idle capital drag and preserves flexibility for opportunistic buys."
+      "ticker": "Diversified Sector Mix",
+      "text": "Portfolio spans technology, financials, energy, consumer staples and leveraged exposure, reducing reliance on any single macro theme."
+    },
+    {
+      "ticker": "Low Cash Drag",
+      "text": "Only $1,504 CAD sits idle across accounts, limiting opportunity cost while preserving liquidity for quick tactical moves."
     }
   ],
   "concerns": [
     {
       "ticker": "SOXL",
-      "text": "SOXL has lost >90% from its June peak, reflecting severe sector weakness; continued downside could further erode the leveraged semiconductor tilt."
+      "text": "Semiconductor 3x ETF down 90% from its June peak; high volatility and sector‑specific risk make it a potential drag if chip cycle slows."
     },
     {
       "ticker": "FNGU",
-      "text": "FNGU’s 3x exposure to the volatile FANG+ index adds concentration risk; a tech correction would disproportionately affect this position (CAD 39,248)."
+      "text": "Concentrated exposure to the FAANG mega‑cap basket; any tech earnings miss could disproportionately affect this leveraged position."
+    },
+    {
+      "ticker": "NVDA",
+      "text": "Single‑stock tail risk in a non‑sell TFSA position; regulatory scrutiny on AI models could impact valuation."
     },
     {
       "ticker": null,
-      "text": "RRSP cash balance is only CAD 112, creating a cash‑drag that limits the ability to add new positions without withdrawing from other accounts."
+      "text": "Overlap among leveraged ETFs (SPXL, UDOW, FNGU) creates redundant exposure to the same equity market, magnifying both upside and downside."
     },
     {
       "ticker": null,
-      "text": "Account rule constraints (no TFSA/FHSA purchases in 2026) restrict optimal tax‑efficient allocation of new capital."
-    },
-    {
-      "ticker": "UDOW",
-      "text": "UDOW’s 3x Dow exposure overlaps with SPXL’s S&P 500 tilt, reducing diversification benefits and increasing overall leverage."
+      "text": "Limited RRSP cash ($112 CAD) restricts ability to add defensive positions without pulling from other accounts."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor VIX; if it spikes above 25, consider trimming a portion of leveraged ETFs (e.g., reduce SPXL by CAD 5,000) to mitigate decay."
+      "text": "Monitor Fed commentary for any shift toward a rate pause; if rates appear more dovish, consider adding modest exposure to a low‑beta US dividend ETF in the Investment account."
     },
     {
       "num": "02",
-      "text": "Use the CAD 112 RRSP cash to fund the ENPH.TO addition, preserving USD exposure balance."
+      "text": "If USD/CAD moves above 1.44, lock in part of the USD exposure by buying CAD‑denominated short‑USD futures in the Investment account to hedge currency drag."
     },
     {
       "num": "03",
-      "text": "Set stop‑loss alerts on SOXL and FNGU at 15% below current levels to limit downside from further semiconductor weakness."
+      "text": "Trim the notional of one leveraged ETF (e.g., reduce SPXL by ~$10,000 CAD) to lower decay risk while keeping upside potential."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Rebalance toward Canadian‑currency dividend stocks (e.g., increase BCE.TO to CAD 10,000) to hedge against potential CAD appreciation over the next 12‑18 months."
+      "text": "Rebalance sector weightings by shifting a portion of the AI‑heavy semiconductor exposure (SOXL, TSM) into Canadian energy dividend stocks like ENB.TO or a broader energy ETF to smooth returns."
     },
     {
       "num": "02",
-      "text": "Gradually rotate a portion of leveraged exposure into lower‑beta equity ETFs (e.g., add a broad Canadian equity ETF) to reduce overall portfolio beta by Q2 2027."
+      "text": "Build a modest position in a high‑quality Canadian dividend payer (e.g., BCE.TO or BMO) within the RRSP to generate tax‑free growth and provide cash flow for the upcoming home purchase."
     },
     {
       "num": "03",
-      "text": "Plan a phased reduction of semiconductor concentration (SOXL, TSM, QCOM) by 20% of combined CAD value by end‑2027, reallocating proceeds to diversified sectors."
+      "text": "Gradually increase the RRSP cash buffer to at least $1,000 CAD to ensure liquidity for opportunistic buys without forcing a sale of leveraged holdings."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Build a core Canadian‑currency income portfolio within the RRSP to fund the FHSA/HBP down‑payment, focusing on high‑yield dividend stocks and REITs."
+      "text": "Continue maximizing FHSA contributions each year to grow the down‑payment fund tax‑free, aiming for a target FHSA balance of $60k CAD before the 2027 home purchase."
     },
     {
       "num": "02",
-      "text": "Maintain a modest USD‑denominated growth allocation (e.g., NVDA, SPXL) for long‑term AI and tech upside, but cap total USD exposure at 65% of portfolio to manage currency risk."
+      "text": "Diversify into real‑asset exposure (e.g., REITs or infrastructure ETFs) within the Investment account to reduce correlation with equity markets over the 5‑10 year horizon."
     },
     {
       "num": "03",
-      "text": "Establish a tax‑efficient exit strategy for leveraged ETFs before the 2027 non‑resident year ends, converting gains within the RRSP to avoid Canadian capital gains tax."
+      "text": "Plan a phased reduction of leveraged ETF exposure as the investor approaches the home‑buy timeline, shifting toward lower‑volatility, income‑generating assets."
     }
   ],
   "tax": [
     {
-      "text": "All new purchases must be made in the RRSP (TFSA/FHSA contributions are frozen for 2026). Capital gains realized inside the RRSP are tax‑deferred, preserving contribution room for the upcoming home‑purchase plan."
+      "text": "All new purchases must be routed to the RRSP or Investment account; TFSA and FHSA contribution rooms are suspended for 2026 due to non‑resident status."
     },
     {
-      "text": "When Christopher returns to Canada in March 2027, any RRSP withdrawals for the FHSA/HBP must be reported as taxable income unless used directly for the home purchase under the Home Buyers’ Plan."
+      "text": "Dividends from Canadian stocks held in the FHSA/RRSP (e.g., ENB.TO, RY.TO) generate no immediate tax, preserving cash for the down‑payment."
+    },
+    {
+      "text": "Foreign tax credits can be claimed on US‑denominated holdings (SPXL, NVDA, etc.) when filing the 2027 Canadian return after returning to residency."
+    },
+    {
+      "text": "When the investor returns in March 2027, any RRSP growth will be tax‑deferred, but withdrawals for the Home Buyers' Plan must be repaid over 15 years to avoid penalties."
     }
   ],
-  "generated_at": "2026-11-23T22:30:05.732416+00:00",
-  "generated_date": "November 23, 2026",
+  "generated_at": "2026-11-24T06:01:14.450497+00:00",
+  "generated_date": "November 24, 2026",
   "next_update": "6:00 AM EST next trading day",
   "earnings": {
-    "generated_at": "2026-11-23T22:31:40.548465+00:00",
+    "generated_at": "2026-11-24T06:02:44.359687+00:00",
     "recent": [
       {
         "ticker": "NVDA",
@@ -367,6 +379,23 @@
   ],
   "theme_history": [
     {
+      "date": "2026-11-24",
+      "themes": [
+        {
+          "category": "geopolitical",
+          "title": "US Cyber Sanctions on Iran Shadow Banking Heighten Global Tech Risk"
+        },
+        {
+          "category": "macro-economic",
+          "title": "European Labor Unrest Pressures Energy Prices"
+        },
+        {
+          "category": "inflation",
+          "title": "US Fed Official Signals Prolonged Higher‑For‑Longer Rate Path"
+        }
+      ]
+    },
+    {
       "date": "2026-11-23",
       "themes": [
         {
@@ -467,26 +496,36 @@
           "title": "European LNG Demand Shift Hits North‑American Energy Stocks"
         }
       ]
-    },
-    {
-      "date": "2026-11-13",
-      "themes": [
-        {
-          "category": "macro-economic",
-          "title": "Canadian Mortgage Rate Pressure from Housing Market Cooldown"
-        },
-        {
-          "category": "credit",
-          "title": "Global Corporate Credit Tightening as Bond Yields Rise"
-        },
-        {
-          "category": "inflation",
-          "title": "Canada’s CPI Deceleration Boosts Real‑Yield Outlook"
-        }
-      ]
     }
   ],
   "macro_history": [
+    {
+      "date": "2026-11-24",
+      "category": "geopolitical",
+      "title": "US Cyber Sanctions on Iran Shadow Banking Heighten Global Tech Risk",
+      "body": "The US Treasury announced sanctions on dozens of entities linked to Iran's shadow banking networks, targeting firms that facilitate cyber‑attacks on maritime assets. This escalates geopolitical risk for technology and semiconductor exporters that could face secondary exposure or supply‑chain disruptions.",
+      "bull": "If sanctions remain targeted, US tech firms may benefit from heightened demand for security solutions.",
+      "base": "Sanctions are likely to be enforced without broad spill‑over, keeping core US equity valuations stable.",
+      "bear": "Escalation could trigger wider cyber‑conflict, hurting semiconductor supply chains and pulling down AI‑related stocks."
+    },
+    {
+      "date": "2026-11-24",
+      "category": "macro-economic",
+      "title": "European Labor Unrest Pressures Energy Prices",
+      "body": "Belgian workers have extended a national strike into December, pressuring the country's budget talks and raising concerns about downstream European energy demand. While Belgium is a small economy, the collective bargaining climate may signal broader EU labor friction that could modestly dampen industrial activity.",
+      "bull": "If the strike remains localized, European energy exporters could see a temporary price bump.",
+      "base": "The strike is unlikely to materially affect global energy markets.",
+      "bear": "Wider EU labor unrest could depress industrial demand, hurting energy consumption."
+    },
+    {
+      "date": "2026-11-24",
+      "category": "inflation",
+      "title": "US Fed Official Signals Prolonged Higher‑For‑Longer Rate Path",
+      "body": "John Williams indicated that the Federal Reserve may keep rates elevated for an extended period to fully anchor inflation expectations. Persistently higher rates increase financing costs for growth‑oriented US equities, especially leveraged and AI‑centric names.",
+      "bull": "Higher rates could strengthen the CAD, modestly boosting the relative value of Canadian‑listed holdings.",
+      "base": "Rates likely stay near current levels, leaving most equities unchanged.",
+      "bear": "Sustained high rates may compress valuations of high‑growth tech ETFs and leveraged products."
+    },
     {
       "date": "2026-11-23",
       "category": "monetary-policy",
@@ -594,36 +633,12 @@
       "bull": "Higher carbon prices support oil producers' earnings.",
       "base": "Market digests the policy without major moves.",
       "bear": "Cost pressures could hurt downstream exposure."
-    },
-    {
-      "date": "2026-11-20",
-      "category": "geopolitical",
-      "title": "Escalating US‑Iran tensions lift risk‑off demand for the US dollar",
-      "body": "Recent diplomatic warnings and the threat of Iranian retaliation have raised global risk premiums. In a risk‑off environment investors flock to safe‑haven assets, notably the US dollar, which would push USD/CAD higher and increase the CAD value of the portfolio’s $124,390 USD notional exposure.",
-      "bull": "A sharp risk‑off rally strengthens the USD, adding roughly $2,488 CAD to the portfolio.",
-      "base": "If tensions remain contained, USD/CAD stays near current 1.4336 with minimal impact.",
-      "bear": "A de‑escalation and risk‑on shift weakens the USD, eroding about $2,488 CAD from the portfolio."
-    },
-    {
-      "date": "2026-11-20",
-      "category": "monetary-policy",
-      "title": "BoC rate outlook hinges on upcoming CPI surprise",
-      "body": "If the November CPI comes in below expectations, the Bank of Canada may signal earlier rate cuts, weakening the CAD. A weaker CAD lifts the CAD value of all US‑denominated holdings, while a stronger CAD would have the opposite effect.",
-      "bull": "A softer CPI leads to CAD depreciation, adding roughly $2,488 CAD to USD exposure.",
-      "base": "CPI near consensus keeps BoC on hold, USD/CAD stable.",
-      "bear": "Higher‑than‑expected CPI strengthens the CAD, shaving $2,488 CAD off USD exposure."
-    },
-    {
-      "date": "2026-11-20",
-      "category": "credit",
-      "title": "US Treasury deficit widening pressures sovereign yields",
-      "body": "The Q3 Treasury deficit topping $1 trillion could push US yields higher, prompting a flight to quality and supporting the dollar. Higher yields also raise the cost of capital for growth‑oriented equities, which dominate the portfolio.",
-      "bull": "Yield‑driven dollar strength adds about $2,488 CAD to USD exposure.",
-      "base": "Yield moves modestly, leaving USD/CAD unchanged.",
-      "bear": "A drop in yields weakens the USD, costing roughly $2,488 CAD."
     }
   ],
   "risk_history": [
+    "Leverage Decay in Triple‑Beta ETFs",
+    "USD/CAD Strengthening Drag",
+    "Tech Concentration – AI‑Heavy Semiconductor Overlap",
     "Leverage Decay Volatility Regime Shift",
     "Concentration in AI‑Heavy Semiconductor Exposure",
     "Currency Exposure Drag from USD/CAD Appreciation",
@@ -635,9 +650,6 @@
     "USD/CAD Currency Exposure Drag",
     "Tech Concentration Single‑Stock Tail Risk",
     "FX Exposure – Potential CAD Strength Drag",
-    "Earnings Concentration – Tech Mega‑Cap Overweight",
-    "Currency Reversal Risk – Potential CAD Appreciation",
-    "Leverage Decay Volatility Spike",
-    "USD/CAD Weakening Exposure"
+    "Earnings Concentration – Tech Mega‑Cap Overweight"
   ]
 }

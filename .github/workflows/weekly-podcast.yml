@@ -45,6 +45,7 @@ jobs:
       - name: Generate podcast
         env:
           GROQ_API_KEY:  ${{ secrets.GROQ_API_KEY }}
+          SITE_URL: ${{ vars.SITE_URL }}
           CRON_SECRET:   ${{ secrets.CRON_SECRET }}
           REPLACE_LATEST: ${{ inputs.replace_latest && '1' || '0' }}
         run: python scripts/generate_podcast.py
@@ -101,7 +102,7 @@ jobs:
           EP:   ${{ steps.episode.outputs.number }}
           FILE: ${{ steps.episode.outputs.file }}
         run: |
-          BASE="https://portfolio-pulse-dun.vercel.app"
+          BASE="${{ vars.SITE_URL || 'https://portfolio-pulse-dun.vercel.app' }}"
           for attempt in $(seq 1 10); do
             LIVE=$(curl -fsS --max-time 20 "$BASE/data/podcast_meta.json?cb=$(date +%s)" \
                    | python -c "import json,sys; print(json.load(sys.stdin).get('episode',''))" 2>/dev/null || echo "")

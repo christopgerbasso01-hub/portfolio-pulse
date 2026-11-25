@@ -72,8 +72,9 @@ PICKS RULE: Include stocks NOT currently held. RRSP or Investment account only. 
 """
 
 
-SETTINGS_API = "https://portfolio-pulse-dun.vercel.app/api/settings"
-SNAPSHOT_API = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
+SITE_URL     = (os.environ.get("SITE_URL") or "https://portfolio-pulse-dun.vercel.app").rstrip("/")
+SETTINGS_API = SITE_URL + "/api/settings"
+SNAPSHOT_API = SITE_URL + "/api/snapshot"
 PICKS_HISTORY_WEEKS = 3   # avoid picks suggested in last 3 weeks
 
 _LEVERAGE_3X = {"FNGU", "SPXL", "UDOW", "TQQQ", "SOXL"}
@@ -1007,7 +1008,7 @@ def _earnings_block(groq_key: str, finnhub_key: str) -> tuple:
     """(earnings, legacy upcoming_earnings). Never raises."""
     try:
         import earnings as _earn
-        base = "https://portfolio-pulse-dun.vercel.app"
+        base = SITE_URL
         settings = requests.get(f"{base}/api/settings", timeout=15).json()
         snaps = requests.get(f"{base}/api/snapshot", timeout=30).json().get("snapshots", {})
         priced = [d for d in sorted(snaps) if (snaps[d] or {}).get("holdings_prices")]
@@ -1225,7 +1226,7 @@ def main() -> int:
 
     # Also push to Vercel KV via /api/intelligence so the dashboard
     # can detect fresh data immediately (bypasses CDN cache on static files)
-    vercel_url = "https://portfolio-pulse-dun.vercel.app/api/intelligence"
+    vercel_url = SITE_URL + "/api/intelligence"
     cron_secret = os.environ.get("CRON_SECRET", "")
     try:
         resp = requests.post(

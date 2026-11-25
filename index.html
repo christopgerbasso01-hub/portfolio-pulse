@@ -2681,8 +2681,10 @@ td.flash-dn,.mw-value.flash-dn{animation-name:flash-dn}
 // CONFIG — update API_BASE to your Vercel deployment URL
 // ============================================================
 const CONFIG = {
-  API_BASE: 'https://portfolio-pulse-dun.vercel.app',
-  MARKET_REFRESH_MS: 5_000,
+  // Same address the page was loaded from, so the site works on any host (Vercel, Render, ...).
+  API_BASE: location.protocol === 'file:' ? 'https://portfolio-pulse-dun.vercel.app' : location.origin,
+  MARKET_REFRESH_MS: 20_000,          // market open (was 5 s: ~17,000 calls a day from one open tab)
+  MARKET_REFRESH_CLOSED_MS: 120_000,  // market closed
 };
 
 // ============================================================
@@ -2866,6 +2868,17 @@ const cRRSP=[{"x":"2024-10","y":9026},{"x":"2024-11","y":9026},{"x":"2024-12","y
 // Global state
 let currentMarketData = null;
 let refreshTimer = null;
+// One price request at a time, spaced by how often prices can actually change; nothing while the tab is hidden.
+function scheduleMarketPolling() {
+  clearTimeout(refreshTimer);
+  refreshTimer = null;
+  if (document.hidden) return;
+  const wait = isMarketOpen() ? CONFIG.MARKET_REFRESH_MS : CONFIG.MARKET_REFRESH_CLOSED_MS;
+  refreshTimer = setTimeout(async () => {
+    try { await fetchMarketData(); } catch (e) { /* offline handling lives in fetchMarketData */ }
+    scheduleMarketPolling();
+  }, wait);
+}
 let sortDir = {};
 
 // ============================================================
@@ -7784,10 +7797,10 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // Live prices auto-refresh; intelligence does NOT re-fetch on interval
-  refreshTimer = setInterval(fetchMarketData, CONFIG.MARKET_REFRESH_MS);
+  scheduleMarketPolling();
 
-  // Background transaction sync — picks up logs made on other devices every 30s
-  setInterval(syncTransactionsFromKV, 30_000);
+  // Background transaction sync — picks up logs made on other devices (every minute, only while the tab is visible)
+  setInterval(() => { if (!document.hidden) syncTransactionsFromKV(); }, 60_000);
 
   // Dividend Autopilot — show any dividends waiting for confirmation.
   // Polled slowly: the detector runs once a day, so this only needs to catch
@@ -7805,11 +7818,11 @@ window.addEventListener('DOMContentLoaded', () => {
   // Resume immediately when app comes back to foreground
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      clearInterval(refreshTimer);
+      clearTimeout(refreshTimer);
       refreshTimer = null;
     } else {
       fetchMarketData();                                           // instant refresh on return
-      refreshTimer = setInterval(fetchMarketData, CONFIG.MARKET_REFRESH_MS);
+      scheduleMarketPolling();
     }
   });
 });

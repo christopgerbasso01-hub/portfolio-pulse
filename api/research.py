@@ -11,6 +11,7 @@ Fallback: FMP for fundamentals when YF crumb fails
           FMP always used for: EPS history, analyst breakdown, price targets
 Charts:   Yahoo Finance v8/chart (proven reliable from Vercel)
 """
+from __future__ import annotations
 from http.server import BaseHTTPRequestHandler
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json

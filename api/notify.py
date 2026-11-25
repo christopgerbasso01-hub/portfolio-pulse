@@ -134,7 +134,7 @@ def _best_worst(holdings_prices: dict):
     )
 
 
-SNAPSHOT_API = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
+SNAPSHOT_API = (os.environ.get("SITE_URL") or "https://portfolio-pulse-dun.vercel.app").rstrip("/") + "/api/snapshot"
 
 
 def _observed_max(default=None):

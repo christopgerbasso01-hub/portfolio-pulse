@@ -33,6 +33,7 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          SITE_URL: ${{ vars.SITE_URL }}
         run: python scripts/generate_intelligence.py
 
       - name: Commit and push intelligence.json

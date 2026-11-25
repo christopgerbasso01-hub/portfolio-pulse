@@ -20,6 +20,7 @@ Any ticker in KV that is NOT yet in market.py's HOLDINGS list gets a
 supplemental price fetch directly from Yahoo Finance so new positions are
 captured automatically without any code changes.
 """
+from __future__ import annotations
 from http.server import BaseHTTPRequestHandler
 import json
 import os
@@ -32,7 +33,7 @@ KV_URL      = os.environ.get("KV_REST_API_URL", "")
 KV_TOKEN    = os.environ.get("KV_REST_API_TOKEN", "")
 CRON_SECRET = os.environ.get("CRON_SECRET", "")
 
-MARKET_API   = "https://portfolio-pulse-dun.vercel.app/api/market"
+MARKET_API   = (os.environ.get("SITE_URL") or "https://portfolio-pulse-dun.vercel.app").rstrip("/") + "/api/market"
 SNAPSHOT_TTL = 95 * 86400   # 95 days (~3 months of daily history)
 
 # ── Portfolio constants — keep in sync with api/market.py ─────────────────────

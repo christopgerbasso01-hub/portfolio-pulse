@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 KV_URL   = os.environ.get("KV_REST_API_URL", "")
 KV_TOKEN = os.environ.get("KV_REST_API_TOKEN", "")
-BASE_URL = "https://portfolio-pulse-dun.vercel.app"
+BASE_URL = (os.environ.get("SITE_URL") or "https://portfolio-pulse-dun.vercel.app").rstrip("/")
 CRON_SECRET = os.environ.get("CRON_SECRET", "")
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")

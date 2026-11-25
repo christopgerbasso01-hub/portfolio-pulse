@@ -170,7 +170,7 @@ def _kv_get_settings() -> dict:
 # =============================================================================
 _price_cache    = {}
 _price_cache_ts = 0.0
-PRICE_CACHE_TTL = 12
+PRICE_CACHE_TTL = 20   # every open tab shares one Yahoo round per 20 s
 
 
 def _safe_float(val, default=None):

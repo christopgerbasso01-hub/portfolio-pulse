@@ -23,7 +23,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"action":"scan","dry_run":${{ inputs.dry_run || false }}}' \
             --max-time 120 \
-            https://portfolio-pulse-dun.vercel.app/api/dividends)
+            ${{ vars.SITE_URL || 'https://portfolio-pulse-dun.vercel.app' }}/api/dividends)
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | sed '$d')

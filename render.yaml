@@ -1,0 +1,35 @@
+# Render "Blueprint": tells Render how to run Portfolio Pulse for free.
+# Render dashboard -> New + -> Blueprint -> pick this repo. Then fill in the secrets marked sync:false.
+services:
+  - type: web
+    name: portfolio-pulse
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      # The same values your Vercel project uses (Vercel -> Settings -> Environment Variables):
+      - key: KV_REST_API_URL
+        sync: false
+      - key: KV_REST_API_TOKEN
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: FMP_API_KEY
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      # The public address of THIS service once Render shows it, e.g. https://portfolio-pulse.onrender.com
+      - key: SITE_URL
+        sync: false

@@ -51,8 +51,9 @@ GROQ_URL      = "https://api.groq.com/openai/v1/chat/completions"
 # Groq shut down llama-3.3-70b-versatile and llama-3.1-8b-instant on
 # 2026-08-16. These are Groq's own recommended replacements.
 GROQ_MODEL    = "openai/gpt-oss-120b"
-SNAPSHOT_API  = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
-SETTINGS_API  = "https://portfolio-pulse-dun.vercel.app/api/settings"
+SITE_URL      = (os.environ.get("SITE_URL") or "https://portfolio-pulse-dun.vercel.app").rstrip("/")
+SNAPSHOT_API  = SITE_URL + "/api/snapshot"
+SETTINGS_API  = SITE_URL + "/api/settings"
 CRON_SECRET   = os.environ.get("CRON_SECRET", "")
 
 # edge-tts voices (Kokoro had persistent install issues — revisit later)
@@ -4077,7 +4078,7 @@ def _same_engine(engine: str, turns: list, output: Path, tmp_dir: Path) -> str:
 # METADATA
 # ============================================================
 FEED_NAME = "podcast_feed.xml"
-SITE = "https://portfolio-pulse-dun.vercel.app"
+SITE = SITE_URL
 
 
 def _chapters(plan: dict, marks: list, total: int) -> list:

@@ -19,6 +19,7 @@ Dedup keys:
   notify:milestones             — dollar + ROI milestones fired (permanent)
   notify:peak                   — all-time high value (permanent)
 """
+from __future__ import annotations
 from http.server import BaseHTTPRequestHandler
 import json
 import os
@@ -37,7 +38,7 @@ KV_TOKEN      = os.environ.get("KV_REST_API_TOKEN", "")
 CRON_SECRET   = os.environ.get("CRON_SECRET", "")
 VAPID_PRIVATE = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_SUBJECT = "mailto:noreply@portfoliopulse.app"
-MARKET_API    = "https://portfolio-pulse-dun.vercel.app/api/market"
+MARKET_API    = (os.environ.get("SITE_URL") or "https://portfolio-pulse-dun.vercel.app").rstrip("/") + "/api/market"
 FMP_API_KEY   = os.environ.get("FMP_API_KEY", "")
 FMP_BASE      = "https://financialmodelingprep.com/api/v3"
 
@@ -70,7 +71,7 @@ KEY_PEAK       = "notify:peak"
 # every api/*.py as its own function, so a sibling import is not resolvable at
 # runtime (that exact mistake is why the first version of this fix did nothing).
 # Both files read and write notify:peak, so both must apply the same rules.
-SNAPSHOT_API        = "https://portfolio-pulse-dun.vercel.app/api/snapshot"
+SNAPSHOT_API        = (os.environ.get("SITE_URL") or "https://portfolio-pulse-dun.vercel.app").rstrip("/") + "/api/snapshot"
 PEAK_TRUST_MARGIN   = 1.02   # stored peak may sit this far above observed history
 PEAK_MAX_DAILY_JUMP = 1.20   # a jump beyond this is a bad quote, not a new high
 

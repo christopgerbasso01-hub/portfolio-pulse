@@ -1,0 +1,37 @@
+name: Backfill missing snapshots
+
+# Rebuilds the daily portfolio snapshots (and the month-end points the charts use)
+# for days the site was offline, from that day's closing prices.
+# GitHub -> Actions -> "Backfill missing snapshots" -> Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: 'First missing day (YYYY-MM-DD), e.g. 2026-11-23'
+        required: true
+      to:
+        description: 'Last day to rebuild (YYYY-MM-DD) — blank = today'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Only show the values, write nothing'
+        type: boolean
+        default: true
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Rebuild snapshots
+        env:
+          SITE: ${{ vars.SITE_URL || 'https://portfolio-pulse-dun.vercel.app' }}
+        run: |
+          BODY=$(jq -n --arg f "${{ inputs.from }}" --arg t "${{ inputs.to }}" --argjson d ${{ inputs.dry_run }} \
+                 '{action:"backfill", from:$f, to:(if $t=="" then null else $t end), dry_run:$d}')
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$SITE/api/snapshot" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" -d "$BODY")
+          CODE=$(echo "$RESPONSE" | tail -n1)
+          echo "$RESPONSE" | head -n -1 | jq . || echo "$RESPONSE"
+          [ "$CODE" = "200" ] || { echo "Backfill failed with HTTP $CODE"; exit 1; }

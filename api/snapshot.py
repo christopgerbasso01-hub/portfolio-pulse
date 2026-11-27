@@ -425,6 +425,113 @@ def get_long_history(start=(2026, 6)) -> dict:
     return out
 
 
+# ── Backfill: rebuild snapshots for days the host was down ────────────────────
+# While the site is offline (e.g. Vercel paused it) the 20:05 UTC snapshot never
+# runs, so those days — and the month-end point the chart locks to — are missing.
+# Past values can be rebuilt exactly: today's holdings and cash × that day's
+# closing prices and USD/CAD. That is only right while nothing was bought, sold,
+# split or contributed after the first rebuilt day, so such transactions block
+# the backfill unless force=True.
+
+_MOVES = {"BUY", "SELL", "SPLIT", "CONTRIBUTION", "CASH_DEPOSIT", "CASH_WITHDRAW"}
+
+
+def fetch_daily_closes(session, ticker: str, start: str, end: str) -> dict:
+    """{YYYY-MM-DD: close} from Yahoo for start..end (UTC trade dates)."""
+    p1 = int(datetime.strptime(start, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp()) - 10 * 86400
+    p2 = int(datetime.strptime(end, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp()) + 2 * 86400
+    url = (f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}"
+           f"?period1={p1}&period2={p2}&interval=1d")
+    try:
+        r = session.get(url, headers=_YF_HEADERS, timeout=10)
+        res = r.json()["chart"]["result"][0]
+        closes = res["indicators"]["quote"][0]["close"]
+        return {datetime.fromtimestamp(t, tz=timezone.utc).strftime("%Y-%m-%d"): c
+                for t, c in zip(res.get("timestamp") or [], closes) if c is not None}
+    except Exception:
+        return {}
+
+
+def build_backfill(settings: dict, date_from: str, date_to: str, fetch, force: bool = False) -> dict:
+    """Compute snapshots for every US trading day in [date_from, date_to]. Writes nothing.
+
+    fetch(ticker, start, end) -> {date: close}. Returns {"snapshots": [...], "skipped": [...],
+    "blocked_by": [...]} — blocked_by lists transactions that make today's holdings wrong
+    for the requested days (the backfill refuses unless force).
+    """
+    txs = settings.get("transactions") or []
+    blocking = [t for t in txs if t.get("type") in _MOVES and (t.get("date") or "") > date_from]
+    if blocking and not force:
+        return {"snapshots": [], "skipped": [], "blocked_by": [
+            f"{t.get('date')} {t.get('type')} {t.get('ticker') or ''} {t.get('account')}".strip() for t in blocking]}
+
+    equity = [h for h in (settings.get("computed_holdings") or []) if (h.get("shares") or 0) > 0]
+    cash   = settings.get("cash_positions") or []
+    contributions  = settings.get("contributions_cad") or CONTRIBUTIONS_CAD
+    realized_gains = float(settings.get("realized_gains_cad") if settings.get("realized_gains_cad") is not None
+                           else REALIZED_GAINS_CAD)
+    usd_book_rate  = float(settings.get("usd_book_rate") or USD_BOOK_RATE)
+
+    calendar = fetch("^GSPC", date_from, date_to)          # US trading days
+    fx       = fetch("USDCAD=X", date_from, date_to)
+    hist     = {h["ticker"]: fetch(h["ticker"], date_from, date_to) for h in equity}
+
+    def on_or_before(series: dict, d: str):
+        keys = sorted(k for k in series if k <= d)
+        return (series[keys[-1]], keys[-1]) if keys else (None, None)
+
+    days = sorted(d for d in calendar if date_from <= d <= date_to)
+    out, skipped = [], []
+    for d in days:
+        usdcad, _ = on_or_before(fx, d)
+        if not usdcad:
+            skipped.append(f"{d}: no USD/CAD"); continue
+        prices, missing = {}, []
+        for t, series in hist.items():
+            px, px_day = on_or_before(series, d)
+            prev, _ = on_or_before(series, (datetime.strptime(px_day, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")) if px_day else (None, None)
+            if px is None:
+                missing.append(t); continue
+            prices[t] = {"price": round(px, 4), "prev": round(prev or px, 4)}
+        if missing:
+            skipped.append(f"{d}: no price for {', '.join(sorted(set(missing)))}"); continue
+        port = _compute_portfolio_kv(equity, cash, prices, float(usdcad), contributions,
+                                     realized_gains, usd_book_rate)
+        out.append({
+            "date": d, "timestamp": datetime.now(timezone.utc).isoformat(),
+            "total_value": port.get("total_value"), "total_pnl": port.get("total_pnl"),
+            "roi_pct": port.get("roi_pct"), "daily_change": port.get("daily_change"),
+            "daily_change_pct": port.get("daily_change_pct"), "usdcad": round(float(usdcad), 4),
+            "accounts": port.get("accounts", {}), "account_cost": port.get("account_cost", {}),
+            "holdings_prices": prices, "source": "backfill",
+        })
+    return {"snapshots": out, "skipped": skipped, "blocked_by": []}
+
+
+def write_backfill(snaps: list, overwrite: bool = False) -> dict:
+    """Store rebuilt snapshots like the daily job does; never replaces a real one unless overwrite."""
+    written, kept = [], []
+    for snap in snaps:
+        d = snap["date"]
+        if not overwrite and kv_get(f"snapshot:{d}"):
+            kept.append(d); continue
+        kv_set(f"snapshot:{d}", snap)
+        written.append(d)
+        month_key = f"snapshot:month:{d[:7]}"
+        cur = kv_get(month_key) or {}
+        if (cur.get("date") or "") <= d:
+            kv_set(month_key, {k: snap.get(k) for k in ("date", "total_value", "roi_pct", "daily_change",
+                                                        "accounts", "account_cost")},
+                   ttl_seconds=10 * 365 * 86400)
+        dt = datetime.strptime(d, "%Y-%m-%d")
+        if dt.weekday() == 4:
+            iy, iw, _ = dt.isocalendar()
+            wk = f"snapshot:weekly:{iy}-W{iw:02d}"
+            if overwrite or not kv_get(wk):
+                kv_set(wk, snap, ttl_seconds=10 * 365 * 86400)
+    return {"written": written, "kept_existing": kept}
+
+
 def get_recent_snapshots(days: int = 8) -> dict:
     """
     Return up to `days` days of snapshots keyed by date string.
@@ -557,6 +664,33 @@ class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Take a new snapshot — called by cron-job.org via GitHub Actions."""
         if not self._auth():
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(length) or b"{}") if length else {}
+        except Exception:
+            body = {}
+        if body.get("action") == "backfill":
+            # {"action":"backfill","from":"2026-11-24","to":"2026-12-23","dry_run":true,"force":false}
+            try:
+                settings = kv_get("user:settings") or {}
+                to = body.get("to") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                session = requests.Session()
+                res = build_backfill(settings, body["from"], to,
+                                     lambda t, a, b: fetch_daily_closes(session, t, a, b),
+                                     force=bool(body.get("force")))
+                if res["blocked_by"]:
+                    self._respond(409, {"ok": False, "error": "transactions after the start date",
+                                        "blocked_by": res["blocked_by"]})
+                    return
+                summary = [{"date": s["date"], "total_value": s["total_value"]} for s in res["snapshots"]]
+                if body.get("dry_run"):
+                    self._respond(200, {"ok": True, "dry_run": True, "days": summary, "skipped": res["skipped"]})
+                    return
+                w = write_backfill(res["snapshots"], overwrite=bool(body.get("overwrite")))
+                self._respond(200, {"ok": True, "days": summary, "skipped": res["skipped"], **w})
+            except Exception as exc:
+                self._respond(500, {"error": str(exc)})
             return
         try:
             snap = take_snapshot()

@@ -1,288 +1,290 @@
 {
   "macro": [
     {
-      "title": "US Corporate Credit Tightening Amid Higher Rates",
-      "category": "credit",
+      "title": "US Air Force Cloud One breach raises cybersecurity spending",
+      "category": "regulatory",
       "impact": "MED",
       "confidence": 70,
-      "body": "The Federal Reserve's higher‑for‑longer stance is prompting banks to raise lending standards for corporate borrowers. Tighter credit conditions could dampen earnings growth for high‑leverage tech firms that dominate the portfolio, while favouring cash‑rich companies.",
-      "bull": "If credit markets remain accommodative, leveraged tech names could sustain earnings momentum.",
+      "body": "A recent hack of the US Air Force's Cloud One platform highlights vulnerabilities in cloud infrastructure. Companies providing cloud security and AI compute are likely to see heightened procurement and spending from government and enterprise customers.",
+      "bull": "Increased defense and enterprise contracts boost revenue for cloud‑security leaders.",
       "bull_estimate": "position size unavailable",
       "bull_probability": 30,
-      "base": "Moderate tightening is likely to modestly compress margins but not trigger a sharp sell‑off.",
+      "base": "Moderate uplift as firms integrate additional security layers.",
       "base_estimate": "position size unavailable",
       "base_probability": 50,
-      "bear": "A rapid credit squeeze could force deleveraging in high‑growth stocks, hurting leveraged ETFs.",
+      "bear": "If the breach triggers broader regulatory scrutiny, compliance costs could rise and delay projects.",
       "bear_estimate": "position size unavailable",
       "bear_probability": 20
     },
     {
-      "title": "Canadian Energy Export Outlook Tightens with Middle‑East Volatility",
-      "category": "equity-sectors",
-      "impact": "HIGH",
-      "confidence": 80,
-      "body": "Escalating tensions in the Middle East are creating supply‑side uncertainty for global oil markets. Canada’s oil‑export dependent equities, especially integrated producers, stand to benefit from higher price support and reduced competition.",
-      "bull": "Higher crude prices lift cash flow for Canadian upstream firms, boosting dividend yields.",
+      "title": "Trump backs Iraqi leader’s push for stronger state authority",
+      "category": "geopolitical",
+      "impact": "LOW",
+      "confidence": 60,
+      "body": "US political support for Iraq’s central government may stabilize the region but adds uncertainty to oil‑export flows. Any shift in Iraqi production could subtly affect global oil supply dynamics, which in turn influences Canadian energy exporters.",
+      "bull": "Stability supports steady oil prices, benefiting Canadian energy stocks.",
       "bull_estimate": "position size unavailable",
-      "bull_probability": 45,
-      "base": "Oil prices may stay elevated but volatility could limit upside.",
+      "bull_probability": 35,
+      "base": "Limited impact as global oil markets remain balanced.",
       "base_estimate": "position size unavailable",
-      "base_probability": 40,
-      "bear": "If geopolitical risk triggers a broader market sell‑off, energy stocks could be dragged down despite price gains.",
+      "base_probability": 50,
+      "bear": "Escalation could spike oil volatility, hurting Canadian energy margins.",
       "bear_estimate": "position size unavailable",
       "bear_probability": 15
     },
     {
-      "title": "Global Inflation Pressures Shift Towards Food and Commodity Inputs",
-      "category": "inflation",
-      "impact": "LOW",
-      "confidence": 60,
-      "body": "Recent data show core inflation easing in the US, yet food and commodity price indices remain sticky. This asymmetric inflation pattern may influence consumer discretionary spending and input costs for technology manufacturers.",
-      "bull": "Lower core inflation supports discretionary spending, aiding consumer‑facing tech firms.",
+      "title": "Adani Group announces $24 bn FY27 capex plan",
+      "category": "corporate",
+      "impact": "MED",
+      "confidence": 65,
+      "body": "India’s Adani conglomerate targets near‑$24 billion of capital spending for FY27, focusing on renewable energy, ports and logistics. The scale of investment signals strong demand for commodities and infrastructure services, with spill‑over effects for global material suppliers.",
+      "bull": "Higher commodity demand lifts prices, benefitting mining and materials exposure.",
       "bull_estimate": "position size unavailable",
-      "bull_probability": 35,
-      "base": "Mixed inflation signals likely keep monetary policy steady, limiting major market swings.",
+      "bull_probability": 40,
+      "base": "Incremental demand supports modest price gains.",
       "base_estimate": "position size unavailable",
-      "base_probability": 50,
-      "bear": "Persistently high food and commodity prices could erode margins for hardware producers reliant on raw materials.",
+      "base_probability": 45,
+      "bear": "If financing constraints emerge, capex could be delayed, dampening commodity outlook.",
       "bear_estimate": "position size unavailable",
       "bear_probability": 15
+    }
+  ],
+  "risks": [
+    {
+      "title": "Liquidity Gap in Leveraged ETFs during Elevated Volatility",
+      "level": "HIGH",
+      "context": "Position size unavailable for SPXL and FNGU; both are 3x leveraged ETFs that can experience rapid price swings and wider bid‑ask spreads when VIX stays above 22.",
+      "body": "With VIX hovering near 22, market participants may flee leveraged exposure, causing sharp price drops and reduced ability to exit positions without significant slippage."
+    },
+    {
+      "title": "FX Exposure to USD/CAD Appreciation",
+      "level": "MED",
+      "context": "USD‑denominated holdings (NVDA, SPXL, FNGU) are valued in CAD; a strengthening USD raises the CAD value of these assets, but a future reversal could erode gains.",
+      "body": "Recent USD/CAD rally adds upside now, yet the portfolio remains vulnerable to a pull‑back that would diminish the CAD value of all US‑listed positions."
+    },
+    {
+      "title": "Cash Drag in RRSP from Uninvested Funds",
+      "level": "MED",
+      "context": "RRSP cash balance is currently idle; exact amount unknown due to missing LIVE POSITIONS data.",
+      "body": "Idle cash earns minimal interest and reduces overall portfolio return, especially given the high‑risk, high‑return bias of the existing holdings."
     }
   ],
   "news": [
     {
-      "headline": "Houthis Attack Aramco Jazan Refinery – Energy Stocks React",
-      "impact": "HIGH",
-      "confidence": 85,
+      "headline": "US Air Force Cloud One hack sparks enterprise security spend",
+      "impact": "MED",
+      "confidence": 70,
       "category": "Sector & Stock",
-      "body": "The Houthi strike on Saudi Aramco's Jazan refinery raises concerns about global refining capacity, prompting a rally in oil‑related equities. This directly benefits Canadian integrated energy producer SHEL held in the portfolio.",
-      "exposure": "SHEL – position size unavailable",
+      "body": "The breach underscores the need for stronger cloud security solutions. Microsoft (MSFT) and Nvidia (NVDA) are positioned to benefit from increased demand for secure AI and cloud compute services.",
+      "exposure": "MSFT, NVDA (position size unavailable)",
       "outcomes": [
         {
           "label": "Bull",
-          "probability": 50,
-          "scenario": "Sustained supply concerns lift crude prices, boosting SHEL's cash flow and dividend outlook.",
-          "estimate": "SHEL – position size unavailable, +5% move"
+          "probability": 35,
+          "scenario": "Government contracts and enterprise upgrades boost revenue for both firms.",
+          "estimate": "MSFT +2% of position size unavailable; NVDA +3% of position size unavailable"
         },
         {
           "label": "Base",
-          "probability": 35,
-          "scenario": "Oil prices stabilize after initial shock, delivering modest upside for SHEL.",
-          "estimate": "SHEL – position size unavailable, +2% move"
+          "probability": 50,
+          "scenario": "Moderate uptick in security‑related sales offsets broader market softness.",
+          "estimate": "MSFT +1% of position size unavailable; NVDA +1% of position size unavailable"
         },
         {
           "label": "Bear",
           "probability": 15,
-          "scenario": "Escalation leads to broader market risk aversion, pulling back energy stocks despite higher prices.",
-          "estimate": "SHEL – position size unavailable, -3% move"
+          "scenario": "Regulatory fallout slows cloud adoption, weighing on earnings.",
+          "estimate": "MSFT -2% of position size unavailable; NVDA -2% of position size unavailable"
         }
       ]
     },
     {
-      "headline": "Trump Calls for Probe into Revised US Q3 GDP Figures",
+      "headline": "Global diesel market projected to run deficit in Q2 2027",
       "impact": "MED",
-      "confidence": 70,
+      "confidence": 65,
       "category": "Sector & Stock",
-      "body": "The President's demand for an investigation into the upward GDP revision adds political uncertainty to US equity markets. Leveraged long ETFs such as SPXL and FNGU, which are heavily weighted to tech, may experience heightened volatility.",
-      "exposure": "SPXL – position size unavailable; FNGU – position size unavailable",
+      "body": "A looming diesel shortage supports higher freight rates and benefits transportation and energy infrastructure firms. Canadian energy pipelines and mid‑stream operators stand to gain from tighter fuel markets.",
+      "exposure": "SHEL (position size unavailable)",
       "outcomes": [
         {
           "label": "Bull",
           "probability": 30,
-          "scenario": "If the probe yields no material changes, confidence in growth data remains, supporting continued rally in leveraged tech exposure.",
-          "estimate": "SPXL – position size unavailable, +4% move"
-        },
-        {
-          "label": "Base",
-          "probability": 50,
-          "scenario": "The investigation creates short‑term noise but does not materially shift market direction.",
-          "estimate": "FNGU – position size unavailable, +1% move"
-        },
-        {
-          "label": "Bear",
-          "probability": 20,
-          "scenario": "A prolonged political dispute undermines growth expectations, triggering a pullback in high‑beta tech positions.",
-          "estimate": "SPXL – position size unavailable, -5% move"
-        }
-      ]
-    },
-    {
-      "headline": "Norse Atlantic Flags Bankruptcy Risk After Flight Suspensions",
-      "impact": "LOW",
-      "confidence": 60,
-      "category": "Sector & Stock",
-      "body": "The airline's bankruptcy filing risk highlights fragility in the travel sector, which could spill over to broader consumer discretionary sentiment. While the portfolio holds no airline stocks, the news may weigh on consumer‑focused tech names like AAPL and TSLA.",
-      "exposure": "AAPL – position size unavailable; TSLA – position size unavailable",
-      "outcomes": [
-        {
-          "label": "Bull",
-          "probability": 25,
-          "scenario": "Travel concerns remain isolated, allowing consumer tech to stay resilient.",
-          "estimate": "AAPL – position size unavailable, +2% move"
+          "scenario": "Higher diesel prices lift earnings for Shell’s integrated operations.",
+          "estimate": "SHEL +3% of position size unavailable"
         },
         {
           "label": "Base",
           "probability": 55,
-          "scenario": "Moderate caution tempers consumer spending, leading to flat performance for AAPL and TSLA.",
-          "estimate": "TSLA – position size unavailable, 0% move"
+          "scenario": "Modest price improvement offsets cost pressures.",
+          "estimate": "SHEL +1% of position size unavailable"
         },
         {
           "label": "Bear",
-          "probability": 20,
-          "scenario": "Wider consumer confidence dip drags down discretionary tech stocks.",
-          "estimate": "AAPL – position size unavailable, -3% move"
+          "probability": 15,
+          "scenario": "Supply‑chain disruptions limit volume growth, hurting margins.",
+          "estimate": "SHEL -2% of position size unavailable"
+        }
+      ]
+    },
+    {
+      "headline": "Trump backs Iraqi leader’s push for stronger state authority",
+      "impact": "LOW",
+      "confidence": 60,
+      "category": "Geopolitical",
+      "body": "US political endorsement may stabilize Iraq’s oil output, indirectly supporting global oil prices. Canadian energy exporters could see a modest benefit from steadier crude flows.",
+      "exposure": "SHEL (position size unavailable)",
+      "outcomes": [
+        {
+          "label": "Bull",
+          "probability": 25,
+          "scenario": "Stability lifts crude prices, enhancing Shell’s upstream earnings.",
+          "estimate": "SHEL +2% of position size unavailable"
+        },
+        {
+          "label": "Base",
+          "probability": 60,
+          "scenario": "Limited impact; oil market remains balanced.",
+          "estimate": "SHEL +0.5% of position size unavailable"
+        },
+        {
+          "label": "Bear",
+          "probability": 15,
+          "scenario": "Escalation triggers price spikes, increasing cost pressures for downstream operations.",
+          "estimate": "SHEL -1% of position size unavailable"
         }
       ]
     }
   ],
-  "daily_outlook": "Geopolitical tension in the Middle East and political uncertainty around US growth data create a mixed backdrop. Energy exposure offers a potential upside buffer, while leveraged tech positions remain vulnerable to volatility spikes.",
-  "market_mood": "mixed",
-  "risks": [
-    {
-      "title": "Leverage Decay in 3x Equity ETFs amid Elevated Volatility",
-      "level": "MED",
-      "context": "Position size unavailable",
-      "body": "The portfolio holds SPXL and FNGU, both 3x leveraged ETFs that suffer from daily compounding decay when the VIX stays above 22. With market volatility persisting, the decay could erode returns even if the underlying indices trend higher."
-    },
-    {
-      "title": "USD/CAD Translation Risk from Potential Canadian Dollar Strengthening",
-      "level": "MED",
-      "context": "Position size unavailable",
-      "body": "USD‑denominated holdings (NVDA, TSLA, AVGO, etc.) lose CAD value if the Canadian dollar appreciates. Recent oil‑price driven CAD gains suggest a near‑term risk of translation loss for these positions."
-    },
-    {
-      "title": "Single‑Stock Tail Risk in AI‑Heavy Semiconductor Names",
-      "level": "HIGH",
-      "context": "Position size unavailable",
-      "body": "NVDA and AVGO dominate the portfolio’s AI exposure. Any regulatory clamp‑down on AI models or a sharp earnings miss could trigger outsized moves, disproportionately affecting overall portfolio performance."
-    }
-  ],
   "picks": [
     {
-      "ticker": "SU",
-      "action": "ADD",
+      "ticker": "CRWD",
+      "action": "NEW",
       "account": "RRSP",
-      "thesis": "Suncor Energy offers exposure to Canadian oil production with dividend yield and a natural hedge against CAD strength, balancing the portfolio’s heavy US‑centric tech bias.",
-      "entry": "Target entry around CAD 45–48, watch for quarterly earnings and oil price trends."
+      "thesis": "The Air Force Cloud One breach highlights growing demand for advanced endpoint and cloud security. CrowdStrike’s subscription model and strong US government relationships position it to capture incremental spend.",
+      "entry": "Target entry $260‑$275; watch for quarterly earnings beat and any follow‑up government contract announcements."
     },
     {
-      "ticker": "MRNA",
-      "action": "ADD",
+      "ticker": "ENB",
+      "action": "NEW",
       "account": "RRSP",
-      "thesis": "Moderna’s mRNA platform is gaining traction beyond vaccines, especially in oncology, providing growth upside that is less correlated with the tech sector.",
-      "entry": "Enter on pull‑back to USD 110–120, catalyst: upcoming Phase 3 data in Q1 2027."
+      "thesis": "A projected global diesel deficit and stable Middle‑East oil flows support higher freight rates and pipeline utilization, benefitting Enbridge’s fee‑based revenue stream.",
+      "entry": "Consider buying on pull‑back near $45; monitor diesel inventory data and Canadian energy policy updates."
     },
     {
-      "ticker": "ORSTED",
-      "action": "ADD",
+      "ticker": "BEP.UN",
+      "action": "NEW",
       "account": "RRSP",
-      "thesis": "Ørsted is a global leader in offshore wind, aligning with the long‑term transition to renewable energy and offering stable cash flow to offset leveraged equity risk.",
-      "entry": "Consider buying around EUR 70–75, monitor EU renewable subsidies."
+      "thesis": "Brookfield Renewable’s diversified wind and solar portfolio offers clean‑energy exposure with stable dividend yields, complementing the portfolio’s high‑growth tech tilt.",
+      "entry": "Aim for $48‑$52 range; catalyst includes upcoming renewable PPAs and potential policy incentives in Canada."
     }
   ],
   "strengths": [
     {
-      "ticker": null,
-      "text": "The RRSP shelter shields future growth from Canadian income tax, enhancing after‑tax returns."
+      "ticker": "NVDA",
+      "text": "Core AI exposure with strong growth outlook; held in TFSA, insulated from Canadian tax on capital gains."
+    },
+    {
+      "ticker": "SPXL",
+      "text": "3x leveraged exposure to S&P 500 provides amplified upside in bullish equity environments."
+    },
+    {
+      "ticker": "FNGU",
+      "text": "Focused on high‑growth US tech, aligns with investor’s high risk tolerance and long‑term AI theme."
     },
     {
       "ticker": null,
-      "text": "High‑risk tolerance permits allocation to 3x leveraged ETFs (SPXL, FNGU) that can amplify upside in a bullish equity environment."
+      "text": "RRSP shelter allows tax‑deferred growth on US‑denominated assets, mitigating immediate withholding tax impact."
     },
     {
       "ticker": null,
-      "text": "Existing exposure to leading AI and semiconductor names (NVDA, AVGO, QCOM, TSM) positions the portfolio to benefit from secular AI adoption."
-    },
-    {
-      "ticker": null,
-      "text": "Diversified sector mix across technology, consumer discretionary, and energy provides some balance against sector‑specific shocks."
-    },
-    {
-      "ticker": null,
-      "text": "Non‑resident status defers Canadian tax on foreign investment gains until 2027, allowing compounding without immediate tax drag."
+      "text": "Diversified sector mix (tech, energy, consumer) reduces single‑sector concentration risk."
     }
   ],
   "concerns": [
     {
       "ticker": null,
-      "text": "Uninvested cash in the RRSP sits idle, creating a drag on overall portfolio performance."
+      "text": "Significant uninvested cash in the RRSP reduces overall portfolio return potential."
+    },
+    {
+      "ticker": "SPXL",
+      "text": "Leverage decay risk rises if volatility stays elevated; bid‑ask spreads can widen."
+    },
+    {
+      "ticker": "FNGU",
+      "text": "High concentration in AI‑heavy semiconductor names increases single‑stock tail risk."
     },
     {
       "ticker": null,
-      "text": "Overlap between AI‑heavy semiconductor stocks (NVDA, AVGO, QCOM, TSM) raises concentration risk."
+      "text": "Potential USD/CAD pull‑back could erode CAD value of all US‑listed holdings."
     },
     {
       "ticker": null,
-      "text": "Leverage ETFs can become illiquid in rapid market downturns, limiting exit flexibility."
-    },
-    {
-      "ticker": null,
-      "text": "Account rule constraints prevent using TFSA/FHSA room for new contributions this year, limiting tax‑efficient capacity."
-    },
-    {
-      "ticker": null,
-      "text": "Potential liquidity constraints on smaller‑cap Canadian REITs if added for diversification."
+      "text": "Account rule constraints limit use of TFSA/FHSA for new contributions this year, restricting tax‑efficient allocation options."
     }
   ],
   "strategy_short": [
     {
       "num": "01",
-      "text": "Monitor USD/CAD; if the CAD strengthens beyond 1.38, consider modestly hedging USD exposure with short CAD/USD futures."
+      "text": "Monitor VIX; if it breaches 24, consider trimming a portion of SPXL to manage leverage decay risk."
     },
     {
       "num": "02",
-      "text": "Maintain current leveraged ETF positions but set stop‑loss thresholds to limit decay if VIX spikes above 25."
+      "text": "Deploy idle RRSP cash into the newly identified picks (CRWD, ENB, BEP.UN) over the next 4‑6 weeks to reduce cash drag."
     },
     {
       "num": "03",
-      "text": "Deploy idle RRSP cash into the three new picks (SU, MRNA, ORSTED) over the next two months to reduce cash drag."
+      "text": "Set stop‑loss alerts on NVDA and FNGU at 12% downside to protect against sudden AI sector corrections."
     }
   ],
   "strategy_mid": [
     {
       "num": "01",
-      "text": "Gradually reduce AI‑heavy semiconductor concentration to 30% of equity exposure by reallocating to renewable energy and dividend‑yielding Canadian equities."
+      "text": "Rebalance toward renewable energy exposure (BEP.UN) as Canada’s clean‑energy policies mature, targeting a 10‑15% portfolio weight within 12 months."
     },
     {
       "num": "02",
-      "text": "Add a short‑duration Canadian corporate bond ETF within the RRSP to provide stability and offset leveraged equity volatility."
+      "text": "Gradually shift a portion of leveraged ETF exposure into lower‑beta growth stocks (e.g., MSFT, AAPL) to lower volatility while retaining upside."
     },
     {
       "num": "03",
-      "text": "Review and potentially rebalance the leveraged ETF exposure if the equity market enters a sustained correction phase (10%+ decline)."
+      "text": "Establish a USD‑hedged cash buffer within the RRSP to mitigate future USD/CAD downside risk."
     }
   ],
   "strategy_long": [
     {
       "num": "01",
-      "text": "Build a core retirement foundation in the RRSP with a mix of Canadian dividend stocks and broad‑market index funds to benefit from tax‑deferral until 2027."
+      "text": "Build a long‑term CAD‑denominated income stream through high‑yield REITs and infrastructure ETFs to support future home‑purchase financing."
     },
     {
       "num": "02",
-      "text": "Allocate a portion of future contributions to global clean‑energy leaders (e.g., Ørsted, NextEra) to capture long‑term secular growth."
-    },
-    {
-      "num": "03",
-      "text": "Plan to transition leveraged ETF exposure to lower‑beta growth stocks as the investor approaches the home‑purchase horizon, reducing volatility risk."
+      "text": "Maintain a core of tax‑advantaged TFSA holdings (NVDA) while expanding RRSP diversification into global commodities exposure for inflation hedging."
     }
   ],
-  "tax": [
-    {
-      "text": "RRSP contributions remain fully deductible against Canadian taxable income; maximize the annual contribution limit before the March 2027 re‑entry to offset the upcoming non‑resident tax filing."
-    },
-    {
-      "text": "Foreign dividend and capital gains from US holdings are eligible for foreign tax credits; ensure proper reporting on the T1135 foreign asset schedule."
-    },
-    {
-      "text": "When the investor returns to Canada in 2027, any accrued gains in the RRSP will be taxed at marginal rates upon withdrawal, so consider a phased withdrawal strategy aligned with retirement income needs."
-    }
-  ],
-  "generated_at": "2026-11-26T20:02:58.218803+00:00",
-  "generated_date": "November 26, 2026",
+  "daily_outlook": "Today's mix of geopolitical tension and lingering inflation suggests modest upside for energy‑linked assets, but elevated VIX and leveraged ETF decay keep the short‑term risk profile elevated.",
+  "market_mood": "mixed",
+  "generated_at": "2026-11-27T19:51:50.508139+00:00",
+  "generated_date": "November 27, 2026",
   "next_update": "6:00 AM EST next trading day",
   "earnings": {},
   "upcoming_earnings": [],
   "theme_history": [
+    {
+      "date": "2026-11-27",
+      "themes": [
+        {
+          "category": "regulatory",
+          "title": "US Air Force Cloud One breach raises cybersecurity spending"
+        },
+        {
+          "category": "geopolitical",
+          "title": "Trump backs Iraqi leader’s push for stronger state authority"
+        },
+        {
+          "category": "corporate",
+          "title": "Adani Group announces $24 bn FY27 capex plan"
+        }
+      ]
+    },
     {
       "date": "2026-11-26",
       "themes": [
@@ -384,26 +386,36 @@
           "title": "Copper Demand Surge From Renewable‑Energy Projects"
         }
       ]
-    },
-    {
-      "date": "2026-11-18",
-      "themes": [
-        {
-          "category": "fx",
-          "title": "US Dollar Strength Boosts CAD‑Denominated Portfolio Value"
-        },
-        {
-          "category": "inflation",
-          "title": "Fed Signals More Rate Hikes Amid AI‑Driven Inflation Concerns"
-        },
-        {
-          "category": "credit",
-          "title": "European Banking Stress Raises Credit Risk Outlook"
-        }
-      ]
     }
   ],
   "macro_history": [
+    {
+      "date": "2026-11-27",
+      "category": "regulatory",
+      "title": "US Air Force Cloud One breach raises cybersecurity spending",
+      "body": "A recent hack of the US Air Force's Cloud One platform highlights vulnerabilities in cloud infrastructure. Companies providing cloud security and AI compute are likely to see heightened procurement and spending from government and enterprise customers.",
+      "bull": "Increased defense and enterprise contracts boost revenue for cloud‑security leaders.",
+      "base": "Moderate uplift as firms integrate additional security layers.",
+      "bear": "If the breach triggers broader regulatory scrutiny, compliance costs could rise and delay projects."
+    },
+    {
+      "date": "2026-11-27",
+      "category": "geopolitical",
+      "title": "Trump backs Iraqi leader’s push for stronger state authority",
+      "body": "US political support for Iraq’s central government may stabilize the region but adds uncertainty to oil‑export flows. Any shift in Iraqi production could subtly affect global oil supply dynamics, which in turn influences Canadian energy exporters.",
+      "bull": "Stability supports steady oil prices, benefiting Canadian energy stocks.",
+      "base": "Limited impact as global oil markets remain balanced.",
+      "bear": "Escalation could spike oil volatility, hurting Canadian energy margins."
+    },
+    {
+      "date": "2026-11-27",
+      "category": "corporate",
+      "title": "Adani Group announces $24 bn FY27 capex plan",
+      "body": "India’s Adani conglomerate targets near‑$24 billion of capital spending for FY27, focusing on renewable energy, ports and logistics. The scale of investment signals strong demand for commodities and infrastructure services, with spill‑over effects for global material suppliers.",
+      "bull": "Higher commodity demand lifts prices, benefitting mining and materials exposure.",
+      "base": "Incremental demand supports modest price gains.",
+      "bear": "If financing constraints emerge, capex could be delayed, dampening commodity outlook."
+    },
     {
       "date": "2026-11-26",
       "category": "credit",
@@ -511,36 +523,12 @@
       "bull": "Higher rates could strengthen the CAD, modestly boosting the relative value of Canadian‑listed holdings.",
       "base": "Rates likely stay near current levels, leaving most equities unchanged.",
       "bear": "Sustained high rates may compress valuations of high‑growth tech ETFs and leveraged products."
-    },
-    {
-      "date": "2026-11-23",
-      "category": "monetary-policy",
-      "title": "Fed Rate Hike Tightens Capital Costs",
-      "body": "The Fed’s 50‑bp increase lifts global funding rates, raising the cost of capital for US‑listed tech and leveraged ETFs held in the portfolio. Higher rates compress equity multiples, especially for growth‑oriented holdings priced in USD.",
-      "bull": "If the hike is a one‑off and markets price in a near‑term pause, equity valuations could stabilise.",
-      "base": "Markets likely digest the hike and trade sideways, leaving leveraged exposure largely unchanged.",
-      "bear": "Further tightening or a hawkish stance could trigger a sell‑off, magnified by 3x leverage."
-    },
-    {
-      "date": "2026-11-23",
-      "category": "commodities",
-      "title": "Elevated Oil Prices Sustain Canadian Energy Dividend Appeal",
-      "body": "Ongoing Houthi disruptions keep Brent premiums high, supporting cash flow for Canadian energy firms. Higher oil prices benefit Enbridge’s dividend yield and the broader energy sector exposure in the portfolio.",
-      "bull": "Sustained premiums could lift ENB.TO’s dividend payout and price.",
-      "base": "Oil prices likely hover near current levels, providing modest support.",
-      "bear": "A rapid de‑escalation in the Gulf could drop prices, pressuring energy stocks."
-    },
-    {
-      "date": "2026-11-23",
-      "category": "regulatory",
-      "title": "Emerging AI Regulation May Trim Tech Margins",
-      "body": "New AI model‑intelligence limits under discussion in the US and EU could increase compliance costs for semiconductor and AI‑heavy firms, affecting the portfolio’s tech concentration.",
-      "bull": "If regulations are modest, firms like TSM and AVGO could benefit from early compliance advantage.",
-      "base": "Regulatory rollout is gradual; current earnings remain intact.",
-      "bear": "Stringent rules could curb R&D spend and compress margins."
     }
   ],
   "risk_history": [
+    "Liquidity Gap in Leveraged ETFs during Elevated Volatility",
+    "FX Exposure to USD/CAD Appreciation",
+    "Cash Drag in RRSP from Uninvested Funds",
     "Leverage Decay in 3x Equity ETFs amid Elevated Volatility",
     "USD/CAD Translation Risk from Potential Canadian Dollar Strengthening",
     "Single‑Stock Tail Risk in AI‑Heavy Semiconductor Names",
@@ -552,9 +540,6 @@
     "Sector Concentration – AI‑Heavy Semiconductor Exposure",
     "Leverage Decay in Triple‑Beta ETFs",
     "USD/CAD Strengthening Drag",
-    "Tech Concentration – AI‑Heavy Semiconductor Overlap",
-    "Leverage Decay Volatility Regime Shift",
-    "Concentration in AI‑Heavy Semiconductor Exposure",
-    "Currency Exposure Drag from USD/CAD Appreciation"
+    "Tech Concentration – AI‑Heavy Semiconductor Overlap"
   ]
 }
